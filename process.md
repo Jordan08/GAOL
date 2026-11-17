@@ -14,8 +14,11 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 17 novembre 2026, au commit `67f7073` de `dev` (la fusion
-de #383, la couverture et le PDF de la préparation de PJ, après celle de #382,
+Dernière mise à jour : 17 novembre 2026, au commit `a6189a0` de `dev` (la fusion
+de #385, hors des points : la suppression d'`expr_visitor`, après les registres
+de `configure-clean`, `819e25d`), et avant au commit `67f7073` de `dev` (la
+fusion de #383, la couverture et le PDF de la préparation de PJ, après celle de
+#382,
 la tâche PH, et les registres de la préparation, `74409aa`), et avant au commit
 `9a2a88b` de `dev` (la fusion de #381, le `ChangeLog` de la tâche PZ, après
 celle de #380, le manuel et le
@@ -1081,7 +1084,9 @@ git ls-remote --heads origin
   (`9a2a88b`, `TODO_DONE.md` 2.3, 3.47, 4 et 7.46), puis, le 17 novembre, #382
   (la tâche PH : trois commentaires de GAOL, `3rd/README.md`, `doc/compare/`) à
   8 h 31 UTC et #383 (PJ : la couverture, le manuel et son PDF) à 8 h 48 UTC
-  (`67f7073`, 2.3, 3.49, 4 et 7.49) ; l'audit du 13 octobre a
+  (`67f7073`, 2.3, 3.49, 4 et 7.49), puis #385 (hors des points : la
+  suppression d'`expr_visitor`) à 10 h 00 UTC (`a6189a0`, 2.3, 3.51 et 7.51) ;
+  l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
 - **En cours** : au 17 novembre, aucune pull request n'est ouverte :
@@ -1118,7 +1123,8 @@ git ls-remote --heads origin
   `todo-px3b-test-eq-rest`) et #380 et #381 (la tâche PZ ;
   `manual-pz-review-fixes` et `synthese-pu-py`) et #382 (`todo-ph-gaol-texts`)
   et #383 (`manual-pj-coverage`) sont fusionnées, leurs registres faits ; `dev`
-  est au commit de ces registres (7.49), après `67f7073`, la fusion de #383,
+  est au commit de ces registres (7.51), après `a6189a0`, la fusion de #385,
+  `819e25d` (7.50), `5dff483`, `67f7073`, la fusion de #383,
   `269c895`, la fusion de #382, `74409aa`, les registres de la préparation de PJ
   (7.48), `2d3b47d`, ceux de PH (7.47), `9a2a88b`, la
   fusion de #381, `5c746d7`, la fusion de #380, `3d0616e`, les registres de PX

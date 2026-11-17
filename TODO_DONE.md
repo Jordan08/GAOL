@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 17 novembre
-2026 (commit `67f7073` de `dev`, la fusion de #383 ; `configure-clean`, qui
+2026 (commit `a6189a0` de `dev`, la fusion de #385 ; `configure-clean`, qui
 était à `83e2f69`, la fusion de #321, est supprimée le 17 novembre : voir la
 section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
@@ -59,7 +59,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 ## 1. L'état au 17 novembre 2026
 
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `67f7073` (la fusion de #383 le 17 novembre à 8 h 48 UTC, la couverture
+  commit `a6189a0` (la fusion de #385 le 17 novembre à 10 h 00 UTC, hors des
+  points : la suppression d'`expr_visitor`, après les registres de
+  `configure-clean`, `819e25d` (7.50)), et avant au commit `67f7073` (la fusion
+  de #383 le 17 novembre à 8 h 48 UTC, la couverture
   et le PDF de PJ, après celle de #382 à 8 h 31 UTC, la tâche PH, et les
   registres de leur préparation, `74409aa` (7.48)), et avant au commit `9a2a88b`
   (la fusion de #381 le 16 novembre à 22 h 09 UTC, après celle
@@ -4611,6 +4614,27 @@ tournait au moment des registres.
   36 lignes de `gaol_performance` et les 10 longues lignes dans la dispersion
   (0,96 à 1,06), les tableaux de l'x86 tiennent (3.49).
 
+- - #385 (hors des points : la classe `expr_visitor` et son en-tête
+  `gaol/parser/gaol_expr_visitor.h` supprimés ; `remove-expr-visitor`, trois
+  commits) : fusionnée le 17 novembre à 10 h 00 UTC par le mainteneur
+  (`a6189a0`, tête `781d858`), avant la fin de sa CI : Linux, Linux containers,
+  Windows, Manual et Release au vert sur la tête, Autotools and meson, macOS et
+  Performance en cours. Demande du mainteneur (l'option C de 3.51), après la
+  question sur les 9 lignes sur 99 de ce fichier que la couverture exécute :
+  `expr_eval`, le seul visiteur de GAOL, redéfinissait les 30 `visit()`, et les
+  30 corps par défaut de la base (`error = true;`) ne s'exécutaient jamais.
+  `expr_node::accept()` et les 30 `accept()` des nœuds prennent un `expr_eval&`
+  (déclaré en avant) et sont dans `gaol_expression.cpp` ; `expr_eval` ne
+  dérive plus de rien (`error`, `error_occurred()`, `reset()`, plus de
+  destructeur virtuel) ; les 30 `using gaol_core::<nœud>` sont dans
+  `gaol_expression.h` ; le fichier sort des trois listes d'en-têtes installés
+  (`gaol/parser/` en a quatre). `tests/misc.cpp` vérifie les 30 noms de nœuds
+  (12 de plus, avec des dents). Validé deux fois (avant et après la relecture) :
+  CMake avec GCC et Clang 18 en `-Werror`, intervalles FPU, ASan et UBSan,
+  `headers.sh`, autotools, meson et les tests du GAOL installé, tout au vert.
+  Le relecteur (144 000 jetons) n'a trouvé aucun défaut de code et six textes
+  périmés, corrigés.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -8097,6 +8121,35 @@ le
   « laisse, n'y touche pas » : PJ.4 et la phrase de PJ.3 sur #281 ne changent
   pas.
 
+### 3.51 Le 17 novembre : `expr_visitor` supprimé (#385)
+
+Le mainteneur demande « dis-moi si c'est possible de supprimer
+`gaol/parser/gaol_expr_visitor.h` », puis, des trois façons que la session
+décrit (A : le fichier seul, la classe dans `gaol_expression.h` ; B : les 30
+`visit()` en `= 0` ; C : la classe aussi), « fais la façon C dans une nouvelle
+branche en suivant la méthodologie de `process.md` » (17 novembre).
+
+- **Pourquoi** : la couverture du 17 novembre (#383) donne 9 lignes sur 99 à ce
+  fichier, parce que `expr_eval` redéfinit les 30 `visit()` de la base : les
+  corps par défaut de `expr_visitor` ne servent à aucun visiteur de GAOL, et
+  aucun test n'en définissait un. Le fichier faisait aussi les déclarations
+  anticipées des nœuds et les 30 `using` qui exportent leurs noms dans `gaol`.
+- **Les choix de la session** (sans question au mainteneur, l'option étant
+  la sienne) : les définitions des `accept()` hors ligne, dans
+  `gaol_expression.cpp` (`expr_eval` n'est complet qu'après
+  `gaol_expression.h`), plutôt qu'en ligne dans `gaol_expr_eval.h` ; les `using`
+  des nœuds dans `gaol_expression.h` ; pas de destructeur virtuel pour
+  `expr_eval` ; `tests/misc.cpp` vérifie les 30 noms de nœuds (le relecteur a
+  relevé qu'il n'en vérifiait que 18).
+- **Ce qui casse** : `gaol::expr_visitor`, l'en-tête, et les nœuds ou visiteurs
+  qu'un programme écrivait lui-même (GAOL 4 les permettait).
+- **Reste à faire** : le rapport de couverture, le tableau 14.8 du manuel
+  (qui cite le fichier supprimé) et le PDF, à refaire à la version (PJ) ; deux
+  phrases de `doc/differences.md` (les cinq en-têtes de `gaol/parser/` sont
+  quatre ; `-Wsuggest-override` pour une classe qui dérive de `expr_eval`) pour
+  la synthèse ; `examples/examples.md` (ligne 601), l'histoire d'une relecture,
+  nomme encore le fichier.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -10491,6 +10544,16 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
 - La pull request #384 (`remove-claude-instructions`, un commit sur `master`)
 est
   ouverte, le mainteneur la fusionne.
+
+### 7.51 Le 17 novembre (après #385 : les registres)
+
+- Les registres de #385, en un commit direct sur `dev`, depuis un clone
+  `--shared` du scratchpad (GAOL_V9, propre, est avancé par un fast-forward
+  avant) : `TODO.md` (l'en-tête, les pull requests, la couverture de PJ), ce
+  fichier (en-tête, 1, 2.3, 3.51 et 7.51) et `process.md` (l'en-tête et §12).
+  Les issues #178 et #179 sont mises à jour, #177 non.
+- Ce commit ne change que des fichiers que les workflows ignorent. La branche
+  `remove-expr-visitor` n'est plus sur GitHub (supprimée à la fusion).
 
 ## 8. Le ménage fait
 
