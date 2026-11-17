@@ -86,7 +86,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     bounds against CORE-MATH called in the downward and the upward rounding,
     `tests/expressions.cpp` the intervals read from a string, and
     `-DGAOL_COVERAGE=ON` writes the coverage of the tests in
-    [coverage/README.md](../coverage/README.md) (95 % of the lines of GAOL).
+    [coverage/README.md](../coverage/README.md) (97.5 % of the lines of GAOL).
   - **`exp2`, `exp10`, `log2` and `log10`**, which IEEE 1788-2015 requires
     among the forward elementary functions (Table 9.1) and which GAOL did not
     provide, are bounded with CORE-MATH's, the tightest bounds. The value that
