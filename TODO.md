@@ -275,8 +275,13 @@ maintenant ») ; elles le sont, et la version attend le mot du mainteneur :
    rebase permis) ; aucun contrôle d'état n'est exigé, donc aucun job de macOS
    14 ; rien ne vise les étiquettes (les quatre `v4.*` existent). La fusion de
    `dev` dans `master` passe donc par une pull request, non par un push
-   direct. Après v5.0.0, le développement continue dans `dev` (*décidé le 12
-   novembre*, process.md §13) et `master` ne reçoit que les versions de `dev`.
+   direct. La CI de `master` échoue sans rapport avec GAOL : ses workflows d'avant
+   la version demandent « Visual Studio 2022 » à l'image `windows-11-arm`, qui ne
+   l'a plus (les deux jobs arm64 de Windows échouent depuis le 30 septembre), et
+   des runners de macOS 14 ; ceux de `dev` les remplacent à la fusion (pull
+   request #384 : 3.50). Après v5.0.0, le développement continue dans `dev`
+   (*décidé le 12 novembre*, process.md §13) et `master` ne reçoit que les
+   versions de `dev`.
    Les commits à ligne de crédit (123) restent (*décidé le 19 octobre*). La
    licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section
    « Licences » de `README.md` et dans le manuel : fait. Pour #281, les cas de
@@ -313,7 +318,6 @@ maintenant ») ; elles le sont, et la version attend le mot du mainteneur :
    déclenchées, et des badges que `README.md` montre déjà sur `master`) et le
    chapitre 14 du manuel (lignes 1280 et 1290), avec son PDF. L'histoire reste
    telle qu'elle est (`ChangeLog`, `doc/tests.md`, `doc/compare/performance.md`,
-   `tests/tools/`, `examples/examples.md`). La branche
-   `todo-rosetta-diagnostic-pow2`
-   (#373, fermée, son contenu est dans `dev`) est la seule autre branche de
-   GitHub : à garder ou à supprimer, au mainteneur.
+   `tests/tools/`, `examples/examples.md`). `dev` et `master` sont les deux seules
+   branches de GitHub (`todo-rosetta-diagnostic-pow2`, celle de #373, est
+   supprimée le 17 novembre).

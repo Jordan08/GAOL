@@ -8080,6 +8080,19 @@ le
   »
   un envoi facultatif) restent ouvertes, comme #126, #127, #129 à #131, #136,
   #175 et #125, dont l'envoi attend le mainteneur.
+- **La branche `todo-rosetta-diagnostic-pow2`** (#373, fermée) : supprimée sur
+  GitHub à la demande du mainteneur, après avoir vérifié qu'elle est contenue
+  dans `dev`. **La CI de #384** (le mainteneur écrit « #364 », dont la CI était
+  verte : lu comme #384) : Linux, Linux containers et Autotools and meson au
+  vert ; Windows échoue sur « Visual Studio 2022 arm64 » (Debug et Release,
+  « could not find any instance of Visual Studio » : le workflow de `master`
+  demande `windows-11-arm`, qui n'a plus Visual Studio 2022 ; les mêmes deux
+  jobs échouent sur `master` depuis le 30 septembre, runs 36740571031 et
+  36760984738) et deux jobs de macOS 14 sont annulés (runner absent). Rien ne
+  vient de GAOL ni de la pull request, qui retire un fichier de notes ; la
+  relance des jobs en échec échoue de la même façon (Windows, tentative 2).
+  Aucun contrôle d'état n'est exigé sur `master`, et la fusion de `dev` remplace
+  ces workflows.
 - **Réponse 4, l'adresse de Goualard et la licence d'IBEX et de Codac** :
   « laisse, n'y touche pas » : PJ.4 et la phrase de PJ.3 sur #281 ne changent
   pas.
