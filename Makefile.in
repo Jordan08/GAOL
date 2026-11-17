@@ -456,8 +456,10 @@ EXTRA_DIST = \
 	.github/audit/test_compare.py \
 	.github/scripts/check-gcc-windows-fma.sh \
 	.github/scripts/check-intervals.sh \
+	.github/scripts/check_branch \
 	.github/scripts/comma-locale.sh \
 	.github/scripts/compare-performance.py \
+	.github/scripts/gcore \
 	.github/scripts/headers.sh \
 	.github/scripts/newlib-fe-values.h \
 	.github/scripts/performance-ab.sh \
