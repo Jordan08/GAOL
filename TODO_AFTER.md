@@ -227,8 +227,8 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
 6. **Le ménage de la fin** : l'image Docker `i386/debian:trixie` de #111 reste
    sur la machine (`debian:trixie` et `ubuntu:24.04` ont été supprimées le 31
    octobre : `TODO_DONE.md`, 8.1) ; les registres `TODO.md`, `TODO_DONE.md` et
-   `TODO_AFTER.md` et leurs issues #177 à #179 sont à vider après la version,
-   qu'il faudra alors fermer ou garder. `todo-notes/` (ramené de la branche
+   `TODO_AFTER.md` sont à vider après la version, et leurs issues #177 à #179 à
+   fermer ou à garder alors. `todo-notes/` (ramené de la branche
    `todo-status`, supprimée) est retiré du dépôt le 17 novembre par #387 : ses
    rapports restent au commit `16a2f60` et le reste, la synthèse comprise, au
    commit `5d07c3a2` (`git show 5d07c3a2:todo-notes/synthese.md`).

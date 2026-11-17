@@ -98,7 +98,7 @@ Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
     servait encore, est supprimé le 17 novembre (#387) : ses rapports, la
     synthèse (`synthese.md`), le plan de la tâche X (`points_w4.py`) et les
     essais de PK restent dans l'historique de `dev` (`git show
-    5d07c3a2:todo-notes/<fichier>`), les outils sont dans `.github/scripts/`
+    5d07c3a2:todo-notes/<chemin>`), les outils sont dans `.github/scripts/`
     et la recette de GCC 12.2 pour aarch64 dans l'issue #374.
 - **Les arbres de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V9/GAOL`
   et `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V8`, deux clones du même dépôt,
