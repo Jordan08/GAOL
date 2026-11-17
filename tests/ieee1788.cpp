@@ -38,7 +38,6 @@
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"
-#include "gaol/parser/gaol_expr_eval.h"
 
 #include <algorithm>
 #include <cctype>
@@ -77,12 +76,6 @@ namespace
   static_assert(std::is_same<decltype(atan2(1.0, 2.0)), double>::value, "atan2(double, double) is C's");
   static_assert(std::is_same<decltype(abs(-3)), int>::value, "abs(int) is C's");
 
-  /* The functions of gaol_ieee1788 take the overloads of the expressions,
-     gaol/parser/gaol_expression.h being included here after gaol/gaol_ieee1788.h,
-     and before it in tests/expressions.cpp (GAOL v5) */
-  static_assert(std::is_same<decltype(gaol_ieee1788::sin(std::declval<const gaol::expression&>())), const gaol::expression>::value,
-                "gaol_ieee1788::sin of an expression, gaol/parser/gaol_expression.h included after gaol/gaol_ieee1788.h");
-
   /* A number converts neither to an interval nor to an expression (GAOL
      v5): min(y, 1.0) or atan2(y, 1.0), which took [1] while it converted,
      do not compile, and the interval is written interval(1.0) */
@@ -95,14 +88,6 @@ namespace
   static_assert(!has_min<interval, double>::value && !has_min<double, interval>::value, "min(y, 1.0) does not compile");
   static_assert(!has_atan2<interval, double>::value && !has_atan2<double, interval>::value, "atan2(y, 1.0) does not compile");
   static_assert(has_min<interval, interval>::value && has_atan2<interval, interval>::value, "the detection works");
-
-  // The value of an expression, which the evaluator of GAOL computes
-  interval value_of(const gaol::expression& e)
-  {
-    gaol::expr_eval eval;
-    e.get_root()->accept(eval);
-    return eval.result();
-  }
 
   /*
     Integers (GAOL v5): numsToInterval() and isMember() take an
@@ -279,27 +264,6 @@ namespace
           !smallest.is_empty() && smallest.right() >= 0x1.fffffffd3a37bp-1 && smallest.right() <= 0x1.fffffffd3a37fp-1
           && smallest.left() == -smallest.right(),
           [&] { return hex(smallest); });
-    // pown(e, n) of the expressions for an unsigned beyond the ints, which
-    // made [1, 2]^3000000000u [0, 1], converting n to a negative int: pown,
-    // as for an interval (GAOL v5: [-oo, +oo])
-    const interval pown_u = value_of(pown(gaol::expression(numsToInterval(1.0, 2.0)), 3000000000u));
-    check("pown(e, 3000000000u) of an expression: pown", bounds_are(pown_u, 1.0, oo),
-          [&] { return hex(pown_u); });
-    // Beyond 2^53, an n that is no double: x^h x^l, n = h + l, h a double and
-    // |l| < 2^11, as gaol_pown_ll() splits n (GAOL v5: [-oo, +oo]), not the
-    // power of the double nearest n, x^(2^53) or x^(2^53 + 2), [1] for
-    // [-1]^(2^53 + 1); an n that is a double, x^n, as for an interval
-    const interval minus_one = value_of(pown(gaol::expression(interval(-1.0)), 9007199254740993LL));
-    const interval minus_one_inverse = value_of(pown(gaol::expression(interval(-1.0)), -9007199254740993LL));
-    const interval split = value_of(pown(gaol::expression(just_above_one), 9007199254740993LL));
-    const interval split_negative = value_of(gaol::pow(gaol::expression(-just_above_one), -9007199254740995LL));
-    const interval whole = value_of(pown(gaol::expression(just_above_one), 9007199254740994LL));
-    check("pown(e, n) and gaol::pow(e, n) of an expression beyond 2^53: x^n, within three doubles",
-          bounds_are(minus_one, -1.0, -1.0) && bounds_are(minus_one_inverse, -1.0, -1.0)
-          && within_three(split, 0x1.d8e64b8d4ddadp+2, 0x1.d8e64b8d4ddaep+2)
-          && within_three(split_negative, -0x1.152aaa3bf81cap-3, -0x1.152aaa3bf81c9p-3)
-          && whole.set_eq(tight_ll),
-          [&] { return hex(minus_one) + " " + hex(minus_one_inverse) + " " + hex(split) + " " + hex(split_negative) + " " + hex(whole); });
   }
 
   /*
@@ -381,14 +345,6 @@ namespace
     const interval no_base = pow(numsToInterval(-4.0, -1.0), interval(dmax));
     check("pow([-4, -1], [DBL_MAX]): empty", no_base.is_empty(), [&] { return hex(no_base); });
 
-    // The expressions of pow and pown, evaluated: pow(e1, e2) is the pow of
-    // the standard, where the node of gaol::pow(e1, e2) computes GAOL's
-    const gaol::expression base(x), exponent(interval(2.0));
-    const interval std_pow = value_of(pow(base, exponent)), std_pown = value_of(pown(base, 2));
-    const interval gaol_pow = value_of(gaol::pow(base, exponent));
-    check("pow(e1, e2) and pown(e, n) on expressions are those of the standard",
-          std_pow.is_empty() && std_pown.set_eq(numsToInterval(1.0, 16.0)) && gaol_pow.set_eq(numsToInterval(1.0, 16.0)),
-          [&] { return hex(std_pow) + " " + hex(std_pown) + " " + hex(gaol_pow); });
   }
 
   /*

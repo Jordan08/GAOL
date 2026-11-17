@@ -26,11 +26,8 @@
  * min...) are brought in by using-declarations of those of gaol_core, which
  * name the functions argument-dependent lookup finds too, and so are the
  * operators of intervals (+, -, *, /, %, & and |) and the operator<< writing
- * an interval. This file does not
- * include gaol/parser/gaol_expression.h (GAOL v5): a program using the expressions
- * includes it, as with GAOL 4, and it declares them again for its overloads,
- * whatever the order of the includes, and defines pown(e, n) and pow(e1, e2)
- * in this namespace.
+ * an interval. The expressions are not in this namespace, nor in gaol (GAOL
+ * v5): a program reads a string with textToInterval().
  *
  * Where the standard and GAOL differ, these functions follow the standard:
  *   - pow(x, y) and pow(x, p) are the pow of Table 9.1, defined for x > 0, and
@@ -38,9 +35,7 @@
  *     included: the power with an integer exponent is pown(x, p) in the
  *     standard. gaol::pow takes that integer power for an integer exponent,
  *     which is defined for x < 0 too, beyond the ints as well (GAOL v5).
- *     Neither pow is in gaol_core: each namespace has its own.
- *     pown(e, n) and pow(e1, e2) build expressions (gaol/parser/gaol_expression.h)
- *     computed with the pown and the pow of the standard;
+ *     Neither pow is in gaol_core: each namespace has its own;
  *   - inf(x) and sup(x) are +oo and -oo for the empty set (Table 10.2), where
  *     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
  *   - isMember(m, x) is false for an infinite m (10.6.3);

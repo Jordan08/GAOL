@@ -198,7 +198,7 @@ namespace gaol_core {
 
       Explicit (GAOL v5): a double no longer converts silently to an
       interval, which made gaol::sin(0.5) the sin of [0.5] and, where
-      gaol/parser/gaol_expression.h is included, ambiguous with the sin of an
+      gaol/parser/gaol_expression.h was included, ambiguous with the sin of an
       expression. Assigning a double, &= and |= with one, and the relations
       between an interval and a double have overloads of their own, which
       take interval(d).

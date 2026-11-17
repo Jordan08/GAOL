@@ -1241,9 +1241,8 @@ namespace
     namespace std1788 = ::gaol_ieee1788;
     Random random;
 
-    // operator<< is named in the namespace (this file does not include the
-    // expressions, which gaol/parser/gaol_expression.h names there too), and is
-    // that of GAOL: it writes what os << x writes
+    // operator<< is named in the namespace, and is that of GAOL: it writes
+    // what os << x writes
     {
       const interval written(1.5, 2.5);
       std::ostringstream named, plain;

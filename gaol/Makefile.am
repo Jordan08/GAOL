@@ -83,15 +83,14 @@ library_core_include_HEADERS = core/gaol_interval_core.h \
 	core/gaol_interval_detail.h core/gaol_interval_fpu.h \
 	core/gaol_interval_neon.h core/gaol_interval_sse.h
 
-# The headers of the parser of the strings and of the expressions, which a
-# program includes as gaol/parser/gaol_expression.h and
-# gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources
+# The header of the parser of the strings, which gaol_ieee1788.h includes:
+# installed in gaol/parser/ as in the sources
 library_parser_includedir = $(includedir)/gaol/parser
-library_parser_include_HEADERS = parser/gaol_eval_stack.h \
-	parser/gaol_expr_eval.h parser/gaol_expression.h \
-	parser/gaol_parser.h
+library_parser_include_HEADERS = parser/gaol_parser.h
 
-# Headers of the sources of GAOL, not installed (GAOL v5):
+# Headers of the sources of GAOL, not installed (GAOL v5): the headers of the
+# expressions, which the parser of the strings builds (parser/gaol_expression.h,
+# parser/gaol_expr_eval.h, parser/gaol_eval_stack.h),
 # parser/gaol_interval_parser.h, which did not compile when included, the parts
 # of the library, the operations of each kind of intervals, which
 # core/gaol_interval_core.cpp includes (core/*_impl.h), the bounds at doubles,
@@ -100,6 +99,8 @@ library_parser_include_HEADERS = parser/gaol_eval_stack.h \
 # defines GAOL_FLOAT_INTERVALS (see gaol_config.h)
 noinst_HEADERS = math/gaol_core_math.h \
 	gaol_init_cleanup.h parser/gaol_interval_parser.h \
+	parser/gaol_expression.h parser/gaol_expr_eval.h \
+	parser/gaol_eval_stack.h \
 	math/gaol_u128.h \
 	core/gaol_interval_internal.h core/gaol_interval_sse_kernels.h \
 	core/gaol_interval_neon_kernels.h core/gaol_interval_fpu_kernels.h \

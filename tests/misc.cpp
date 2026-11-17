@@ -14,9 +14,6 @@
 
 // GAOL 4's unit test check/misc.cpp, run with the checks of unit_tests.h
 // rather than CppUnit (GAOL v5)
-// The expressions, with their nodes and evaluator, for the names of the
-// namespace gaol below
-#include "gaol/parser/gaol_expr_eval.h"
 #include "unit_tests.h"
 
 using namespace gaol;
@@ -50,15 +47,13 @@ namespace detail {
   by one rather than taking it whole (see gaol/gaol_interval.h): the names of
   GAOL 4 that Codac and IBEX write gaol::f, the other classes and functions of
   GAOL 4 that gaol still names, the functions on intervals GAOL v5 adds, and
-  restore_rounding() and exact_string(), each with the overloads of the
-  expressions where there are some. A name missing does not compile. The names
-  that gaol does not hold, and that a program names in gaol_core, are checked
-  absent below.
+  restore_rounding() and exact_string(). A name missing does not compile. The
+  names that gaol does not hold, and that a program names in gaol_core, the
+  expressions among them, are checked absent below.
 */
 namespace gaol_names
 {
   using gaol_core::interval;
-  using gaol_core::expression;
 
   template <class A, class B>
   constexpr bool same() { return std::is_same<A, B>::value; }
@@ -70,46 +65,11 @@ namespace gaol_names
   constexpr bool nth_root_rel_takes(...) { return false; }
 
   const interval& x();
-  const expression& e();
   std::ostream& out();
 
 #define GAOL_NAMES_CLASS(c) static_assert(same<gaol::c, gaol_core::c>(), "gaol::" #c)
   GAOL_NAMES_CLASS(interval);
   GAOL_NAMES_CLASS(interval_format);
-  GAOL_NAMES_CLASS(expression);
-  GAOL_NAMES_CLASS(expr_node);
-  GAOL_NAMES_CLASS(expr_eval);
-  GAOL_NAMES_CLASS(null_node);
-  GAOL_NAMES_CLASS(double_node);
-  GAOL_NAMES_CLASS(interval_node);
-  GAOL_NAMES_CLASS(add_node);
-  GAOL_NAMES_CLASS(sub_node);
-  GAOL_NAMES_CLASS(mult_node);
-  GAOL_NAMES_CLASS(div_node);
-  GAOL_NAMES_CLASS(unary_minus_node);
-  GAOL_NAMES_CLASS(pow_node);
-  GAOL_NAMES_CLASS(pow_itv_node);
-  GAOL_NAMES_CLASS(nth_root_node);
-  GAOL_NAMES_CLASS(sin_node);
-  GAOL_NAMES_CLASS(cos_node);
-  GAOL_NAMES_CLASS(tan_node);
-  GAOL_NAMES_CLASS(atan2_node);
-  GAOL_NAMES_CLASS(asin_node);
-  GAOL_NAMES_CLASS(acos_node);
-  GAOL_NAMES_CLASS(atan_node);
-  GAOL_NAMES_CLASS(sinh_node);
-  GAOL_NAMES_CLASS(cosh_node);
-  GAOL_NAMES_CLASS(tanh_node);
-  GAOL_NAMES_CLASS(asinh_node);
-  GAOL_NAMES_CLASS(acosh_node);
-  GAOL_NAMES_CLASS(atanh_node);
-  GAOL_NAMES_CLASS(exp_node);
-  GAOL_NAMES_CLASS(log_node);
-  // The nodes of the functions GAOL v5 adds to the expressions
-  GAOL_NAMES_CLASS(exp2_node);
-  GAOL_NAMES_CLASS(log2_node);
-  GAOL_NAMES_CLASS(sign_node);
-  GAOL_NAMES_CLASS(trunc_node);
   // The comparator of the containers of the standard library (GAOL v5)
   GAOL_NAMES_CLASS(lexicographic_less);
   // The 16 states of overlap() (GAOL v5)
@@ -245,43 +205,6 @@ namespace gaol_names
                 && same<decltype(gaol::operator>>(std::declval<std::istream&>(), std::declval<interval&>())), std::istream&>(),
                 "gaol::operator<<, gaol::operator>> of intervals");
 
-  // The overloads of the expressions, which gaol/parser/gaol_expression.h names
-  // again after gaol/gaol_interval.h did: a using-declaration names those
-  // declared before it only
-#define GAOL_NAMES_EXPRESSION(f) static_assert(same<decltype(gaol::f(e())), const expression>(), "gaol::" #f "(e)")
-  GAOL_NAMES_EXPRESSION(cos);
-  GAOL_NAMES_EXPRESSION(sin);
-  GAOL_NAMES_EXPRESSION(tan);
-  GAOL_NAMES_EXPRESSION(acos);
-  GAOL_NAMES_EXPRESSION(asin);
-  GAOL_NAMES_EXPRESSION(atan);
-  GAOL_NAMES_EXPRESSION(cosh);
-  GAOL_NAMES_EXPRESSION(sinh);
-  GAOL_NAMES_EXPRESSION(tanh);
-  GAOL_NAMES_EXPRESSION(acosh);
-  GAOL_NAMES_EXPRESSION(asinh);
-  GAOL_NAMES_EXPRESSION(atanh);
-  GAOL_NAMES_EXPRESSION(exp);
-  GAOL_NAMES_EXPRESSION(log);
-  GAOL_NAMES_EXPRESSION(exp2);
-  GAOL_NAMES_EXPRESSION(log2);
-  GAOL_NAMES_EXPRESSION(sign);
-  GAOL_NAMES_EXPRESSION(trunc);
-  GAOL_NAMES_EXPRESSION(operator-);
-#undef GAOL_NAMES_EXPRESSION
-  static_assert(same<decltype(gaol::atan2(e(), e())), const expression>()
-                && same<decltype(gaol::nth_root(e(), 3u)), const expression>()
-                && same<decltype(gaol::nth_root(e(), 3)), const expression>()
-                && same<decltype(gaol::pow(e(), 3)), const expression>() && same<decltype(gaol::pow(e(), e())), const expression>()
-                && same<decltype(gaol::operator+(e(), e())), const expression>()
-                && same<decltype(gaol::operator-(e(), e())), const expression>()
-                && same<decltype(gaol::operator*(e(), e())), const expression>()
-                && same<decltype(gaol::operator/(e(), e())), const expression>(),
-                "gaol::atan2(e1, e2), gaol::nth_root(e, n), gaol::pow(e, n), gaol::operator+(e1, e2)...");
-  static_assert(same<decltype(gaol::operator<<(out(), e())), std::ostream&>(),
-                "gaol::operator<< of the expressions");
-  static_assert(same<decltype(gaol::evaluate_expr(e(), std::declval<interval&>())), bool>(), "gaol::evaluate_expr");
-
   // The functions of doubles, the initialization and the rounding of GAOL 4,
   // and restore_rounding() of GAOL v5
   static_assert(same<decltype(gaol::next_float(1.0)), double>() && same<decltype(gaol::previous_float(1.0)), double>()
@@ -328,6 +251,8 @@ namespace gaol_names_absent
   absent gaol_pow_hybrid(...);
   absent gaol_pown_exp(...);
   absent gaol_pow_exp(...);
+  absent evaluate_expr(...);
+  absent evaluate_left_right(...);
   absent gaol_sign_of(...);
   absent rnd_reread(...);
   absent rnd_keep(...);
@@ -347,6 +272,41 @@ namespace gaol_names_absent
   using rounding_guard = absent;
   using gaol_initializer = absent;
   constexpr absent _gaol_initializer{};
+  // The expressions, with their nodes and their evaluator, which GAOL 4
+  // declared in gaol and which are in gaol_core only (GAOL v5)
+  using expression = absent;
+  using expr_node = absent;
+  using expr_eval = absent;
+  using null_node = absent;
+  using double_node = absent;
+  using interval_node = absent;
+  using add_node = absent;
+  using sub_node = absent;
+  using mult_node = absent;
+  using div_node = absent;
+  using unary_minus_node = absent;
+  using pow_node = absent;
+  using pow_itv_node = absent;
+  using nth_root_node = absent;
+  using sin_node = absent;
+  using cos_node = absent;
+  using tan_node = absent;
+  using atan2_node = absent;
+  using asin_node = absent;
+  using acos_node = absent;
+  using atan_node = absent;
+  using sinh_node = absent;
+  using cosh_node = absent;
+  using tanh_node = absent;
+  using asinh_node = absent;
+  using acosh_node = absent;
+  using atanh_node = absent;
+  using exp_node = absent;
+  using log_node = absent;
+  using exp2_node = absent;
+  using log2_node = absent;
+  using sign_node = absent;
+  using trunc_node = absent;
   // The reader of strings, the stack of evaluation and NaN_val, which GAOL 4
   // declared in gaol and which are in gaol_core only
   using parsing_names = absent;
@@ -376,8 +336,10 @@ namespace gaol_names
   GAOL_NAMES_ABSENT((gaol_pown_ll)(x(), 3LL));
   GAOL_NAMES_ABSENT((gaol_pow_real)(x(), 0.5));
   GAOL_NAMES_ABSENT((gaol_pow_hybrid)(x(), x()));
-  GAOL_NAMES_ABSENT((gaol_pown_exp)(e(), 3));
-  GAOL_NAMES_ABSENT((gaol_pow_exp)(e(), e()));
+  GAOL_NAMES_ABSENT((gaol_pown_exp)(x(), 3));
+  GAOL_NAMES_ABSENT((gaol_pow_exp)(x(), x()));
+  GAOL_NAMES_ABSENT((evaluate_expr)(x(), std::declval<gaol_core::interval&>()));
+  GAOL_NAMES_ABSENT((evaluate_left_right)(x(), std::declval<gaol_core::interval&>()));
   GAOL_NAMES_ABSENT((gaol_sign_of)(1.0));
   GAOL_NAMES_ABSENT((rnd_reread)(1.0));
   GAOL_NAMES_ABSENT((rnd_keep)(1.0));
@@ -395,6 +357,12 @@ namespace gaol_names
                 "rounding_state, rounding_guard, gaol_initializer: not in gaol");
   static_assert(same<parsing_names, absent>() && same<eval_stack<int>, absent>(),
                 "parsing_names, eval_stack: not in gaol");
+  static_assert(same<expression, absent>() && same<expr_node, absent>() && same<expr_eval, absent>(),
+                "expression, expr_node, expr_eval: not in gaol");
+  static_assert(same<null_node, absent>() && same<double_node, absent>() && same<interval_node, absent>() && same<add_node, absent>() && same<sub_node, absent>() && same<mult_node, absent>() && same<div_node, absent>() && same<unary_minus_node, absent>() && same<pow_node, absent>() && same<pow_itv_node, absent>() && same<nth_root_node, absent>(),
+                "the nodes of the expressions: not in gaol");
+  static_assert(same<sin_node, absent>() && same<cos_node, absent>() && same<tan_node, absent>() && same<atan2_node, absent>() && same<asin_node, absent>() && same<acos_node, absent>() && same<atan_node, absent>() && same<sinh_node, absent>() && same<cosh_node, absent>() && same<tanh_node, absent>() && same<asinh_node, absent>() && same<acosh_node, absent>() && same<atanh_node, absent>() && same<exp_node, absent>() && same<log_node, absent>() && same<exp2_node, absent>() && same<log2_node, absent>() && same<sign_node, absent>() && same<trunc_node, absent>(),
+                "the nodes of the functions: not in gaol");
   static_assert(same<decltype(NaN_val), const absent>(), "NaN_val: not in gaol");
   static_assert(same<decltype(_gaol_initializer), const absent>(), "_gaol_initializer: not in gaol");
   // The detection works: the functions of gaol beat the fallbacks
@@ -404,9 +372,7 @@ namespace gaol_names
 
 /*
   gaol_ieee1788 names the output operator of gaol_core as it names its functions
-  (GAOL v5), for the intervals and, with the headers of the expressions
-  (gaol/parser/gaol_expr_eval.h above), for the expressions: a name missing
-  does not compile.
+  (GAOL v5): a name missing does not compile.
 */
 namespace gaol_ieee1788_names
 {
@@ -414,10 +380,6 @@ namespace gaol_ieee1788_names
                                                                 std::declval<const gaol_core::interval&>())),
                              std::ostream&>::value,
                 "gaol_ieee1788::operator<< of the intervals");
-  static_assert(std::is_same<decltype(gaol_ieee1788::operator<<(std::declval<std::ostream&>(),
-                                                                std::declval<const gaol_core::expression&>())),
-                             std::ostream&>::value,
-                "gaol_ieee1788::operator<< of the expressions");
 }
 
 /*
@@ -636,8 +598,6 @@ public:
     TEST_SEQ(gaol::intersect(interval(1.0, 3.0), interval(2.0, 4.0)), interval(2.0, 3.0));
     TEST_SEQ(gaol::textToInterval("[1, 2]"), interval(1.0, 2.0));
     TEST_TRUE(gaol::next_float(1.0) > 1.0 && gaol::previous_float(1.0) < 1.0);
-    interval y;
-    TEST_TRUE(gaol::evaluate_expr(gaol::exp2(gaol::expression(interval(3.0))), y) && y.set_eq(interval(8.0)));
     TEST_TRUE(gaol_names_adl::same_as_gaol_core(interval(0.5, 2.0)));
   }
 

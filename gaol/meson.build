@@ -111,9 +111,8 @@ gaol_SOURCES += [
   'gaol_init_cleanup.cpp',
 ]
 
-# The headers a program includes, gaol, gaol/parser/gaol_expression.h and
-# gaol/parser/gaol_expr_eval.h for the expressions, and those they include:
-# CMake and configure install the same ones (GAOL v5)
+# The headers a program includes, gaol, and those they include: CMake and
+# configure install the same ones (GAOL v5)
 gaol_HEADERS = [
   'gaol',
   'gaol.h',
@@ -137,22 +136,22 @@ gaol_CORE_HEADERS = [
   'core/gaol_interval_sse.h',
 ]
 
-# The headers of the parser of the strings and of the expressions, which a
-# program includes as gaol/parser/gaol_expression.h and
-# gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources
+# The header of the parser of the strings, which gaol_ieee1788.h includes:
+# installed in gaol/parser/ as in the sources
 gaol_PARSER_HEADERS = [
-  'parser/gaol_eval_stack.h',
-  'parser/gaol_expr_eval.h',
-  'parser/gaol_expression.h',
   'parser/gaol_parser.h',
 ]
 
 EXTRA_DIST = [
-  # Headers of the sources of GAOL, not installed (GAOL v5):
+  # Headers of the sources of GAOL, not installed (GAOL v5): the headers of the
+  # expressions, which the parser of the strings builds,
   # parser/gaol_interval_parser.h, which did not compile when included, and
   # the parts of the library
   'math/gaol_core_math.h',
   'gaol_init_cleanup.h',
+  'parser/gaol_expression.h',
+  'parser/gaol_expr_eval.h',
+  'parser/gaol_eval_stack.h',
   'parser/gaol_interval_parser.h',
   'math/gaol_u128.h',
   'math/gaol_ldexp.h',
