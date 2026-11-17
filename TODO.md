@@ -1,8 +1,11 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `9a2a88b` de `dev` (la fusion de #381
-le 16 novembre à 22 h 09 UTC, après celle de #380 à 22 h 07 UTC, les deux pull
-requests de la tâche PZ, après les registres de la tâche PX, `3d0616e`), et
+Ce qui reste à faire sur GAOL v5 au commit `67f7073` de `dev` (la fusion de #383
+le 17 novembre à 8 h 48 UTC, la couverture et le PDF de la préparation de PJ,
+après celle de #382 à 8 h 31 UTC, la tâche PH, et les registres de la
+préparation, `74409aa`), et avant au commit `9a2a88b` de `dev` (la fusion de
+#381 le 16 novembre à 22 h 09 UTC, après celle de #380 à 22 h 07 UTC, les deux
+pull requests de la tâche PZ, après les registres de la tâche PX, `3d0616e`), et
 avant au commit `9e36147` de `dev` (la fusion de #379 le 16 novembre à 20 h 39
 UTC, la dernière pull request de la tâche PX, après les registres de la tâche
 PY, `1307cf9`), et avant au commit `41fa78a` de `dev` (la fusion de #378 le 16
@@ -46,7 +49,7 @@ des points, de #307 et de #306, hors des points, de #305, hors des points, de
 tâche PT, de #300, hors des points, de #298, de #299, de #297, de #296 et de
 #295, de #294, le manuel dans le style de la thèse, et de #292, de #293, #291,
 #290 et #289), en tâche PJ (PA à PH, PI, PL, PP, PQ, PS, PT, PU, PV, PW, PX, PY
-et PZ sont faites, PH par #382, ouverte, PK et PM sont closes sans code : voir
+et PZ sont faites, PK et PM sont closes sans code : voir
 `TODO_DONE.md`).
 Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est
 dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté
@@ -62,13 +65,15 @@ l'intervalle contient des solutions (PU.1, #323), et deux threads qui
 affichaient la même expression `-x` plantaient (PU.2, #324) ; une borne est
 peut-être fausse encore pour un programme qui met lui-même `FPCR.AH` sur arm64
 (issue #198 : `x / y` des intervalles NEON, cause non trouvée). Rien n'est à
-envoyer à un autre projet ni à publier sans l'accord du mainteneur. Deux pull
-requests sont ouvertes sur `dev` : #382 (la tâche PH : trois commentaires de
-GAOL, `3rd/README.md` et deux fichiers de `doc/compare/`, que les vérifications
-des signalements rendent faux) et #383 (PJ : le rapport de couverture du 17
+envoyer à un autre projet ni à publier sans l'accord du mainteneur. Aucune pull
+request n'est ouverte. #382 (la tâche PH : trois commentaires de GAOL,
+`3rd/README.md` et deux fichiers de `doc/compare/`, que les vérifications des
+signalements rendent faux) et #383 (PJ : le rapport de couverture du 17
 novembre, 95,5 % des lignes de `gaol/`, le manuel et son PDF, les temps de
-l'x86 vérifiés) ; leurs registres sont à faire après leur fusion. Aucune autre
-n'est ouverte. Les signalements à d'autres projets sont dans leurs issues, #125
+l'x86 vérifiés) sont fusionnées le 17 novembre à 8 h 31 et 8 h 48 UTC par le
+mainteneur, la CI de leurs têtes au vert (les six workflows), leurs registres
+faits (`TODO_DONE.md` 2.3, 3.49, 4 et 7.49) : la tâche PH est faite. Les
+signalements à d'autres projets sont dans leurs issues, #125
 à #138 sauf #128, et #175 (`TODO_AFTER.md` 2.6) : l'ancienne tâche PH est
 sortie de ce fichier le 17 novembre (`TODO_DONE.md` 3.48 et 3.49). #380 (la
 tâche PZ : le manuel, `doc/differences.md` et
@@ -176,7 +181,7 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
   programme ou rompt une promesse écrite avant ce qui ne fait que ralentir ; le
   petit et sans dépendance avant le gros ; la version (PJ) en dernier. La lettre
   PR n'est pas une tâche : le sigle dit déjà « pull request ».
-- PJ suit PH (#382), PI, PS, PQ, PP, PT, PU, PV, PW, PX, PY, PZ et les études
+- PJ suit PH, PI, PS, PQ, PP, PT, PU, PV, PW, PX, PY, PZ et les études
   de PG, qui sont faites : la version en dernier, les corrections faites,
   *décidé le 19 octobre*.
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
@@ -209,9 +214,9 @@ de `gaol/` (PU, PV, PX et PY ; PZ n'y a changé que des commentaires) et les
 textes : la couverture, les mesures de PJ.2 et le PDF sont à refaire au commit
 de la version, une seule fois (*décidé le 16 novembre*). Préparé le 17
 novembre à `2d3b47d` de `dev` (`TODO_DONE.md` 3.49) :
-- la couverture et le PDF du manuel : #383 (95,5 % des 6503 lignes de `gaol/`,
-  le tableau du chapitre 14, le PDF) ; à refaire seulement si du code de
-  `gaol/` change encore avant la version ;
+- la couverture et le PDF du manuel, faits par #383 (95,5 % des 6503 lignes de
+  `gaol/`, le tableau du chapitre 14, le PDF), à refaire seulement si du code
+  de `gaol/` change encore avant la version ;
 - les temps : une comparaison A/B de l'x86 (Clang 21, SSE2, une même séance)
   entre le code du 12 novembre (`2b5e4f9`) et celui de `dev` ne montre aucune
   différence au-delà de la dispersion (rapports de 0,96 à 1,06), les tableaux de
@@ -221,8 +226,9 @@ novembre à `2d3b47d` de `dev` (`TODO_DONE.md` 3.49) :
   `dev`, une dizaine de minutes chacun, le Mac sur secteur ; les sessions
   MACarm5 et cloud5 sont libres). *À décider* : les refaire, ou garder les
   mesures du 12 novembre ;
-- la CI de `dev` est verte au dernier commit de code (`9a2a88b`, les cinq
-  workflows) ;
+- la CI de `dev` est verte à `9a2a88b` (les cinq workflows), et celle des têtes
+  de #382 et de #383 l'était (six workflows) ; celle du commit de fusion
+  `67f7073` tournait au moment des registres ;
 - la branche de version (process.md §13), essayée sans rien pousser : la
   fusion de `dev` dans `configure-clean` n'a que cinq conflits modifié /
   supprimé (`.gitattributes`, `TODO.md`, `TODO_AFTER.md`, `TODO_DONE.md` et

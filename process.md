@@ -14,8 +14,11 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 17 novembre 2026, au commit `9a2a88b` de `dev` (la fusion
-de #381, le `ChangeLog` de la tâche PZ, après celle de #380, le manuel et le
+Dernière mise à jour : 17 novembre 2026, au commit `67f7073` de `dev` (la fusion
+de #383, la couverture et le PDF de la préparation de PJ, après celle de #382,
+la tâche PH, et les registres de la préparation, `74409aa`), et avant au commit
+`9a2a88b` de `dev` (la fusion de #381, le `ChangeLog` de la tâche PZ, après
+celle de #380, le manuel et le
 PDF, et les registres de la tâche PX, `3d0616e`, après la fusion de #379,
 `9e36147`, le reste de PX.3, après les registres de la tâche PY, `1307cf9`, et
 la fusion de #378, `41fa78a`, la dernière pull request de la tâche PY, après les
@@ -1072,10 +1075,13 @@ git ls-remote --heads origin
   2.3, 3.46, 4 et 7.45), puis #380 (la tâche PZ : le manuel,
   `doc/differences.md` et le PDF, 393 pages) à 22 h 07 UTC et #381 (le
   `ChangeLog` de PZ.5) à 22 h 09 UTC, par le mainteneur, avant la fin de leur CI
-  (`9a2a88b`, `TODO_DONE.md` 2.3, 3.47, 4 et 7.46) ; l'audit du 13 octobre a
+  (`9a2a88b`, `TODO_DONE.md` 2.3, 3.47, 4 et 7.46), puis, le 17 novembre, #382
+  (la tâche PH : trois commentaires de GAOL, `3rd/README.md`, `doc/compare/`) à
+  8 h 31 UTC et #383 (PJ : la couverture, le manuel et son PDF) à 8 h 48 UTC
+  (`67f7073`, 2.3, 3.49, 4 et 7.49) ; l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
-- **En cours** : au 16 novembre au soir, aucune pull request n'est ouverte :
+- **En cours** : au 17 novembre, aucune pull request n'est ouverte :
   #373 (le diagnostic d'un échec sous Rosetta ; `todo-rosetta-diagnostic-pow2`)
   est fermée sans fusion, son contenu étant dans `dev` (`TODO_DONE.md` 2.4), et
   #351 à #355 et #372 (la tâche PX) sont fusionnées, leurs registres faits, ceux
@@ -1107,8 +1113,11 @@ git ls-remote --heads origin
   #372 (la tâche PX ; `todo-px1-u128-schoolbook` à `todo-px5-reference-comments`
   et `todo-px6-ieee-basic-example`) et #379 (le reste de PX.3 ;
   `todo-px3b-test-eq-rest`) et #380 et #381 (la tâche PZ ;
-  `manual-pz-review-fixes` et `synthese-pu-py`) sont fusionnées, leurs registres
-  faits ; `dev` est au commit de ces registres (7.46), après `9a2a88b`, la
+  `manual-pz-review-fixes` et `synthese-pu-py`) et #382 (`todo-ph-gaol-texts`)
+  et #383 (`manual-pj-coverage`) sont fusionnées, leurs registres faits ; `dev`
+  est au commit de ces registres (7.49), après `67f7073`, la fusion de #383,
+  `269c895`, la fusion de #382, `74409aa`, les registres de la préparation de PJ
+  (7.48), `2d3b47d`, ceux de PH (7.47), `9a2a88b`, la
   fusion de #381, `5c746d7`, la fusion de #380, `3d0616e`, les registres de PX
   (7.45), `9e36147`, la fusion de #379,
   `1307cf9`, les registres de PY (7.44), `41fa78a`, la fusion de #378,
@@ -1172,10 +1181,11 @@ git ls-remote --heads origin
   : GitHub borne le corps d'une issue à 262 144 octets et le texte joint en fait
   plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les constats de la relecture du 13
-  novembre sont faits (PU à PZ), PH est faite par #382 (ouverte : les textes de
+  novembre sont faits (PU à PZ), PH est faite par #382 (les textes de
   GAOL que les signalements rendent faux ; les signalements eux-mêmes sont
   dans leurs issues et `TODO_AFTER.md` 2.6, avec l'accord du mainteneur), puis
-  la version (PJ, préparée le 17 novembre avec #383 : `TODO.md`, après PU à PZ,
+  la version (PJ, préparée le 17 novembre, #383 fusionnée : `TODO.md`, après PU
+  à PZ,
   *décidé le 13 novembre* : `dev` dans `configure-clean`, section 13, puis la
   fusion de `configure-clean` dans `master`, que le mainteneur ouvre et fusionne
   lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur son mot

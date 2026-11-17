@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 17 novembre
-2026 (commit `9a2a88b` de `dev`, la fusion de #381, et `83e2f69` de
+2026 (commit `67f7073` de `dev`, la fusion de #383, et `83e2f69` de
 `configure-clean`, la fusion de #321 : voir la section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
@@ -58,7 +58,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 ## 1. L'état au 17 novembre 2026
 
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `9a2a88b` (la fusion de #381 le 16 novembre à 22 h 09 UTC, après celle
+  commit `67f7073` (la fusion de #383 le 17 novembre à 8 h 48 UTC, la couverture
+  et le PDF de PJ, après celle de #382 à 8 h 31 UTC, la tâche PH, et les
+  registres de leur préparation, `74409aa` (7.48)), et avant au commit `9a2a88b`
+  (la fusion de #381 le 16 novembre à 22 h 09 UTC, après celle
   de #380 à 22 h 07 UTC, les deux pull requests de la tâche PZ, après les
   registres de la tâche PX, `3d0616e` (7.45)), et avant au commit `9e36147` (la
   fusion de #379 le 16 novembre à 20 h 39 UTC, la dernière pull request de la
@@ -127,7 +130,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   (2.4) ; #351 à #355 et #372 (la tâche PX) sont fusionnées, leurs registres
   faits (2.3, 3.45 et 7.43), puis #379 (le reste de PX.3) à 20 h 39 UTC (2.3,
   3.46 et 7.45), puis #380 et #381 (la tâche PZ) à 22 h 07 et 22 h 09 UTC (2.3,
-  3.47 et 7.46), alors que ceux de #350 (une suite de PW.6, fusionnée le 15
+  3.47 et 7.46), puis #382 (la tâche PH) et #383 (la couverture de PJ) le 17
+  novembre à 8 h 31 et 8 h 48 UTC (2.3, 3.49 et 7.49), alors que ceux de #350
+  (une suite de PW.6, fusionnée le 15
   novembre à 7 h 37 UTC) ne le sont pas. Le mainteneur a fusionné #165 à #167,
   #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
   #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
@@ -206,11 +211,16 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   (2.3, 3.46, 4 et 7.45), puis #380 (la tâche PZ : le manuel,
   `doc/differences.md` et le PDF) à 22 h 07 UTC et #381 (le `ChangeLog` de PZ.5)
   à 22 h 09 UTC, par le mainteneur, avant la fin de leur CI (2.3, 3.47, 4 et
-  7.46). #168, #195, #211, #214, #221, #226, #233, #369 et #373 (dont le contenu
+  7.46), puis #382 (la tâche PH : trois commentaires de GAOL, `3rd/README.md`,
+  `doc/compare/`) à 8 h 31 UTC et #383 (PJ : la couverture du 17 novembre, le
+  manuel et son PDF) à 8 h 48 UTC, par le mainteneur, la CI de leurs têtes au
+  vert (2.3, 3.49, 4 et 7.49). #168, #195, #211, #214, #221, #226, #233, #369 et
+  #373 (dont le contenu
   est dans `dev` : 2.4) sont fermées sans fusion, et, du 30 et du 31 octobre,
   #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278, puis #286, le «
   Revert » de #285 fermé onze secondes après son ouverture (2.4). Les tâches PA,
-  PB, PC, PD, PE, PF, PG, PI, PL, PP, PS, PU, PV, PW, PX, PY et PZ sont faites
+  PB, PC, PD, PE, PF, PG, PH, PI, PL, PP, PS, PU, PV, PW, PX, PY et PZ sont
+  faites
   (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le
   4, #204 pour le 5, #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour
   le 109, #210 et #215 pour écrire seulement si ça change, #208 pour
@@ -250,7 +260,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `TEST_EQ`) et #372 pour `==` et `!=` entre intervalles et le test
   `interval_ieee_basic`, que le mainteneur a demandés (2.3, 3.45, 3.46 et 4) ;
   PZ, le manuel, `doc/differences.md`, le `ChangeLog` et le PDF de la même
-  relecture : #380 et #381 (2.3, 3.47 et 4) ; PK, un `FE_INVALID` de Clang avec
+  relecture : #380 et #381 (2.3, 3.47 et 4) ; PH, les textes de GAOL que les
+  vérifications des signalements rendent faux : #382 (2.3, 3.49 et 4) ; PK, un
+  `FE_INVALID` de Clang avec
   les intervalles FPU, est close sans code, non reproduite avec les drapeaux de
   GAOL (3.17), ses boucles de relations étant entrées dans `rounding_direction`
   par #292 ; PM, le cas (b) de 12.12.7 (les littéraux aux bornes calculées), est
@@ -259,9 +271,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   est faite par #298 et #299, PT, les relevés et les vérifications jamais faits,
   par #301, #303 et #304, et PP, le FIXME de `div_rel` en SSE2, par #302 (2.3) ;
   le tableau de Clang 21 est remesuré par #316 (PJ.2, 3.34) ; il reste les
-  textes de GAOL de PH (#382, ouverte ; ses signalements à d'autres projets sont
-  dans leurs issues et `TODO_AFTER.md` 2.6, 3.48 et 3.49) et la publication
-  (PJ, préparée par #383 : la fusion de `configure-clean` dans `master`, que le
+  signalements de PH (dans leurs issues et `TODO_AFTER.md` 2.6, 3.48 et 3.49 ;
+  ses textes de GAOL sont faits par #382) et la publication (PJ, préparée par
+  #383 : la fusion de `configure-clean` dans `master`, que le
   mainteneur fait lui-même, l'étiquette `v5.0.0` et sa Release, l'annonce à
   Frédéric Goualard ; 3.36), qui attend les
   constats de la relecture du 13 novembre (PU à PZ, 3.37 et 3.38, sont faites) :
@@ -4567,6 +4579,34 @@ en cours, les trois autres workflows en attente ; la CI du commit de fusion
 `9a2a88b` (celui de #380, `5c746d7`, a été annulé par la fusion de #381)
 tournait au moment des registres.
 
+- - #382 (la tâche PH : les textes de GAOL que les vérifications des
+  signalements rendent faux ; `todo-ph-gaol-texts`, quatre commits) : fusionnée
+  le 17 novembre à 8 h 31 UTC par le mainteneur (`269c895`, tête `527be4c`), la
+  CI de la tête au vert (les six workflows) ; la CI du commit de fusion a été
+  annulée par la fusion de #383 (Linux au vert, les quatre autres annulés).
+  Trois commentaires de code (`gaol_core_math_port.h` : `fesetexceptflag()` de
+  mingw-w64 jusqu'à la 12 ; `gaol_interval_internal.h` : le plantage de
+  `nextafter()` de IBEX venait du mot de contrôle x87 de GAOL 4.2.3 ;
+  `gaol_interval_core.cpp` : `nextafter()` sous denormals-are-zero, faux dès k =
+  1), `3rd/README.md` (la série de huit de #125 sur `018fa97c`, les points 9 et
+  10 avec leurs correctifs, les contrôles de `pow` qui passent, glibc a le
+  `return` d'`erfc.c`), `doc/compare/itf1788.md` et `tang2021.md`. Code objet :
+  50 objets sur 54 identiques avec GCC 15.2 et Clang 18, les 4 autres ne
+  diffèrent que par `__FILE__` et deux `__LINE__`. Le relecteur (151 000 jetons)
+  a trouvé six points, tous corrigés (3.49).
+
+- - #383 (PJ : la couverture du 17 novembre, le manuel et son PDF, les temps de
+  l'x86 ; `manual-pj-coverage`, trois commits) : fusionnée le 17 novembre à 8 h
+  48 UTC par le mainteneur (`67f7073`, tête `4fe6e90`), la CI de la tête au
+  vert (les six workflows, Manual compris) ; celle du commit de fusion tournait
+  au moment des registres. 95,5 % des 6503 lignes de `gaol/` (95,1 % des 6423 le
+  12 novembre), 69,2 % des branches, 20 fichiers sur 36 à 100 %, 70 tests sur 70
+  (`numbers` 251 s) ; le tableau 14.8 du chapitre 14 et sa phrase, le PDF de 393
+  pages. La comparaison A/B de l'x86 (Clang 21, avant `2b5e4f9`, après `dev`) :
+  les
+  36 lignes de `gaol_performance` et les 10 longues lignes dans la dispersion
+  (0,96 à 1,06), les tableaux de l'x86 tiennent (3.49).
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -7964,8 +8004,8 @@ Prépare ensuite la tâche PJ » (17 novembre).
   trouvé six points, dont le seul vrai défaut de fond : la ligne `erfc.c` du
   tableau disait « not looked for » pour glibc, qui a la même construction
   (`s_erfc.c`, `30f988fbe795`) ; tous corrigés. Sur la demande « enlève la
-  tâche PH de `TODO.md` », la tâche sort de `TODO.md` à l'ouverture de la pull
-  request, non à sa fusion.
+  tâche PH de `TODO.md` », la tâche est sortie de `TODO.md` à l'ouverture de la
+  pull request ; #382 est fusionnée le 17 novembre à 8 h 31 UTC (2.3).
 - **PJ, #383** (`manual-pj-coverage`, trois commits) : le rapport de couverture
   au commit `2d3b47d7` (GCC 15.2, gcovr 7.2, 70 tests sur 70, `numbers` 251 s) :
   95,5 % des 6503 lignes de `gaol/` (95,1 % des 6423 le 12 novembre), 69,2 % des
@@ -7989,11 +8029,16 @@ Prépare ensuite la tâche PJ » (17 novembre).
   workflows au vert. **Gmail** (lecture seule) : le brouillon « GAOL v5.0.0 » a
   toujours son seul état du 13 novembre, sans destinataire ; aucun message des
   auteurs d'IBEX ni de Codac depuis 60 jours.
+- **Après la fusion** : #382 à 8 h 31 UTC (`269c895`) et #383 à 8 h 48 UTC
+  (`67f7073`), par le mainteneur, avant la fin de la CI de leurs commits de
+  fusion (celle de `269c895` est annulée par la fusion de #383) ; les six
+  workflows de chaque tête de pull request étaient au vert. Les branches
+  `todo-ph-gaol-texts` et `manual-pj-coverage` ne sont plus sur GitHub.
 
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PZ, PH et PJ) ou dans `TODO_AFTER.md` ; leur partie faite est
+`TODO.md` (tâche PJ) ou dans `TODO_AFTER.md` ; leur partie faite est
 dite ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -8194,6 +8239,10 @@ dite ici ou dans la section 5.
   3.23) ; la couverture et les mesures de PZ.6 sont à refaire au commit de la
   version, avec le PDF (PJ ; décidé le 16 novembre : 3.47) ; décidé pendant le
   travail : voir 3.47.
+- [x] **PH** (les textes de GAOL que les vérifications des signalements rendent
+  faux) : #382, fusionnée le 17 novembre à 8 h 31 UTC (2.3) ; les signalements
+  à d'autres projets sont dans leurs issues, rien n'est envoyé (3.48 et 3.49,
+  `TODO_AFTER.md` 2.6).
 
 ### Trouvé par la relecture de `configure-clean` du 14 octobre (62dad3a) : ce qui est fait
 
@@ -10353,6 +10402,19 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   non. Les registres de #382 et de #383 se font après leur fusion.
 - Ce commit ne change que des fichiers que les cinq workflows ignorent : il ne
   lance aucun workflow.
+
+### 7.49 Le 17 novembre (après #382 et #383 : les registres)
+
+- Les registres de #382 et de #383, en un commit direct sur `dev`, depuis un
+  clone `--shared` du scratchpad (GAOL_V9, propre, est avancé de `2d3b47d` à
+  `67f7073` par un fast-forward avant) : `TODO.md` (l'en-tête, les pull
+  requests, PJ), `TODO_AFTER.md` (l'en-tête et 2.6), ce fichier (en-tête, 1,
+  2.3, 3.49, 4 et 7.49) et `process.md` (l'en-tête et §12). Les issues #178 et
+  #179 sont mises à jour, #177 non.
+- Ce commit ne change que des fichiers que les cinq workflows ignorent : il ne
+  lance aucun workflow et n'annule donc pas la CI du commit de fusion
+  `67f7073`, qui tournait.
+- Le clone du scratchpad est supprimé à la fin de la session.
 
 ## 8. Le ménage fait
 

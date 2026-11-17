@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 17 novembre 2026 (commit `9a2a88b` de
+Tout ce qui est reporté sur GAOL v5 au 17 novembre 2026 (commit `67f7073` de
 `dev`) : ce qui attend la version v5.0.0, ce que le mainteneur a reporté
 indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui attend
 du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste à
@@ -296,7 +296,7 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    mainteneur, qui décide projet par projet. Chaque issue porte ses textes
    anglais prêts à coller, ses correctifs, ses répliques, ses vérifications
    (relues le 17 novembre) et ce que le mainteneur a à faire ; les textes de
-   GAOL que ces vérifications rendent faux sont corrigés par #382 (ouverte).
+   GAOL que ces vérifications rendent faux sont corrigés par #382 (fusionnée).
    Les états des projets visés sont ceux du 10 au 13 novembre : les refaire
    avant chaque envoi. Ordre conseillé : ce qui est prêt et qui a une valeur
    pour GAOL, puis
