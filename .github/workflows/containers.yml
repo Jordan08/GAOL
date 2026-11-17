@@ -26,13 +26,12 @@ on:
   push:
     branches: [master, dev]
     paths-ignore:
-      # The notes of the work on GAOL v5, only in the branch dev: a push of
-      # them changes no code and starts no check (GAOL v5)
+      # The notes of the work on GAOL v5, which dev holds, and master once a
+      # version is merged into it: a push of them changes no code and starts
+      # no check (GAOL v5)
       - 'TODO*.md'
       - 'process.md'
       - 'STEP.md'
-      - 'todo-notes/**'
-      - '.claude/**'
   pull_request:
   workflow_dispatch:
 

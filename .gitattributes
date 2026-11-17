@@ -1,8 +1,8 @@
 # The files of the repository that the archive of the sources leaves out
 # (GAOL v5): the notes of the work on GAOL v5, which serve its maintainers and
-# not the users of a version, and the settings of the maintainers' tools. The
-# development branch dev holds them, and this file, which leaves itself out;
-# master holds them too once a version of dev is merged into it.
+# not the users of a version. The development branch dev holds them, and this
+# file, which leaves itself out; master holds them too once a version of dev is
+# merged into it.
 # git archive, and so meson dist, which archives the commit with it (a recent
 # meson: see doc/building.md), reads export-ignore; CMake leaves them out of
 # package_source with CPACK_SOURCE_IGNORE_FILES (CMakeLists.txt), and make dist
@@ -14,5 +14,3 @@
 /TODO_DONE.md export-ignore
 /STEP.md export-ignore
 /process.md export-ignore
-/todo-notes export-ignore
-/.claude export-ignore

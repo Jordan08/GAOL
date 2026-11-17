@@ -1654,10 +1654,10 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # ignores (.gitignore), the builds within the sources, the packages, and the
   # notes of the work on GAOL v5 that the development branch dev holds, and
   # master once a version of dev is merged into it (TODO.md, TODO_AFTER.md,
-  # TODO_DONE.md, STEP.md, process.md, todo-notes/, and .gitattributes, which
-  # marks them export-ignore for meson dist), which serve its maintainers, not
-  # the users of a version: the EXTRA_DIST of make dist do not list them, so
-  # that the three archives hold the same files, on dev as on master (GAOL v5).
+  # TODO_DONE.md, STEP.md, process.md, and .gitattributes, which marks them
+  # export-ignore for meson dist), which serve its maintainers, not the users
+  # of a version: the EXTRA_DIST of make dist do not list them, so that the
+  # three archives hold the same files, on dev as on master (GAOL v5).
   # CPack writes the CPACK_* variables into CPackConfig.cmake
   # and CPackSourceConfig.cmake, which it reads when it runs:
   # CPACK_VERBATIM_VARIABLES has it escape them, so that the backslashes of
@@ -1691,7 +1691,6 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
     "^${_gaol_source_regex}/TODO\\.md$" "^${_gaol_source_regex}/TODO_AFTER\\.md$" "^${_gaol_source_regex}/TODO_DONE\\.md$"
     "^${_gaol_source_regex}/STEP\\.md$" "^${_gaol_source_regex}/process\\.md$"
-    "^${_gaol_source_regex}/todo-notes/"
     "^${_gaol_source_regex}/\\.gitattributes$"
   )
 
