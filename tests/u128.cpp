@@ -1,0 +1,313 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Tests of GAOL v5: the 128-bit unsigned integer of gaol/math/gaol_u128.h.
+ *
+ * The accurate phases of CORE-MATH's log, log10, sin, cos, tan, atan2 and pow,
+ * and of log2p1, log10p1, atan2pi, hypot, rsqrt and asinpi, compute with a 128-bit
+ * integer (unsigned, and signed in asinpi), which Visual C++ has on no architecture and
+ * GCC has on no 32-bit target: there GAOL computes with the two 64-bit halves
+ * of gaol/math/gaol_u128.h. This test compiles those halves (GAOL_U128_FORCE_EMULATION)
+ * and compares every operation with the same operation on the native type of
+ * the compiler, over the values at the ends of the ranges, over the powers of
+ * two and their neighbours, over random values, and over every shift count
+ * from 0 to 127. The two have to give the same 128 bits, so that the bounds
+ * GAOL computes with Visual C++ and on a 32-bit target are those it computes
+ * elsewhere.
+ *
+ * Where the compiler has no 128-bit type of its own, which is where this code
+ * runs in earnest, there is nothing to compare with: the test then checks the
+ * identities the operations satisfy (a + b - b = a, shifting left then right,
+ * and the order).
+ *
+ * The three products, gaol_u128_mul64(), gaol_u128_mul() and
+ * gaol_u128_imul64(), are compared in both cases with a schoolbook product on
+ * digits of 16 bits, written in this file. The other two start with
+ * gaol_u128_mul64(), so that an identity between the three cannot tell a wrong
+ * gaol_u128_mul64() from a right one; the schoolbook product is what the
+ * branches of Visual C++ (_umul128 on x64, __umulh on ARM64) and the four
+ * 32-bit products are compared with, where there is no native type. Where
+ * there is one, the same comparison checks the schoolbook product itself, as
+ * the halves are compared with the native type.
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-09-20)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
+#define GAOL_U128_FORCE_EMULATION 1
+#include "gaol/math/gaol_u128.h"
+
+#include <cstdint>
+#include <cstdio>
+#include <random>
+#include <string>
+#include <vector>
+
+namespace
+{
+  long checks = 0, failures = 0;
+  const long failures_shown = 5;
+
+  void check(const char* name, bool ok, const std::string& what)
+  {
+    ++checks;
+    if (!ok) {
+      if (failures < failures_shown) {
+        std::printf("FAILED %s: %s\n", name, what.c_str());
+      }
+      ++failures;
+    }
+  }
+
+  std::string hex(uint64_t h, uint64_t l)
+  {
+    char b[64];
+    std::snprintf(b, sizeof b, "0x%016llx%016llx",
+                  (unsigned long long)h, (unsigned long long)l);
+    return b;
+  }
+
+  // The values every operation is tried on: the ends of the ranges, the powers
+  // of two and their neighbours, and values with a single half set
+  std::vector<uint64_t> interesting_words()
+  {
+    std::vector<uint64_t> v;
+    v.push_back(0);
+    v.push_back(1);
+    v.push_back(2);
+    v.push_back(3);
+    v.push_back(UINT64_MAX);
+    v.push_back(UINT64_MAX - 1);
+    v.push_back(UINT32_MAX);
+    v.push_back((uint64_t)UINT32_MAX + 1);
+    for (int k = 1; k < 64; ++k) {
+      const uint64_t p = (uint64_t)1 << k;
+      v.push_back(p);
+      v.push_back(p - 1);
+      v.push_back(p + 1);
+    }
+    std::mt19937_64 gen(20260920u);
+    for (int i = 0; i < 200; ++i) {
+      v.push_back(gen());
+      // values with few bits set, which the carries are sensitive to
+      v.push_back(gen() & gen() & gen());
+      v.push_back(gen() | gen() | gen());
+    }
+    return v;
+  }
+
+  struct word128 { uint64_t h, l; };
+
+  // The product of a and b modulo 2^128 by the schoolbook algorithm on digits
+  // of 16 bits: a partial product is under 2^32, a sum of eight of them fits a
+  // uint64_t, and the carries are explicit. It multiplies digits only and uses
+  // no 128-bit type, so it is independent of every implementation of
+  // gaol_u128_mul64(). The digits from the ninth on, the part of the product
+  // from 2^128 up, are not computed: gaol_u128_mul() drops them.
+  word128 schoolbook(word128 a, word128 b)
+  {
+    uint64_t x[8], y[8];
+    for (int i = 0; i < 4; ++i) {
+      x[i] = (a.l >> (16 * i)) & 0xffff;
+      x[i + 4] = (a.h >> (16 * i)) & 0xffff;
+      y[i] = (b.l >> (16 * i)) & 0xffff;
+      y[i + 4] = (b.h >> (16 * i)) & 0xffff;
+    }
+    word128 r = { 0, 0 };
+    uint64_t carry = 0;
+    for (int k = 0; k < 8; ++k) {
+      uint64_t sum = carry;
+      for (int i = 0; i <= k; ++i) {
+        sum += x[i] * y[k - i];
+      }
+      const uint64_t digit = sum & 0xffff;
+      carry = sum >> 16;
+      if (k < 4) {
+        r.l |= digit << (16 * k);
+      } else {
+        r.h |= digit << (16 * (k - 4));
+      }
+    }
+    return r;
+  }
+
+  void equals(const char* name, gaol_u128 got, word128 expected, const std::string& what)
+  {
+    const uint64_t gh = gaol_u128_hi(got), gl = gaol_u128_lo(got);
+    check(name, gh == expected.h && gl == expected.l,
+          what + ": " + hex(gh, gl) + " rather than " + hex(expected.h, expected.l));
+  }
+
+  // The three products against the schoolbook product: gaol_u128_mul64() on
+  // the low halves, whose product is exact, gaol_u128_mul() on the two values,
+  // and gaol_u128_imul64() on the low halves read as signed values, which the
+  // schoolbook product multiplies once extended with their sign
+  void products(uint64_t ah, uint64_t al, uint64_t bh, uint64_t bl)
+  {
+    const std::string what = hex(ah, al) + " and " + hex(bh, bl);
+    const word128 wa = { ah, al }, wb = { bh, bl };
+    const word128 la = { 0, al }, lb = { 0, bl };
+    const word128 sa = { (al >> 63) ? UINT64_MAX : 0, al };
+    const word128 sb = { (bl >> 63) ? UINT64_MAX : 0, bl };
+
+    equals("mul64 against the schoolbook product", gaol_u128_mul64(al, bl),
+           schoolbook(la, lb), what);
+    equals("mul against the schoolbook product",
+           gaol_u128_mul(gaol_u128_make(ah, al), gaol_u128_make(bh, bl)),
+           schoolbook(wa, wb), what);
+    equals("imul64 against the schoolbook product",
+           gaol_u128_imul64((int64_t)al, (int64_t)bl), schoolbook(sa, sb), what);
+  }
+}
+
+#if defined(__SIZEOF_INT128__)
+
+typedef unsigned __int128 native;
+typedef __int128 signed_native;
+
+namespace
+{
+  native to_native(gaol_u128 a) { return ((native)a.h << 64) | a.l; }
+
+  void same(const char* name, gaol_u128 got, native expected, const std::string& what)
+  {
+    const uint64_t eh = (uint64_t)(expected >> 64), el = (uint64_t)expected;
+    check(name, got.h == eh && got.l == el,
+          what + ": " + hex(got.h, got.l) + " rather than " + hex(eh, el));
+  }
+
+  void operations(uint64_t ah, uint64_t al, uint64_t bh, uint64_t bl)
+  {
+    const gaol_u128 a = gaol_u128_make(ah, al), b = gaol_u128_make(bh, bl);
+    const native na = to_native(a), nb = to_native(b);
+    const std::string what = hex(ah, al) + " and " + hex(bh, bl);
+
+    products(ah, al, bh, bl);
+    same("add", gaol_u128_add(a, b), na + nb, what);
+    same("add64", gaol_u128_add64(a, bl), na + bl, what);
+    same("sub", gaol_u128_sub(a, b), na - nb, what);
+    same("neg", gaol_u128_neg(a), -na, what);
+    same("mul", gaol_u128_mul(a, b), na * nb, what);
+    same("mul64", gaol_u128_mul64(al, bl),
+         (native)al * (native)bl, what);
+    same("or", gaol_u128_or(a, b), na | nb, what);
+    same("and64", gaol_u128_and64(a, bl), na & (native)bl, what);
+    same("of", gaol_u128_of(al), (native)al, what);
+    same("and", gaol_u128_and(a, b), na & nb, what);
+    // the signed values, in two's complement
+    same("of_i64", gaol_u128_of_i64((int64_t)al), (native)(signed_native)(int64_t)al, what);
+    same("imul64", gaol_u128_imul64((int64_t)al, (int64_t)bl),
+         (native)((signed_native)(int64_t)al * (int64_t)bl), what);
+
+    check("lo", gaol_u128_lo(a) == (uint64_t)na, what);
+    check("hi", gaol_u128_hi(a) == (uint64_t)(na >> 64), what);
+    check("lt", gaol_u128_lt(a, b) == (na < nb), what);
+    check("gt", gaol_u128_gt(a, b) == (na > nb), what);
+    check("eq", gaol_u128_eq(a, b) == (na == nb), what);
+  }
+
+  void shifts(uint64_t ah, uint64_t al)
+  {
+    const gaol_u128 a = gaol_u128_make(ah, al);
+    const native na = to_native(a);
+    for (int n = 0; n < 128; ++n) {
+      const std::string what = hex(ah, al) + " by " + std::to_string(n);
+      same("shl", gaol_u128_shl(a, n), na << n, what);
+      same("shr", gaol_u128_shr(a, n), na >> n, what);
+      same("sar", gaol_u128_sar(a, n), (native)((signed_native)na >> n), what);
+      same("bit", gaol_u128_bit(n), (native)1 << n,
+           std::to_string(n));
+    }
+  }
+}
+
+int main()
+{
+  const std::vector<uint64_t> words = interesting_words();
+  // every pair of the first words, then random pairs of all of them
+  const size_t dense = 40;
+  for (size_t i = 0; i < dense && i < words.size(); ++i) {
+    for (size_t j = 0; j < dense && j < words.size(); ++j) {
+      operations(words[i], words[j], words[j], words[i]);
+      operations(0, words[i], 0, words[j]);
+      operations(words[i], 0, words[j], 0);
+    }
+  }
+  std::mt19937_64 gen(20260921u);
+  for (int i = 0; i < 200000; ++i) {
+    const uint64_t ah = words[gen() % words.size()], al = words[gen() % words.size()];
+    const uint64_t bh = words[gen() % words.size()], bl = words[gen() % words.size()];
+    operations(ah, al, bh, bl);
+    operations(gen(), gen(), gen(), gen());
+  }
+  for (size_t i = 0; i < words.size(); ++i) {
+    shifts(words[i], words[(i + 1) % words.size()]);
+    shifts(0, words[i]);
+    shifts(words[i], 0);
+  }
+  std::printf("%ld checks, %ld failed\n", checks, failures);
+  return failures == 0 ? 0 : 1;
+}
+
+#else /* no native 128-bit type: the identities */
+
+namespace
+{
+  void identities(uint64_t ah, uint64_t al, uint64_t bh, uint64_t bl)
+  {
+    const gaol_u128 a = gaol_u128_make(ah, al), b = gaol_u128_make(bh, bl);
+    const std::string what = hex(ah, al) + " and " + hex(bh, bl);
+
+    products(ah, al, bh, bl);
+    check("add then sub", gaol_u128_eq(gaol_u128_sub(gaol_u128_add(a, b), b), a), what);
+    check("neg twice", gaol_u128_eq(gaol_u128_neg(gaol_u128_neg(a)), a), what);
+    check("add is commutative",
+          gaol_u128_eq(gaol_u128_add(a, b), gaol_u128_add(b, a)), what);
+    check("mul is commutative",
+          gaol_u128_eq(gaol_u128_mul(a, b), gaol_u128_mul(b, a)), what);
+    check("add64 is add of the low half",
+          gaol_u128_eq(gaol_u128_add64(a, bl), gaol_u128_add(a, gaol_u128_of(bl))), what);
+    check("the order is total",
+          gaol_u128_lt(a, b) + gaol_u128_gt(a, b) + gaol_u128_eq(a, b) == 1, what);
+    const gaol_u128 ones = gaol_u128_make(UINT64_MAX, UINT64_MAX);
+    check("and is commutative",
+          gaol_u128_eq(gaol_u128_and(a, b), gaol_u128_and(b, a)), what);
+    check("and with all ones", gaol_u128_eq(gaol_u128_and(a, ones), a), what);
+    check("of_i64 is the high half shifted with its sign",
+          gaol_u128_eq(gaol_u128_of_i64((int64_t)al),
+                       gaol_u128_sar(gaol_u128_make(al, 0), 64)), what);
+    for (int n = 0; n < 64; ++n) {
+      const gaol_u128 low = gaol_u128_of(al >> n << n);
+      check("shl then shr",
+            gaol_u128_eq(gaol_u128_shr(gaol_u128_shl(low, n), n), low),
+            what + " by " + std::to_string(n));
+    }
+    // ~a is ones - a: sar is shr for a >= 0 and ~shr(~a) for a < 0
+    const gaol_u128 not_a = gaol_u128_sub(ones, a);
+    for (int n = 0; n < 128; ++n) {
+      const gaol_u128 expected = (ah >> 63) ? gaol_u128_sub(ones, gaol_u128_shr(not_a, n))
+                                            : gaol_u128_shr(a, n);
+      check("sar", gaol_u128_eq(gaol_u128_sar(a, n), expected),
+            what + " by " + std::to_string(n));
+    }
+  }
+}
+
+int main()
+{
+  const std::vector<uint64_t> words = interesting_words();
+  std::mt19937_64 gen(20260921u);
+  for (int i = 0; i < 100000; ++i) {
+    const std::size_t n = words.size();
+    identities(words[static_cast<std::size_t>(gen() % n)], words[static_cast<std::size_t>(gen() % n)],
+               words[static_cast<std::size_t>(gen() % n)], words[static_cast<std::size_t>(gen() % n)]);
+  }
+  std::printf("%ld checks, %ld failed\n", checks, failures);
+  return failures == 0 ? 0 : 1;
+}
+
+#endif

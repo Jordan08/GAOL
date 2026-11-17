@@ -1,7 +1,7 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: the elementary functions.
+ * Tests of GAOL v5: the elementary functions.
  *
  * The bounds GAOL computes are compared with the doubles on each side of the
  * exact values, computed with 2000 bits of precision (elementary_values.h,
@@ -9,15 +9,28 @@
  * and at intervals whose images are known exactly (extrema, poles, domains).
  * They have to enclose the exact values, within a few doubles.
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-09-20)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"
 #include "elementary_values.h"
 
+#if defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS
+#  include <arm_neon.h>
+#endif
+
 #include <algorithm>
+#include <cfenv>
+#include <cmath>
 #include <cstdlib>
+#include <limits>
+#include <random>
+#include <vector>
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -25,20 +38,9 @@ using namespace gaol_tests;
 namespace
 {
   // The largest distance from the tightest bounds allowed, in doubles: one,
-  // every function being the value of a correctly rounded library, mathlib or
-  // CORE-MATH, moved one double outward. It was 8, twice the 4 the hyperbolic
-  // functions reached, their values from the libm being moved three doubles
-  // outward (issue #1)
+  // GAOL taking the value of CORE-MATH in the upward rounding as the upper
+  // bound and the double below it as the lower one (see tests/core_math.cpp)
   const int limit = 1;
-
-  // atan2 is the value of mathlib moved one double outward. CRlibm has no
-  // atan2: built with it, GAOL takes the one of the libm moved three doubles
-  // outward, as for the hyperbolic functions, up to four from the tightest
-#if GAOL_USING_CRLIBM
-  const int atan2_limit = 4;
-#else
-  const int atan2_limit = 1;
-#endif
 
   typedef interval (*Unary)(const interval&);
 
@@ -68,6 +70,8 @@ namespace
       { "acosh", { [](const interval& x) { return acosh(x); }, Variation::increasing } },
       { "atanh", { [](const interval& x) { return atanh(x); }, Variation::increasing } },
       { "sqrt", { [](const interval& x) { return sqrt(x); }, Variation::increasing } },
+      { "erf", { [](const interval& x) { return erf(x); }, Variation::increasing } },
+      { "erfc", { [](const interval& x) { return erfc(x); }, Variation::decreasing } },
     };
     return functions;
   }
@@ -77,8 +81,10 @@ namespace
   int doubles_between(double from, double to)
   {
     int n = 0;
-    for (double t = from; t < to && n <= limit; t = next_double(t)) {
+    double t = from;
+    while (t < to && n <= limit) {
       ++n;
+      t = next_double(t);
     }
     return n;
   }
@@ -106,19 +112,6 @@ namespace
     std::exit(1);
   }
 
-  // Checks that r encloses [below, above], with bounds no more than slack away
-  // from them
-  template<class Describe>
-  void expect_within(const std::string& name, const std::string& slack_name, const interval& r, double below, double above,
-                     double slack, const Describe& describe)
-  {
-    if (check(name + ": encloses", !r.is_empty() && r.left() <= below && r.right() >= above, describe)) {
-      RoundingToNearest nearest;
-      check(name + ": no more than " + slack_name + " from the exact value", below - r.left() <= slack && r.right() - above <= slack,
-            describe);
-    }
-  }
-
   void at_doubles()
   {
     for (const UnaryValue& v : unary_values) {
@@ -128,26 +121,26 @@ namespace
       const auto describe = [&] {
         return arguments() + " = " + hex(r) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
       };
-      if (f == "log") {
-        // CORE-MATH's log in the upward rounding, where GAOL takes it
-        // (GAOL_CORE_MATH_LOG, see gaol/gaol_core_math.h): the tightest bounds;
-        // mathlib's value moved one double outward otherwise
-#if defined(GAOL_CORE_MATH_LOG) && GAOL_CORE_MATH_LOG
-        expect_close(name, r, v.below, v.above, describe, 0);
-#else
-        expect_close(name, r, v.below, v.above, describe);
-#endif
-      } else if (f == "sin" || f == "cos" || f == "tan") {
-        // mathlib's values at the argument, moved one double outward: within
-        // one double of the tightest bounds, at every magnitude. Beyond 2^25,
-        // or next to an extremum or a pole, where the division of the argument
-        // by an enclosure of pi cannot tell whether an extremum is reached,
-        // the signs of the derivative tell (issue #6): GAOL's bounds were
-        // x^2 2^-103 + 2^-51 away, cos([2^60]) was [-1, 1], and the tangent of
-        // the double below pi/2 [-oo, +oo]
-        expect_close(name, r, v.below, v.above, describe, 1);
-      } else {
-        expect_close(name, r, v.below, v.above, describe);
+      // Within one double of the tightest bounds (limit), for sin, cos and tan
+      // at every magnitude too. Beyond 2^25, or next to an extremum or a pole,
+      // where the division of the argument by an enclosure of pi cannot tell
+      // whether an extremum is reached, the signs of the derivative tell
+      // (issue #6): GAOL's bounds were x^2 2^-103 + 2^-51 away, cos([2^60]) was
+      // [-1, 1], and the tangent of the double below pi/2 [-oo, +oo]
+      expect_close(name, r, v.below, v.above, describe);
+    }
+    // A value that is a double is the bound, not a double from it, which
+    // expect_close() allows: the square root of a double that is a square
+    // (sqrt is correctly rounded in each direction), and the value at 0 or at 1
+    // of exp, log, cos, sin, erf... (exp(0), log(1), sin(0)...). The table
+    // writes as a double a value within 2^-1800 of one, relatively, as sin(x)
+    // of a tiny x, which is not that double: expect_close() cannot ask for the
+    // bound where the table does not tell
+    for (const UnaryValue& v : unary_values) {
+      if (v.below == v.above && (std::strcmp(v.function, "sqrt") == 0 || v.x == 0.0 || v.x == 1.0)) {
+        const interval r = unary_functions().at(v.function).f(interval(v.x));
+        check(std::string(v.function) + "([x]): the exact value", r.left() == v.below && r.right() == v.above,
+              [&] { return std::string(v.function) + "(" + hex(v.x) + ") = " + hex(r) + " rather than [" + hex(v.below) + "]"; });
       }
     }
     // The functions of two intervals: pow() and atan2()
@@ -155,15 +148,13 @@ namespace
       const std::string name = std::string(v.function) + "([a],[b])";
       const auto arguments = [&] { return std::string(v.function) + "(" + hex(v.a) + ", " + hex(v.b) + ")"; };
       if (std::strcmp(v.function, "atan2") == 0) {
-        // The value of mathlib moved one double outward
         const interval angle = evaluate(name, [&] { return atan2(interval(v.a), interval(v.b)); }, arguments);
         expect_close(name, angle, v.below, v.above, [&] {
           return arguments() + " = " + hex(angle) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
-        }, atan2_limit);
+        }, limit);
         continue;
       }
       const interval r = evaluate(name, [&] { return pow(interval(v.a), interval(v.b)); }, arguments);
-      // The pow of mathlib, correctly rounded, moved one double outward
       expect_close(name, r, v.below, v.above, [&] {
         return arguments() + " = " + hex(r) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
       }, 1);
@@ -220,6 +211,111 @@ namespace
     }
   }
 
+  // tan over [-M_PI_2, M_PI_2], and over the intervals between two poles whose
+  // width is about the same (review #8 of examples/examples.md; GAOL v5).
+  // tan() takes an interval for narrower than pi, so that it holds at most one
+  // pole, when its width rounded upward is at most the double below pi: it
+  // took that width itself for a wider one, and gave [-oo,+oo] for
+  // [-M_PI_2, M_PI_2] and for four other intervals holding no pole
+  void tan_next_to_two_poles()
+  {
+    // M_PI_2 is 6.1e-17 below pi/2: [-M_PI_2, M_PI_2] holds no pole, and its
+    // width is exactly the double below pi. tan(M_PI_2) is
+    // 16331239353195369.756, between 0x1.d02967c31cdb4p+53 and
+    // 0x1.d02967c31cdb5p+53: the tightest interval is [-0x1.d02967c31cdb5p+53,
+    // 0x1.d02967c31cdb5p+53]
+    const double half_pi_below = 0x1.921fb54442d18p+0;
+    const double lower = value("tan", -half_pi_below).below, upper = value("tan", half_pi_below).above;
+    const interval r = evaluate("tan([-M_PI_2,M_PI_2])", [&] { return tan(interval(-half_pi_below, half_pi_below)); },
+                                [] { return std::string(); });
+    check("tan([-M_PI_2,M_PI_2]): the tightest bounds", r.left() == lower && r.right() == upper,
+          [&] { return hex(r) + " rather than [" + hex(lower) + ", " + hex(upper) + "]"; });
+
+    // The intervals whose bounds are the doubles next to two consecutive
+    // poles, and whose width rounded upward is the double below pi or one of
+    // the two doubles on each side of it (the ones holding no pole having a
+    // finite tangent, the others [-oo,+oo]), and 64 drawn at random about
+    // other poles
+    for (const TrigInterval& t : tan_pole_intervals) {
+      const interval X(t.a, t.b);
+      const std::string name = "tan([a,b]) next to two consecutive poles";
+      const auto arguments = [&] { return "tan(" + hex(X) + ")"; };
+      const interval y = evaluate(name, [&] { return tan(X); }, arguments);
+      expect_close(name, y, t.least_below, t.greatest_above, [&] {
+        return arguments() + " = " + hex(y) + ", the hull of the values being within ["
+          + hex(t.least_below) + ", " + hex(t.greatest_above) + "]";
+      });
+    }
+  }
+
+  // modulo_k_pi(I, k_left, k_right) of gaol_core: the floor of each bound of I
+  // divided by [pi], and whether it is one integer, flag 2 for the lower bound
+  // and 1 for the upper one, have to be those that floor(interval(x) /
+  // interval::pi()) gives, which the function computed until it computed its
+  // quotients on doubles after one check of the rounding direction (GAOL v5),
+  // a bound 0 giving a zero of either sign; an infinite bound, whose interval
+  // is empty, gives NaN and no flag. Over the intervals whose bounds are 0,
+  // +-1, +-3, the bounds of pi, the doubles next to 3 pi and 1e6 pi, 2^52,
+  // 1e300, DBL_MAX, subnormals and +-oo, the multiples of pi computed as
+  // [pi] times an integer. The reference is GAOL's own division and floor, so
+  // that this is a check of consistency, and not of the bounds of sin, cos and
+  // tan: their independent values, computed with mpmath, are those of
+  // at_doubles() and trigonometric_intervals()
+  void modulo_k_pi_values()
+  {
+    const double oo = std::numeric_limits<double>::infinity();
+    std::vector<double> bounds = { 0.0, 1.0, 3.0, 0x1p52, 1e300, std::numeric_limits<double>::max(), oo,
+                                   0x1p-1074, 1e-310 };
+    for (const double k : { 1.0, 3.0, 1e6 }) {
+      const interval multiple = interval::pi()*k;
+      bounds.push_back(multiple.left());
+      bounds.push_back(multiple.right());
+      bounds.push_back(std::nextafter(multiple.left(), 0.0));
+      bounds.push_back(std::nextafter(multiple.right(), oo));
+    }
+    const std::size_t positive = bounds.size();
+    for (std::size_t i = 0; i < positive; ++i) {
+      bounds.push_back(-bounds[i]);
+    }
+    std::sort(bounds.begin(), bounds.end());
+    // The floor of x/[pi], and whether it is one integer, as the division of
+    // intervals gives them; NaN and false for an infinite x
+    const auto expected = [](double x, double& k_lower, double& k_upper, bool& one) {
+      if (std::isinf(x)) {
+        k_lower = k_upper = std::numeric_limits<double>::quiet_NaN();
+        one = false;
+        return;
+      }
+      const interval k = floor(interval(x)/interval::pi());
+      k_lower = k.left();
+      k_upper = k.right();
+      one = k.is_a_double();
+    };
+    for (std::size_t i = 0; i < bounds.size(); ++i) {
+      for (std::size_t j = i; j < bounds.size(); ++j) {
+        const double a = bounds[i], b = bounds[j];
+        if (a == b && std::isinf(a)) {
+          continue; // [-oo] and [+oo] are empty
+        }
+        const interval I(a, b);
+        double k_left = 0.0, k_right = 0.0;
+        const unsigned short flags = modulo_k_pi(I, k_left, k_right);
+        double a_lower, a_upper, b_lower, b_upper;
+        bool a_one, b_one;
+        expected(a, a_lower, a_upper, a_one);
+        expected(b, b_lower, b_upper, b_one);
+        const auto same = [](double u, double v) { return (std::isnan(u) && std::isnan(v)) || u == v; };
+        check("modulo_k_pi(I): the floors and the flags of floor(interval(x)/interval::pi())",
+              same(k_left, a_lower) && same(k_right, b_upper) && flags == (a_one ? 2 : 0) + (b_one ? 1 : 0),
+              [&] {
+                return "modulo_k_pi(" + hex(I) + ") = " + std::to_string(flags) + ", " + hex(k_left) + ", "
+                  + hex(k_right) + " rather than " + std::to_string((a_one ? 2 : 0) + (b_one ? 1 : 0)) + ", "
+                  + hex(a_lower) + ", " + hex(b_upper);
+              });
+      }
+    }
+  }
+
   // atan2 of IEEE 1788-2015 over boxes [yl, yu] x [xl, xu] in every position
   // about the axes and the half-line y = 0, x < 0, where the angle jumps from
   // pi to -pi, and at the boxes whose hull is known: those with infinite
@@ -241,38 +337,38 @@ namespace
                                       : doubles_between(r.left(), b.least_below),
                                       (b.greatest_below == b.greatest_above) ? 2*doubles_between(b.greatest_above, r.right())
                                       : doubles_between(b.greatest_above, r.right()));
-        check_distance("atan2([y],[x]) over boxes", distance, atan2_limit, describe);
+        check_distance("atan2([y],[x]) over boxes", distance, limit, describe);
       }
     }
 
-    const interval pi = interval::pi(), half_pi = interval::half_pi();
+    const interval pi_itv = interval::pi(), half_pi_itv = interval::half_pi();
     const double oo = gaol_tests::inf;
     const struct { const char *name; interval Y, X; double l, r; } known[] = {
       { "atan2([0],[0])", interval(0.0), interval(0.0), 1.0, -1.0 },
       { "atan2([empty],[1])", interval::emptyset(), interval(1.0), 1.0, -1.0 },
       { "atan2([1],[empty])", interval(1.0), interval::emptyset(), 1.0, -1.0 },
       { "atan2([0],[1,2])", interval(0.0), interval(1.0, 2.0), 0.0, 0.0 },
-      { "atan2([0],[-2,-1])", interval(0.0), interval(-2.0, -1.0), pi.left(), pi.right() },
-      { "atan2([0],[-2,0])", interval(0.0), interval(-2.0, 0.0), pi.left(), pi.right() },
+      { "atan2([0],[-2,-1])", interval(0.0), interval(-2.0, -1.0), pi_itv.left(), pi_itv.right() },
+      { "atan2([0],[-2,0])", interval(0.0), interval(-2.0, 0.0), pi_itv.left(), pi_itv.right() },
       { "atan2([0],[0,2])", interval(0.0), interval(0.0, 2.0), 0.0, 0.0 },
-      { "atan2([0],[-1,1])", interval(0.0), interval(-1.0, 1.0), 0.0, pi.right() },
-      { "atan2([1,2],[0])", interval(1.0, 2.0), interval(0.0), half_pi.left(), half_pi.right() },
-      { "atan2([0,2],[0])", interval(0.0, 2.0), interval(0.0), half_pi.left(), half_pi.right() },
-      { "atan2([-2,-1],[0])", interval(-2.0, -1.0), interval(0.0), -half_pi.right(), -half_pi.left() },
-      { "atan2([-2,0],[0])", interval(-2.0, 0.0), interval(0.0), -half_pi.right(), -half_pi.left() },
-      { "atan2([-1,1],[0])", interval(-1.0, 1.0), interval(0.0), -half_pi.right(), half_pi.right() },
-      { "atan2([-1,0],[-2,-1])", interval(-1.0, 0.0), interval(-2.0, -1.0), -pi.right(), pi.right() },
-      { "atan2([-1,1],[-2,-1])", interval(-1.0, 1.0), interval(-2.0, -1.0), -pi.right(), pi.right() },
-      { "atan2([-1,0],[1,2]): at most 0", interval(-1.0, 0.0), interval(1.0, 2.0), -half_pi.right()*0.5, 0.0 },
-      { "atan2([-oo,+oo],[-oo,+oo])", interval::universe(), interval::universe(), -pi.right(), pi.right() },
-      { "atan2([1,+oo],[1,+oo])", interval(1.0, oo), interval(1.0, oo), 0.0, half_pi.right() },
-      { "atan2([1,+oo],[-oo,-1])", interval(1.0, oo), interval(-oo, -1.0), half_pi.left(), pi.right() },
-      { "atan2([-oo,-1],[-oo,-1])", interval(-oo, -1.0), interval(-oo, -1.0), -pi.right(), -half_pi.left() },
-      { "atan2([-oo,-1],[1,+oo])", interval(-oo, -1.0), interval(1.0, oo), -half_pi.right(), 0.0 },
-      { "atan2([-oo,+oo],[1,2])", interval::universe(), interval(1.0, 2.0), -half_pi.right(), half_pi.right() },
-      { "atan2([1,2],[-oo,+oo])", interval(1.0, 2.0), interval::universe(), 0.0, pi.right() },
-      { "atan2([1],[1]): pi/4", interval(1.0), interval(1.0), half_pi.left()*0.5, half_pi.right()*0.5 },
-      { "atan2([-3],[3]): -pi/4", interval(-3.0), interval(3.0), -half_pi.right()*0.5, -half_pi.left()*0.5 },
+      { "atan2([0],[-1,1])", interval(0.0), interval(-1.0, 1.0), 0.0, pi_itv.right() },
+      { "atan2([1,2],[0])", interval(1.0, 2.0), interval(0.0), half_pi_itv.left(), half_pi_itv.right() },
+      { "atan2([0,2],[0])", interval(0.0, 2.0), interval(0.0), half_pi_itv.left(), half_pi_itv.right() },
+      { "atan2([-2,-1],[0])", interval(-2.0, -1.0), interval(0.0), -half_pi_itv.right(), -half_pi_itv.left() },
+      { "atan2([-2,0],[0])", interval(-2.0, 0.0), interval(0.0), -half_pi_itv.right(), -half_pi_itv.left() },
+      { "atan2([-1,1],[0])", interval(-1.0, 1.0), interval(0.0), -half_pi_itv.right(), half_pi_itv.right() },
+      { "atan2([-1,0],[-2,-1])", interval(-1.0, 0.0), interval(-2.0, -1.0), -pi_itv.right(), pi_itv.right() },
+      { "atan2([-1,1],[-2,-1])", interval(-1.0, 1.0), interval(-2.0, -1.0), -pi_itv.right(), pi_itv.right() },
+      { "atan2([-1,0],[1,2]): at most 0", interval(-1.0, 0.0), interval(1.0, 2.0), -half_pi_itv.right()*0.5, 0.0 },
+      { "atan2([-oo,+oo],[-oo,+oo])", interval::universe(), interval::universe(), -pi_itv.right(), pi_itv.right() },
+      { "atan2([1,+oo],[1,+oo])", interval(1.0, oo), interval(1.0, oo), 0.0, half_pi_itv.right() },
+      { "atan2([1,+oo],[-oo,-1])", interval(1.0, oo), interval(-oo, -1.0), half_pi_itv.left(), pi_itv.right() },
+      { "atan2([-oo,-1],[-oo,-1])", interval(-oo, -1.0), interval(-oo, -1.0), -pi_itv.right(), -half_pi_itv.left() },
+      { "atan2([-oo,-1],[1,+oo])", interval(-oo, -1.0), interval(1.0, oo), -half_pi_itv.right(), 0.0 },
+      { "atan2([-oo,+oo],[1,2])", interval::universe(), interval(1.0, 2.0), -half_pi_itv.right(), half_pi_itv.right() },
+      { "atan2([1,2],[-oo,+oo])", interval(1.0, 2.0), interval::universe(), 0.0, pi_itv.right() },
+      { "atan2([1],[1]): pi/4", interval(1.0), interval(1.0), half_pi_itv.left()*0.5, half_pi_itv.right()*0.5 },
+      { "atan2([-3],[3]): -pi/4", interval(-3.0), interval(3.0), -half_pi_itv.right()*0.5, -half_pi_itv.left()*0.5 },
     };
     for (const auto& k : known) {
       const interval r = evaluate(k.name, [&] { return atan2(k.Y, k.X); }, [&] { return std::string(k.name); });
@@ -350,12 +446,17 @@ namespace
       { "sqrt([-4,4])", [] { return sqrt(interval(-4., 4.)); }, 0., 2. },
       { "tanh([-inf,inf])", [] { return tanh(interval::universe()); }, -1., 1. },
       { "atanh([-1,1])", [] { return atanh(interval(-1., 1.)); }, -inf, inf },
+      // The doubles next to -1 and 1 are in the domain (-1, 1) of atanh: the
+      // bound at -1 or 1 is the limit -oo or +oo, the other one is a value
+      { "atanh([1-2^-53,1])", [] { return atanh(interval(0x1.fffffffffffffp-1, 1.)); },
+        value("atanh", 0x1.fffffffffffffp-1).below, inf },
+      { "atanh([-1,-(1-2^-53)])", [] { return atanh(interval(-1., -0x1.fffffffffffffp-1)); },
+        -inf, value("atanh", -0x1.fffffffffffffp-1).above },
       { "cosh([-inf,inf])", [] { return cosh(interval::universe()); }, 1., inf },
     };
     for (const Known& k : known) {
       const interval r = evaluate(k.name, k.f, [] { return std::string(); });
-      const bool trigonometric = std::strncmp(k.name, "sin(", 4) == 0 || std::strncmp(k.name, "cos(", 4) == 0;
-      expect_close(k.name, r, k.below, k.above, [&] { return hex(r); }, trigonometric ? 1 : limit);
+      expect_close(k.name, r, k.below, k.above, [&] { return hex(r); });
     }
 
     // The functions where their value is a double, pi, pi/2 or pi/4, sinh and
@@ -395,6 +496,11 @@ namespace
       { "acosh([1])", [] { return acosh(interval(1.)); }, 0., 0. },
       { "acosh([0,1])", [] { return acosh(interval(0., 1.)); }, 0., 0. },
       { "atanh([0])", [] { return atanh(interval(0.)); }, 0., 0. },
+      // atanh tends to -oo at -1 and to +oo at 1, the ends of its domain
+      // (-1, 1): these limits are the bounds of the result
+      { "atanh([0,1])", [] { return atanh(interval(0., 1.)); }, 0., inf },
+      { "atanh([-1,0])", [] { return atanh(interval(-1., 0.)); }, -inf, 0. },
+      { "atanh([-2,2]), whose part outside (-1, 1) is left out", [] { return atanh(interval(-2., 2.)); }, -inf, inf },
     };
     for (const Known& e : exact) {
       const interval r = evaluate(e.name, e.f, [] { return std::string(); });
@@ -417,6 +523,16 @@ namespace
       { "acos([-3,-2])", [] { return acos(interval(-3., -2.)); } },
       { "acosh([-1,0.5])", [] { return acosh(interval(-1., 0.5)); } },
       { "atanh([2,3])", [] { return atanh(interval(2., 3.)); } },
+      // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1): its limits
+      // -oo and +oo at -1 and 1 are no values, so that an interval holding
+      // no point of (-1, 1) gives the empty set, [1] and [-1] included. GAOL
+      // gave [MAX,+oo] for the first three
+      { "atanh([1])", [] { return atanh(interval(1.)); } },
+      { "atanh([1,5])", [] { return atanh(interval(1., 5.)); } },
+      { "atanh([1,+oo])", [] { return atanh(interval(1., inf)); } },
+      { "atanh([-1])", [] { return atanh(interval(-1.)); } },
+      { "atanh([-5,-1])", [] { return atanh(interval(-5., -1.)); } },
+      { "atanh([-oo,-1])", [] { return atanh(interval(-inf, -1.)); } },
     };
     for (const Empty& e : empty) {
       bool threw = false;
@@ -428,6 +544,113 @@ namespace
       }
       check(std::string(e.name) + ": empty", !threw && r.is_empty(), [&] { return threw ? std::string("exception") : hex(r); });
     }
+  }
+}
+
+namespace
+{
+  /*
+    erf and erfc (GAOL v5), which GAOL bounds with CORE-MATH's values at the
+    bounds, correctly rounded: the value at one bound rounded upward, and the
+    double below the value at the other one, but at 0 and at the infinities,
+    where the value is exact. Their results have to be the tightest
+    enclosures themselves, where the other functions of the table may be one
+    double wider: at each double of the table, from the tiny arguments where
+    erf(x) is about 2x/sqrt(pi), through the changes of binade, to those
+    where erf(x) rounds to +-1 and erfc(x) is subnormal or below 2^-1074; over
+    the intervals between two consecutive ones; at 0 and at the infinite
+    bounds, which are exact; on the empty set. A lower bound one double too
+    low, as the double below an exact value, or one double too high, as the
+    value itself where it is not exact, fails, and so does a bound taken at
+    the wrong end of the interval. The tightest enclosures of symmetric sets
+    are symmetric: erf(-X) has to be -erf(X) exactly, and erfc(-X), the
+    tightest enclosure of 2 - erfc(X), to lie within 2 - erfc(X) computed with
+    intervals.
+  */
+  void error_functions()
+  {
+    const std::size_t n = sizeof(unary_values)/sizeof(unary_values[0]);
+    std::size_t count = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+      const UnaryValue& u = unary_values[i];
+      const bool is_erf = std::strcmp(u.function, "erf") == 0;
+      if (!is_erf && std::strcmp(u.function, "erfc") != 0) {
+        continue;
+      }
+      ++count;
+      const std::string f = u.function;
+      const Unary g = unary_functions().at(f).f;
+      const interval X(u.x);
+      const interval r = g(X);
+      check(f + "([x]): the tightest enclosure", r.left() == u.below && r.right() == u.above,
+            [&] { return f + "(" + hex(u.x) + ") = " + hex(r) + " rather than [" + hex(u.below) + ", " + hex(u.above) + "]"; });
+      // The opposite argument, in the table or not
+      const interval s = g(-X);
+      if (is_erf) {
+        check("erf(-[x]) = -erf([x])", s.set_eq(-r), [&] { return "erf(" + hex(-u.x) + ") = " + hex(s) + ", erf(" + hex(u.x) + ") = " + hex(r); });
+      } else {
+        check("erfc(-[x]) within 2 - erfc([x])", !s.is_empty() && s.set_leq(interval(2.0) - r),
+              [&] { return "erfc(" + hex(-u.x) + ") = " + hex(s) + ", erfc(" + hex(u.x) + ") = " + hex(r); });
+      }
+      if (i + 1 == n || std::strcmp(unary_values[i+1].function, u.function) != 0) {
+        continue;
+      }
+      const UnaryValue& v = unary_values[i+1];
+      const interval Y(u.x, v.x);
+      const interval t = g(Y);
+      const double below = is_erf ? u.below : v.below, above = is_erf ? v.above : u.above;
+      check(f + "([a,b]): the tightest enclosure", t.left() == below && t.right() == above,
+            [&] { return f + "(" + hex(Y) + ") = " + hex(t) + " rather than [" + hex(below) + ", " + hex(above) + "]"; });
+      const interval w = g(-Y);
+      if (is_erf) {
+        check("erf(-[a,b]) = -erf([a,b])", w.set_eq(-t), [&] { return "erf(" + hex(-Y) + ") = " + hex(w); });
+      } else {
+        check("erfc(-[a,b]) within 2 - erfc([a,b])", !w.is_empty() && w.set_leq(interval(2.0) - t),
+              [&] { return "erfc(" + hex(-Y) + ") = " + hex(w) + ", erfc(" + hex(Y) + ") = " + hex(t); });
+      }
+    }
+    check("erf and erfc: the values of elementary_values.h", count >= 400, [&] { return std::to_string(count); });
+
+    // The exact values at 0 and at the infinities, and the bounds of the
+    // functions beyond the arguments where they round to their limits
+    const double below_one = 0x1.fffffffffffffp-1, below_two = 0x1.fffffffffffffp+0, tiny = 0x1p-1074;
+    struct Known
+    {
+      const char *name;
+      interval (*f)();
+      double below, above;
+    };
+    const Known known[] = {
+      { "erf([0])", [] { return erf(interval(0.)); }, 0., 0. },
+      { "erf([-0,0])", [] { return erf(interval(-0., 0.)); }, 0., 0. },
+      { "erf([0,1])", [] { return erf(interval(0., 1.)); }, 0., value("erf", 1.).above },
+      { "erf([-1,0])", [] { return erf(interval(-1., 0.)); }, value("erf", -1.).below, 0. },
+      { "erf([-oo,+oo])", [] { return erf(interval::universe()); }, -1., 1. },
+      { "erf([0,+oo])", [] { return erf(interval(0., inf)); }, 0., 1. },
+      { "erf([-oo,0])", [] { return erf(interval(-inf, 0.)); }, -1., 0. },
+      { "erf([6,+oo])", [] { return erf(interval(6., inf)); }, below_one, 1. },
+      { "erf([-oo,-6])", [] { return erf(interval(-inf, -6.)); }, -1., -below_one },
+      { "erf([MAX,+oo])", [] { return erf(interval(std::numeric_limits<double>::max(), inf)); }, below_one, 1. },
+      { "erf([-2^-1074,2^-1074])", [] { return erf(interval(-0x1p-1074, 0x1p-1074)); }, -2*tiny, 2*tiny },
+      { "erfc([0])", [] { return erfc(interval(0.)); }, 1., 1. },
+      { "erfc([-0,0])", [] { return erfc(interval(-0., 0.)); }, 1., 1. },
+      { "erfc([0,1])", [] { return erfc(interval(0., 1.)); }, value("erfc", 1.).below, 1. },
+      { "erfc([-1,0])", [] { return erfc(interval(-1., 0.)); }, 1., value("erfc", -1.).above },
+      { "erfc([-oo,+oo])", [] { return erfc(interval::universe()); }, 0., 2. },
+      { "erfc([0,+oo])", [] { return erfc(interval(0., inf)); }, 0., 1. },
+      { "erfc([-oo,0])", [] { return erfc(interval(-inf, 0.)); }, 1., 2. },
+      { "erfc([28,+oo])", [] { return erfc(interval(28., inf)); }, 0., tiny },
+      { "erfc([1e300])", [] { return erfc(interval(1e300)); }, 0., tiny },
+      { "erfc([-oo,-6])", [] { return erfc(interval(-inf, -6.)); }, below_two, 2. },
+      { "erfc([-2^-1074,2^-1074])", [] { return erfc(interval(-0x1p-1074, 0x1p-1074)); }, below_one, 0x1.0000000000001p+0 },
+    };
+    for (const Known& k : known) {
+      const interval r = evaluate(k.name, k.f, [] { return std::string(); });
+      check(std::string(k.name) + ": the tightest bounds", !r.is_empty() && r.left() == k.below && r.right() == k.above,
+            [&] { return hex(r); });
+    }
+    check("erf and erfc: empty of the empty set", erf(interval::emptyset()).is_empty() && erfc(interval::emptyset()).is_empty(),
+          [] { return std::string("erf(empty), erfc(empty)"); });
   }
 }
 
@@ -445,11 +668,6 @@ namespace
       double below, above;
     };
     const Close close[] = {
-      { "pow([4],0.5)", [] { return pow(interval(4.), 0.5); }, 2., 2. },
-      { "pow([4],0.5f)", [] { return pow(interval(4.), 0.5f); }, 2., 2. },
-      { "pow([4],1.5)", [] { return pow(interval(4.), 1.5); }, 8., 8. },
-      { "pow([4,9],0.5)", [] { return pow(interval(4., 9.), 0.5); }, 2., 3. },
-      { "pow([4],-0.5)", [] { return pow(interval(4.), -0.5); }, 0.5, 0.5 },
       { "pow([0,4],0.5)", [] { return pow(interval(0., 4.), 0.5); }, 0., 2. },
       { "pow([-4,9],0.5), whose negative part is out of the domain", [] { return pow(interval(-4., 9.), 0.5); }, 0., 3. },
       { "pow([-2,3],[1,2]), whose negative part is out of the domain", [] { return pow(interval(-2., 3.), interval(1., 2.)); }, 0., 9. },
@@ -466,7 +684,16 @@ namespace
       interval (*f)();
       double lo, hi;
     };
+    // The powers that are doubles at a corner of the box (GAOL v5): the lower bound is the power itself, not the
+    // double below it, as pow([4],0.5) was [2 - 2^-52, 2]
     const Equal equal[] = {
+      { "pow([4],0.5)", [] { return pow(interval(4.), 0.5); }, 2., 2. },
+      { "pow([4],0.5f)", [] { return pow(interval(4.), 0.5f); }, 2., 2. },
+      { "pow([4],1.5)", [] { return pow(interval(4.), 1.5); }, 8., 8. },
+      { "pow([4,9],0.5)", [] { return pow(interval(4., 9.), 0.5); }, 2., 3. },
+      { "pow([4],-0.5)", [] { return pow(interval(4.), -0.5); }, 0.5, 0.5 },
+      { "pow([3,4],[2,3])", [] { return pow(interval(3., 4.), interval(2., 3.)); }, 9., 64. },
+      { "pow([2,4],[-1,0.5]), 4^-1 and 4^0.5", [] { return pow(interval(2., 4.), interval(-1., 0.5)); }, 0.25, 2. },
       { "pow([-2,3],3.0), with a negative base and an integer exponent", [] { return pow(interval(-2., 3.), 3.0); }, -8., 27. },
       { "pow([-2],2.0)", [] { return pow(interval(-2.), 2.0); }, 4., 4. },
       { "pow([2,3],4.0)", [] { return pow(interval(2., 3.), 4.0); }, 16., 81. },
@@ -502,22 +729,130 @@ namespace
       const interval r = evaluate(e.name, e.f, [] { return std::string(); });
       check(std::string(e.name) + ": empty", r.is_empty(), [&] { return hex(r); });
     }
+#if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
+    // [+oo] and [-oo], which no constructor makes but the one of GAOL without
+    // a check, built from an SSE2 register, the lower bound stored negated:
+    // pow(x, y) has to be empty for one as the exponent, such an exponent
+    // holding no real number, where a pow() taking it for an integer beyond the
+    // ints would give a power of 4 (GAOL v5: the test of these exponents was
+    // once taken for one that is never true)
+    for (const double d : { inf, -inf }) {
+      const interval J(_mm_set_pd(d, -d), gaol_detail::unchecked_bounds);
+      const interval r = pow(interval(4.), J);
+      check("pow([4],J) for J = [+oo] or [-oo] built from an SSE2 register: empty",
+            J.left() == d && J.right() == d && r.is_empty(),
+            [&] { return "J = " + hex(J) + ", pow([4],J) = " + hex(r); });
+      // and so does the pow of IEEE 1788-2015, whatever the base (GAOL v5:
+      // gaol_ieee1788::pow([0.5], [+oo]) was [0], from the limit of x^y)
+      for (const interval& base : { interval(0.5), interval(4.), interval(0.5, 4.), interval(0., 4.) }) {
+        const interval s = gaol_ieee1788::pow(base, J);
+        check("gaol_ieee1788::pow(x,J) for J = [+oo] or [-oo] built from an SSE2 register: empty", s.is_empty(),
+              [&] { return "x = " + hex(base) + ", J = " + hex(J) + ": " + hex(s); });
+      }
+    }
+#endif
+#if defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS
+    // The same [+oo] and [-oo], built from a NEON register with the
+    // constructor of GAOL without a check, the lanes holding the stored
+    // bounds <-left, right> (GAOL v5): a build with the NEON intervals does
+    // not lose the checks above
+    for (const double d : { inf, -inf }) {
+      const double lanes[2] = { -d, d };
+      const interval J(vld1q_f64(lanes), gaol_detail::unchecked_bounds);
+      const interval r = pow(interval(4.), J);
+      check("pow([4],J) for J = [+oo] or [-oo] built from a NEON register: empty",
+            J.left() == d && J.right() == d && r.is_empty(),
+            [&] { return "J = " + hex(J) + ", pow([4],J) = " + hex(r); });
+      for (const interval& x : { interval(0.5), interval(4.), interval(0.5, 4.), interval(0., 4.) }) {
+        const interval s = gaol_ieee1788::pow(x, J);
+        check("gaol_ieee1788::pow(x,J) for J = [+oo] or [-oo] built from a NEON register: empty", s.is_empty(),
+              [&] { return "x = " + hex(x) + ", J = " + hex(J) + ": " + hex(s); });
+      }
+    }
+#endif
+#if (defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS) \
+    || (defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS)
+    /*
+      The constructor of the interface from a register (GAOL v5, decided on
+      2026-10-24) gives the empty set for the lanes of
+      [+oo] and [-oo], which hold no real number (IEEE 1788-2015, 10.5.8):
+      the operations took them for intervals, and gave, for J = [+oo],
+      gaol_ieee1788::pow(J, [2]) and gaol::pow(J, [2]) [+oo], sqr(J) [+oo],
+      exp(J) [DBL_MAX, +oo], div_rel([2], J, universe) [0, 0] and
+      sqrt_rel(universe, J) [+oo] (measured on 2026-10-24). Each of them is
+      empty for such a J now. The registers of the intervals that exist are
+      kept, and a single lane at -oo gives the empty set as well.
+    */
+    for (const double d : { inf, -inf }) {
+#  if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
+      const interval J(_mm_set_pd(d, -d));
+#  else
+      const double lanes[2] = { -d, d };
+      const interval J(vld1q_f64(lanes));
+#  endif
+      const auto describe = [&] { return "J = " + hex(J); };
+      check("the interval of the register of [+oo] or [-oo] is empty", J.is_empty(), describe);
+      const interval two(2.0), universe = interval::universe();
+      check("gaol_ieee1788::pow(J,[2]) for J of the register of [+oo] or [-oo]: empty", gaol_ieee1788::pow(J, two).is_empty(), describe);
+      check("gaol::pow(J,[2]) for J of the register of [+oo] or [-oo]: empty", gaol::pow(J, two).is_empty(), describe);
+      check("sqr(J) for J of the register of [+oo] or [-oo]: empty", sqr(J).is_empty(), describe);
+      check("exp(J) for J of the register of [+oo] or [-oo]: empty", exp(J).is_empty(), describe);
+      check("div_rel([2],J,universe) for J of the register of [+oo] or [-oo]: empty", div_rel(two, J, universe).is_empty(), describe);
+      check("sqrt_rel(universe,J) for J of the register of [+oo] or [-oo]: empty", sqrt_rel(universe, J).is_empty(), describe);
+    }
+    // The lanes <-left, right>, as a register of the SSE2 or the NEON intervals holds them.
+    // A function called for each case, not a table of structures: GCC 12.2 on aarch64 at -O2
+    // gave the loop over such a table values that are not the ones of the table
+    const auto register_case = [&](double first, double second, bool lanes_empty, double left, double right) {
+#  if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
+      const interval K(_mm_set_pd(second, first));
+#  else
+      const double values[2] = { first, second };
+      const interval K(vld1q_f64(values));
+#  endif
+      check("the interval of a register: the empty set for a lane at -oo, else the interval of its lanes",
+            K.is_empty() == lanes_empty && (lanes_empty || (K.left() == left && K.right() == right)),
+            [&] { return "lanes <" + hex(first) + ", " + hex(second) + ">: " + hex(K); });
+    };
+    register_case(inf, inf, false, -inf, inf);   // the universe
+    register_case(-5.0, inf, false, 5.0, inf);   // [5, +oo]
+    register_case(inf, 5.0, false, -inf, 5.0);   // [-oo, 5]
+    register_case(1.0, 2.0, false, -1.0, 2.0);   // [-1, 2]
+    register_case(-0.0, 0.0, false, 0.0, 0.0);   // [0, 0]
+    register_case(-inf, 3.0, true, 0.0, 0.0);    // l = +oo, u = 3
+    register_case(1.0, -inf, true, 0.0, 0.0);    // l = -1, u = -oo
+    register_case(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), true, 0.0, 0.0);
+#endif
 
     // An integer exponent beyond the ints, for which pow(const interval&, int)
     // cannot be called, still takes the integer power rather than the real
-    // one, and gives [-oo,+oo] whatever the base
-    const Empty universe[] = {
-      { "pow([-2,-1],[1e10])", [] { return pow(interval(-2., -1.), interval(1e10)); } },
-      { "pow([-1,-0.5],[2^32+1])", [] { return pow(interval(-1., -0.5), interval(4294967297.0)); } },
-      { "pow([2,3],[2^31]), with a positive base", [] { return pow(interval(2., 3.), interval(2147483648.0)); } },
-      { "pow([0.25,0.5],[-2^31-1]), with a positive base", [] { return pow(interval(0.25, 0.5), interval(-2147483649.0)); } },
-      { "pow([-2,3],1e10)", [] { return pow(interval(-2., 3.), 1e10); } },
-      { "pow([2,3],2^31)", [] { return pow(interval(2., 3.), 2147483648.0); } },
+    // one: pown, from CORE-MATH's pow at the corners of the base, the sign
+    // from the parity of the exponent (GAOL v5: [-oo,+oo]
+    // whatever the base). The bounds of the powers near 1 were computed with
+    // mpmath at 600 bits
+    const Equal beyond[] = {
+      { "pow([-2,-1],[1e10])", [] { return pow(interval(-2., -1.), interval(1e10)); }, 1., inf },
+      { "pow([-1,-0.5],[2^32+1])", [] { return pow(interval(-1., -0.5), interval(4294967297.0)); }, -1., -0. },
+      { "pow([2,3],[2^31]), with a positive base", [] { return pow(interval(2., 3.), interval(2147483648.0)); }, std::numeric_limits<double>::max(), inf },
+      { "pow([0.25,0.5],[-2^31-1]), with a positive base", [] { return pow(interval(0.25, 0.5), interval(-2147483649.0)); }, std::numeric_limits<double>::max(), inf },
+      { "pow([-2,3],1e10)", [] { return pow(interval(-2., 3.), 1e10); }, 0., inf },
+      { "pow([2,3],2^31)", [] { return pow(interval(2., 3.), 2147483648.0); }, std::numeric_limits<double>::max(), inf },
+      { "pow([1 + 2^-30],[2^33])", [] { return pow(interval(0x1.00000004p+0), interval(8589934592.0)); },
+        0x1.749ea7bd26dc6p+11, 0x1.749ea7bd26dc7p+11 },
+      { "pow([-1 - 2^-30],[2^33 + 1])", [] { return pow(interval(-0x1.00000004p+0), interval(8589934593.0)); },
+        -0x1.749ea7c2f9571p+11, -0x1.749ea7c2f9570p+11 },
+      { "pow([-1 + 2^-40],-2^41 - 1)", [] { return pow(interval(-0x1.fffffffffep-1), -2199023255553.0); },
+        -0x1.d8e64b8d518cbp+2, -0x1.d8e64b8d518cap+2 },
+      { "pow([0,2],[-1e10]), without x = 0", [] { return pow(interval(0., 2.), interval(-1e10)); }, 0., inf },
     };
-    for (const Empty& u : universe) {
-      const interval r = evaluate(u.name, u.f, [] { return std::string(); });
-      check(std::string(u.name) + ": [-oo,+oo]", r.left() == -inf && r.right() == inf, [&] { return hex(r); });
+    for (const Equal& e : beyond) {
+      const interval r = evaluate(e.name, e.f, [] { return std::string(); });
+      check(std::string(e.name) + ": pown, the tightest", !r.is_empty() && r.left() == e.lo && r.right() == e.hi,
+            [&] { return hex(r); });
     }
+    const interval zero_beyond = pow(interval(0.), interval(-1e10));
+    check("pow([0],[-1e10]): empty, 0^n having no value for n < 0", zero_beyond.is_empty(),
+          [&] { return hex(zero_beyond); });
     const interval beyond_empty = pow(interval::emptyset(), interval(1e10));
     check("pow(empty,[1e10]): empty", beyond_empty.is_empty(), [&] { return hex(beyond_empty); });
 
@@ -573,6 +908,149 @@ namespace
   }
 }
 
+/*
+  The integer functions of IEEE 1788-2015 (Table 9.1, GAOL v5)
+
+  sign, trunc, roundTiesToEven and roundTiesToAway are exact: each returns a
+  double that is an integer, with no rounding of its own. What is checked here
+  is that they do not read the rounding direction either -- std::nearbyint and
+  std::rint would -- so that GAOL gives the same result whatever direction the
+  calling code left, as it does for every other operation.
+*/
+namespace
+{
+  std::vector<double> integer_arguments()
+  {
+    std::vector<double> v;
+    // halfway values, whole numbers, and the doubles on either side of them
+    for (int k = -400; k <= 400; ++k) {
+      const double h = k / 2.0;
+      v.push_back(h);
+      v.push_back(std::nextafter(h, -GAOL_INFINITY));
+      v.push_back(std::nextafter(h, GAOL_INFINITY));
+    }
+    std::mt19937_64 g(31415);
+    for (int i = 0; i < 20000; ++i) {
+      v.push_back((double)(g() % 2000000) / 1000.0 - 1000.0);
+    }
+    v.push_back(0.0);
+    v.push_back(-0.0);
+    v.push_back(0x1p52);
+    v.push_back(-0x1p52);
+    return v;
+  }
+
+  /* roundTiesToEven, computed without reading the rounding direction and
+     without changing it.
+
+     std::nearbyint in the rounding to nearest was the reference at first, set
+     with std::fesetround around the call. That is not sound: without
+     FENV_ACCESS a compiler may move a floating-point operation across a call
+     that changes the direction, and one did -- on 64-bit ARM nearbyint is the
+     single instruction frintx, which GCC hoisted out, so the reference was
+     computed in the upward rounding GAOL leaves and roundTiesToEven(-199.5)
+     was said to be -199 rather than -200.
+
+     Here floor, the subtraction, the addition and fmod are all exact for the
+     arguments they are given, so the result does not depend on the direction
+     at all. */
+  double reference_ties_to_even(double x)
+  {
+    if (!(std::fabs(x) < 0x1p52)) {
+      return x; // an integer already, or an infinity
+    }
+    const double f = std::floor(x);
+    const double d = x - f; // exact, and 0 <= d < 1
+    if (d > 0.5) {
+      return f + 1.0;
+    }
+    if (d < 0.5) {
+      return f;
+    }
+    // a tie: the even one of f and f+1
+    return (std::fmod(f, 2.0) == 0.0) ? f : f + 1.0;
+  }
+
+  void integer_functions()
+  {
+    const std::vector<double> v = integer_arguments();
+    const int modes[4] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+
+    for (double x : v) {
+      const interval I(x, x);
+      interval first[4];
+      for (int m = 0; m < 4; ++m) {
+        std::fesetround(modes[m]);
+        const interval got[4] = {sign(I), trunc(I), round_ties_to_even(I), round_ties_to_away(I)};
+        for (int f = 0; f < 4; ++f) {
+          if (m == 0) {
+            first[f] = got[f];
+          } else {
+            check("the integer functions: the same result whatever the rounding direction",
+                  got[f].left() == first[f].left() && got[f].right() == first[f].right(),
+                  [&] { return "at " + hex(x); });
+          }
+        }
+      }
+      std::fesetround(FE_UPWARD);
+
+      const double s = (x < 0.0) ? -1.0 : ((x > 0.0) ? 1.0 : 0.0);
+      check("sign: the sign of the bounds", sign(I).left() == s && sign(I).right() == s,
+            [&] { return "sign(" + hex(x) + ")"; });
+      check("trunc: toward zero", trunc(I).left() == std::trunc(x) && trunc(I).right() == std::trunc(x),
+            [&] { return "trunc(" + hex(x) + ")"; });
+      const double e = reference_ties_to_even(x);
+      check("roundTiesToEven: the nearest integer, ties to the even one",
+            round_ties_to_even(I).left() == e && round_ties_to_even(I).right() == e,
+            [&] { return "round_ties_to_even(" + hex(x) + ") = " + hex(round_ties_to_even(I).left())
+                       + " rather than " + hex(e); });
+      // std::round rounds ties away from zero "regardless of the current
+      // rounding direction", so it is called as it is
+      const double a = std::round(x);
+      check("roundTiesToAway: the nearest integer, ties away from zero",
+            round_ties_to_away(I).left() == a && round_ties_to_away(I).right() == a,
+            [&] { return "round_ties_to_away(" + hex(x) + ")"; });
+    }
+
+    // Over intervals: each function does not decrease, so the bounds of the
+    // result are its values at the bounds
+    struct Case { const char* what; interval got; double lo, hi; };
+    const Case cases[] = {
+      {"sign([-3, 5])", sign(interval(-3.0, 5.0)), -1.0, 1.0},
+      {"sign([0])", sign(interval(0.0, 0.0)), 0.0, 0.0},
+      {"sign([-inf, -1])", sign(interval(-GAOL_INFINITY, -1.0)), -1.0, -1.0},
+      {"trunc([-2.7, 3.7])", trunc(interval(-2.7, 3.7)), -2.0, 3.0},
+      {"trunc([-inf, +inf])", trunc(interval(-GAOL_INFINITY, GAOL_INFINITY)), -GAOL_INFINITY, GAOL_INFINITY},
+      // 0.5 and 2.5 go to the even integers 0 and 2, and away from zero to 1 and 3
+      {"round_ties_to_even([0.5, 2.5])", round_ties_to_even(interval(0.5, 2.5)), 0.0, 2.0},
+      {"round_ties_to_away([0.5, 2.5])", round_ties_to_away(interval(0.5, 2.5)), 1.0, 3.0},
+      {"round_ties_to_even([-0.5, 1.5])", round_ties_to_even(interval(-0.5, 1.5)), 0.0, 2.0},
+      {"round_ties_to_away([-0.5, 1.5])", round_ties_to_away(interval(-0.5, 1.5)), -1.0, 2.0},
+    };
+    for (const Case& c : cases) {
+      check("the integer functions: over an interval",
+            !c.got.is_empty() && c.got.left() == c.lo && c.got.right() == c.hi,
+            [&] {
+              return std::string(c.what) + " = [" + hex(c.got.left()) + ", " + hex(c.got.right())
+                   + "] rather than [" + hex(c.lo) + ", " + hex(c.hi) + "]";
+            });
+    }
+
+    /* The empty set, which GAOL holds as the two bounds NaN: trunc and the
+       two roundings send a NaN to itself, so they give the empty set back,
+       where sign would give [0, 0], a NaN comparing false both to 0 and above
+       it. The four test it rather than rely on that. */
+    check("sign: empty of the empty set", sign(interval::emptyset()).is_empty(),
+          [] { return std::string("sign(empty)"); });
+    check("trunc: empty of the empty set", trunc(interval::emptyset()).is_empty(),
+          [] { return std::string("trunc(empty)"); });
+    check("roundTiesToEven: empty of the empty set", round_ties_to_even(interval::emptyset()).is_empty(),
+          [] { return std::string("round_ties_to_even(empty)"); });
+    check("roundTiesToAway: empty of the empty set", round_ties_to_away(interval::emptyset()).is_empty(),
+          [] { return std::string("round_ties_to_away(empty)"); });
+  }
+}
+
 int main()
 {
   gaol::init();
@@ -582,7 +1060,12 @@ int main()
   pow_of_boxes();
   atan2_of_boxes();
   trigonometric_intervals();
+  tan_next_to_two_poles();
+  modulo_k_pi_values();
   powers();
+  integer_functions();
+  error_functions();
+  std::fesetround(FE_UPWARD);
   const int status = summary();
   gaol::cleanup();
   return status;

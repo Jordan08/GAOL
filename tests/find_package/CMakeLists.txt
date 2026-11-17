@@ -1,14 +1,21 @@
 # ==================================================================
-#  The tests of GAOL built with an installed GAOL (fork of GAOL)
+#  The tests of GAOL built with an installed GAOL (GAOL v5)
 # ==================================================================
 #
 # Builds the tests of the parent directory with the GAOL that find_package()
 # finds, as a project using GAOL would, which checks that gaol::gaol carries
-# what they need (include directories, mathlib, compilation flags):
+# what they need (include directories, compilation flags):
 #
 #   cmake -S tests/find_package -B build-find-package -DCMAKE_PREFIX_PATH=<prefix of GAOL>
 #   cmake --build build-find-package
 #   ctest --test-dir build-find-package
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 cmake_minimum_required(VERSION 3.14)
 
@@ -19,13 +26,26 @@ message(STATUS "GAOL found in ${gaol_DIR}")
 
 enable_testing()
 
+# -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it
+# (GAOL v5)
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-Wno-psabi GAOL_COMPILER_TAKES_WNO_PSABI)
+
 foreach(test arithmetic elementary rounding_direction numbers other_functions reverse)
   add_executable(gaol_test_${test} ../${test}.cpp)
   target_link_libraries(gaol_test_${test} PRIVATE gaol::gaol)
   set_target_properties(gaol_test_${test} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+  if(GAOL_COMPILER_TAKES_WNO_PSABI)
+    target_compile_options(gaol_test_${test} PRIVATE -Wno-psabi)
+  endif()
   if(MSVC)
     # getenv() and sscanf(), which the tests use as the C standard has them
     target_compile_definitions(gaol_test_${test} PRIVATE _CRT_SECURE_NO_WARNINGS)
   endif()
   add_test(NAME ${test} COMMAND gaol_test_${test})
 endforeach()
+# The time limit tests/CMakeLists.txt gives numbers, which none of these had
+# (GAOL v5): should the reading under a locale writing a decimal comma hang
+# again, the job would wait for its own limit
+set(GAOL_NUMBERS_TIMEOUT 300 CACHE STRING "Time limit of the test numbers, in seconds")
+set_tests_properties(numbers PROPERTIES TIMEOUT ${GAOL_NUMBERS_TIMEOUT})

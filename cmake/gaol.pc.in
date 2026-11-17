@@ -2,15 +2,31 @@
 #   pkg-config --cflags --libs gaol
 # Cflags carries the flags interval arithmetic needs (see the README), which
 # the code including GAOL's headers has to be compiled with, and the flag of
-# the fused multiply-add instructions GAOL is compiled with (GAOL_FMA), and
-# Libs mathlib.
-prefix=@CMAKE_INSTALL_PREFIX@
-libdir=@CMAKE_INSTALL_FULL_LIBDIR@
-includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
+# the fused multiply-add instructions GAOL is compiled with, and
+# on 32-bit Windows with the SSE2 intervals (GCC and Clang) the flag that has the
+# compiler ask for aligned memory for them (-faligned-new=8; GAOL v5), and
+# Libs the libraries to link: the elementary functions of CORE-MATH are
+# compiled into libgaol itself, so only GAOL, and the link options of interval
+# arithmetic (-mno-daz-ftz, where the compiler takes it). Not -lm (GAOL v5):
+# GAOL still calls functions of the math library, which the C++ compiler links.
+# The paths are taken from the directory of this file, ${pcfiledir}, so that
+# it stays right wherever GAOL is installed: cmake --install --prefix, the
+# archive and the .deb that CPack makes (GAOL v5).
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-14)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
+prefix=@GAOL_PC_PREFIX@
+libdir=@GAOL_PC_LIBDIR@
+includedir=@GAOL_PC_INCLUDEDIR@
 
 Name: gaol
 Description: GAOL, Not Just Another Interval Library
 URL: https://github.com/Jordan08/GAOL
 Version: @PROJECT_VERSION@
-Cflags: -I${includedir} @GAOL_INTERVAL_FLAGS_STRING@ @GAOL_FMA_FLAGS_STRING@
-Libs: -L${libdir} -lgaol @GAOL_PC_MATHLIB@ -lm
+Cflags: -I${includedir} @GAOL_INTERVAL_FLAGS_STRING@ @GAOL_FMA_FLAGS_STRING@ @GAOL_ALIGNED_NEW_FLAGS_STRING@
+Libs: -L${libdir} -lgaol @GAOL_LINK_FLAGS_STRING@

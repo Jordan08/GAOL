@@ -1,0 +1,211 @@
+<!-- Copyright (c) 2026 ENSTA, France
+
+     By: Jordan NININ (created 2026-10-27)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
+# The order of the computations and of the writes of the control register
+
+Tool of GAOL v5 for the assembly of the library: the check of #150, made for
+AArch64 and 32-bit ARM, made for x86-64.
+
+GCC does not model the rounding direction
+([bug 34678](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678)): it may move
+a floating-point operation on values in registers across the instruction that
+writes the control register, and compute a bound in the direction of the
+program rather than upward, or a result after the direction has been set back.
+[check_order.py](check_order.py) reads the assembly for that. #150 found it
+with `width()` on 64-bit and 32-bit ARM (a difference computed before the write
+of FPCR), and ran such a check on the assembly of the whole library for
+AArch64 and ARM with GCC 14.3: no floating-point instruction that depends on
+the direction between a `mrs` or `vmrs` and the `msr` or `vmsr`. That script is
+not in the repository; this one is for x86-64, GCC and Clang.
+
+```sh
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGAOL_PRESERVE_ROUNDING=ON
+python3 tests/tools/asm-order/check_order.py --build build --preserve
+python3 tests/tools/asm-order/check_order.py --selftest
+```
+
+The self-test runs in the continuous integration (`.github/workflows/linux.yml`,
+the configuration `asm-order-selftest`, Python alone), and so does the check
+of the library, in the configuration `asm-order-library`: the assembly of GCC 13.3 and of Clang
+18 (Ubuntu 24.04), with and without `GAOL_PRESERVE_ROUNDING`. The job fails for
+any finding, DENORMAL included: it sees what the benchmark of the pull requests
+cannot, the runners being AMD processors.
+
+`--build` compiles the sources of `gaol/` again with `-S` and the flags of the
+build (into `build/asm-order`), and [inline.cpp](inline.cpp) with the flags of
+`gaol_interval.cpp`: `width()`, `rad()` and `mid_rad()` are inline in a header,
+so that no source of the library holds them. It reads the assembly (not the C
+of CORE-MATH, whose writes of MXCSR give back the exception flags that `pow`,
+`cbrt`, `hypot`, `exp`, `exp2` and `exp10` kept and which sets no direction);
+`FILE.s` arguments read the assembly of GCC or Clang that is given.
+`--preserve` is for the builds with `GAOL_PRESERVE_ROUNDING`, whose operations
+write the register back. The exit status is 1 for a finding.
+
+## What it looks for
+
+For each function that holds a write of the control register (`ldmxcsr`,
+`fldcw`, and a call of `round_upward_if_needed()` or `fesetround()`, which
+write it), on the paths of its control flow graph, the jump tables of the
+`switch` statements being followed, and the call of a function that does not
+return (`__stack_chk_fail()`, `abort()`, a throw...) ending its path:
+
+- **BEFORE**: an instruction that rounds (add, sub, mul, div, sqrt, fused
+  multiply-add, a conversion that rounds, `roundsd` with the direction of the
+  register) that the function runs before the write, on a path from its entry
+  to a write, and before the probe of the direction. The probe is
+  `1 + (2^-1060 + 0)`, whose sums are meant to be computed in the direction
+  found: the instructions that round with a register that holds the static
+  `subnormal` or `tiny`, or a sum of it, up to the jump that tells the
+  direction; a sum of the program placed among them is not one. Past that jump
+  the direction is known. The same goes for any conditional write (the code
+  after it is reached without it: a write made only if the register has to
+  change): the jump that goes around it, after a read of the register
+  (`stmxcsr`, `fnstcw`, a call of `fegetround()`), is where the check is made,
+  the instructions before that jump are checked, and past it the register
+  holds what the write would have put there; a jump that no read precedes
+  checks nothing. A conversion of a 32-bit integer to a
+  double is exact.
+- **AFTER** (with `--preserve`): an instruction that rounds after the write
+  that sets the direction back, that no other write follows and that the entry
+  cannot reach without a write. A function whose writes are conditional
+  (`round_upward_if_needed()`, `flush_guard`, the registers of ARM and of
+  32-bit x86) reaches all of its code without one: the check cannot tell a
+  result computed after the write from one computed before it there, and the
+  tests, which compare the results in every direction, are what sees it.
+- **BLIND**: an instruction that rounds or writes the register that no function
+  of the file reaches, which a jump table the check could not follow would hide;
+  the indirect jumps without a table are counted (most are tail calls through a
+  pointer). The landing pads of the exceptions, named by the tables of
+  exceptions of the file, are part of the function that holds them, and are not
+  reached from its entry: what they write is seen, not analysed.
+- **DENORMAL** (whatever the writes, with or without `--preserve`): the
+  conversion to a double of an extended constant of the memory that is smaller
+  than the smallest normal double 2^-1022 (`fldt .LC15(%rip)`, then `fstpl` or
+  `fstl`, in the six instructions that follow the load, a label between them
+  not hiding it). It is a speed check, not a check of the order: with
+  `-frounding-math` GCC does not fold `std::numeric_limits<double>::denorm_min()`
+  (a constant of `long double` that it converts) and does that conversion at
+  each use, and the store of a subnormal through the x87 unit is a microcode
+  assist of the processors of Intel, 99 ns on an i7-1185G7 and 160 ns on a Xeon,
+  against 0.8 ns for 1.0: `sqrt(x)` was 16 times slower with GCC
+  (#224, which writes the constant as a literal). The runners of the continuous
+  integration are AMD processors, where the benchmark does not see it. The
+  constants of the SSE unit (`movsd`) are doubles already and not looked at.
+
+A store of 1 or of 0 through the x87 unit (`fld1`, `fstpl`: GCC writes a
+constant so) is exact and is not one that rounds, and neither is the store as
+a double (`fstpl` or `fstl`) of an extended constant that is a double
+(`fldt .LC15(%rip)`, `fstpl`: GCC loads
+`std::numeric_limits<double>::denorm_min()` so; the tool reads the three words
+of the constant, and the store is exempt when the value is a double exactly).
+The load is among the six instructions before the store, in a straight line:
+a label between them (another path reaches the store), a jump or a call does
+not allow it.
+
+## What it does not see
+
+- What a callee does (the callee is read as well), and an operation and a write
+  in two functions, the first calling the second between the two.
+- The sections between the first write and the last: the evaluations in nearest
+  of `GAOL_RND_NEAREST_ENTER()` and `LEAVE()`, and the writes of
+  `round_nearest()` and the others. The tests that call each operation in every
+  direction (`tests/rounding_direction.cpp`) are what sees them.
+- The AVX-512 path. Its instructions carry their direction (`{ru-sae}`) and read
+  no register, but they read the flush-to-zero modes that `flush_guard` clears
+  and gives back; the comparisons read denormals-are-zero too (GCC 13 computed
+  those of `asinpi()` before the check, `gaol/gaol_fpu.h`). Neither is looked at.
+- A value computed in the direction of the program and used where upward is
+  meant, which takes a data flow analysis. `difference_at_least()` computes the
+  halves of its bounds after its last write (exact: see `KNOWN`), and Clang's
+  assembly shows it where GCC's does not, because GCC turns the recursion into
+  a loop that leads back to a write.
+- The loops are cut at their back edge, so that the instructions of an
+  iteration are not taken for the ones before the write of the next.
+- The text of an `asm` statement is read as code: the `fldcw` of the library all
+  come from one.
+
+Three entries of `KNOWN` in the script list the findings that are right and
+harmless, each with its reason; they are printed with `--verbose` and do not
+make the check fail. An entry is for a function and a kind, and the last one
+for a mnemonic too (`mulsd`, `divsd`, `subsd`, with or without the `v`):
+another finding in these functions would be hidden. With `--build --verbose`,
+an entry that matches nothing is reported.
+
+## What it found
+
+On the code of 2026-10-27, in 40 builds of the library: GCC 15.2 at `-O2` and
+`-O3`, Clang 18 and 21 at `-O3` and Clang 21 at `-O2`, each with the default,
+the direction preserved (with the AVX-512 path, and without), the AVX-512 path
+alone, the FPU intervals, no FMA, and the last two preserved: no instruction
+that depends on the direction before the first write or after the last one,
+but the two harmless findings of `KNOWN`:
+
+- `pow_up_without_overflow_exception()` (and `pow_rounded_up<true>`, which
+  inlines it): the write masks the exceptions of MXCSR and leaves the direction;
+  what comes before decides whether to mask, with margins far larger than the
+  rounding of the estimate;
+- `difference_at_least()`, with Clang: the halving of the bounds after the last
+  write is exact (their difference overflows, so they are 2^970 or more in
+  magnitude).
+
+The bound K of the error of the integer powers in the path of the embedded
+rounding (`pown_checked()`, `pown_bound_inverse()`), which the first version of
+the tool showed before a write of `flush_guard`, is computed after it in the
+builds of this run.
+
+On the code of 2026-10-29 (`dc628bb`), the GCC 15.2 builds with the direction
+preserved (default, no FMA, FPU intervals, FPU without FMA) showed 105 to 127
+findings in eight functions that Clang 21 and 18 do not show (`root_end()`,
+`log_ratio_end()`, the lambdas of `root_of_power_up()`, `root_of_power_dn()`,
+`log_ratio_up()` and `log_ratio_dn()`, `pow_rel_beyond()` and `pow_lo<true>()`
+of the reverse functions of `pow`), of two kinds, both harmless:
+- the conversion by `fstpl` of the constant `denorm_min()` loaded as an
+  extended number, exact: the tool tells it now (`extended_is_double()`);
+- products and quotients that come before a write, in GCC's copies of
+  `pow_up_without_overflow_exception()` (inlined into these functions, so that
+  the entry of 2026-10-27, which names the function, does not match: the
+  estimates `|y| |log(x)| / log(2)` and `1000/(e + 1)`, with margins of 10^-9
+  and 2 %), and in `root_end()` and `log_ratio_end()` the hints
+  `root_of_power_near()` and `log_ratio_near()`, from which
+  `last_key_holding()` and `first_key_holding()` start a search by gallop and
+  bisection of a monotone proof. With the two hints replaced by constants
+  (1.0 and 0.0), `reverse`, `reverse_mappings`, `elementary`,
+  `rounding_direction` and `ieee1788` pass, so the hint changes the number of
+  powers computed and no bound. `KNOWN` lists them now, for the mnemonics
+  `mulsd`, `divsd` and `subsd` of these functions.
+
+With `GAOL_RND_KEEP()` removed from `width()`, GCC 15 still kept the subtraction
+before the write that sets the direction back, at `-O1` to `-O3`, and Clang 21
+at `-O1` and `-O3`: `inline.cpp` is what reads `width()` in a build. The check
+has teeth on assembly written for it (`--selftest`, 132 cases: a sum before a
+write, after the write that sets back, hoisted above the probe, among the
+instructions of the probe, in a loop, behind a jump table of GCC and of Clang,
+in a cold section, after a tail call, after the call of `__stack_chk_fail()`; the store of an extended constant that
+is a double or that is not, in single precision, behind a label, after a call,
+more than five instructions after the load; `extended_is_double()` on 19
+encodings of the x87 unit, `extended_is_tiny()` on 15 and `KNOWN` on 19
+findings, called directly; the 12 cases of DENORMAL: 2^-1074 stored with and
+without the pop, with a write in the function, 2^-1023, a denormal of the x87
+unit, a negative constant, behind a label, in the second of two functions, and
+what is not one: 2^-1022, 1, the number stored whole by `fstpt`, a subnormal
+loaded by `movsd`), and
+57 of the 63 changes made to the script of 2026-10-27, one at a time, make it
+fail; so do the 46 changes made to the code of 2026-10-29, one at a time
+(`extended_is_double()`, the exemption of the stores, the entries of `KNOWN`
+and their mnemonics), and 14 of the 15 made to DENORMAL (the threshold and its
+neighbours, the denormal and unnormal tests, the mnemonics, the label, the
+list of the constants, the name of the function, the count of the findings;
+the one that survives, `fldl` accepted as a load, changes nothing: a double
+has two words, which `extended_is_tiny()` refuses). The six that do not are equivalent (the
+`.cfi_endproc` that `.type` follows, the comments after an instruction, the
+write that a closure need not stop at...).
+
+On the sources of #223 (without #224), the GCC 15.2 builds show 38 (default)
+to 44 (direction preserved, FPU intervals) DENORMAL findings in `gaol_core`
+(`sqrt()`, `sqrt_rel_upward()`, `nth_root_upward()`, `pown_beyond_upward()`,
+`root_end()`, `log_ratio_end()`, `interval::is_canonical()`...), and Clang 21
+none (it folds the conversion); with #224, none in any of the GCC 15.2 builds
+(default, preserved, FPU) and the Clang 18 and 21 builds.

@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Special cases of interval arithmetic in GAOL, libieeep1788, filib++, PROFIL/BIAS and Solaris Studio.
+"""Special cases of interval arithmetic in GAOL (under its names, gaol, and under those of IEEE 1788-2015,
+gaol_ieee1788), libieeep1788, filib++, PROFIL/BIAS, Solaris Studio and Boost.Interval.
 
-The cases come from the tests of GAOL (tests/*.cpp, and check/*.cpp for the
-integer powers). Each one is written once, below, as an expression, from which
+The cases come from the tests of GAOL (tests/*.cpp). Each one is written once, below, as an expression, from which
 this script generates a program for each library; the results the programs
 print are then compared with the results IEEE 1788-2015 defines, computed here
 with mpmath and rounded outward.
 
     cases.py generate DIR
-        writes DIR/cases_gaol.cpp, DIR/cases_p1788.cpp, DIR/cases_filib.cpp, DIR/cases_profil.cpp
-        and DIR/cases_sun.f90
+        writes DIR/cases_gaol.cpp, DIR/cases_gaolstd.cpp, DIR/cases_p1788.cpp, DIR/cases_filib.cpp,
+        DIR/cases_profil.cpp, DIR/cases_boost.cpp and DIR/cases_sun.f90
     cases.py report DIR REPORT.md
-        reads what the five programs printed, DIR/gaol.txt, DIR/p1788.txt,
-        DIR/filib.txt, DIR/profil.txt and DIR/sun.txt, and writes the table of the results
+        reads what the seven programs printed, DIR/gaol.txt, DIR/gaolstd.txt, DIR/p1788.txt,
+        DIR/filib.txt, DIR/profil.txt, DIR/sun.txt and DIR/boost.txt, and writes the table of the results
         between the markers of REPORT.md (the whole file when it does not
         exist)
 
@@ -25,6 +25,13 @@ Each program prints one line per case:
     id|X|text    an exception, or a string the library could not read
     id|NA        the library has no such operation
 """
+
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import math
 import struct
@@ -145,9 +152,13 @@ FUNCTIONS = ["sin", "cos", "tan", "asin", "acos", "atan", "exp", "log", "sqrt", 
 
 # The C++ libraries: the name of their interval type, and whether they have
 # operators of an interval and a double, and compound assignments. PROFIL/BIAS
-# has no empty set: the cases with one are not available to it
-CPP_TYPE = {"gaol": "interval", "p1788": "II", "filib": "FI", "profil": "INTERVAL"}
-MIXED = {"gaol": True, "p1788": False, "filib": True, "profil": True}
+# has no empty set: the cases with one are not available to it. Boost.Interval's
+# default checking, checking_strict, throws where the empty set is created
+# gaolstd is GAOL v5 under the names of IEEE 1788-2015, gaol_ieee1788 (GAOL v5): the same interval
+# type, and the same operators, as gaol
+CPP_TYPE = {"gaol": "interval", "gaolstd": "interval", "p1788": "II", "filib": "FI", "profil": "INTERVAL",
+            "boost": "BI"}
+MIXED = {"gaol": True, "gaolstd": True, "p1788": False, "filib": True, "profil": True, "boost": True}
 
 # The functions of PROFIL/BIAS (Functions.h)
 PROFIL_FUNCTIONS = {"sin": "Sin", "cos": "Cos", "tan": "Tan", "asin": "ArcSin", "acos": "ArcCos", "atan": "ArcTan",
@@ -156,7 +167,7 @@ PROFIL_FUNCTIONS = {"sin": "Sin", "cos": "Cos", "tan": "Tan", "asin": "ArcSin", 
 
 
 def cpp(n, lib):
-    """The C++ expression of n; lib is 'gaol', 'p1788', 'filib' or 'profil'"""
+    """The C++ expression of n; lib is 'gaol', 'gaolstd', 'p1788', 'filib', 'profil' or 'boost'"""
     t = CPP_TYPE[lib]
     a = n.args
 
@@ -169,13 +180,17 @@ def cpp(n, lib):
     if n.op == "empty":
         if lib == "profil":
             raise NotAvailable
-        return {"gaol": "interval::emptyset()", "p1788": "II::empty()", "filib": "FI::EMPTY()"}[lib]
+        return {"gaol": "interval::emptyset()", "gaolstd": "empty()", "p1788": "II::empty()", "filib": "FI::EMPTY()",
+                "boost": "BI::empty()"}[lib]
     if n.op == "entire":
-        return {"gaol": "interval::universe()", "p1788": "II::entire()", "filib": "FI::ENTIRE()",
-                "profil": "INTERVAL(-pinf, pinf)"}[lib]
+        return {"gaol": "interval::universe()", "gaolstd": "entire()", "p1788": "II::entire()", "filib": "FI::ENTIRE()",
+                "profil": "INTERVAL(-pinf, pinf)", "boost": "BI::whole()"}[lib]
     if n.op == "text":
+        if lib == "boost":  # Boost.Interval reads no interval: io.hpp has operator<< only
+            raise NotAvailable
         s = a[0].replace("\\", "\\\\").replace('"', '\\"')
-        return {"gaol": f'interval("{s}")', "p1788": f'II(std::string("{s}"))', "filib": f'read_interval("{s}")',
+        return {"gaol": f'textToInterval("{s}")', "gaolstd": f'textToInterval("{s}")',
+                "p1788": f'II(std::string("{s}"))', "filib": f'read_interval("{s}")',
                 "profil": f'read_interval("{s}")'}[lib]
     if n.op in INFIX:
         return f"({cpp(a[0], lib)} {INFIX[n.op]} {cpp(a[1], lib)})"
@@ -188,21 +203,27 @@ def cpp(n, lib):
         d = cpp_double(a[0]) if MIXED[lib] else point(a[0])
         return f"({d} * {cpp(a[1], lib)})"
     if n.op == "rdiv":  # GAOL's relational division x % y: mul_rev of IEEE 1788
-        if lib in ("filib", "profil"):
+        if lib in ("filib", "profil", "boost"):
             raise NotAvailable
+        if lib == "gaolstd":
+            return f"mulRev({cpp(a[1], lib)}, {cpp(a[0], lib)})"
         return f"({cpp(a[0], lib)} % {cpp(a[1], lib)})" if lib == "gaol" else f"mul_rev({cpp(a[1], lib)}, {cpp(a[0], lib)})"
     if n.op in FUNCTIONS:
         if lib == "profil":
             return f"{PROFIL_FUNCTIONS[n.op]}({cpp(a[0], lib)})"
+        if lib == "boost" and n.op == "sqr":
+            return f"square({cpp(a[0], lib)})"
         return f"{n.op}({cpp(a[0], lib)})"
     if n.op == "inverse":
-        return {"gaol": "inverse({})", "p1788": "recip({})", "filib": "(1.0 / {})",
-                "profil": "(1.0 / {})"}[lib].format(cpp(a[0], lib))
+        return {"gaol": "inverse({})", "gaolstd": "recip({})", "p1788": "recip({})", "filib": "(1.0 / {})",
+                "profil": "(1.0 / {})", "boost": "(1.0 / {})"}[lib].format(cpp(a[0], lib))
     if n.op == "powi":
-        return {"gaol": "pow({}, {})", "p1788": "pown({}, {})", "filib": "power({}, {})",
-                "profil": "Power({}, {})"}[lib].format(cpp(a[0], lib), a[1])
+        return {"gaol": "pow({}, {})", "gaolstd": "pown({}, {})", "p1788": "pown({}, {})", "filib": "power({}, {})",
+                "profil": "Power({}, {})", "boost": "pow({}, {})"}[lib].format(cpp(a[0], lib), a[1])
+    if n.op in ("powd", "pow") and lib == "boost":  # Boost.Interval has no real power
+        raise NotAvailable
     if n.op == "powd":
-        if lib == "gaol":
+        if lib in ("gaol", "gaolstd"):  # gaol_ieee1788::pow(x, d) is pow(x, [d])
             return f"pow({cpp(a[0], lib)}, {cpp_double(a[1])})"
         if lib == "profil":
             return f"Power({cpp(a[0], lib)}, {point(a[1])})"
@@ -211,34 +232,45 @@ def cpp(n, lib):
         if lib == "profil":
             return f"Power({cpp(a[0], lib)}, {cpp(a[1], lib)})"
         return f"pow({cpp(a[0], lib)}, {cpp(a[1], lib)})"
-    if n.op == "atan2":  # filib++ and PROFIL/BIAS have none
-        if lib in ("filib", "profil"):
+    if n.op == "atan2":  # filib++, PROFIL/BIAS and Boost.Interval have none
+        if lib in ("filib", "profil", "boost"):
             raise NotAvailable
         return f"atan2({cpp(a[0], lib)}, {cpp(a[1], lib)})"
     if n.op == "nth_root":
         if lib == "profil":
             return f"Root({cpp(a[0], lib)}, {a[1]})"
+        if lib == "boost":
+            return f"nth_root({cpp(a[0], lib)}, {a[1]})"
+        if lib == "gaolstd":
+            return f"rootn({cpp(a[0], lib)}, {a[1]})"
         if lib != "gaol":
             raise NotAvailable
         return f"nth_root({cpp(a[0], lib)}, {a[1]}u)"
     if n.op == "hull":
-        return {"gaol": "({} | {})", "p1788": "convex_hull({}, {})", "filib": "hull({}, {})",
-                "profil": "Hull({}, {})"}[lib].format(cpp(a[0], lib), cpp(a[1], lib))
+        return {"gaol": "({} | {})", "gaolstd": "convexHull({}, {})", "p1788": "convex_hull({}, {})",
+                "filib": "hull({}, {})",
+                "profil": "Hull({}, {})", "boost": "hull({}, {})"}[lib].format(cpp(a[0], lib), cpp(a[1], lib))
     if n.op == "inter":
-        return {"gaol": "({} & {})", "p1788": "intersection({}, {})", "filib": "intersect({}, {})",
-                "profil": "intersect({}, {})"}[lib].format(cpp(a[0], lib), cpp(a[1], lib))
+        return {"gaol": "({} & {})", "gaolstd": "intersection({}, {})", "p1788": "intersection({}, {})",
+                "filib": "intersect({}, {})",
+                "profil": "intersect({}, {})", "boost": "intersect({}, {})"}[lib].format(cpp(a[0], lib),
+                                                                                        cpp(a[1], lib))
     if n.op in ("min", "max"):
         if lib == "profil":
             raise NotAvailable
         name = "i" + n.op if lib == "filib" else n.op
         return f"{name}({cpp(a[0], lib)}, {cpp(a[1], lib)})"
     if n.op in ("mid", "wid", "mag", "mig", "rad"):
-        if lib == "p1788":
+        if lib in ("p1788", "gaolstd"):
             return f"{n.op}({cpp(a[0], lib)})"
         if lib == "profil":
             if n.op == "rad":
                 raise NotAvailable
             return {"mid": "Mid", "wid": "Diam", "mag": "Abs", "mig": "Mig"}[n.op] + f"({cpp(a[0], lib)})"
+        if lib == "boost":  # Boost.Interval has neither mig nor rad
+            if n.op in ("mig", "rad"):
+                raise NotAvailable
+            return {"mid": "median", "wid": "width", "mag": "norm"}[n.op] + f"({cpp(a[0], lib)})"
         methods = {"gaol": {"mid": "midpoint", "wid": "width"}, "filib": {"wid": "diam"}}[lib]
         return f"{cpp(a[0], lib)}.{methods.get(n.op, n.op)}()"
     if n.op in RELATIONS:
@@ -257,17 +289,24 @@ def cpp(n, lib):
 # GAOL method called on the second interval
 # PROFIL/BIAS: x <= y is the inclusion of x in y, x < y in its interior, x == y
 # the equality; the others are written with Inf and Sup in the program
-# (precedes, strict_precedes, disjoint, certainly_eq)
+# (precedes, strict_precedes, disjoint)
+# Boost.Interval: cerle and cerlt (certainly <= and <) of compare/explicit.hpp,
+# subset, equal, and !overlap for disjoint; its proper_subset is not the
+# interior, which it has not
 RELATIONS = {
-    "precedes": {"gaol": "certainly_leq", "p1788": "precedes", "filib": "cle", "sun": ".cle.", "profil": "precedes"},
-    "strict_precedes": {"gaol": "certainly_le", "p1788": "strictly_precedes", "filib": "clt", "sun": ".clt.",
-                        "profil": "strict_precedes"},
-    "interior": {"gaol": "~set_strictly_contains", "p1788": "interior", "filib": "interior", "sun": ".int.",
-                 "profil": "interior"},
-    "subset": {"gaol": "~set_contains", "p1788": "subset", "filib": "subset", "sun": ".sb.", "profil": "subset"},
-    "equal": {"gaol": "set_eq", "p1788": "equal", "filib": "seq", "sun": ".seq.", "profil": "equal"},
-    "disjoint": {"gaol": "set_disjoint", "p1788": "disjoint", "filib": "disjoint", "sun": ".dj.", "profil": "disjoint"},
-    "certainly_eq": {"gaol": "certainly_eq", "p1788": None, "filib": "ceq", "sun": ".ceq.", "profil": "certainly_eq"},
+    "precedes": {"gaol": "certainly_leq", "gaolstd": "precedes", "p1788": "precedes", "filib": "cle", "sun": ".cle.",
+                 "profil": "precedes", "boost": "interval_lib::cerle"},
+    "strict_precedes": {"gaol": "certainly_le", "gaolstd": "strictPrecedes", "p1788": "strictly_precedes",
+                        "filib": "clt", "sun": ".clt.", "profil": "strict_precedes", "boost": "interval_lib::cerlt"},
+    "interior": {"gaol": "~set_strictly_contains", "gaolstd": "interior", "p1788": "interior", "filib": "interior",
+                 "sun": ".int.", "profil": "interior", "boost": None},
+    "subset": {"gaol": "~set_contains", "gaolstd": "subset", "p1788": "subset", "filib": "subset", "sun": ".sb.",
+               "profil": "subset", "boost": "subset"},
+    "equal": {"gaol": "set_eq", "gaolstd": "equal", "p1788": "equal", "filib": "seq", "sun": ".seq.", "profil": "equal",
+              "boost": "equal"},
+    "disjoint": {"gaol": "set_disjoint", "gaolstd": "disjoint", "p1788": "disjoint", "filib": "disjoint", "sun": ".dj.",
+                 "profil": "disjoint",
+                 "boost": "!overlap"},
 }
 
 
@@ -277,8 +316,10 @@ def cpp_body(n, lib):
     a = n.args
     if n.op in ("iadd", "isub", "imul", "idiv", "irdiv"):  # x op= d
         x, d = a
-        if n.op == "irdiv" and lib in ("filib", "profil"):
+        if n.op == "irdiv" and lib in ("filib", "profil", "boost"):
             raise NotAvailable
+        if n.op == "irdiv" and lib == "gaolstd":  # GAOL's %= under the name of the standard
+            return f"return mulRev(interval({cpp_double(d)}), {cpp(x, lib)});"
         if MIXED[lib]:
             o = {"iadd": "+=", "isub": "-=", "imul": "*=", "idiv": "/=", "irdiv": "%="}[n.op]
             return f"{t} r = {cpp(x, lib)}; r {o} {cpp_double(d)}; return r;"
@@ -387,7 +428,7 @@ def label(n):
     if n.op == "entire":
         return "[−∞, +∞]"
     if n.op == "text":
-        return f'interval("{a[0]}")'
+        return f'textToInterval("{a[0]}")'
     if n.op in INFIX:
         return f"{label(a[0])} {INFIX[n.op]} {label(a[1])}"
     if n.op == "neg":
@@ -618,7 +659,7 @@ case(op("muld", iv(0, 1), INF), EMPTYSET)
 case(op("dmul", 0.0, iv(1, INF)), X(0))
 case(op("divd", iv(1, 2), 0.0), EMPTYSET)
 
-group("Elementary functions at the edges of their domains", "tests/elementary.cpp (at_known_intervals), check/")
+group("Elementary functions at the edges of their domains", "tests/elementary.cpp (at_known_intervals)")
 case(op("sin", iv(1, 2)), X("sin(1)", 1))
 case(op("sin", iv(4, 5)), X(-1, "sin(4)"))
 case(op("sin", iv(0, 7)), X(-1, 1))
@@ -626,7 +667,7 @@ case(op("sin", ENTIRE), X(-1, 1))
 case(op("cos", iv(3, 4)), X(-1, "cos(4)"))
 case(op("cos", iv(-1, 1)), X("cos(1)", 1))
 case(op("cos", iv(0, 7)), X(-1, 1))
-case(op("cos", iv(2**52 - 1)), X("cos(2**52-1)"), "a wrong mathlib gives −0.4855 (see manual)")
+case(op("cos", iv(2**52 - 1)), X("cos(2**52-1)"))
 case(op("tan", iv(1, 2)), X("-inf", "inf"))
 case(op("tan", iv(-1, 1)), X("tan(-1)", "tan(1)"))
 case(op("tan", ENTIRE), X("-inf", "inf"))
@@ -661,11 +702,13 @@ case(op("acosh", iv(0, 1)), X(0))
 case(op("acosh", iv(-1, 0.5)), EMPTYSET)
 case(op("atanh", iv(-1, 1)), X("-inf", "inf"))
 case(op("atanh", iv(2, 3)), EMPTYSET)
+case(op("atanh", iv(1)), EMPTYSET, "atanh is defined on (−1, 1) only (Table 9.1): its limits at ±1 are no values")
+case(op("atanh", iv(-1)), EMPTYSET)
 case(op("abs", iv(-INF, -1)), X(1, "inf"))
 case(op("abs", iv(-INF, 1)), X(0, "inf"))
 
 group("Integer powers (GAOL's pow(x, n), pown of IEEE 1788, filib++'s power(x, n), x**n of Fortran)",
-      "check/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp")
+      "tests/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp")
 case(op("powi", iv(0), 0), X(1), "pown(x, 0) = 1 for every x (Table 9.1, b)")
 case(op("powi", EMPTY, 0), EMPTYSET)
 case(op("powi", ENTIRE, 0), X(1))
@@ -690,7 +733,7 @@ case(op("powi", iv(10), -400), X(0, "TINY"))
 
 group("Real powers (GAOL's pow(x, d) and pow(x, y), pow of IEEE 1788 and of filib++, x**y of Fortran)",
       "tests/elementary.cpp (powers)")
-NOTE_POWN = "GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only"
+NOTE_POWN = "`gaol`: pown for an integer exponent (GAOL's choice), the pow of IEEE 1788 in `gaol_ieee1788`: x > 0 only"
 case(op("powd", iv(4), 0.5), X(2), "libieeep1788 and filib++: pow(x, [d])")
 case(op("powd", iv(4), 1.5), X(8))
 case(op("powd", iv(4, 9), 0.5), X(2, 3))
@@ -715,13 +758,13 @@ case(op("pow", iv(4), iv(INF)), EMPTYSET)
 case(op("pow", iv(4), iv(-INF)), EMPTYSET)
 case(op("powd", EMPTY, 1.5), EMPTYSET)
 case(op("pow", iv(4), EMPTY), EMPTYSET)
-case(op("pow", iv(-2, -1), iv(1e10)), EMPTYSET, "GAOL: pown, [−∞, +∞] for an integer beyond the ints")
-case(op("pow", iv(2, 3), iv(2.0**31)), X("MAX", "inf"), "GAOL: [−∞, +∞] for an integer beyond the ints")
+case(op("pow", iv(-2, -1), iv(1e10)), EMPTYSET, "`gaol`: pown, beyond the ints too (GAOL v5: [−∞, +∞] there)")
+case(op("pow", iv(2, 3), iv(2.0**31)), X("MAX", "inf"))
 case(op("pow", iv(0.25, 0.5), iv(-2.0**31 - 1)), X("MAX", "inf"))
 case(op("powd", iv(-2, 3), 1e10), X(0, "inf"))
 case(op("pow", EMPTY, iv(1e10)), EMPTYSET)
 case(op("pow", iv(-1), iv(2.0**31 - 1)), EMPTYSET, NOTE_POWN)
-case(op("pow", iv(0), iv(0)), EMPTYSET, "pow(0, y) has no value for y ≤ 0 (Table 9.1, c); GAOL: pown(0, 0) = 1")
+case(op("pow", iv(0), iv(0)), EMPTYSET, "pow(0, y) has no value for y ≤ 0 (Table 9.1, c); `gaol`: pown(0, 0) = 1")
 case(op("powd", iv(0), 0.0), EMPTYSET)
 case(op("pow", ENTIRE, iv(0)), X(1))
 case(op("pow", iv(0, 2), iv(-1)), X(0.5, "inf"))
@@ -741,7 +784,7 @@ case(op("pow", iv(1), ENTIRE), X(1))
 case(op("pow", iv(0, 1), iv(1, INF)), X(0, 1))
 case(op("pow", iv(2, INF), iv(-1, 1)), X(0, "inf"))
 
-group("n-th roots (GAOL's nth_root, rootn of IEEE 1788)", "check/non_arithmetic.cpp, tests/arithmetic.cpp")
+group("n-th roots (GAOL's nth_root, rootn of IEEE 1788)", "tests/non_arithmetic.cpp, tests/arithmetic.cpp")
 NOTE_ROOT = "libieeep1788, filib++ and Solaris Studio have no rootn; pown_rev([−8, 27], 3) of libieeep1788 is [−2, 3]"
 case(op("nth_root", iv(-8, 27), 3), X(-2, 3), NOTE_ROOT)
 case(op("nth_root", iv(-4, 9), 2), X(0, 3))
@@ -814,10 +857,6 @@ case(op("equal", EMPTY, EMPTY), XB(True), kind="B")
 case(op("equal", iv(1, INF), iv(1, INF)), XB(True), kind="B")
 case(op("disjoint", I12, EMPTY), XB(True), kind="B")
 case(op("disjoint", I12, iv(2, 3)), XB(False), kind="B")
-case(op("certainly_eq", iv(2), I12), None, "not in IEEE 1788: for all x, y, x = y (false); filib++: ceq, Solaris Studio: .ceq.",
-     kind="B")
-case(op("certainly_eq", iv(2), iv(2)), None, kind="B")
-case(op("certainly_eq", EMPTY, EMPTY), None, kind="B")
 
 # After the other groups, whose cases keep their numbers
 group("atan2(y, x), defined on the plane but (0, 0), with values in (−π, π] (Table 9.1)",
@@ -866,6 +905,7 @@ GAOL_HEAD = r'''// Generated by doc/compare/code/cases.py: the special cases, co
 #include <cstdio>
 #include <exception>
 #include <limits>
+#include <stdexcept>
 #include <string>
 
 using namespace gaol;
@@ -885,10 +925,10 @@ static void show(const char *id, F f)
     } else {
       std::printf("%s|I|%a|%a\n", id, r.left(), r.right());
     }
-  } catch (input_format_error&) {
-    std::printf("%s|X|exception input_format_error\n", id);
-  } catch (unavailable_feature_error&) {
-    std::printf("%s|X|exception unavailable_feature_error\n", id);
+  } catch (std::invalid_argument&) {
+    std::printf("%s|X|exception invalid_argument\n", id);
+  } catch (std::domain_error&) {
+    std::printf("%s|X|exception domain_error\n", id);
   } catch (std::exception&) {
     std::printf("%s|X|exception\n", id);
   } catch (...) {
@@ -920,6 +960,9 @@ int main()
 {
   gaol::init();
 '''
+
+GAOLSTD_HEAD = (GAOL_HEAD.replace("computed by GAOL\n", "computed by GAOL under the names of IEEE 1788-2015\n")
+                .replace("using namespace gaol;", "using namespace gaol_ieee1788;"))
 
 GAOL_TAIL = r'''  gaol::cleanup();
   return 0;
@@ -1131,10 +1174,6 @@ static bool interior(const INTERVAL& x, const INTERVAL& y) { return x < y; }
 static bool subset(const INTERVAL& x, const INTERVAL& y) { return x <= y; }
 static bool equal(const INTERVAL& x, const INTERVAL& y) { return x == y; }
 static bool disjoint(const INTERVAL& x, const INTERVAL& y) { return Sup(x) < Inf(y) || Sup(y) < Inf(x); }
-static bool certainly_eq(const INTERVAL& x, const INTERVAL& y)
-{
-  return Inf(x) == Sup(x) && Inf(y) == Sup(y) && Inf(x) == Inf(y);
-}
 
 template<class F>
 static void show(const char *id, F f)
@@ -1190,6 +1229,99 @@ int main()
 '''
 
 PROFIL_TAIL = r'''  return 0;
+}
+'''
+
+BOOST_HEAD = r'''// Generated by doc/compare/code/cases.py: the special cases, computed by Boost.Interval
+#include <cfenv>
+#include <csetjmp>
+#include <csignal>
+#include <cstdio>
+#include <limits>
+#include <stdexcept>
+#include "boost_policies.h"
+
+using namespace boost::numeric;
+
+// The default policies of Boost.Interval, with the elementary functions of the
+// C library (see boost_policies.h)
+typedef boost_interval BI;
+
+// An assert() of Boost.Interval that fails (nth_root(x, 0)) calls abort():
+// SIGABRT is caught, and the case shown as an error. The jump skips the
+// destructors of the operation, which may have left the rounding direction
+// changed: it is set back to nearest, the direction of the program
+static sigjmp_buf boost_abort;
+static void on_abort(int) { siglongjmp(boost_abort, 1); }
+
+static const double pinf = std::numeric_limits<double>::infinity();
+static const double qnan = std::numeric_limits<double>::quiet_NaN();
+static const double dmax = std::numeric_limits<double>::max();
+static const double dtiny = std::numeric_limits<double>::denorm_min();
+
+// checking_strict throws std::runtime_error ("boost::interval: empty interval
+// created") where an operation creates the empty set, and
+// interval_lib::comparison_error, a runtime_error too, where a comparison is
+// uncertain
+template<class F>
+static void show(const char *id, F f)
+{
+  if (sigsetjmp(boost_abort, 1) != 0) {
+    std::fesetround(FE_TONEAREST);
+    std::printf("%s|X|assertion failed, abort\n", id);
+    return;
+  }
+  try {
+    const BI r = f();
+    std::printf("%s|I|%a|%a\n", id, r.lower(), r.upper());
+  } catch (std::runtime_error& e) {
+    std::printf("%s|X|exception: %s\n", id, e.what());
+  } catch (...) {
+    std::printf("%s|X|exception\n", id);
+  }
+}
+
+template<class F>
+static void show_real(const char *id, F f)
+{
+  if (sigsetjmp(boost_abort, 1) != 0) {
+    std::fesetround(FE_TONEAREST);
+    std::printf("%s|X|assertion failed, abort\n", id);
+    return;
+  }
+  try {
+    std::printf("%s|R|%a\n", id, f());
+  } catch (std::runtime_error& e) {
+    std::printf("%s|X|exception: %s\n", id, e.what());
+  } catch (...) {
+    std::printf("%s|X|exception\n", id);
+  }
+}
+
+template<class F>
+static void show_bool(const char *id, F f)
+{
+  if (sigsetjmp(boost_abort, 1) != 0) {
+    std::fesetround(FE_TONEAREST);
+    std::printf("%s|X|assertion failed, abort\n", id);
+    return;
+  }
+  try {
+    std::printf("%s|B|%d\n", id, f() ? 1 : 0);
+  } catch (std::runtime_error& e) {
+    std::printf("%s|X|exception: %s\n", id, e.what());
+  } catch (...) {
+    std::printf("%s|X|exception\n", id);
+  }
+}
+
+int main()
+{
+  std::setvbuf(stdout, NULL, _IOLBF, 0);
+  std::signal(SIGABRT, on_abort);
+'''
+
+BOOST_TAIL = r'''  return 0;
 }
 '''
 
@@ -1266,9 +1398,11 @@ def generate(directory):
     import os
     os.makedirs(directory, exist_ok=True)
     for lib, head, tail, name in (("gaol", GAOL_HEAD, GAOL_TAIL, "cases_gaol.cpp"),
+                                  ("gaolstd", GAOLSTD_HEAD, GAOL_TAIL, "cases_gaolstd.cpp"),
                                   ("p1788", P1788_HEAD, P1788_TAIL, "cases_p1788.cpp"),
                                   ("filib", FILIB_HEAD, FILIB_TAIL, "cases_filib.cpp"),
-                                  ("profil", PROFIL_HEAD, PROFIL_TAIL, "cases_profil.cpp")):
+                                  ("profil", PROFIL_HEAD, PROFIL_TAIL, "cases_profil.cpp"),
+                                  ("boost", BOOST_HEAD, BOOST_TAIL, "cases_boost.cpp")):
         lines = [head]
         for c in CASES:
             lines.append(f"  // {c.name}\n")
@@ -1377,8 +1511,9 @@ BEGIN = "<!-- BEGIN GENERATED TABLES (doc/compare/code/cases.py) -->"
 END = "<!-- END GENERATED TABLES -->"
 
 
-LIBRARIES = [("p1788", "libieeep1788"), ("gaol", "GAOL"), ("filib", "filib++"), ("sun", "Solaris Studio"),
-             ("profil", "PROFIL/BIAS")]
+LIBRARIES = [("p1788", "libieeep1788"), ("gaol", "GAOL, `gaol`"), ("gaolstd", "GAOL, `gaol_ieee1788`"),
+             ("filib", "filib++"), ("sun", "Solaris Studio"),
+             ("profil", "PROFIL/BIAS"), ("boost", "Boost.Interval")]
 
 
 def report(directory, out):

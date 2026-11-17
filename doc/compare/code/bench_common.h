@@ -3,6 +3,14 @@
 //   library,operation,n,repeats,best time (s),time per operation (ns),
 //   sum of the midpoints of the results,sum of their widths
 // The sums tell whether the libraries computed the same things.
+//
+// Copyright (c) 2026 ENSTA, France
+//
+// By: Jordan NININ (created 2026-09-20)
+//
+// GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+// COPYING.LIB file for information.
+
 #ifndef BENCH_COMMON_H
 #define BENCH_COMMON_H
 
@@ -58,11 +66,26 @@ inline bool selected(const std::string& only, const char *name)
   return ("," + only + ",").find(std::string(",") + name + ",") != std::string::npos;
 }
 
+// Whether the operation name is in the comma-separated list only, which has
+// to name it: the long lines of bench_ops.h, which a run of all the operations
+// leaves out (GAOL v5)
+inline bool selected_exactly(const std::string& only, const char *name)
+{
+  return !only.empty() && ("," + only + ",").find(std::string(",") + name + ",") != std::string::npos;
+}
+
 // Runs loop() repeats times, and prints the best time
 template<class Loop, class Result, class Mid, class Wid>
 void bench(const char *library, const char *name, int repeats, Loop loop, const std::vector<Result>& r,
            Mid mid, Wid wid)
 {
+  // The rounding direction the library computes in, set back after the sums
+  // below: GAOL V5.0.0 sets it upward in each operation, but GAOL 4.2.3,
+  // without the preservation of the rounding direction, computes in the one
+  // it finds, and expects the program to leave it upward, as gaol::init() sets
+  // it. Left to nearest, the operations timed next gave bounds that did not
+  // enclose the exact results
+  const int direction = std::fegetround();
   double best = 1e300;
   for (int k = 0; k < repeats; ++k) {
     const auto start = std::chrono::steady_clock::now();
@@ -70,8 +93,9 @@ void bench(const char *library, const char *name, int repeats, Loop loop, const 
     const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
     best = std::min(best, elapsed.count());
   }
-  // GAOL's midpoint() and width() leave the rounding upward: the sums are
-  // computed afterwards, to nearest, as in the other programs
+  // The sums are computed afterwards, to nearest, as in the other programs:
+  // GAOL V5.0.0's midpoint() and width() leave the rounding upward, and GAOL
+  // 4.2.3's midpoint() leaves it to nearest
   std::vector<double> mids, wids;
   mids.reserve(r.size());
   wids.reserve(r.size());
@@ -85,6 +109,7 @@ void bench(const char *library, const char *name, int repeats, Loop loop, const 
     sum_mid += mids[i];
     sum_wid += wids[i];
   }
+  std::fesetround(direction);
   std::printf("%s,%s,%lld,%d,%.9f,%.3f,%.17g,%.17g\n", library, name, static_cast<long long>(r.size()), repeats, best,
               best / static_cast<double>(r.size()) * 1e9, sum_mid, sum_wid);
   std::fflush(stdout);

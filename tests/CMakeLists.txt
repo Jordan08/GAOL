@@ -1,34 +1,412 @@
 # ==================================================================
-#  Tests of GAOL's bounds (fork of GAOL)
+#  The unit tests of GAOL (GAOL v5)
 # ==================================================================
 #
-# Each test program compares the bounds GAOL computes with the exact results
-# (see gaol_tests.h). They are compiled as any code using GAOL, with the flags
-# gaol::gaol carries, and in C++17 for the hexadecimal floating literals of
-# elementary_values.h.
+# Each test program of GAOL v5 compares the bounds GAOL computes with the
+# exact results (see gaol_tests.h); the unit tests of GAOL 4, which were in
+# check/ and ran with CppUnit, check the results of the operations on chosen
+# intervals (see unit_tests.h); test_ibex_codac runs the cases of the unit tests
+# of IBEX and of Codac on their intervals, against the exact results. They are
+# compiled as any code using GAOL, with the flags gaol::gaol carries, and in
+# C++17 for the hexadecimal floating literals of the tests, such as 0x1p-1060:
+# those of gaol_tests.h, which all but u128.cpp include, of the *_values.h, and
+# of several of the programs.
+# WITH_TESTS builds them (CMakeLists.txt); make test and make check run them,
+# with the label unit.
+#
+# They are compiled with -Wno-psabi where the compiler takes it (GAOL v5).
+# GCC notes each argument whose passing changed in an older GCC: on 32-bit
+# ARM, the iterators of std::vector that the tests and the members of
+# std::vector pass by value (GCC 7.1), and the std::initializer_list that
+# functions of the tests and the constructors of std::vector take (GCC 7.1);
+# on 32-bit and 64-bit ARM and on POWER, std::pair<double, double> in C++17
+# (GCC 10.1). That made about 110 notes in a build of the tests on armhf with
+# GCC 14, about 300 with GCC 12, and 1 or 2 on arm64 and ppc64le, though the
+# tests link with no code those older GCC compiled. The library itself shows
+# none. configure.ac, tests/meson.build, tests/find_package,
+# tests/fetch_content, tests/meson_subproject and .github/scripts/tests.sh
+# give the same option to the tests they compile.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 set(GAOL_TESTS
+  # The arithmetic of gaol_ieee1788 on intervals of doubles written out, one
+  # line CHECK(...) for each result: a test to read first (GAOL v5)
+  interval_ieee_basic
   arithmetic
   elementary
   rounding_direction
   numbers
   other_functions
+  # gaol_ieee1788 under using namespace gaol_ieee1788 alone, as a program
+  # opens it: pow, pown, the names of the standard and intervalToExact()
+  # (GAOL v5)
+  ieee1788
   reverse
+  # The 128-bit integer GAOL computes the accurate phases of CORE-MATH with
+  # where the compiler has none, and the bounds CORE-MATH gives (GAOL v5)
+  u128
+  core_math
+  # compoundm1, which CORE-MATH has not: its 128-bit balls, its bounds against
+  # mpmath and its boxes (GAOL v5)
+  compoundm1
+  expressions
+  # The results that doubles computed in extended precision, on the x87 unit,
+  # round wrongly (GAOL v5)
+  extended_precision
+  # The operations computed in the initialization of static objects, before
+  # the files of the static library GAOL are initialized, except with
+  # MinGW-w64 (GAOL v5)
+  static_initialization
+  # GAOL's headers with GAOL_DEBUGGING, which the Debug builds define (GAOL v5)
+  debugging
+  # A program linked with -ffast-math, which links crtfastmath.o and the modes
+  # flushing the subnormals to zero that it sets, unless gaol::gaol keeps it
+  # out with -mno-daz-ftz (GAOL v5): see below
+  fast_math_link
+  # The cases of the unit tests that IBEX and Codac run on their intervals,
+  # checked against the exact results (GAOL v5)
+  test_ibex_codac
+  # The unit tests of GAOL 4 (check/), with the checks of unit_tests.h rather
+  # than CppUnit (GAOL v5); arithmetic is arithmetic_operators, the name
+  # arithmetic being taken
+  arithmetic_operators
+  assignment
+  constants
+  constructor
+  float_functions
+  generic_functions
+  input_output
+  interval_functions
+  misc
+  non_arithmetic
+  relations
+  reverse_mappings
+  trigonometric
+  # The intervals of floats, which only a developer of GAOL compiles (see
+  # gaol/gaol_config.h): without GAOL_FLOAT_INTERVALS, the tests are skipped
+  # (exit status 77)
+  intervalf
+  interval2f
 )
+# The rounding direction after the automatic cleanup of GAOL, read after the
+# end of main() by a function registered in a constructor of priority 101,
+# which ELF runs before GAOL initializes itself (GAOL v5): a static libgaol
+# only, a shared one initializing itself before that constructor runs
+# (BUILD_SHARED_LIBS)
+# bad_snprintf: the bounds written with a snprintf() that writes wrong digits,
+# which the link of the test gives, by -Wl,--wrap, to the calls of the static
+# libgaol (GAOL v5): a shared libgaol is out of the reach of the linker, so
+# that the test is built with a static one only, on Linux (see below)
+get_target_property(_gaol_type gaol TYPE)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND _gaol_type STREQUAL "STATIC_LIBRARY")
+  list(APPEND GAOL_TESTS automatic_cleanup bad_snprintf)
+endif()
+
+# -Wno-psabi (see above)
+check_cxx_compiler_flag(-Wno-psabi GAOL_COMPILER_TAKES_WNO_PSABI)
+set(GAOL_TESTS_OPTIONS)
+if(GAOL_COMPILER_TAKES_WNO_PSABI)
+  list(APPEND GAOL_TESTS_OPTIONS -Wno-psabi)
+endif()
 
 foreach(test ${GAOL_TESTS})
   add_executable(gaol_test_${test} ${test}.cpp gaol_tests.h)
   target_link_libraries(gaol_test_${test} PRIVATE gaol::gaol)
   set_target_properties(gaol_test_${test} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+  target_compile_options(gaol_test_${test} PRIVATE ${GAOL_TESTS_OPTIONS})
   if(MSVC)
     # getenv() and sscanf(), which the tests use as the C standard has them
     target_compile_definitions(gaol_test_${test} PRIVATE _CRT_SECURE_NO_WARNINGS)
   endif()
   add_test(NAME ${test} COMMAND gaol_test_${test})
+  set_tests_properties(${test} PROPERTIES LABELS unit SKIP_RETURN_CODE 77)
+  list(APPEND GAOL_CHECK_TARGETS gaol_test_${test})
 endforeach()
+set(GAOL_CHECK_TARGETS ${GAOL_CHECK_TARGETS} PARENT_SCOPE)
+# bad_snprintf: the calls to snprintf() and to __snprintf_chk(), which the
+# fortified calls of the C library of GNU reach, go to the functions of the
+# test, which write the digits after the 17th as zeros (see bad_snprintf.cpp)
+if(TARGET gaol_test_bad_snprintf)
+  target_link_options(gaol_test_bad_snprintf PRIVATE -Wl,--wrap=snprintf -Wl,--wrap=__snprintf_chk)
+endif()
+# fast_math_link: -ffast-math to its link only, with GCC and Clang, its source
+# being compiled as any code using GAOL, and GAOL_TESTS_NO_DAZ_FTZ where
+# gaol::gaol gives the link -mno-daz-ftz
+if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_link_options(gaol_test_fast_math_link PRIVATE -ffast-math)
+endif()
+if(GAOL_LINK_FLAGS)
+  target_compile_definitions(gaol_test_fast_math_link PRIVATE GAOL_TESTS_NO_DAZ_FTZ=1)
+endif()
+
+# Under a locale writing a decimal comma, the reading of a number never
+# returned (GAOL v5): numbers, which reads numbers under such a locale, fails
+# after 5 minutes should it hang again, ctest giving a test no time limit of
+# its own (the project does not include CTest). A slower build can give it
+# more: numbers took 235 s of its 300 with GCC, ASan and UBSan in Debug on
+# macOS x86_64, whose job gives it 900, and 600 with LLVM Clang on macOS arm64
+# (.github/workflows/macos.yml)
+set(GAOL_NUMBERS_TIMEOUT 300 CACHE STRING "Time limit of the test numbers, in seconds")
+set_tests_properties(numbers PROPERTIES TIMEOUT ${GAOL_NUMBERS_TIMEOUT})
+
+# The reading of VERSION.txt by CMakeLists.txt, in cmake/gaol_version.cmake,
+# which has to ignore a UTF-8 byte order mark and the line ends of Windows
+# (GAOL v5). A script of CMake, run by CMake: neither configure nor meson, which
+# have their own reading, has this test; .github/scripts/version-file.sh checks
+# theirs
+add_test(NAME version_file
+  COMMAND "${CMAKE_COMMAND}" "-DGAOL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
+          "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/version_file"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/version_file.cmake")
+set_tests_properties(version_file PROPERTIES LABELS unit)
+# A compile test (GAOL v5): the object of the target gaol_<name>, compiled from
+# source, left out of the build of GAOL and made by the test (cmake --build),
+# so that it gets the compiler and the flags of the platform as the files of
+# GAOL do. Without a message, the compilation has to succeed. With one, it has
+# to fail, and the test passes if the output of the build holds the message: a
+# build fails for many reasons, so its exit status is not looked at. The target
+# then compiles a copy of source in the build tree, which compile_error.cmake
+# copies again and touches before the build: an object whose compilation
+# succeeded once stayed up to date, and failed the test, once the header or
+# the source was restored with its former modification time (cp -p). The
+# definitions and the include directories gaol::gaol carries are written out
+# (those of the project GAOL, should another include it): gaol::gaol is not
+# linked, so that the test does not wait for the library, which it would build
+# first; the caller adds the flags.
+function(gaol_compile_test name source message)
+  if(message)
+    configure_file(${source} ${name}.cpp COPYONLY)
+    add_library(gaol_${name} OBJECT "${CMAKE_CURRENT_BINARY_DIR}/${name}.cpp")
+    add_test(NAME ${name}
+      COMMAND "${CMAKE_COMMAND}" "-DORIGINAL=${CMAKE_CURRENT_SOURCE_DIR}/${source}"
+              "-DSOURCE=${CMAKE_CURRENT_BINARY_DIR}/${name}.cpp"
+              "-DBUILD_DIR=${CMAKE_BINARY_DIR}" "-DCONFIG=$<CONFIG>" "-DTARGET=gaol_${name}"
+              -P "${CMAKE_CURRENT_SOURCE_DIR}/compile_error.cmake")
+    set_tests_properties(${name} PROPERTIES PASS_REGULAR_EXPRESSION "${message}")
+  else()
+    add_library(gaol_${name} OBJECT ${source})
+    add_test(NAME ${name}
+      COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --config $<CONFIG> --target gaol_${name})
+  endif()
+  set_target_properties(gaol_${name} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  target_include_directories(gaol_${name} PRIVATE "${PROJECT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}")
+  target_compile_definitions(gaol_${name} PRIVATE $<TARGET_PROPERTY:gaol,INTERFACE_COMPILE_DEFINITIONS>)
+  # One build at a time in the build directory, whatever ctest -j says: the
+  # lock of every compile test
+  set_tests_properties(${name} PROPERTIES LABELS unit RESOURCE_LOCK gaol_compile_tests)
+endfunction()
+# The options gaol/gaol_config.h refuses where GCC and Clang define a macro for
+# them (GAOL v5): the tests refused_finite_math_only and refused_fast_math
+# compile refused_options.cpp, a program using GAOL, with -ffinite-math-only
+# and with -ffast-math, and the compilation has to fail with the message of the
+# refusal; refused_positive compiles it with neither, and the compilation has
+# to succeed. Each is a compile test (gaol_compile_test() above).
+#
+# The option has to come after the flags of interval arithmetic, whose
+# -fno-fast-math turns it off otherwise: CMake would put the options of a
+# linked gaol::gaol after those of the target, which is one more reason to
+# write out what it carries. Not with Visual C++, which has neither option nor
+# macro (see doc/three-builds.md). The autotools and meson builds run the same
+# checks with tests/refused_options.sh.
+function(gaol_refused_test name flag text)
+  gaol_compile_test(${name} refused_options.cpp "${text}")
+  target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${GAOL_ALIGNED_NEW_FLAGS} ${flag})
+endfunction()
+if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  gaol_refused_test(refused_finite_math_only -ffinite-math-only
+                    "GAOL cannot be compiled with -ffinite-math-only")
+  gaol_refused_test(refused_fast_math -ffast-math
+                    "GAOL cannot be compiled with -ffast-math")
+  gaol_refused_test(refused_positive "" "")
+endif()
+# -fno-signed-zeros, -fno-trapping-math, -funsafe-math-optimizations and
+# -freciprocal-math, which GCC shows by __NO_SIGNED_ZEROS__,
+# __NO_TRAPPING_MATH__, __ASSOCIATIVE_MATH__ and __RECIPROCAL_MATH__ from GCC 12
+# on, and GCC 9.4 and 11.4 and Clang by no macro (GAOL v5): a test for each
+# option the compiler shows, which the configuration tells by compiling, with
+# the option, a source that needs the macro
+function(gaol_refused_shown_test name flag macro text)
+  set(CMAKE_REQUIRED_FLAGS "${flag}")
+  set(CMAKE_REQUIRED_QUIET ON)
+  check_cxx_source_compiles("#ifndef ${macro}
+#error the option is shown by no macro
+#endif
+int main() { return 0; }" GAOL_COMPILER_SHOWS_${macro})
+  if(GAOL_COMPILER_SHOWS_${macro})
+    gaol_refused_test(refused_${name} ${flag} "${text}")
+  endif()
+endfunction()
+if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  gaol_refused_shown_test(no_signed_zeros -fno-signed-zeros __NO_SIGNED_ZEROS__
+                          "GAOL cannot be compiled with -fno-signed-zeros")
+  gaol_refused_shown_test(no_trapping_math -fno-trapping-math __NO_TRAPPING_MATH__
+                          "GAOL cannot be compiled with -fno-trapping-math")
+  gaol_refused_shown_test(unsafe_math -funsafe-math-optimizations __ASSOCIATIVE_MATH__
+                          "GAOL cannot be compiled with -fassociative-math or -freciprocal-math")
+  gaol_refused_shown_test(reciprocal_math -freciprocal-math __RECIPROCAL_MATH__
+                          "GAOL cannot be compiled with -fassociative-math or -freciprocal-math")
+endif()
+
+# The SSE2 intervals on 32-bit Windows, which gaol/gaol_config.h refuses where
+# the compiler is not told to ask for aligned memory (GAOL v5): the tests
+# refused_aligned_new and refused_aligned_new_cxx17 compile
+# refused_aligned_new.cpp, which includes that header alone, with -D_WIN32
+# -U_WIN64 for the target and without -faligned-new=8 that the flags of
+# gaol::gaol carry there, in C++11 and in C++17, and the compilation has to fail
+# with the message of the refusal; refused_aligned_new_positive compiles it with
+# the option, and the compilation has to succeed. Each is a compile test
+# (gaol_compile_test() above). Where the intervals are the SSE2 ones and the
+# system is not Windows, whose headers would not take -U_WIN64, with GCC or
+# Clang; on 32-bit Windows itself the whole suite is the test, the SSE2
+# intervals crashing without the option. The autotools and meson builds run the
+# same checks with tests/refused_options.sh.
+# Not where the build gives the SSE2 intervals the form of Visual C++ and clang-cl
+# (-DGAOL_SSE2_UNALIGNED_STORAGE=ON), whose bounds need no aligned memory.
+if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT GAOL_SSE2_UNALIGNED_STORAGE AND NOT WIN32 AND NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  function(gaol_aligned_new_test name standard flag text)
+    gaol_compile_test(${name} refused_aligned_new.cpp "${text}")
+    set_target_properties(gaol_${name} PROPERTIES CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)
+    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} -D_WIN32 -U_WIN64 ${flag})
+  endfunction()
+  gaol_aligned_new_test(refused_aligned_new 11 "" "need the compiler to ask for aligned memory")
+  gaol_aligned_new_test(refused_aligned_new_cxx17 17 "" "need the compiler to ask for aligned memory")
+  gaol_aligned_new_test(refused_aligned_new_positive 11 -faligned-new=8 "")
+endif()
+
+# ARM64EC, which gaol/gaol_config.h refuses and no build targets (GAOL v5): the
+# test refused_arm64ec compiles refused_options.cpp with _M_ARM64EC defined by
+# hand, and the compilation has to fail with the message of the refusal, with
+# GCC or Clang (Visual C++ and clang-cl would define _M_X64 and the rest of the
+# target, which a definition alone does not give). tests/refused_options.sh
+# makes the same check in the autotools and meson builds.
+if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  gaol_refused_test(refused_arm64ec -D_M_ARM64EC=1 "GAOL cannot be compiled for ARM64EC")
+endif()
+
+# The compilers that built GAOL, for the tests below that configure it again,
+# on a system that builds for itself. They are passed with their arguments,
+# which CMake keeps apart: with CC="ccache gcc", CMAKE_C_COMPILER is ccache and
+# CMAKE_C_COMPILER_ARG1 gcc.
+if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING)
+  foreach(_lang C CXX)
+    string(STRIP "${CMAKE_${_lang}_COMPILER_ARG1}" _gaol_arguments)
+    string(STRIP "${CMAKE_${_lang}_COMPILER} ${_gaol_arguments}" _gaol_${_lang}_compiler)
+  endforeach()
+endif()
+
+# The warning of the CPack block of CMakeLists.txt, when the configure that the
+# archive of the sources holds was generated for another version than VERSION.txt
+# holds (GAOL v5): not a program, a script that configures copies of the tree
+# with the compilers that built GAOL, and makes the archive after a change of
+# VERSION.txt (cpack_stale_configure.cmake). Only the CMake build makes the
+# archive; the copies are made of symbolic links, so the script runs on the
+# machine that builds, and it asks the configure of the tree its version, so
+# there has to be one. Without sh, or on a system that makes no symbolic
+# link, the script says it is skipped, which CTest reads from CMake 3.16 (the
+# test passes before). The time limit is that of a few configurations, on a
+# slow machine.
+if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING AND EXISTS "${PROJECT_SOURCE_DIR}/configure")
+  add_test(NAME cpack_stale_configure
+    COMMAND "${CMAKE_COMMAND}"
+      "-DGAOL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
+      "-DGAOL_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/cpack_stale_configure"
+      "-DGAOL_GENERATOR=${CMAKE_GENERATOR}"
+      "-DGAOL_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+      "-DGAOL_C_COMPILER=${_gaol_C_compiler}"
+      "-DGAOL_CXX_COMPILER=${_gaol_CXX_compiler}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/cpack_stale_configure.cmake")
+  set_tests_properties(cpack_stale_configure PROPERTIES LABELS unit TIMEOUT 600
+    SKIP_REGULAR_EXPRESSION "cpack_stale_configure: skipped")
+endif()
+
+# The configuration GAOL decides by itself (GAOL v5): the fused multiply-add
+# instructions, the AVX-512 path, the 128-bit integer, the debugging, the vector
+# intervals of the processor. A script that configures GAOL as the project
+# built, several times, with the settings of a user and of a developer, with the
+# generator and the compilers that built it, and holds the header and the
+# messages of each to what the checks found (automatic_configuration.cmake). It
+# keeps what the second cmake of a directory had lost, the AVX-512 path under
+# GAOL_PRESERVE_ROUNDING. It runs where the system builds
+# for itself and is Unix (the generator and the compilers are passed as for
+# cpack_stale_configure; not on Windows, not in a cross-compilation), on every
+# architecture: it asks of a platform what its own checks found. It configures
+# directories of its own and builds nothing, so it needs not the lock of the
+# compile tests, which build in the directory of this build.
+if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING)
+  add_test(NAME automatic_configuration
+    COMMAND "${CMAKE_COMMAND}"
+      "-DGAOL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
+      "-DGAOL_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/automatic_configuration"
+      "-DGAOL_GENERATOR=${CMAKE_GENERATOR}"
+      "-DGAOL_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+      "-DGAOL_C_COMPILER=${_gaol_C_compiler}"
+      "-DGAOL_CXX_COMPILER=${_gaol_CXX_compiler}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/automatic_configuration.cmake")
+  set_tests_properties(automatic_configuration PROPERTIES LABELS unit TIMEOUT 600)
+endif()
+
+# Commented out: the tests run no thread (GAOL v5)
+# # ieee1788 calls intervalToExact() in a thread of its own (std::thread), and
+# # expressions reads strings in four threads at once, which needs -pthread with
+# # the glibc before 2.34
+# find_package(Threads REQUIRED)
+# target_link_libraries(gaol_test_ieee1788 PRIVATE Threads::Threads)
+# target_link_libraries(gaol_test_expressions PRIVATE Threads::Threads)
 
 # The time per operation of GAOL and of the same operation on doubles, which
 # the continuous integration prints: not a test ctest runs
 add_executable(gaol_performance performance.cpp)
 target_link_libraries(gaol_performance PRIVATE gaol::gaol)
-set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
+target_compile_options(gaol_performance PRIVATE ${GAOL_TESTS_OPTIONS})
+
+# The warning for a result thrown away, in each language standard (GAOL v5):
+# [[nodiscard]] is C++17, and gaol::gaol sets no standard, so that a project
+# with GCC 9 compiles in C++14 (GAOL_NODISCARD, gaol/gaol_config.h, then takes
+# [[nodiscard]] where the compiler has it before C++17, and the attribute of
+# the compiler otherwise). For each of C++11, C++14 and C++17 (C++14 for C++11
+# with Visual C++), nodiscard.cpp is compiled with the warning for a result
+# thrown away made an error (-Werror=unused-result, /we4834 of Visual C++), in
+# two tests: nodiscard_discard_cxx<N> has it throw away sqrt(x), and passes if
+# the build fails with the message of the compiler; nodiscard_used_cxx<N> has
+# it use the result, and passes if the build succeeds, GAOL's headers throwing
+# no result away. -Werror=attributes (/we5030 and /we5051 of Visual C++, an
+# attribute it does not know or ignores before C++17) makes an attribute the
+# compiler ignores fail them too, as [[nodiscard]] written after the
+# declarator, int f() [[nodiscard]];, of which GCC 13 only warns. Each is a
+# compile test (gaol_compile_test() above), which reads GAOL's headers only.
+# The tests run in the C locale, the message of GCC and Clang being translated
+# otherwise; that of Visual C++ is looked for by its number. Not with Visual C++
+# before 2019 16.4, whose _Check_return_ before C++17 only /analyze reports, nor
+# with Clang for Windows. The autotools and meson builds have no such test: the
+# header it checks is the same.
+function(gaol_nodiscard_test standard flags message)
+  foreach(kind discard used)
+    set(name nodiscard_${kind}_cxx${standard})
+    if(kind STREQUAL "discard")
+      gaol_compile_test(${name} nodiscard.cpp "${message}")
+      target_compile_definitions(gaol_${name} PRIVATE GAOL_DISCARD)
+    else()
+      gaol_compile_test(${name} nodiscard.cpp "")
+    endif()
+    set_target_properties(gaol_${name} PROPERTIES CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)
+    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${GAOL_ALIGNED_NEW_FLAGS} ${flags})
+    set_tests_properties(${name} PROPERTIES ENVIRONMENT "LC_ALL=C;LANGUAGE=C")
+  endforeach()
+endfunction()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT MSVC_VERSION LESS 1924)
+  foreach(_standard 11 14 17)
+    gaol_nodiscard_test(${_standard} "/we4834;/we5030;/we5051" "C4834")
+  endforeach()
+elseif(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  foreach(_standard 11 14 17)
+    gaol_nodiscard_test(${_standard} "-Werror=unused-result;-Werror=attributes"
+                        "ignoring return value of")
+  endforeach()
+endif()

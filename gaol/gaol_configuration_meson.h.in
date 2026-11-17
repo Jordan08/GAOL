@@ -1,238 +1,167 @@
-/* gaol/gaol_configuration_meson.h.in. */
+/* Copyright (c) 2026 ENSTA, France
+ *
+ * By: Raphaël Chenouard, Jordan NININ (created 2025-11-25)
+ *
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information. */
+/* gaol/gaol_configuration.h, written by meson from
+   gaol/gaol_configuration_meson.h.in.
 
-/* The processor and the system (IX86_LINUX, AARCH64_LINUX, IX86_MACOSX,
-   ARM_MACOSX), and the sizes of the integer types where they are not below:
-   gaol/gaol_config.h names them from the macros of the compiler. */
+   The macros are the same with the three builds, CMake
+   (cmake/gaol_configuration.h.in), configure (gaol/gaol_configuration.h.in)
+   and meson (gaol/gaol_configuration_meson.h.in), and are what the build tells
+   GAOL: doc/building.md lists them, and says which the sources of GAOL do not
+   read. What GAOL needs to know of the processor and the system, and the
+   sizes of the integer types, come from the macros of the compiler
+   (gaol/gaol_config.h). Every compiler includes this header, through
+   gaol/gaol_config.h. (GAOL v5) */
 
-/* Define this to 1 if function clock() is declared in time.h */
-#mesondefine CLOCK_IN_HEADER
+#ifndef GAOL_CONFIGURATION_H
+#define GAOL_CONFIGURATION_H
 
-/* Define this if relation symbols should stand for \"certainly relations\" */
-#mesondefine GAOL_CERTAINLY_RELATIONS
+/* The version of GAOL: 5, 0, 0 and "5.0.0" for GAOL 5.0.0 */
+#mesondefine GAOL_MAJOR_VERSION
+#mesondefine GAOL_MINOR_VERSION
+#mesondefine GAOL_MICRO_VERSION
+#mesondefine GAOL_VERSION
 
-/* define this if you want debugging facilities */
+/* Defined to 1 by a Debug build (CMAKE_BUILD_TYPE=Debug, configure
+   --enable-debug, meson --buildtype=debug): GAOL writes its debugging
+   messages (GAOL_DEBUG_VERBOSE) */
 #mesondefine GAOL_DEBUGGING
 
-/* Define this to 1 to allow raising exceptions instead of simply aborting */
+/* Defined to 1 to raise exceptions instead of aborting: by default with the
+   three builds; -DGAOL_EXCEPTIONS_ENABLED=OFF of CMake, --disable-exceptions
+   of configure and -Denable-exception=false of meson abort instead (settings of
+   the developers; GAOL v5) */
 #mesondefine GAOL_EXCEPTIONS_ENABLED
 
-/* Define this to 1 to compile gaol::intervalf and gaol::interval2f */
-#mesondefine GAOL_FLOAT_INTERVALS
-
-/* Major version for gaol */
-#mesondefine GAOL_MAJOR_VERSION
-
-/* Micro version for gaol */
-#mesondefine GAOL_MICRO_VERSION
-
-/* Minor version for gaol */
-#mesondefine GAOL_MINOR_VERSION
-
-/* Define this if relation symbols should stand for \"possibly relations\" */
-#mesondefine GAOL_POSSIBLY_RELATIONS
-
-/* define this to 1 if rounding direction should be preserved */
+/* Defined to 1 to restore the rounding direction after each operation,
+   rather than leaving it upward (GAOL_PRESERVE_ROUNDING,
+   --enable-preserve-rounding, -Denable-preserve-rounding=true; see
+   gaol/gaol_fpu.h) */
 #mesondefine GAOL_PRESERVE_ROUNDING
 
-/* Define this if relation symbols should stand for \"set relations\" */
-#mesondefine GAOL_SET_RELATIONS
-
-/* Define this to 1 if using the IBM APMathlib library */
-#mesondefine GAOL_USING_APMATHLIB
-
-/* define this to 1 if you want to allow ASM support */
-#mesondefine GAOL_USING_ASM
-
-/* Define this to 1 if using the CRLibm Mathematical library */
-#mesondefine GAOL_USING_CRLIBM
-
-/* Define this to 1 to enable verbose mode */
+/* Defined to 1 to write a line on the standard error when GAOL initializes
+   and cleans up (-DGAOL_VERBOSE_MODE=ON of CMake, --enable-verbose-mode of
+   configure, -Denable-verbose-mode=true of meson; off by default: a setting of
+   the developers; GAOL v5) */
 #mesondefine GAOL_VERBOSE_MODE
 
-/* Version number for gaol */
-#define GAOL_VERSION "@version@"
+/* Defined to 1 where the intervals are computed with SSE2 instructions
+   (x86 processors; on 32-bit Windows with GCC or Clang told to ask for aligned
+   memory, -faligned-new=8, and with Visual C++ and clang-cl, whose bounds are
+   two doubles there; GAOL_SIMD,
+   --enable-simd, -Denable-simd, on by default) */
+#mesondefine GAOL_USING_SSE2_INSTRUCTIONS
 
-/* Define this to 1 if function getrusage() is declared in sys/resource.h */
-#mesondefine GETRUSAGE_IN_HEADER
+/* Defined to 1 where they are compiled with -msse3 too */
+#mesondefine GAOL_USING_SSE3_INSTRUCTIONS
 
-/* Define to 1 if you have the <cassert> header file. */
-#mesondefine HAVE_CASSERT
+/* Defined to 1 where the intervals are computed with NEON instructions
+   (64-bit ARM processors, with every compiler; not with 32-bit ARM;
+   GAOL_SIMD, --enable-simd, -Denable-simd, on by default, as for the SSE2
+   intervals) (GAOL v5: GAOL_ARM64, --enable-arm64 and -Denable-arm64 were
+   options of their own, independent of GAOL_SIMD) */
+#mesondefine GAOL_USING_NEON_INSTRUCTIONS
 
-/* Define to 1 if you have the `clock' function. */
-#mesondefine HAVE_CLOCK
-
-/* Define to 1 if you have the <crlibm.h> header file. */
-#mesondefine HAVE_CRLIBM_H
-
-/* Define to 1 if you have the <dlfcn.h> header file. */
-#mesondefine HAVE_DLFCN_H
-
-/* Define to 1 if you have the <fenv.h> header file. */
-#mesondefine HAVE_FENV_H
-
-/* Define to 1 if you have the `fesetround' function. */
-#mesondefine HAVE_FESETROUND
-
-/* Define to 1 if you have the `finite' function. */
-#mesondefine HAVE_FINITE
-
-/* Define to 1 if you have the <float.h> header file. */
-#mesondefine HAVE_FLOAT_H
-
-/* Define to 1 if you have the `floor' function. */
-#mesondefine HAVE_FLOOR
-
-/* Define to 1 if you have the `getrusage' function. */
-#mesondefine HAVE_GETRUSAGE
-
-/* Define to 1 if you have the <inttypes.h> header file. */
-#mesondefine HAVE_INTTYPES_H
-
-/* Define to 1 if you have the <limits> header file. */
-#mesondefine HAVE_LIMITS
-
-/* Define to 1 if you have the `localeconv' function. */
-#mesondefine HAVE_LOCALECONV
-
-/* Define to 1 if your system has a GNU libc compatible `malloc' function, and
-   to 0 otherwise. */
-#mesondefine HAVE_MALLOC
-
-/* Define to 1 if you have the <MathLib.h> header file. */
-#mesondefine HAVE_MATHLIB_H
-
-/* Define to 1 if you have the `memset' function. */
-#mesondefine HAVE_MEMSET
-
-/* Define to 1 if you have the `nextafter' function. */
-#mesondefine HAVE_NEXTAFTER
-
-/* Define to 1 if you have the `pow' function. */
-#mesondefine HAVE_POW
-
-/* Define to 1 if your system has a GNU libc compatible `realloc' function,
-   and to 0 otherwise. */
-#mesondefine HAVE_REALLOC
-
-/* Define to 1 if you have the `rint' function. */
-#mesondefine HAVE_RINT
-
-/* Define to 1 if you have the `round' function. */
-#mesondefine HAVE_ROUND
-
-/* Define this to 1 if the compiler supports the "-frounding-math" option */
-#mesondefine HAVE_ROUNDING_MATH_OPTION
-
-/* Define to 1 if you have the `sqrt' function. */
-#mesondefine HAVE_SQRT
-
-/* Define to 1 if stdbool.h conforms to C99. */
-#mesondefine HAVE_STDBOOL_H
-
-/* Define to 1 if you have the <stddef.h> header file. */
-#mesondefine HAVE_STDDEF_H
-
-/* Define to 1 if you have the <stdint.h> header file. */
-#mesondefine HAVE_STDINT_H
-
-/* Define to 1 if you have the <stdio.h> header file. */
-#mesondefine HAVE_STDIO_H
-
-/* Define to 1 if you have the <stdlib.h> header file. */
-#mesondefine HAVE_STDLIB_H
-
-/* Define to 1 if you have the <strings.h> header file. */
-#mesondefine HAVE_STRINGS_H
-
-/* Define to 1 if you have the <string.h> header file. */
-#mesondefine HAVE_STRING_H
-
-/* Define to 1 if you have the <sys/resource.h> header file. */
-#mesondefine HAVE_SYS_RESOURCE_H
-
-/* Define to 1 if you have the <sys/stat.h> header file. */
-#mesondefine HAVE_SYS_STAT_H
-
-/* Define to 1 if you have the <sys/time.h> header file. */
-#mesondefine HAVE_SYS_TIME_H
-
-/* Define to 1 if you have the <sys/types.h> header file. */
-#mesondefine HAVE_SYS_TYPES_H
-
-/* Define to 1 if you have the <time.h> header file. */
-#mesondefine HAVE_TIME_H
-
-/* Define to 1 if you have the <unistd.h> header file. */
-#mesondefine HAVE_UNISTD_H
-
-/* Define this to 1 if the compiler supports the "-fvisibility" option */
-#mesondefine HAVE_VISIBILITY_OPTIONS
-
-/* Define to 1 if the system has the type `_Bool'. */
-#mesondefine HAVE__BOOL
-
-/* Define to 1 if you have the `__signbit' function. */
-#mesondefine HAVE___SIGNBIT
-
-/* Name of package */
-#mesondefine PACKAGE
-
-/* Define to the address where bug reports for this package should be sent. */
-#mesondefine PACKAGE_BUGREPORT
-
-/* Define to the full name of this package. */
-#mesondefine PACKAGE_NAME
-
-/* Define to the full name and version of this package. */
-#mesondefine PACKAGE_STRING
-
-/* Define to the home page for this package. */
-#mesondefine PACKAGE_URL
-
-/* Define to the version of this package. */
-#mesondefine PACKAGE_VERSION
-
-/* The size of `int', as computed by sizeof. */
-#mesondefine SIZEOF_INT
-
-/* The size of `long', as computed by sizeof. */
-#mesondefine SIZEOF_LONG
-
-/* The size of `long long int', as computed by sizeof. */
-#mesondefine SIZEOF_LONG_LONG_INT
-
-/* Define to 1 if all of the C90 standard headers exist (not just the ones
-   required in a freestanding environment). This macro is provided for
-   backward compatibility; new code need not use it. */
-#mesondefine STDC_HEADERS
-
-/* Define this to 1 if SSE2 instructions are to be used */
-#mesondefine USING_SSE2_INSTRUCTIONS
-
-/* Define this to 1 if SSE3 instructions are to be used */
-#mesondefine USING_SSE3_INSTRUCTIONS
-
-/* Version number of package */
-#mesondefine VERSION
-
-/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
-   significant byte first (like Motorola and SPARC, unlike Intel). */
-#mesondefine WORDS_BIGENDIAN
-
-/* Define to empty if `const' does not conform to ANSI C. */
-#mesondefine const
-
-/* Define to `__inline__' or `__inline' if that's what the C compiler
-   calls it, or to nothing if 'inline' is not supported under any name.  */
-#ifndef __cplusplus
-#undef inline
+/* Defined to 1 by a universal build of macOS (several architectures in
+   CMAKE_OSX_ARCHITECTURES of CMake, or -arch several times in the flags of
+   configure and meson; one configuration compiled for each): SSE2 for the
+   x86_64 part, where GAOL_SIMD allows it, and NEON for the arm64 part, where
+   it does too. The macros above are then those of the architecture being
+   compiled (GAOL v5) */
+#mesondefine GAOL_UNIVERSAL_SSE2
+#mesondefine GAOL_UNIVERSAL_NEON
+#if defined(GAOL_UNIVERSAL_SSE2) && defined(__x86_64__)
+#  define GAOL_USING_SSE2_INSTRUCTIONS 1
+#  define GAOL_USING_SSE3_INSTRUCTIONS 1
 #endif
+#if defined(GAOL_UNIVERSAL_NEON) && defined(__aarch64__)
+#  define GAOL_USING_NEON_INSTRUCTIONS 1
+#endif
+/* Defined to 1 where the compiler accepts the AVX-512 instructions in the
+   functions that carry __attribute__((target("avx512f"))) and
+   __builtin_cpu_supports("avx512f"), which the AVX-512 path of +, -, *, /,
+   sqr, sqrt and, with FMA, the integer powers beyond 1 and -1
+   (gaol/core/gaol_interval_avx512_impl.h) needs; Visual C++ for x64 takes them in any
+   function and tells the processor by cpuid (GAOL v5) */
+#mesondefine GAOL_HAVE_AVX512_TARGET
 
-/* Define to rpl_malloc if the replacement function should be used. */
-#mesondefine malloc
+/* Defined to 1 to ask for that path (GAOL_PREFER_AVX512): the build decides, on
+   where GAOL_PRESERVE_ROUNDING is and off otherwise, which is what the
+   measures of doc/simd.md ask for; -DGAOL_PREFER_AVX512=ON|OFF of CMake,
+   --enable-prefer-avx512 and --disable-prefer-avx512 of configure,
+   -Denable-prefer-avx512=true|false of meson ask otherwise (settings of the
+   developers, and of the users who build a package for any processor), which
+   GAOL_AVX512_ARITHMETIC below takes where it can: +, -, *, /, sqr, sqrt
+   and, with FMA, the integer powers beyond 1 and -1 then set no rounding
+   direction, their instructions carrying theirs and raising no exception
+   flag; they clear the modes that flush the subnormals to zero, with the
+   check of the other operations, which may raise the flags doc/using.md
+   lists, and leave them cleared, or give them back with
+   GAOL_PRESERVE_ROUNDING (GAOL v5) */
+#mesondefine GAOL_PREFER_AVX512
+/* Defined to 1 where +, -, *, /, sqr, sqrt and, with FMA, the integer powers
+   beyond 1 and -1 take the AVX-512 path, which the configuration decides:
+   GAOL_PREFER_AVX512, a compiler that takes the path
+   (GAOL_HAVE_AVX512_TARGET), and a machine building that runs it (when
+   cross-compiling no program can be run, and the path is left out unless
+   GAOL_MACHINE_RUNS_AVX512 of CMake, gaol_cv_machine_runs_avx512=yes of
+   configure or machine-runs-avx512 of meson says that the machine running GAOL
+   runs it). The library then needs a processor with the AVX-512
+   instructions, and the operations test nothing as they run (GAOL v5) */
+#mesondefine GAOL_AVX512_ARITHMETIC
 
-/* Define to rpl_realloc if the replacement function should be used. */
-#mesondefine realloc
+/* Defined to 1 where the library is compiled with -fvisibility=hidden:
+   GAOL's public declarations then carry __attribute__ ((visibility("default")))
+   (gaol/gaol_config.h) */
+#mesondefine GAOL_HAVE_VISIBILITY_OPTIONS
 
-/* Define to `unsigned int' if <sys/types.h> does not define. */
-#mesondefine size_t
+/* Defined to 1 where the compiler has <fenv.h> */
+#mesondefine GAOL_HAVE_FENV_H
+
+/* The macros above that the build leaves undefined are 0 (GAOL v5): GAOL's
+   headers read them with #if, which warned under
+   -Wundef, so that a program could not include GAOL under -Wundef -Werror.
+   A program reads them with #if too: #ifdef is now true of each of them.
+   Keep "#  define" indented: .github/audit/probe_build.py reads the lines
+   "#define" of the header, which the 0 would follow where the build writes
+   the 1. */
+#ifndef GAOL_DEBUGGING
+#  define GAOL_DEBUGGING 0
+#endif
+#ifndef GAOL_EXCEPTIONS_ENABLED
+#  define GAOL_EXCEPTIONS_ENABLED 0
+#endif
+#ifndef GAOL_PRESERVE_ROUNDING
+#  define GAOL_PRESERVE_ROUNDING 0
+#endif
+#ifndef GAOL_VERBOSE_MODE
+#  define GAOL_VERBOSE_MODE 0
+#endif
+#ifndef GAOL_USING_SSE2_INSTRUCTIONS
+#  define GAOL_USING_SSE2_INSTRUCTIONS 0
+#endif
+#ifndef GAOL_USING_SSE3_INSTRUCTIONS
+#  define GAOL_USING_SSE3_INSTRUCTIONS 0
+#endif
+#ifndef GAOL_USING_NEON_INSTRUCTIONS
+#  define GAOL_USING_NEON_INSTRUCTIONS 0
+#endif
+#ifndef GAOL_HAVE_AVX512_TARGET
+#  define GAOL_HAVE_AVX512_TARGET 0
+#endif
+#ifndef GAOL_PREFER_AVX512
+#  define GAOL_PREFER_AVX512 0
+#endif
+#ifndef GAOL_AVX512_ARITHMETIC
+#  define GAOL_AVX512_ARITHMETIC 0
+#endif
+#ifndef GAOL_HAVE_VISIBILITY_OPTIONS
+#  define GAOL_HAVE_VISIBILITY_OPTIONS 0
+#endif
+#ifndef GAOL_HAVE_FENV_H
+#  define GAOL_HAVE_FENV_H 0
+#endif
+#endif /* GAOL_CONFIGURATION_H */

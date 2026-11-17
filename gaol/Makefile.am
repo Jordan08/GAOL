@@ -1,115 +1,148 @@
-#-*-Makefile-*-----------------------------------------------------------------
-#  gaol -- Just Another Interval Library
-#------------------------------------------------------------------------------
-# This file is part of the gaol distribution. Gaol was primarily
-# developed at the Swiss Federal Institute of Technology, Lausanne,
-# Switzerland, and is now developed at the Institut de Recherche
-# en Informatique de Nantes, France.
-#
-# Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
-# Copyright (c) 2002-2006 Laboratoire d'Informatique de Nantes-Atlantique, France
-#------------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#------------------------------------------------------------------------------
 # Note: To be used with GNU Make
 # If this file has the name "Makefile.in" then it is a template for a
 # Makefile; to generate the actual Makefile, run "./configure" from the base
 # directory of gaol.
-#------------------------------------------------------------------------------
-# CVS: $Id: Makefile.am,v 1.22 2007/09/12 12:41:57 goualard Exp $
-# Last modified: Wed Sep 27 18:12:40 2006 on pc-goualard.lina.sciences.univ-nantes.prive
-# By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
-#------------------------------------------------------------------------------
+#
+# Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+# Copyright (c) 2002-2006 Laboratoire d'Informatique de
+#                         Nantes-Atlantique, France
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Frederic Goualard, Jordan NININ
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 .PHONY: tags
 
-SUFFIXES = .lpp .ypp
-
-EXTRA_DIST = sysdeps/*.h stamp-h.in s_nextafter.c core_math_port.h core_math_log_dint.h \
-	gaol_interval_lexer.lpp gaol_interval_parser.ypp dllmain.cpp gaol_config_mingw.h \
-	gaol_config_msvc.h gaol_version_msvc.h gaol_configuration.h.in gaol_interval_sse.cpp
-
-
 lib_LTLIBRARIES = libgaol.la
 
+# No MAINTAINERCLEANFILES: make maintainer-clean deleted the lexer and the
+# parser, which are committed and which no build regenerates (GAOL v5)
 DISTCLEANFILES = *.~* *.obj TAGS
-MAINTAINERCLEANFILES = *.~* *.obj gaol_interval_lexer.cpp gaol_interval_parser.cpp \
-	gaol_interval_parser.h TAGS
 
-if FLOAT_INTERVALS_COND
-FLOAT_INTERVALS_SOURCE=gaol_intervalf.cpp
-FLOAT_INTERVALS_HEADER=gaol_intervalf.h
-else
-FLOAT_INTERVALS_SOURCE=
-FLOAT_INTERVALS_HEADER=
-endif
-
-if COMPILE_INTERVAL2
-INTERVAL2_SOURCE=gaol_interval2f.cpp
-INTERVAL2_HEADER=gaol_interval2f.h
-else
-INTERVAL2_SOURCE=
-INTERVAL2_HEADER=
-endif
-
-# GAOL's own directories before those configure adds to CPPFLAGS
-# (--with-mathlib-include), which come first otherwise: a prefix holding
-# mathlib may hold an installed GAOL too, whose headers were then included
-# rather than those of the sources
-AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+# GAOL's own directories before those given in CPPFLAGS, which come first
+# otherwise: a prefix given there may hold an installed GAOL too, whose headers
+# were then included rather than those of the sources
+AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir) $(GAOL_MSVC_CPPFLAGS)
+# GAOL in C++11, as with CMake and meson (see configure.ac); the flags of the
+# library alone (GAOL_LIBRARY_CXXFLAGS: the optimizations added to -O3, hidden
+# visibility, -Wall -Wconversion; the tests, the examples and the benchmarks
+# are compiled as the code using GAOL) and the alignment of its functions
+# (GAOL_ALIGN_CXXFLAGS, empty with enable-debug)
+AM_CXXFLAGS = $(GAOL_CXX_STD) @GAOL_LIBRARY_CXXFLAGS@ @GAOL_ALIGN_CXXFLAGS@
 
 libgaol_la_SOURCES = \
-	gaol_interval.cpp gaol_profile.cpp gaol_common.cpp \
-	gaol_parser.cpp gaol_expression.cpp \
-	gaol_interval_parser.cpp gaol_interval_lexer.cpp gaol_port.cpp \
-	gaol_exceptions.cpp gaol_init_cleanup.cpp s_nextafter.c \
-    gaol_exact.c \
-	core_math_sinh.c core_math_cosh.c core_math_tanh.c \
-	core_math_asinh.c core_math_acosh.c core_math_atanh.c \
-	core_math_log.c \
-    $(FLOAT_INTERVALS_SOURCE) $(INTERVAL2_SOURCE)
+	gaol_interval.cpp core/gaol_interval_core.cpp core/gaol_interval_pow.cpp \
+	core/gaol_interval_exp_log.cpp core/gaol_interval_trig.cpp \
+	core/gaol_interval_hyperbolic.cpp core/gaol_interval_relational.cpp \
+	core/gaol_interval_io.cpp gaol_ieee1788.cpp gaol_common.cpp \
+	parser/gaol_parser.cpp parser/gaol_expression.cpp \
+	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
+	gaol_port.cpp \
+	gaol_init_cleanup.cpp
 
 
-YFLAGS = -d -p gaol_
-LFLAGS = -Pgaol_
-libgaol_la_LDFLAGS = -version-info $(LT_VERSION_INFO) -release $(LT_RELEASE)
-# The shared library links the mathematical library: without it, libtool
-# linked libgaol.dylib on macOS with -undefined suppress, and a program linking
-# libgaol.dylib without mathlib crashed at the first elementary function
-libgaol_la_LIBADD = @MATHLIB@ -lm
+# The lexer and the parser, parser/gaol_interval_lexer.cpp,
+# parser/gaol_interval_parser.cpp and parser/gaol_interval_parser.h, are
+# committed and compiled as the other sources: make parser (../Makefile.am)
+# regenerates them from parser/gaol_interval_lexer.lpp and
+# parser/gaol_interval_parser.ypp with parser/regenerate_parser.sh. The rules
+# .lpp.cpp and .ypp.cpp, which ran flex and bison where make found the sources
+# newer, are gone (GAOL v5).
+
+# The elementary functions of CORE-MATH, compiled by 3rd/Makefile.am into a
+# convenience library and put into libgaol here: nothing is linked along with
+# GAOL. Not -lm (GAOL v5): GAOL and CORE-MATH still call functions of the math
+# library (those of <fenv.h>, sqrt, floor, round, fma where the processor has
+# no such instruction...), which the C++ compiler links itself, as CMake and
+# meson leave it to.
+
+# libgaol.so.5.0.0 and its soname libgaol.so.5 (see configure.ac)
+libgaol_la_LDFLAGS = -version-info $(LT_VERSION_INFO)
+libgaol_la_LIBADD = $(top_builddir)/3rd/libgaolcoremath.la
 
 library_includedir=$(includedir)/gaol
 
-library_include_HEADERS = gaol gaol_assert.h gaol_exact.h gaol_core_math.h gaol_interval.h gaol_common.h gaol_exceptions.h \
-	gaol_interval_parser.h gaol_config.h gaol_config_mingw.h gaol_config_msvc.h gaol_version_msvc.h \
-	gaol_configuration.h gaol_expression.h gaol_limits.h \
-	gaol_expr_eval.h  gaol_expr_visitor.h gaol_parameters.h \
-	gaol_double_op_apmathlib.h gaol_double_op_crlibm.h gaol_flags.h gaol_parser.h gaol_double_op.h \
-	gaol_port.h gaol_fpu.h gaol_fpu_fenv.h gaol_profile.h gaol.h \
-	gaol_eval_stack.h gaol_init_cleanup.h gaol_version.h gaol_allocator.h \
-	gaol_interval_fpu.h gaol_interval_sse.h $(FLOAT_INTERVALS_HEADER) $(INTERVAL2_HEADER)
+# The headers a program includes, gaol, and those they include: CMake and
+# meson install the same ones (GAOL v5)
+library_include_HEADERS = gaol gaol.h \
+	gaol_common.h gaol_config.h \
+	gaol_fpu.h gaol_fpu_fenv.h gaol_ieee1788.h \
+	gaol_interval.h \
+	gaol_port.h \
+	gaol_version.h
+# gaol_configuration.h, which configure writes from gaol_configuration.h.in:
+# installed, and not in the archive of the sources (GAOL v5)
+nodist_library_include_HEADERS = gaol_configuration.h
 
-LDADD = -lm @MATHLIB@
+# The headers of the intervals, which gaol_interval.h includes: installed in
+# gaol/core/ as in the sources (GAOL v5)
+library_core_includedir = $(includedir)/gaol/core
+library_core_include_HEADERS = core/gaol_interval_core.h \
+	core/gaol_interval_detail.h core/gaol_interval_fpu.h \
+	core/gaol_interval_neon.h core/gaol_interval_sse.h
+
+# The header of the parser of the strings, which gaol_ieee1788.h includes:
+# installed in gaol/parser/ as in the sources
+library_parser_includedir = $(includedir)/gaol/parser
+library_parser_include_HEADERS = parser/gaol_parser.h
+
+# Headers of the sources of GAOL, not installed (GAOL v5): the headers of the
+# expressions, which the parser of the strings builds (parser/gaol_expression.h,
+# parser/gaol_expr_eval.h, parser/gaol_eval_stack.h),
+# parser/gaol_interval_parser.h, which did not compile when included, the parts
+# of the library, the operations of each kind of intervals, which
+# core/gaol_interval_core.cpp includes (core/*_impl.h), the bounds at doubles,
+# *_dn() and *_up(), which are not part of its interface, and the intervals of
+# floats, which gaol_interval_core.cpp includes where a developer of GAOL
+# defines GAOL_FLOAT_INTERVALS (see gaol_config.h)
+noinst_HEADERS = math/gaol_core_math.h \
+	gaol_init_cleanup.h parser/gaol_interval_parser.h \
+	parser/gaol_expression.h parser/gaol_expr_eval.h \
+	parser/gaol_eval_stack.h \
+	math/gaol_u128.h \
+	core/gaol_interval_internal.h core/gaol_interval_sse_kernels.h \
+	core/gaol_interval_neon_kernels.h core/gaol_interval_fpu_kernels.h \
+	core/gaol_interval_sse_impl.h core/gaol_interval_neon_impl.h \
+	core/gaol_interval_fpu_impl.h core/gaol_interval_avx512_impl.h \
+	math/gaol_double_op.h float/gaol_intervalf.h float/gaol_interval2f.h \
+	float/gaol_intervalf_impl.h float/gaol_interval2f_impl.h \
+	math/gaol_ldexp.h math/gaol_roundeven.h math/gaol_compoundm1.h
 
 tags: TAGS
-	etags --language=c++ *.cpp *.h *.c
+	etags --language=c++ *.cpp *.h *.c core/*.cpp core/*.h math/*.h
 
-TAGS: $(gaol_HEADERS) $(libgaol_la_SOURCES)
-
-.lpp.cpp:
-	$(LEX) $(AM_LFLAGS) $(LFLAGS) $< && mv lex.gaol_.c $@
-
-.ypp.cpp:
-	$(YACC) $(AM_YFLAGS) $(YFLAGS) $< && mv y.tab.c $*.cpp
-	if test -f y.tab.h; then \
-	if cmp -s y.tab.h $*.h; then rm -f y.tab.h; else mv y.tab.h $*.h; fi; \
-	else :; fi
-
+TAGS: $(libgaol_la_SOURCES)
 
 install-data-local:
-	$(mkinstalldirs) $(DESTDIR)$(includedir)/gaol/sysdeps
-	$(INSTALL_DATA) $(srcdir)/sysdeps/*.h $(DESTDIR)$(includedir)/gaol/sysdeps
-	$(mkinstalldirs) $(DESTDIR)$(libdir)/pkgconfig
+	$(MKDIR_P) $(DESTDIR)$(libdir)/pkgconfig
 	$(INSTALL_DATA) ../gaol.pc $(DESTDIR)$(libdir)/pkgconfig/gaol.pc
 
+# make uninstall removes it too, as make distcheck checks (GAOL v5: it stayed)
+uninstall-local:
+	-rm -f $(DESTDIR)$(libdir)/pkgconfig/gaol.pc
+
+
+# make distclean removes the files of the dependencies one by one and leaves
+# their directories, in gaol/, in gaol/core/ where the sources of the intervals
+# are and in gaol/parser/ where the sources of the parser are: removed here, so
+# that it gives the sources back as git has them (GAOL v5)
+distclean-local:
+	-rm -rf ./$(DEPDIR) core/$(DEPDIR) parser/$(DEPDIR)
+
+# The archive of the sources, make dist (GAOL v5): automake takes the sources,
+# the headers and the scripts it knows from the variables of the Makefile.am,
+# and EXTRA_DIST names the other files of the repository, here the files of the builds of CMake and meson, the sources of the lexer and the parser, and their tools.
+# make dist, package_source of CMake and meson dist hold the same files, those
+# of the repository but the notes of the work on GAOL v5 of the branch dev: a
+# file added to the repository is added to this list too, or the job Archives
+# of the sources of the CI, which compares the three archives, fails
+EXTRA_DIST = \
+	float/gaol_generator_mul_i2f.py \
+	gaol_configuration_meson.h.in \
+	math/gaol_core_math_port.h \
+	meson.build \
+	parser/gaol_interval_lexer.lpp \
+	parser/gaol_interval_parser.ypp \
+	parser/regenerate_parser.sh

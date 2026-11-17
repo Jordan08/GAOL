@@ -1,186 +1,1819 @@
-# Third-party libraries
+<!-- Copyright (c) 2026 ENSTA, France
 
-Part of the documentation of [this fork of GAOL](../README.md#documentation).
+     By: Jordan NININ (created 2026-09-20)
 
-## mathlib
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
+# Third-party sources
 
-`mathlib/` holds the sources of mathlib 2.1.1, the IBM Accurate Portable
-Mathematical Library (libultim), with which GAOL computes its elementary
-functions, as Frédéric Goualard distributes it along with GAOL:
-[mathlib-2.1.1.tar.gz](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz)
-(SHA256 `f299848aa3e57ebb6248cd3cf54ecc7661a945aeac9e420e71db194965f87281`).
-It is distributed under the GNU LGPL v2 or later, as the headers of its
-sources state (`mathlib/COPYING` is the text of the GNU GPL v2). The whole
-archive is kept, its own autotools build (`mathlib/configure`,
-`mathlib/Makefile.am`) and its batch file for Visual C++
-(`mathlib/install.bat`) included, which GAOL does not use.
+Part of the documentation of [GAOL v5](../README.md#documentation).
 
-### How GAOL builds it
+## CORE-MATH
 
-The three builds of GAOL compile libultim from `mathlib/src` themselves and
-install it along with GAOL, with `MathLib.h` and its configuration headers,
-unless told to use a mathlib installed already (see
-[Building GAOL](../doc/building.md)):
+`math-core/` holds the sources of
+[CORE-MATH](https://core-math.gitlabpages.inria.fr/) (Alexei Sibidanov, Paul
+Zimmermann and others, Inria), which provides mathematical functions that are
+correctly rounded: the double each returns is the rounding of the exact value
+in the rounding direction in effect. It is distributed under the MIT licence
+(`math-core/LICENSE`).
 
-- CMake: `mathlib/CMakeLists.txt`, which `CMakeLists.txt` reaches with
-  `add_subdirectory()` and which `scripts/install-mathlib.sh` builds alone;
-- meson: `mathlib/meson.build`, reached with `subdir()`;
-- autotools: `Makefile.am` of this directory, a subdirectory of GAOL's build.
+GAOL bounds **every one of its elementary functions** with them, on every
+architecture and with every compiler, and they are the only mathematical
+library it uses: the other libraries GAOL could be built with are gone (see
+[What differs from GAOL](../doc/differences.md)).
 
-They compile it with the flags of interval arithmetic GAOL is compiled with
-(`-frounding-math -fno-fast-math -ffp-contract=off`, and `-msse2 -mfpmath=sse`
-on 32-bit x86; `/fp:strict` with Visual C++). Compiled with the contraction of
-multiplications and additions into fused multiply-adds, which GCC does by
-default wherever the processor has them, 64-bit ARM processors included,
-unless given `-ffp-contract=off`, mathlib reduces large arguments modulo π/2
-wrongly (`branred()`): compiled so on x86_64, it gave cos(2^52 − 1) about
-−0.4855 rather than 0.4733, and sin, cos and tan far from their values at 534
-of 20080 random arguments from 2^26 to 2^54, which GAOL's bounds did not
-enclose. This is why the builds refuse an installed mathlib whose cosine of
-2^52 − 1 is wrong (see [The three builds](../doc/three-builds.md)). mathlib
-is also compiled with `-w`, whatever warning flags the project building GAOL
-gives: with `-Wall -Wextra -Wconversion`, GCC 9 printed 25255 warnings over
-its sources.
+| | |
+| --- | --- |
+| Upstream | <https://gitlab.inria.fr/core-math/core-math> |
+| Commit | `0b2ae6d114d2f34051235d97f72c041b8e0ff66c` (27 October 2026) |
+| Taken | the tree without the `.wc` files, and without the directories of `math-core/src` other than `binary64` |
+| Built | `math-core/src/binary64/<f>/<f>.c` for the thirty-eight functions below, compiled into libgaol itself |
 
-These build files were added for GAOL, with `mathlib/mathlib_configuration.h.in`,
-the configuration header mathlib's own configure script would write, which
-every build copies as it is: the macros describing the target are set by the
-preprocessor there, from the macros of the compiler, which works the same in a
-cross-compilation and with Visual C++. `src/mathlib_config_msvc.h` and
-`src/mathlib_config_mingw.h`, the configuration files `src/mathlib_config.h`
-includes for Visual C++ and MinGW, are replaced with files including that one.
-`mathlib/CMakeLists.txt` and `mathlib/mathlib_configuration.h.in` derive from
-the CMake build of the same mathlib in [IBEX](https://github.com/ibex-team/ibex-lib)
-(`interval_lib_wrapper/gaol/3rd/mathlib-2.1.1/`, Cyril Bouvier and Gilles
-Chabert).
+The `.wc` files, which hold the hardest-to-round arguments CORE-MATH checks
+itself against, are 542 of the 555 MB of the upstream tree and are not needed
+to build: they are left out, and the commit above is what to clone to get them.
 
-### What is changed in mathlib's sources
+The thirty-eight functions GAOL builds are `exp`, `log`, `pow`, `sin`, `cos`,
+`tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`,
+`acosh` and `atanh`, then `cbrt`, which `nth_root(x, 3)` takes, `exp2`,
+`exp10`, `log2` and `log10`, which IEEE 1788-2015 requires among the forward
+elementary functions (Table 9.1), the fifteen of its recommended ones
+(Table 10.5) CORE-MATH has: `expm1`, `exp2m1`, `exp10m1`, `log1p`, `log2p1`,
+`log10p1`, `hypot`, `rsqrt`, `sinpi`, `cospi`, `tanpi`, `asinpi`, `acospi`,
+`atanpi` and `atan2pi`, and `erf` and `erfc`, the error function and its
+complement, which the standard does not name. The other functions of
+`math-core/src/binary64` are kept as they are, so that importing a newer
+CORE-MATH is a plain copy, but nothing compiles them.
 
-The sources are those of the archive but for the fixes below, each a change
-of a few lines in one file, with the pragma of the tables. Every one is
-covered by the tests of `tests/` (see `tests/elementary_values.py`), and
-[What differs from GAOL](../doc/differences.md) lists them among the changes
-of the fork.
+The other formats are not in the tree: `binary16`, `binary32`, `binary80`,
+`binary128` and `binaryb16` of `math-core/src`, with `generic`, which holds the
+tests and the measures of speed they share, are left out, GAOL using doubles
+only and no build reading them. The scripts `check.sh`, `ci.sh`, `perf.sh` and
+`perf-all.sh` at the root of `math-core/` and the Makefiles of `binary64`
+include or copy `generic`, and do not work here: clone the upstream commit
+above to run them. The patches below that name a file of `binary80` or
+`binary128` are written against upstream's tree.
 
-- **`src/sincos32.c`, the cosine.** For the arguments hardest to round,
-  `ucos()` falls back on `mpcos()`, which computes cos(x) with
-  multiple-precision numbers, as sin(π/2 − x) when x > 0.8. `c32(x, y, z)`
-  sets y to cos(x) and z to sin(x), and `mpcos()` took the cosine of π/2 − x,
-  which is sin(x), rather than its sine: `ucos()` returned sin(x), and GAOL
-  bounds not enclosing cos(x), at 54 of the hard-to-round arguments of cos of
-  [CORE-MATH](https://gitlab.inria.fr/core-math/core-math), all between 0.80
-  and 0.853 ([dreal-deps/mathlib#2](https://github.com/dreal-deps/mathlib/issues/2)).
-  The call is now `c32(&b,&c,&a,p)`. glibc, which took the same code from IBM,
-  fixed the same line in 2003 (Debian bug 153548,
-  [commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=86583139a4d746743ccffcd72e25d96c5fb8d488)).
-- **`src/mpsqrt.c`, the square root in multiple precision**, which the
-  arctangent uses at the arguments hardest to round (`src/mpatan.c`,
-  `src/mpatan2.c`). `fastiroot()`, which gives it a first approximation of
-  1/√x, read and wrote the halves of a double through an array of two `long`s:
-  where `long` has 64 bits (Linux and macOS on 64-bit processors),
-  `p.i[HIGH_HALF]` is not the high half of the double, x was not scaled to
-  [0.5, 2), and the approximation was wrong. `atan()` then returned values far
-  from atan(x), or had not returned after 20 ms, at 12003 and 3967 of the
-  55190 hard-to-round arguments of atan of CORE-MATH on x86_64:
-  atan(1.016527294692847) was 0.082 instead of 0.794. They are `int`s, as
-  glibc made them in 2003 (Michael Matz, "fastiroot: Fix 64-bit problem",
-  [commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=bb3f4825c411e676c51479fea59643af540810b5));
-  [Debian bug 210613](https://bugs.debian.org/210613) is the same bug on Alpha,
-  whose three arguments fail on x86_64 without this fix.
-- **`src/ulog.c`, the logarithm at subnormal arguments.** `ulog()` scales a
-  subnormal x by 2^54, which its exponent n accounts for, but its last,
-  multiple-precision stage computed the logarithm from the scaled x and from
-  an approximation of the logarithm of the unscaled one: `ulog()` returned
-  about 2^54 at 26 of the 53 subnormal hard-to-round arguments of log of
-  CORE-MATH on x86_64: log(0x0.8819864d7985dp-1022) was 1.8e16 instead of
-  −709.03. That stage is given the unscaled x, kept in `x0`. glibc kept it in
-  `__ieee754_log` until it removed the multiple-precision stages in 2018
-  (Wilco Dijkstra, "Remove slow paths from log",
-  [commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97)).
-- **`src/utan.c`, the tangent.** In 7 of the tests with which `utan()`
-  decides whether its result is rounded right, the error bound `t4` was
-  assigned in one operand of `==` and read in the other, with no sequence
-  point between them: undefined behaviour, which Clang warns about
-  (`-Wunsequenced`). GCC and Clang 18, from `-O0` to `-O3`, gave the same
-  results as with `t4` assigned before the test, at the 1077348 hard-to-round
-  arguments of tan of CORE-MATH and 10 million others. `t4` is assigned before
-  the test, as glibc did in 2009 (Ulrich Drepper, "Fix -Wsequence-point
-  warnings",
-  [commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=82a1a4dae1b699a394e213866e789eacef1728fc))
-  and Fabrice Le Bars in his fork of mathlib
-  ([commit](https://github.com/lebarsfa/mathlib/commit/04a3dfe75cd3f0e49e22bca9ed688462d18c6c52)).
-- **`src/halfulp.c`, the shifts.** `halfulp()`, which `upow()` calls for the
-  powers that may be exact, counts the significant bits of the high half of a
-  double by shifting it leftward until it is 0, as an `int`: shifting a
-  positive `int` into its sign bit is undefined behaviour in C, which the
-  UndefinedBehaviorSanitizer of Clang reports ("left shift of 1070596096 by
-  12 places cannot be represented in type 'int4'"), and which the continuous
-  integration suppressed
-  ([issue #5](https://github.com/Jordan08/GAOL/issues/5)). An `unsigned int`
-  is shifted instead, which gives the bits the compilers gave: `halfulp()`
-  returns the same doubles at 4 million arguments, 228644 of them exact
-  powers, and the tests pass with Clang 18 and no suppression.
-- **`src/sincos32.h`, the include guard**, which tested `SINCOS32_H` but
-  defined `SINCCOS32_H`, which Clang warns about (`-Wheader-guard`): it
-  defines `SINCOS32_H`, as Fabrice Le Bars fixed it
-  ([commit](https://github.com/lebarsfa/mathlib/commit/ad40312506d2297c75e3169816d1878b791d74a6)).
-- **`src/mathlib_config.h`, `#pragma STDC FENV_ACCESS ON`** at its end, which
-  every source of mathlib includes: the pragma of C99 (7.6.1) that tells the
-  compiler the code may be executed with a rounding direction other than the
-  default, and that it must not fold nor reorder its floating-point operations
-  as if the rounding were to nearest. GAOL sets the rounding direction to
-  nearest before calling mathlib and back upward afterwards, and mathlib is
-  compiled with the flags of interval arithmetic: the pragma states for the
-  compiler what those flags ask of it, as Fabrice Le Bars does in his fork
-  ([commit](https://github.com/lebarsfa/mathlib/commit/5ac52c2bd817e44d33d4f9af6c1045d4b8577449)),
-  with the uppercase `ON` that macOS warns about in the lowercase. Clang 18
-  honours it, and the elementary functions of an interval took the same time
-  with it as without (exp, log, sin and cos within 0.8%, below the dispersion
-  of the measures); GCC 13 ignores it and gave a `libultim.a` identical byte
-  for byte; Visual C++ is given `/fp:strict`, which its documentation says
-  makes it behave as if `fenv_access(on)` were set, and reads the pragma for
-  Visual C++ rather than the one of C99, which it does not know.
-- **`src/uatan.tbl`, `src/ulog.tbl` and `src/utan.tbl`,
-  `#pragma GCC diagnostic ignored "-Wmissing-braces"`.** The entries of the
-  tables, of the union type `number`, are written `{0x3ff6a13c, 0xd1537290 }`
-  where the union holds an array: GCC and Clang warn about each of them with
-  `-Wall` (`-Wmissing-braces`), 15777 times over mathlib's sources, and
-  printing them is slow enough to stop a build: compiling `src/atnat.c` with
-  `-Wall`, which includes `src/uatan.tbl` and its 6027 of them, had not
-  finished after ten minutes, against 0.22 s without. The three tables carry
-  15165 of the 15777 and are given the pragma, as Fabrice Le Bars does in his
-  fork ([commit](https://github.com/lebarsfa/mathlib/commit/daa4f21874f76785988426f03a5f651ac5a6cf4e)):
-  434 are left, from the tables of the other sources, kept as they are, which
-  `-w` turns off in the builds of GAOL. The pragma changes no code:
-  `libultim.a` is the same, byte for byte, with it and without it.
-- **`src/AARCH64_DPChange.c`, `Init_Lib()` and `Exit_Lib()`**, which
-  `mathlib/mathlib_configuration.h.in` chooses for every target
-  (`MATHLIB_AARCH64`): nothing in it is specific to ARM64, and it goes through
-  `<fenv.h>` alone. `Init_Lib()` restored the default floating-point
-  environment (`FESETENV(FE_DFL_ENV)`) and returned 0, and `Exit_Lib()` did
-  nothing: the rounding direction the caller had set was lost, where the
-  comment of `Init_Lib()` says its result is what `Exit_Lib()` takes to restore
-  it. `Init_Lib()` now sets the rounding direction to nearest, which mathlib's
-  algorithms need, and returns the one it found, and `Exit_Lib()` sets that one
-  back, as the fork of mathlib by Fabrice Le Bars does
-  ([commit](https://github.com/lebarsfa/mathlib/commit/40c8a25ad855830db7688ef7dd32bb667ff0eb25));
-  the rest of the floating-point environment, whose exception flags and masks
-  `FE_DFL_ENV` also reset, is left as it is. Nothing is kept in the global
-  variables of the file, which no longer has any use for them: two threads
-  calling `gaol::init()` no longer write the same variables. The versions
-  mathlib's own build chooses for the other processors are not used:
-  `src/LINUX64_DPChange.c` (x86_64 Linux), `src/LINUX_DPChange.c` (32-bit
-  x86) and `src/IX86MACOSX_DPChange.c` (Intel Macs) save the control word of
-  the x87 unit in global variables, which two threads calling `gaol::init()`
-  would write at once, to set a precision that GAOL loses right after by
-  restoring the default floating-point environment, and that the doubles of
-  32-bit x86, computed in SSE2, do not depend on; `src/LINUX_DPChange.c` and
-  `src/MSVC_DPChange.c` are 32-bit x86 assembly besides.
+### How GAOL builds them
 
-### Updating mathlib
+The three builds compile the thirty-eight sources into `libgaol` and include
+`gaol/math/gaol_core_math_port.h` first in each of them, **by the compiler
+rather than by the source** (`-include` with GCC and Clang, `/FI` with Visual
+C++): the sources never name that header, so that importing a newer CORE-MATH
+stays a copy. That header gives them the names `gaol_cr_<f>()`, so that GAOL
+does not clash with a program or a C library holding CORE-MATH's functions too,
+the 128-bit integer of `gaol/math/gaol_u128.h`, what Visual C++ has not of GCC
+(`__builtin_clzll`, `__builtin_roundeven`, `__attribute__`...), the
+`roundeven()` the math library of Windows has not (`gaol/math/gaol_roundeven.h`,
+which GAOL's own sources use too), given as well for `__builtin_roundeven()` to
+the compilers that have no such builtin, GCC before 10 among them: `sin.c`
+called it without the guard of the other sources from its rewrite (upstream
+commit `6b84457`) to commit `19e85418` (5 October 2026), and GCC 9.4 did not
+link it; `sin.c` and `cos.c` have their own `roundeven_finite()` now,
+and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
+written on MXCSR: `cbrt`, `pow`, `atan2` and `hypot` keep the exception flags
+around their work with them, and the ones of mingw-w64 up to version 12 clear
+the mask bits of MXCSR as well (version 13.0.0 does not: commit `4696986c30`),
+which unmasks the exceptions and makes the first comparison of the NaN bounds
+of an empty interval trap; each `FE_*` flag is mapped to its
+bit of MXCSR, which the values of the UCRT and of mingw-w64 from 13 on are
+not, so that `hypot(3, 4)` left the inexact flag raised. On every 32-bit
+x86, with every compiler, it gives them too the square root of SSE2 for
+`__builtin_sqrt()`. On Windows, the one of the C library, rounded to nearest
+in every direction, is what Visual C++ calls for it, and GCC where it does not
+optimize (`-O0`, the Debug builds) and, at `-O2` too, in the accurate phases
+the sources mark cold (`pow(x, 0.5)` was below the root, rounding upward, at
+subnormal x, and so was GAOL's upper bound of `pow([x], [0.5])`); elsewhere,
+the one of glibc and musl is the `fsqrt` of the x87 unit, right as long as
+that unit rounds as MXCSR, which GAOL sees to, but one more dependence. With
+Visual C++, it gives them `NAN` and `INFINITY` read from their bits, which the
+UCRT writes for C as products of `1e+300` that
+`/fp:strict` computes when the program runs, in the rounding direction in
+effect (`-0` and `FLT_MAX` downward and toward zero: `pow` rounded downward was
+`-0` from 2<sup>−1075</sup> to about 2<sup>−947</sup>). With every
+compiler, it gives them for `__builtin_ldexp()` the `gaol_ldexp()` of
+`gaol/math/gaol_ldexp.h`, x·2<sup>n</sup> rounded once in the direction in effect,
+rather than the `ldexp()` of the C library, which `erfc` rounds its
+subnormal values with: the one of the UCRT of Windows does not round so
+where the result is subnormal, and `erfc` was the double below `erfc(x)`
+rounding upward from x = 26.54 on (Visual C++ and clang-cl); the one of
+macOS gave 0 for 2<sup>−1127</sup> rounded upward. `tests/core_math.cpp`
+checks the flags, the square root, `NAN` and `INFINITY`, and `gaol_ldexp()`.
 
-Should a new archive be taken, unpack it over `mathlib/`, keep
-`mathlib/CMakeLists.txt`, `mathlib/meson.build` and
-`mathlib/mathlib_configuration.h.in`, and apply the changes above again:
-`git diff` of the files of `mathlib/src` before the update shows each of them
-exactly.
+On x86, 32-bit and 64-bit, it also gives them a `fegetround()` that reads
+MXCSR, the register that rounds their doubles, rather than the control word of
+the x87 unit, which the `fegetround()` of glibc reads. `pow` rounds a subnormal
+result itself, in the direction `fegetround()` gives (`tan` carries the same
+code, in an accurate phase that never gives a subnormal, and `cos` has none):
+with the x87 unit to nearest and MXCSR upward, the state the `exactinit()` of
+the predicates of Shewchuk and of Triangle leaves, `pow` rounded to nearest and
+its upper bound was below the exact value for about half of the arguments with
+a subnormal result.
+`<fenv.h>` is included first and the sources see `fegetround` renamed by a
+macro, which changes nothing for the rest of GAOL;
+`tests/rounding_direction.cpp` checks it, and `tests/core_math.cpp` by calling
+`pow` and `cbrt` with the two units differing. On a 32-bit x86 processor GAOL reads both
+units and sets the one that is not upward, so that they do not differ when
+CORE-MATH runs from an operation of GAOL, and reading MXCSR, one instruction,
+spares the call of the C library (about 80 ns with Visual C++ for x86), which
+`cbrt` and `asinpi` made on every call.
+
+They are compiled with the flags of interval arithmetic, as CORE-MATH asks
+(`-frounding-math -ffp-contract=off`, `/fp:strict` for Visual C++), and with the
+GNU extensions of C (`atan2` uses inline assembly), not with `-std=c99`.
+
+### What differs from upstream
+
+The vendored sources are those of the commit above but for the changes below,
+which are marked in the code: each changed line carries `/* GAOL */`, at its
+end or before the comment that ends it, or is part of a comment beginning with
+`/* GAOL:`. They are made in the tree rather than kept as a patch to reapply.
+
+1. **The 128-bit integer** of the accurate phases of `log`, `log10`, `sin`,
+   `cos`, `tan`, `atan2` and `pow`, and of `log2p1`, `log10p1`, `atan2pi`,
+   `hypot`, `rsqrt` and `asinpi`. Upstream writes it `unsigned __int128`, or
+   `unsigned _BitInt(128)` with Clang 14 and GCC 14: Visual C++ has neither, on
+   no architecture, and neither has GCC for the 32-bit targets whose ABI has
+   no `_BitInt(128)` (GCC 14 has it for x86). In
+   `log/dint.h`, `log10/dint.h`, `log2p1/dint_log2p1.h`, `log10p1/dint.h`,
+   `pow/dint.h`, `pow/qint.h`, `atan2/tint.h`, `atan2pi/tint.h`, `sin/sin.c`,
+   `cos/cos.c`, `tan/tan.c`, `hypot/hypot.c`, `rsqrt/rsqrt.c` and
+   `asinpi/asinpi.c`, the lines that choose the type name `gaol_u128` instead,
+   which is the type of the compiler where it has one and a structure of two
+   64-bit halves where it has none (`gaol/math/gaol_u128.h`), and the
+   extended-arithmetic functions of those files call `gaol_u128_*()` rather
+   than the operators of the language. `asinpi.c` computes with a signed
+   128-bit integer too, `i128`, which is then a `gaol_u128` read in two's
+   complement: its product, its conversion from a 64-bit integer and its shift
+   right are `gaol_u128_imul64()`, `gaol_u128_of_i64()` and `gaol_u128_sar()`.
+   `log1p/dint.h` is unchanged: `log1p.c` does not include it.
+
+   `sin.c`, rewritten upstream (commit `6b84457`), and `cos.c`, rewritten on
+   its model ("code adapted from sin.c", the commits of 26 and 27 October 2026
+   that end at `0ce319bc`), no longer have the extended-arithmetic functions
+   of `dint.h`: their accurate path computes in fixed point on the 128-bit
+   integer throughout, the argument reduction (`reduce_large()` in `sin.c`,
+   `reduce_large_acc()`), the truncated product `mhUU()`, the polynomials
+   (`evalPS()`, `evalPC()`), the combination of the tables in
+   `sin_large_accurate()` and `cos_large_accurate()` and the rounding to double
+   (`u128_tod()`). Each operation on `u128` there is a `gaol_u128_*()` call,
+   and the tables of 128-bit constants are written with `U128()`, which gives
+   the two halves as designated initialisers where the type is the structure.
+   The two files are the same code twice: a change in one is made in the
+   other.
+
+   There is no way round this: C has no operator overloading, and the files
+   cannot be compiled as C++ because their tables initialise anonymous unions
+   in a way C++ rejects.
+
+2. **`~0ul` written `~0ull`** in `sinh/sinh.c`, `cosh/cosh.c`, `tanh/tanh.c`,
+   `sinpi/sinpi.c` and `log1p/log1p.c` (twelve lines). `unsigned long` has 32
+   bits on Windows and on the 32-bit targets, where `~0ul >> 12` is not the
+   mask of the 52 low bits of a double. No result was found to change with a
+   mask of 20 bits, in these files; `sinpi.c` and `log1p.c`, left as they were
+   at first, are changed as well since 12 October 2026 (decided on 3 October).
+   The fix of every one of them is
+   [proposed to CORE-MATH](#1-masks-written-with-long).
+
+3. **Three signed shifts made unsigned** in `cospi/cospi.c` (the test of an
+   integer or half-integer argument): **no longer a change.** `m` was a signed
+   64-bit integer holding the significand with its hidden bit, 2^52, and
+   shifting it left by 11 to 13 places overflows: undefined behaviour in C,
+   which UBSan reported in the tests run with the sanitizers. GAOL's copy
+   converted `m` to `uint64_t` before shifting it, as `sinpi.c` and `tanpi.c`
+   do, and gave the same values bit for bit. Upstream made the same fix, by
+   declaring `m` as `uint64_t` ([commit
+   `b1a4badf`](#already-fixed-upstream-the-shifts-of-cospic)), and `cospi.c` is
+   upstream's file since the import of 27 October 2026. The number stays, as
+   other files cite the items by it.
+
+4. **A 128-bit shift written on 128 bits** in `asinpi/asinpi.c`
+   (`asinpi_acc`). `D`, the 64-bit integer `dc` times 2<sup>ss</sup>, was made
+   of its two halves, `dc << ss` and `dc >> (64 - ss)`, which is right for
+   0 < ss < 64 only; next to ±1 (1 − |x| about 2<sup>−40</sup>) ss reaches 65
+   to 69, and both shifts are undefined behaviour, which UBSan reported on
+   the arguments of the accurate phase. It is now
+   `gaol_u128_shl(gaol_u128_of_i64(dc), ss)`, the same value for
+   0 < ss < 64 and the intended one beyond. On x86-64 the two versions gave
+   the same results over 460 000 arguments next to ±1, the part of `D` lost
+   being about 2<sup>−54</sup> of a small correction; the regression test is in
+   `tests/core_math.cpp`. The fix is
+   [proposed to CORE-MATH](#2-the-shift-of-asinpi_acc).
+
+5. **A 64-bit test made a comparison** in `rsqrt/rsqrt.c` (`cr_rsqrt`, the
+   subnormal x): **no longer a change.** `__builtin_expect(ix.u, 1)` passed
+   the 64 bits of x where `__builtin_expect` takes a `long`, which has 32 bits
+   on the 32-bit targets and on Windows: the high half was dropped, and a
+   subnormal whose low 32 bits are 0, 2^-1042 to 2^-1024 among the powers of
+   4, was taken for +0, its rsqrt being +oo rather than 2^521 to 2^512 (the
+   continuous integration, Debian i386 and armhf, MinGW-w64 and MSYS2; Visual
+   C++, where `__builtin_expect(x, y)` is `(x)`, was right). GAOL's copy
+   wrote `__builtin_expect(ix.u != 0, 1)`. Upstream rewrote the test in commit
+   `0d8b885a` (14 October 2026, "improve test for common case"): the subnormal
+   branch is `if (ix.u)` now, with no builtin, so `rsqrt.c` keeps no change of
+   this kind since the import of 27 October 2026. The other
+   `__builtin_expect` of the sources GAOL compiles take a comparison, or an
+   integer of 32 bits or less. The number stays, as other files cite the
+   items by it.
+
+6. **The rounding field of MXCSR** in `cbrt/cbrt.c`, `rsqrt/rsqrt.c` and
+   `asinpi/asinpi.c` (`get_rounding_mode()`), the
+   [patch proposed to CORE-MATH](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-asinpic-and-powlc)
+   as it is, but for its comment, written as a `/* GAOL: */` one. Where
+   `__x86_64__` is defined (GCC and Clang, not Visual C++), the three functions
+   read the rounding field of MXCSR, and upstream makes of
+   it the `FE_*` value of the C library by a shift that depends on the
+   library: by 3 for the values of glibc (`FE_UPWARD` 0x800); where
+   `__WIN32__` or `__WIN64__` is defined, by 5 or through a table for those of
+   the UCRT of Windows (`FE_UPWARD` 0x200, or 0x100 before Windows 10 14393),
+   and by `fegetround()` for other values, with a `#warning`. Three targets
+   got it wrong:
+   - **mingw-w64 before 13**, which defines `__WIN32__` and gives `FE_*` the
+     values of glibc, took the last branch. `cr_cbrt()` wants the direction as
+     0 to 3 (to nearest, downward, upward, toward zero): it indexes `off[4]`
+     with it, and rounds the seven hardest arguments of `wlist` away from zero
+     when it is 2 minus the sign; the `FE_*` value of `fegetround()` went past
+     its switch, `off[]` was read kilobytes beyond its four elements, and the
+     seven arguments were rounded toward zero. Rounding upward,
+     `cr_cbrt(0x1.3a9ccd7f022dbp+0)` was `0x1.1236160ba9b93p+0`, below the
+     cube root (`0x1.1236160ba9b930000000000001e7e8fap+0`), and
+     `nth_root(x, 3)` did not enclose it, with MinGW-w64 and MSYS2 on x64.
+     `rsqrt` and `asinpi` read the direction of the x87 unit there, right as
+     long as the two units agree. From version 13 on, mingw-w64 has the
+     values of the UCRT;
+   - **clang-cl**, which defines `__x86_64__` and `_WIN32` but neither
+     `__WIN32__` nor `__WIN64__`, and takes the `fenv.h` of the UCRT: the
+     three files shifted by 3 and compared 0x400, 0x800 and 0xc00 with the
+     UCRT's 0x100, 0x200 and 0x300, so that the downward and the upward
+     roundings were taken for toward zero. Compiled by clang-cl 18 with the
+     flags of GAOL and run under wine, they gave 42 wrong `cbrt` results
+     downward and 42 upward, 1,338 wrong `rsqrt` results upward and 499,838
+     and 526,673 different `asinpi` results downward and upward, every wrong
+     result checked with mpmath being on the wrong side of the exact value:
+     the bound of `nth_root(x, 3)` farther from zero and the upper bounds of
+     `rsqrt` and `asinpi` did not enclose the exact values;
+   - **Cygwin**, where GCC and Clang define `__x86_64__` but not `__WIN32__`,
+     and newlib gives `FE_*` the values 0 to 3: as clang-cl (and presumably
+     the MSYS environment of MSYS2, whose runtime is Cygwin's, not checked);
+     a job of the continuous integration builds GAOL with Cygwin too (GAOL v5).
+
+   GAOL's copy first made the two smallest changes, `mode = fegetround();`
+   for `return fegetround();` in `cbrt.c` (mingw-w64) and `|| defined(_WIN32)`
+   in the condition of the three files (clang-cl), which left Cygwin as it
+   was. It makes the whole patch since 12 October 2026 (decided on 3 October):
+   the rounding field, 0 to nearest,
+   1 downward, 2 upward and 3 toward zero on every x86 processor, is `cbrt`'s
+   0 to 3 itself, and `rsqrt` and `asinpi` look their `FE_*` value up in a
+   table, whatever values the C library gives `FE_*`; the `#warning` and the
+   call to `fegetround()` go. `tests/core_math.cpp` checks `cbrt` and
+   `nth_root(x, 3)` at the arguments of `wlist`, scaled by powers of 8 and on
+   both signs, `asinpi` next to ±1 and `rsqrt` at the successors of the powers
+   of 4, against mpmath, in the jobs of MinGW-w64, MSYS2 and clang-cl of the
+   continuous integration, and in a job that gives the sources of CORE-MATH
+   the `FE_*` values of Cygwin on Linux (`cygwin-fe-values` of `linux.yml`),
+   Cygwin defining `__x86_64__` but not `__WIN32__` as Linux does: with
+   upstream's three files, 26,558 of its checks fail there.
+
+7. **The exact and midpoint powers of `pow` on 32-bit ARM** in `pow/pow.c`
+   (`exact_pow()`). Where its accurate phase cannot round, `pow` computes an
+   exact or midpoint power, c<sup>a</sup>·2<sup>s</sup>, as an integer of at
+   most 54 bits, and converts it with `(double)`, which has to round in the
+   direction in effect. On 32-bit ARM, VFP has no conversion of a 64-bit
+   integer: GCC calls `__aeabi_l2d` of libgcc, integer code that rounds to
+   nearest whatever FPSCR says. A midpoint, c<sup>a</sup> odd of 54 bits, was
+   then rounded to nearest in the directed roundings too: rounding upward,
+   `cr_pow(0x1.8p-29, 34)`, 3<sup>34</sup>·2<sup>−1020</sup>, was
+   `0x1.d9fe779881944p-967`, below the power, and the upper bound of
+   `pow([0x1.8p-29], [34, 35])` did not enclose it (the continuous
+   integration, Debian armhf). Only powers below about 2<sup>−950</sup> reach
+   `exact_pow()`; the first phases round the others. The integer is now
+   converted as its two 32-bit halves, whose conversions and product by
+   2<sup>32</sup> are exact, and one addition, which rounds in the direction
+   in effect on every processor (`i64_to_double()`). Over 13.3 million pairs
+   and 3,950 midpoints, against MPFR, the vendored `pow` gave 415 wrong
+   results downward and toward zero and 631 upward on armhf (GCC 13.3 under
+   qemu-arm), and the changed one none; on x86-64 the two give the same bits
+   in the four directions. `tests/core_math.cpp` checks five such midpoints
+   against their exact values. The fix is
+   [proposed to CORE-MATH](#7-the-exact-and-midpoint-powers-of-pow-on-32-bit-arm).
+
+8. **Shifts of a 64-bit result written on 64 bits** in `tan/tan.c` and
+   `hypot/hypot.c` (and in `cos/cos.c` until the import of 27 October 2026,
+   which rewrote it without that line), which the warnings of Visual C++ at
+   `/W4` (C4334) point at, in the job of the continuous integration that
+   compiles GAOL with `/W4 /WX`. In `tan.c`, `1l << (a->ex + 1073)` is written
+   `1ll << ...`: the shift goes up to 51 places, undefined where `long` has 32
+   bits, as on Windows, though no argument reaches it (see the
+   [proposed fix](#1-masks-written-with-long), which writes it so). In
+   `hypot.c`, the two `1 << ...` subtracted from or masking a `u64` are
+   written `1ull << ...`, with no change of value: their shifts stay below 32.
+   The other warnings of `/W4` on these sources, of what they write on
+   purpose, are turned off for them alone (`CMakeLists.txt`).
+
+9. **The first phase of `pow` next to the overflow** in `pow/pow.c` (`exp_1()`,
+   `RHO2`). For a power next to the largest double, with y·log(x) from
+   709.78263 to 709.78267 (powers from about 1.7975·10<sup>308</sup>), the
+   first phase of `cr_pow()` takes k = 2<sup>22</sup>, so that the exponent
+   M = (K >> 12) + 0x3ff of the factor it scales its approximation by is
+   0x7ff, an infinity: both parts of the approximation are infinite, and
+   `res_h + fma (err, -res_h, res_l)` is ∞ − ∞, which raises the
+   invalid-operation exception before the second phase rounds the power right.
+   `gaol::pow([2], [1023.9999])` raised it, and a program that had enabled it
+   died on SIGFPE. `RHO2`, the greatest rh the first phase takes, was
+   `0x1.62e42e709a95bp+9`: it is now the largest double with rh·`INVLOG2` ≤
+   4194303.5 − 2<sup>−31</sup>, the double below the tie 4194303.5 that
+   `roundeven` rounds to 2<sup>22</sup>, `0x1.62e42d29db3f0p+9`, so that
+   K < 2<sup>22</sup> and M < 0x7ff in every rounding direction. The rh
+   between the two values are deferred to the second phase, as those above
+   `RHO2` already were. With the vendored sources before the change, 390,000
+   of 4 million pairs whose rh lies from 709.7825 to 709.7829 (bases above and
+   below 1, integer exponents, negative bases with odd ones) raised the
+   exception in each direction, and 1,087,240 of the 1,754,203 exponents of
+   the base 2 around the two ends of the window; the changed one raised it
+   for none, and gives the same bits for all of them and for 12 million pairs
+   per direction drawn all over the domain (GCC 13.3, x86-64 Linux).
+   `tests/core_math.cpp` and `tests/rounding_direction.cpp` check it. The fix
+   is [proposed to CORE-MATH](#8-the-first-phase-of-pow-next-to-the-overflow).
+
+### How the changes are checked
+
+The changes touch the arithmetic of the accurate phases, so they are checked by
+comparison rather than by reading:
+
+- **against the upstream sources.** Each of the functions whose files changed,
+  compiled from this tree, was compared with the same function compiled from
+  the pristine upstream commit, over about 40 million arguments in the four
+  rounding directions, including the hard paths (large arguments reduced modulo
+  π/2, bases next to 1, exact results): the two give the same bits everywhere
+  on x86-64 Linux, where none of the changes is meant to change a result; items
+  5 to 7 change results on purpose on the targets they fix, and are checked
+  there as each says. This found a real bug the first time, an addition of two
+  64-bit halves that has to be made on 128 bits;
+- **on the paths that are seldom taken.** The 128-bit code of `log2p1`,
+  `log10p1`, `atan2pi`, `hypot`, `rsqrt` and `asinpi` only runs when their
+  fast phase cannot round, which random arguments seldom make happen. They
+  were therefore also compared over arguments collected because they reach it
+  (6,077 for `log2p1`, 4,503 for `log10p1`, 133,085 for `asinpi`, Pythagorean
+  triples for `hypot`, the powers of 4 and their neighbours for `rsqrt`), and
+  the functions of `atan2pi/tint.h` and the accurate phase of `asinpi` were
+  called directly, from upstream and from this tree, including the branches no
+  argument reaches in practice (a subtraction cancelling 64 bits or more,
+  |x| < 0.0131875 in `asinpi_acc`). Each comparison was shown able to fail: a
+  fault put in the ported code for a moment (a shift count, a dropped carry, a
+  signed shift made unsigned) makes it report thousands of differences;
+- **the rewritten `sin.c`** (commit `6b84457`), ported with the native type and
+  with the two halves forced, against the upstream file compiled unchanged,
+  with Clang 18 and GCC 9.4: the same bits in the four rounding directions
+  over 102.5 million arguments of `cr_sin()` (random bit patterns, [−π, π],
+  2^-26 to 2^31, beyond 2^31, the doubles next to 2.5 million multiples of π),
+  over 10 million calls of `sin_large_accurate()` itself, from 2^-16 to the
+  largest double, and over 10 million of each argument reduction and
+  40 million products `mhUU()`. A fault put in the port (a term of `mhUU()`
+  dropped, a shift count, the halves of the tables swapped) makes it report
+  from 400 000 to 3 million differences over a hundredth of these arguments. `tests/core_math.cpp` checks 19
+  arguments that take the accurate path in the upward rounding against the
+  values of the upstream file, in the four directions;
+- **the import of 27 October 2026** (upstream `0b2ae6d1`), which rewrote
+  `cos.c` after the model of `sin.c` and changed `sin.c`, `exp.c`, `log.c`,
+  `rsqrt.c`, `pow.c` and others: the 17 functions whose files changed (`sin`,
+  `cos`, `sinh`, `cosh`, `sinpi`, `cospi`, `tanpi`, `rsqrt`, `asin`, `exp`,
+  `exp2`, `exp10`, `log`, `log2`, `log10`, `pow` and `hypot`), compiled from
+  this tree with the native type and with the two halves forced, against the
+  pristine upstream file (GCC 15.2, x86-64 Linux): the same bits in the four
+  rounding directions over 20 million arguments or pairs each (random bit
+  patterns, [−20, 20], [−10<sup>-4</sup>, 10<sup>-4</sup>], beyond 2^31, the
+  doubles next to the multiples k·π/2 with k < 2^30, the subnormals, small
+  rationals, and the four arguments `cos.c` treats as exceptions). With gcov,
+  every line of `sin.c` and `cos.c` that carries `/* GAOL */` runs,
+  `sin_large_accurate()` and `cos_large_accurate()` among them. Six faults put
+  in the two halves each make it report differences: a term of `mhUU()`
+  dropped (sin and cos), a shift count of `reduce_large_acc()` or of
+  `u128_tod()`, a comparison inverted, from 1,300 to 47,000 over 1.2 million
+  calls, and the `+ 5` of the exceptions of `cos.c` changed to `+ 4`, 9 over
+  the six exceptional arguments in the four directions. The two branches
+  of `roundeven_finite()` that GCC 10 and Clang 17 do not take (the
+  instruction of the processor, and the portable code that Visual C++ takes)
+  were compared the same way, over 8 million calls of `sin` and `cos` each.
+  The whole of GAOL
+  passed its tests in CMake with GCC 15.2 (SSE2, FPU and the halves forced,
+  `-Wall -Wextra -Werror`, and Debug with ASan and UBSan), with Clang 18 and
+  21, with autotools and meson, on Debian i386 (GCC 14.2, the type native and
+  the halves forced), and cross-built for aarch64 (GCC 12.2, under qemu).
+  `tests/core_math.cpp` checks 45 arguments that take the accurate path of
+  `cos.c` in the upward rounding against the roundings computed with mpmath at
+  4,000 bits, which the upstream file gives too, in the four directions: they
+  reach the branches of `cos_large_accurate()` and every range of exponents of
+  the table of 1/(2π) (`tests/tools/cos/` recomputes them and tells how they
+  were found). 15 of 17 errors put in the lines of `cos.c` that carry
+  `/* GAOL */`, one at a time (listed there, with `mutate.py`), make it fail,
+  with the native type and with the halves forced, the halves of the tables
+  swapped included. The two others, a mask of `k` that its bits 0 to 12
+  ignore and the `+ 1` of `mask + 1`, change no result seen: the test finds a
+  fault that moves one by more than about 2<sup>-70</sup> relatively, and its
+  only hard-to-round arguments are those of `exceptions()`;
+- **against the native type.** `tests/u128.cpp` compares every operation of the
+  two halves with the same operation on `unsigned __int128` and `__int128`, over
+  8 million values and every shift count, and the whole of GAOL is built and
+  tested with the halves forced (`-DGAOL_U128_EMULATION=ON`, a job of the
+  continuous integration, which checks that every source of CORE-MATH is
+  compiled with them) so that the code Visual C++ and the 32-bit targets take
+  is run at each change;
+- **against the tightest bounds.** `tests/core_math.cpp` compares the bounds
+  GAOL computes with what CORE-MATH gives in the downward and the upward
+  rounding, which are the tightest bounds there are, and those of `pow` at the
+  corners of a box with the power itself, computed exactly, where it is
+  rational, checking CORE-MATH's two values against it too (item 7).
+
+### To update CORE-MATH
+
+Copy the upstream tree again without the `.wc` files and the directories of
+`math-core/src` other than `binary64`, then make the changes
+above (seven of the nine items now: 3 and 5 are upstream's). `git diff`
+against the previous version shows them: each changed line carries
+`/* GAOL */`, at its end or before the comment that ends it, or is part of a
+comment beginning with `/* GAOL:`, and no other line differs. A file GAOL
+changed and upstream changed too is merged with the pristine file of the
+previous commit as the base (`git merge-file`), and a file upstream rewrote, as
+`cos.c` was in October 2026, is ported again from the model of the one GAOL
+has already ported (`sin.c` for `cos.c`). A change upstream has made in the
+meantime is not made again: that of `cospi.c` from commit `b1a4badf` on, that
+of `rsqrt.c` from commit `0d8b885a` on, and those of the [patches
+below](#changes-to-propose-upstream) once upstream takes them. Patch 4 is made
+from commit `19e85418` (5 October 2026) on: `sin.c` then guards its
+`__builtin_roundeven()` as the other sources do, and no longer needs the
+definition `gaol/math/gaol_core_math_port.h` gives the builtin for GCC before
+10, which can stay; the one of Windows is still needed.
+
+## Changes to propose upstream
+
+Two defects found since, items 9 and 10 of the list below, have no counterpart
+in the list above. Seven of the [changes above](#what-differs-from-upstream) are
+fixes rather than adaptations to GAOL (items 2 to 7 and 9 of that list;
+upstream has made the ones of its items 3 and 5 since), and
+`gaol/math/gaol_core_math_port.h` makes up for an eighth defect, the
+`__builtin_roundeven()` of `sin.c`, which upstream has fixed since too (see
+[How GAOL builds them](#how-gaol-builds-them)). They are written below as
+patches against
+upstream master `b1a4badf`, with two more found while preparing them or since:
+the masks of item 2 in other files, `expm1q.c` of `binary128` and `atan2l.c` of
+`binary80` among them, and the rounding direction `pow` reads for its subnormal
+results; patch 6 covers `powl.c` of `binary80` too, which GAOL does not build.
+Through CORE-MATH they would reach glibc too, which takes functions from it
+since version 2.41, so each defect was looked for there as well.
+
+**Nothing has been sent**, neither to CORE-MATH nor to glibc: sending them is
+for the maintainer of GAOL v5, as said in each part below.
+
+The second column is the master of 27 October 2026, `0b2ae6d1`, which each
+patch was applied to with `git apply --check` (the patches were written
+against `b1a4badf`, 29 September 2026).
+
+| Defect | CORE-MATH master, `0b2ae6d1` | glibc master (`30f988f`), 2.41 to 2.44 |
+| --- | --- | --- |
+| [masks of `long`](#1-masks-written-with-long) | present, the patch no longer applies | absent: its copies write `MANTISSA_MASK` or `~UINT64_C(0) >> 12` |
+| [shift of `asinpi_acc()`](#2-the-shift-of-asinpi_acc) | present | no `asinpi` of doubles from CORE-MATH |
+| [`__builtin_expect` of `rsqrt.c`](#3-the-__builtin_expect-of-rsqrtc) | fixed by `0d8b885a` | no `rsqrt` of CORE-MATH |
+| [`__builtin_roundeven` of `sin.c`](#4-the-__builtin_roundeven-of-sinc) | fixed by `19e85418` | no `sin` of CORE-MATH |
+| [rounding direction of `pow`](#5-the-rounding-direction-of-pow) | present | no `pow` of CORE-MATH; the x87 unit by design |
+| [rounding field of MXCSR in `cbrt.c`, `rsqrt.c`, `asinpi.c`, `powl.c`](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-asinpic-and-powlc) | present | absent: its `cbrt` maps glibc's own `FE_*` values with a switch |
+| [exact and midpoint powers of `pow` on 32-bit ARM](#7-the-exact-and-midpoint-powers-of-pow-on-32-bit-arm) | present | no `pow` of CORE-MATH |
+| [first phase of `pow` next to the overflow](#8-the-first-phase-of-pow-next-to-the-overflow) | present | no `pow` of CORE-MATH |
+| [`is_exact()` of `pow` and a huge y](#9-the-is_exact-of-pow-and-a-huge-y) | present (`018fa97c`) | no `pow` of CORE-MATH |
+| [`return` of `erfc.c`](#10-the-return-of-erfcc) | present (`018fa97c`) | present (`s_erfc.c`, `30f988f`) |
+| [signed shifts of `cospi.c`](#already-fixed-upstream-the-shifts-of-cospic) | fixed by `b1a4badf` | no `cospi` of doubles from CORE-MATH |
+
+Upstream has moved since. Its master of 27 October 2026, `0b2ae6d1`, has made
+patch 4 itself, with the same guard (commit `19e85418`, 5 October), patch 3
+too (commit `0d8b885a`, 14 October: the rewritten `cr_rsqrt()` tests
+`if (ix.u)` and no longer passes 64 bits to `__builtin_expect`), and has fixed
+the spurious underflow of `pow` downward at a result of −2<sup>−1022</sup>,
+which is the one said below (commit `e072473e`, 5 October). It still has the defects of patches 1, 2 and 5 to 8. Patches 2 and
+5 to 8 apply to it as they are; patch 1 does not, `cos.c` having been
+rewritten without the line it changed and the lines of `cosh.c` having moved
+(the masks of `sinh.c` and `cosh.c` are still there, in new lines too), so that
+patch 1 is to be made again on the master of the day before the patches are
+sent (issue #125).
+
+Upstream has moved again. Its master of 10 November 2026, `018fa97c`, has fixed
+the Cygwin part of patch 6 itself (commit `70076f6a`, 8 November), and still
+has the other defects. The series of issue #125 is made on it, in eight patches:
+patches 1, 2, 5, 6, 7 and 8 below are its patches 1, 2, 3, 4, 5 and 6, and
+items 9 and 10 below are its patches 7 and 8. With the series applied,
+`./check.sh --worst` passes for `asinpi`, `cbrt` and `pow` in the four
+directions (116,824, 212,508 and 1,003,179 arguments), and `./check.sh
+--special pow` with `CORE_MATH_TESTS=2000000` has no failure (12 and 13
+November 2026, GCC 15.2, Clang 18 and 21, MPFR 4.2.1).
+
+### CORE-MATH
+
+The patches are a series of eight commits on upstream master,
+`b1a4badf6765d761873ee31f7419d1cc1cac19f8` (29 September 2026), in this order,
+each written in the style of the file it changes, with the subject given; the
+diff blocks below are what `git diff` prints for each, but for the blank lines
+of context, written without their leading space, and `git apply` or
+`patch -p1` take them as they are there (line numbers below are those of
+`b1a4badf`). Each block also applies alone to `b1a4badf`, but the `index`
+lines of patch 6 are those of the files patches 2 and 3 leave, and those of
+patch 8 the file patch 7 leaves, which `git am` and `git apply --3way` rely
+on. Items 9 and 10 below are written later, on upstream master `018fa97c` (10
+November 2026), not on `b1a4badf`: the `index` line of item 9 is that of
+`pow.c` as the series of issue #125 leaves it before this patch. To send them: a
+merge request on <https://gitlab.inria.fr/core-math/core-math>, or the output
+of `git format-patch` mailed to core-math@inria.fr, the address the sources
+give for reports, with the defect, the reproduction and the checks of each
+part.
+
+They were compiled with GCC 13.3 and Clang 18 on x86-64 Linux, and with
+MinGW-w64 11 (GCC 13, and Clang 18 for patches 5 and 6) for Windows x64, whose
+`long` has 32 bits, the programs being run under wine and compiled with
+`-mfma`: CORE-MATH needs a correctly rounded `fma()`, which the instruction of
+the processor is and the `fma()` of the `libmingwex.a` of mingw-w64 11, linked
+into the programs, is not. With
+MPFR 4.2.1, CORE-MATH's own checks pass on the patched tree:
+`./check.sh --worst`, which checks every argument of the `.wc` file in the
+four rounding directions, for every function a patch touches, and
+`./check.sh --special` with `CORE_MATH_TESTS=2000000` random arguments rather
+than the default, for all of them but `sincos` and `lgamma`, whose object code
+the patch does not change on x86-64 Linux (the random checks of `sincos` alone
+take more than an hour). The one exception was `pow` in the downward direction,
+where the worst-case check stopped at a spurious underflow exception
+(`x = -0x1.10a688680a753p-93`, `y = 11`, a result of −2<sup>−1022</sup>, an
+argument added upstream on 22 September) that master raised as well: over the
+whole of `pow.wc` in the four directions, the patched `pow` gave the results
+and the exception flags of master. Upstream has fixed it (commit `e072473e`),
+and `./check.sh --worst pow` passes in the four directions on master
+`018fa97c` with the patches applied. Patch 7, written later, was checked on
+32-bit ARM and on x86-64, and the parts of patches 1 and 6 for `expm1q.c` and
+`powl.c`, added on 12 October 2026, as their parts say. Patch 8, written on 19
+October 2026, was checked on x86-64 as its part says, and by CORE-MATH's own
+checks on `018fa97c` (above).
+
+#### 1. Masks written with `long`
+
+**The defect.** `~0ul>>12` is meant as the mask of the 52 low bits of a double,
+but `unsigned long` has 32 bits on Windows and on the 32-bit targets, where the
+mask is `0xfffff`: in `sinh.c` (lines 113, 353, 413), `cosh.c` (107, 115, 314,
+374), `tanh.c` (136, 385), `sinpi.c` (99, 109), `log1p.c` (483) and `lgamma.c`
+(753). Elsewhere upstream writes `~0ull`. The tests these masks make become
+weaker rather than wrong: where 52 bits decide that the fast result may be hard
+to round (its low part a power of 2 or next to one), 20 bits decide it more
+often, and the code then takes a path that is right anyway, a look-up in the
+table of hard cases or a nudge of the low part by one of its own ulps, which
+cannot move the sum across a rounding boundary (at line 99 of `sinpi.c`, the
+mask builds a tiny constant whose value changes but not its effect). So no
+result changes (see below), but the code does not do what it says. The same
+assumption is in the `1l << (a->ex + 1073)` of `cos.c` (401), `tan.c` (530) and
+`sincos.c` (392), a shift by up to 51 places, undefined where `long` has 32
+bits; no argument reaches it, since their accurate phases never give a
+subnormal, and the patch writes it `1ll`, as `pow.h` does. In
+`binary128/expm1/expm1q.c`, which has taken `__builtin_addcll` for
+`__builtin_addcl` on Windows and macOS since commit `4f6f6d69`, `~0ul` goes into
+64-bit words in eleven places, `1ul` is shifted by up to 63 places in four, and
+`16382ul+eout` by 48 at line 1061: with a 32-bit `long`, as with mingw-w64 for
+Windows x64, results are wrong (below), and the patch writes them `ull`.
+`binary80/atan2/atan2l.c` assumes a 64-bit `long` throughout, not in its masks
+only (`~0ul>>12` and `1ul<<52` at line 198, `1ul<<63` at lines 406 and 410):
+it passes `u64` words to `__builtin_addcl()` and `__builtin_subcl()`, which
+GCC 14 refuses for Windows x64 (incompatible pointer types), and keeps 64-bit
+values in `long` variables (lines 196 and 200). The patch writes all these for
+64 bits, taking `__builtin_addcll()` and `__builtin_subcll()` on Windows and
+macOS, as `expm1q.c` does, a `u64` for the carry and `int64_t` for the two
+variables: `atan2l` then gives the right results to nearest there, which master
+does not, but not yet in the directed roundings, for a reason not found, which
+is for its authors to look at (below). Neither file compiles for 32-bit x86,
+where `long` has 32 bits too, both needing `__int128`.
+For the authors: at line 753 of `lgamma.c` the masked value goes into an
+`unsigned`, so that the test there sees 32 bits with the patch, as master does
+where `long` has 64 bits, and never 52; if 52 are meant, `ft` wants the type
+`uint64_t`.
+
+The patch, to commit as
+`[binary64,expm1q,atan2l] do not assume that long has 64 bits`:
+
+```diff
+diff --git a/src/binary128/expm1/expm1q.c b/src/binary128/expm1/expm1q.c
+index 77595516..1456556d 100644
+--- a/src/binary128/expm1/expm1q.c
++++ b/src/binary128/expm1/expm1q.c
+@@ -661,7 +661,7 @@ static void __attribute__((noinline)) as_expm1q_superaccurate(int *el, u2x64 m,
+   if(sg<=0){
+     if(__builtin_expect(sg>=-5, 1)) {
+       u64 c0;
+-      ft[5+sg] = __builtin_subcl(ft[5+sg], 1ul<<sl, 0, &c0);
++      ft[5+sg] = __builtin_subcl(ft[5+sg], 1ull<<sl, 0, &c0);
+       for(int i=6+sg;i<6;i++) ft[i] = __builtin_subcl(ft[i], 0, c0, &c0);
+     }
+     for(int i=0;i<6;i++) ft[i] ^= sm;
+@@ -679,13 +679,13 @@ static void __attribute__((noinline)) as_expm1q_superaccurate(int *el, u2x64 m,
+     int ls = ~sl&63;
+     if(sg==1){
+       m[0] = (ft[5]<<1)<<ls|ft[4]>>sl;
+-      m[1] = ( ~0ul<<1)<<ls|ft[5]>>sl;
++      m[1] = ( ~0ull<<1)<<ls|ft[5]>>sl;
+     } else if(sg==2){
+-      m[0] = ( ~0ul<<1)<<ls|ft[5]>>sl;
+-      m[1] = ~0ul;
++      m[0] = ( ~0ull<<1)<<ls|ft[5]>>sl;
++      m[1] = ~0ull;
+     } else {
+-      m[0] = ~0ul;
+-      m[1] = ~0ul;
++      m[0] = ~0ull;
++      m[1] = ~0ull;
+     }
+   }
+ }
+@@ -765,7 +765,7 @@ static void __attribute__((noinline)) as_expm1q_accurate(int *el, u2x64 m, u128
+   if(sg<=0){
+     if(sg>=-2) {
+       u64 c0;
+-      f[2+sg] = __builtin_subcl(f[2+sg], 1ul<<sl, 0, &c0);
++      f[2+sg] = __builtin_subcl(f[2+sg], 1ull<<sl, 0, &c0);
+       for(int i=3+sg;i<3;i++) f[i] = __builtin_subcl(f[i], 0, c0, &c0);
+     }
+     for(int i=0;i<3;i++) f[i] ^= sm;
+@@ -773,7 +773,7 @@ static void __attribute__((noinline)) as_expm1q_accurate(int *el, u2x64 m, u128
+     int nz = __builtin_clzll(f[i]) + 64*(2-i);
+
+     *el = e - (nz - 3);
+-    b128u128_u mm = {.b = {~0ul, 0x3fff}};
++    b128u128_u mm = {.b = {~0ull, 0x3fff}};
+     u128 t0 = (u128)f[1]<<64|f[0];
+     t0 += 8;
+     mm.a >>= nz;
+@@ -798,9 +798,9 @@ static void __attribute__((noinline)) as_expm1q_accurate(int *el, u2x64 m, u128
+     t0[2] = __builtin_addcl(f[2],0,k,&k);
+     int w = 74 - e, wl = w&63, wg = w>>6;
+
+-    tm[0] = ~0ul;
+-    tm[1] = wg==1?(1ul<<wl) - 1ul:~0ul;
+-    tm[2] = wg==2?(1ul<<wl) - 1ul: 0ul;
++    tm[0] = ~0ull;
++    tm[1] = wg==1?(1ull<<wl) - 1ull:~0ull;
++    tm[2] = wg==2?(1ull<<wl) - 1ull: 0ul;
+
+     t0[0] &= tm[0];
+     t0[1] &= tm[1];
+@@ -814,10 +814,10 @@ static void __attribute__((noinline)) as_expm1q_accurate(int *el, u2x64 m, u128
+ 	m[1] = (i64)f[2]>>sl;
+     } else if(sg==2){
+ 	m[0] = (i64)f[2]>>sl;
+-	m[1] = ~0ul;
++	m[1] = ~0ull;
+     } else {
+-	m[0] = ~0ul;
+-	m[1] = ~0ul;
++	m[0] = ~0ull;
++	m[1] = ~0ull;
+     }
+   }
+ }
+@@ -1058,7 +1058,7 @@ __float128 cr_expm1q(__float128 x) {
+     if(__builtin_expect(rm != _MM_ROUND_NEAREST, 0))
+       rnd = (sm&(rm == _MM_ROUND_DOWN)) | ((sm^1)&(rm == _MM_ROUND_UP));
+
+-    b128u128_u dres = {.b = {rnd, sm<<63|(16382ul+eout)<<48}};
++    b128u128_u dres = {.b = {rnd, sm<<63|(16382ull+eout)<<48}};
+     res.a += dres.a;
+
+     flagp |= FE_INEXACT;
+diff --git a/src/binary64/cos/cos.c b/src/binary64/cos/cos.c
+index 9a222dab..c4506539 100644
+--- a/src/binary64/cos/cos.c
++++ b/src/binary64/cos/cos.c
+@@ -398,7 +398,7 @@ static inline double dint_tod(dint64_t *a) {
+         e.f = 0x0.0000000000001p-1022;
+       }
+     } else {
+-      e.u = 1l << (a->ex + 1073);
++      e.u = 1ll << (a->ex + 1073);
+     }
+   }
+
+diff --git a/src/binary64/cosh/cosh.c b/src/binary64/cosh/cosh.c
+index b5e31cba..e97f623f 100644
+--- a/src/binary64/cosh/cosh.c
++++ b/src/binary64/cosh/cosh.c
+@@ -104,7 +104,7 @@ static double __attribute__((noinline)) as_cosh_zero(double x){
+   double y0 = fasttwosum(1.0, y1, &y1);
+   y1 = fasttwosum(y1, y2, &y2);
+   b64u64_u t = {.f = y1};
+-  if(__builtin_expect(!(t.u&(~0ul>>12)), 0)){
++  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){
+     b64u64_u w = {.f = y2};
+     if((w.u^t.u)>>63)
+       t.u--;
+@@ -112,7 +112,7 @@ static double __attribute__((noinline)) as_cosh_zero(double x){
+       t.u++;
+     y1 = t.f;
+   }
+-  if(__builtin_expect((t.u&(~0ul>>12))==(~0ul>>12), 0)) return as_cosh_database(x, y0 + y1);
++  if(__builtin_expect((t.u&(~0ull>>12))==(~0ull>>12), 0)) return as_cosh_database(x, y0 + y1);
+   return y0 + y1;
+ }
+
+@@ -311,7 +311,7 @@ double cr_cosh(double x){
+       th = as_exp_accurate(ax, t, th, tl, &tl);
+       th = fasttwosum(th, tl, &tl);
+       b64u64_u uh = {.f = th}, ul = {.f = tl};
+-      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ul>>12);
++      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+       th += tl;
+       th *= 2;
+       th *= sp.f;
+@@ -371,7 +371,7 @@ double cr_cosh(double x){
+   }
+   rh = fasttwosum(rh, rl, &rl);
+   b64u64_u uh = {.f = rh}, ul = {.f = rl};
+-  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ul>>12);
++  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+   rh += rl;
+   if(__builtin_expect(ml<=16 || eh-el>103,0)) return as_cosh_database(x, rh);
+   return rh;
+diff --git a/src/binary64/lgamma/lgamma.c b/src/binary64/lgamma/lgamma.c
+index 155ae62f..32bbf3d0 100644
+--- a/src/binary64/lgamma/lgamma.c
++++ b/src/binary64/lgamma/lgamma.c
+@@ -750,7 +750,7 @@ static __attribute__((noinline)) double as_lgamma_accurate(double x){
+   }
+
+   b64u64_u tl = {.f = fl};
+-  unsigned ft = (tl.u+2)&(~0ul>>12);
++  unsigned ft = (tl.u+2)&(~0ull>>12);
+   if(ft <= 2u) return as_lgamma_database(sx, fh + fl);
+   return fh + fl;
+ }
+diff --git a/src/binary64/log1p/log1p.c b/src/binary64/log1p/log1p.c
+index e45d2d1b..e55f1e41 100644
+--- a/src/binary64/log1p/log1p.c
++++ b/src/binary64/log1p/log1p.c
+@@ -480,7 +480,7 @@ static double __attribute__((noinline)) as_log1p_refine(double x, double a){
+   ln21 = fasttwosum(ln21,ln20, &ln20);
+
+   b64u64_u t = {.f = ln21};
+-  if(__builtin_expect(!(t.u&(~0ul>>12)), 0)){
++  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){
+     b64u64_u w = {.f = ln20};
+     if((w.u^t.u)>>63)
+       t.u--;
+diff --git a/src/binary64/sincos/sincos.c b/src/binary64/sincos/sincos.c
+index 10ba965a..29c425c9 100644
+--- a/src/binary64/sincos/sincos.c
++++ b/src/binary64/sincos/sincos.c
+@@ -389,7 +389,7 @@ static inline double dint_tod(dint64_t *a) {
+         e.f = 0x0.0000000000001p-1022;
+       }
+     } else {
+-      e.u = 1l << (a->ex + 1073);
++      e.u = 1ll << (a->ex + 1073);
+     }
+   }
+
+diff --git a/src/binary64/sinh/sinh.c b/src/binary64/sinh/sinh.c
+index e9b24d45..98526d40 100644
+--- a/src/binary64/sinh/sinh.c
++++ b/src/binary64/sinh/sinh.c
+@@ -110,7 +110,7 @@ static double __attribute__((noinline)) as_sinh_zero(double x){
+   double y0 = fasttwosum(x, y1, &y1);
+   y1 = fasttwosum(y1, y2, &y2);
+   b64u64_u t = {.f = y1};
+-  if(__builtin_expect(!(t.u&(~0ul>>12)), 0)){
++  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){
+     b64u64_u w = {.f = y2};
+     if((w.u^t.u)>>63)
+       t.u--;
+@@ -350,7 +350,7 @@ double cr_sinh(double x){
+       th *= __builtin_copysign(1, x);
+       tl *= __builtin_copysign(1, x);
+       b64u64_u uh = {.f = th}, ul = {.f = tl};
+-      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ul>>12);
++      int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+       th += tl;
+       th *= 2;
+       th *= sp.f;
+@@ -410,7 +410,7 @@ double cr_sinh(double x){
+   }
+   rh = fasttwosum(rh, rl, &rl);
+   b64u64_u uh = {.f = rh}, ul = {.f = rl};
+-  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ul>>12);
++  int64_t eh = (uh.u>>52)&0x7ff, el = (ul.u>>52)&0x7ff, ml = (ul.u + 8)&(~0ull>>12);
+   rh *= __builtin_copysign(1, x);
+   rl *= __builtin_copysign(1, x);
+   rh += rl;
+diff --git a/src/binary64/sinpi/sinpi.c b/src/binary64/sinpi/sinpi.c
+index bc72ea9f..fe8ab9f5 100644
+--- a/src/binary64/sinpi/sinpi.c
++++ b/src/binary64/sinpi/sinpi.c
+@@ -96,7 +96,7 @@ static double as_sinpi_zero(double x){
+   const double pi0 = 0x1.92p+1, pi1 = 0x1.fb54442d1846ap-11, pi2 = -0x1.d9cceba3f91f2p-65;
+   double y0 = pi0*x;
+   b64u64_u b = {.f = y0};
+-  b.u &= ~0ul>>12;
++  b.u &= ~0ull>>12;
+   b.u += (int64_t)85<<51;
+   y0 = (y0 + b.f) - b.f;
+   double y0l = __builtin_fma(pi0,x,-y0);
+@@ -106,7 +106,7 @@ static double as_sinpi_zero(double x){
+   y0 = fasttwosum(y0,y1, &y1);
+   y1 = fasttwosum(y1,y2, &y2);
+   b64u64_u t = {.f = y1};
+-  if(__builtin_expect(!(t.u&(~0ul>>12)), 0)){
++  if(__builtin_expect(!(t.u&(~0ull>>12)), 0)){
+     b64u64_u w = {.f = y2};
+     if((w.u^t.u)>>63)
+       t.u--;
+diff --git a/src/binary64/tan/tan.c b/src/binary64/tan/tan.c
+index fea7d730..041bb8c9 100644
+--- a/src/binary64/tan/tan.c
++++ b/src/binary64/tan/tan.c
+@@ -527,7 +527,7 @@ static inline double dint_tod(dint64_t *a) {
+         e.f = 0x0.0000000000001p-1022;
+       }
+     } else {
+-      e.u = 1l << (a->ex + 1073);
++      e.u = 1ll << (a->ex + 1073);
+     }
+   }
+
+diff --git a/src/binary64/tanh/tanh.c b/src/binary64/tanh/tanh.c
+index 9aea80b6..6b7ae8ee 100644
+--- a/src/binary64/tanh/tanh.c
++++ b/src/binary64/tanh/tanh.c
+@@ -133,7 +133,7 @@ static double __attribute__((noinline)) as_tanh_zero(double x){ // |x|<0.25
+     double y0 = fasttwosum(x, y1, &y1);
+     y1 = fasttwosum(y1, y2, &y2);
+     b64u64_u t = {.f = y1};
+-    if (__builtin_expect(!(t.u & (~0ul >> 12)), 0)) {
++    if (__builtin_expect(!(t.u & (~0ull >> 12)), 0)) {
+         b64u64_u w = {.f = y2};
+         if ((w.u ^ t.u) >> 63)
+             t.u--;
+@@ -382,6 +382,6 @@ double cr_tanh(double x){
+   rh = fasttwosum(rh, rl, &rl);
+   double res = __builtin_copysign(2,x)*rh + __builtin_copysign(2,x)*rl;
+   b64u64_u lu = {.f = rl};
+-  if(__builtin_expect(((lu.u+32)&(~0ul>>12))<65, 0)) return as_tanh_database(x, res);
++  if(__builtin_expect(((lu.u+32)&(~0ull>>12))<65, 0)) return as_tanh_database(x, res);
+   return res;
+ }
+diff --git a/src/binary80/atan2/atan2l.c b/src/binary80/atan2/atan2l.c
+index 2a700897..bb3d1f86 100644
+--- a/src/binary80/atan2/atan2l.c
++++ b/src/binary80/atan2/atan2l.c
+@@ -46,6 +46,13 @@ typedef int64_t i64;
+ typedef uint32_t u32;
+ typedef uint64_t u3x64[3];
+
++// __builtin_addcl and __builtin_subcl take unsigned long, which has 32 bits
++// on Windows and is not the type of u64 on macOS (as in binary128/expm1q.c)
++#if (defined(_WIN32) || defined(__APPLE__))
++#define __builtin_addcl __builtin_addcll
++#define __builtin_subcl __builtin_subcll
++#endif
++
+ typedef union {
+   long double f;
+   struct __attribute__((__packed__))
+@@ -167,7 +174,7 @@ static inline u128 mUU(u128 _a, u128 _b, u128 *t){
+   //   a1b0
+   //   a0b1
+   // a1b1
+-  unsigned long c;
++  u64 c;
+   a0b0.b[1] = __builtin_addcl(a0b0.b[1], a1b0.b[0], 0, &c);
+   a1b1.b[0] = __builtin_addcl(a1b1.b[0], a1b0.b[1], c, &c);
+   a1b1.b[1] = __builtin_addcl(a1b1.b[1], 0, c, &c);
+@@ -193,11 +200,11 @@ static inline u128 mhUU(u128 _a, u128 _b){
+
+ // get an approximate reciprocal with about 104 bit precision using double precision initial approximation
+ static inline u128 __attribute__((always_inline)) recipdn(u128 xx0){
+-  long x = xx0>>64;
++  int64_t x = xx0>>64;
+   b64u64_u rd = {1.0/x};
+-  u64 r = (rd.u&(~0ul>>12))|1ul<<52;
++  u64 r = (rd.u&(~0ull>>12))|1ull<<52;
+   r <<= (rd.u>>52)-0x3c2;
+-  long dd = (xx0*r)>>64;
++  int64_t dd = (xx0*r)>>64;
+   u128 R = r;
+   i128 dR = dd*R;
+   R <<= 74;
+@@ -403,11 +410,11 @@ long double as_atan2l_accurate(long double y, long double x) {
+     rnd = (rm == _MM_ROUND_UP)*!ysgn + (rm == _MM_ROUND_DOWN)*!!ysgn;
+   r += rnd;
+   if(__builtin_expect(!(r<<1), 0)){ // here rounding might cross a binade boundary
+-    if(!e && r == (1ul<<63)){ // denormal to normal rounding
++    if(!e && r == (1ull<<63)){ // denormal to normal rounding
+       e = 1;
+     }
+     if( e && r == 0){ // next binade transition for normal numbers
+-      r = 1ul<<63;
++      r = 1ull<<63;
+       ++e;
+     }
+   }
+```
+
+**How it was checked.** GCC 13 makes the same object code of the nine files of
+`binary64` before and after on x86-64 Linux, where `long` has 64 bits. With
+MinGW-w64 for Windows x64, `sinh`, `cosh`, `tanh`, `sinpi`, `log1p` and
+`lgamma` compiled from master and from the patched tree give the results of
+x86-64 Linux, bit for bit, in the four directions, over the arguments of their
+`.wc` files and a million random ones each. On random arguments, the masks of a
+32-bit `long` made `sinh`, `cosh` and `tanh` look a hard case up 5, 11 and 1
+times in 4 million calls, against never with 64 bits. `expm1q.c`, compiled from
+master and from the patched tree by mingw-w64 12 (GCC 14, `-mfma`) for Windows
+x64, was checked under wine 10 with MPFR 4.2.2 (`./check.sh --worst expm1q`,
+the test program given a `getline()` and a `strcasestr()`, which mingw-w64
+lacks, and exception-flag functions that leave the masks alone): master fails
+at its first argument, to nearest, `expm1q(0x1p-10)` coming out with the
+exponent −16382, and the patched file passes the 27,380 arguments of
+`expm1q.wc` in the four directions; on x86-64 Linux (GCC 14) the two make the
+same object code, and both pass. The patched `atan2l.c` described above passes
+the 115,945 arguments of `atan2l.wc` to nearest under wine and fails in the
+directed roundings from the first one (`cr_atan2l(0x9.24502162d9eap+81,
+0x8.c635ce223e078p+49)` is `0xd.be93150de036ecap-4` there, about 0.86 rather
+than π/2), while master fails to nearest already; on x86-64 Linux the two make
+the same object code (GCC 15 and Clang 18), and both pass in the four
+directions. The directed roundings of `atan2l` with a 32-bit `long` are to be
+pointed out to the authors when the patches are sent (issue #125).
+
+**Three more places**, found on master `018fa97c` and in the series of issue
+#125: `fast_path()` of `binary80/exp2/exp2l.c` (lines 223 to 236) shifts
+`unsigned long` values by 48 and 52 places, undefined with a 32-bit `long`
+(mingw-w64 has an 80-bit `long double`), and `long hh = H[1];` in
+`binary128/acosq.c` (line 977) and `asinq.c` (line 985) drops the high half of
+`H[1]` before `mhii()`, which takes `i64`. They are written `ull` and `i64`
+like the others, in the first patch of the series of issue #125 (they are not in
+the diff above); not run with a 32-bit `long`.
+
+**Status.** Present in master; GAOL makes the change in `sinh.c`, `cosh.c`,
+`tanh.c`, `sinpi.c` and `log1p.c` (item 2 above), and the `1ll` of `tan.c`
+(item 8), the files of the patch it compiles. The `sinh.c` and
+`cosh.c` of the master of 27 October 2026 (`0b2ae6d1`) still have their masks.
+
+#### 2. The shift of `asinpi_acc()`
+
+**The defect.** In `asinpi_acc()`, line 273,
+`D = {.bl = (u64)dc << ss, .bh = (u64)(dc>>(64-ss))}` is dc·2<sup>ss</sup> on
+128 bits for 0 < ss < 64 only, but ss = 24 + `ixe` − `ce` grows as |x| nears 1,
+to 76 for 1 − |x| = 2<sup>−53</sup>, and passes 63 as soon as 1 − |x| is below
+about 2<sup>−39</sup>: both shifts are then undefined behaviour. UBSan (GCC 13,
+`-fsanitize=undefined`) stops on it for `cr_asinpi(0x1.ffffffffff0c7p-1)` in any
+rounding direction (`asinpi.c:273:26: runtime error: shift exponent 65 is too
+large for 64-bit type 'long unsigned int'`). On x86-64, which takes shift
+counts modulo 64, `D` is then about dc·2<sup>ss−64</sup>, a correction
+2<sup>64</sup> times too small, but a small one: on the arguments below, the
+results do not change. The patch shifts on 128 bits:
+`(u128)dc` extends the sign of `dc`, and the shift is defined up to 127
+places.
+
+The patch, to commit as
+`[asinpi] shift dc on 128 bits: ss exceeds 63 next to +-1`:
+
+```diff
+diff --git a/src/binary64/asinpi/asinpi.c b/src/binary64/asinpi/asinpi.c
+index 226a7fd8..ce089f18 100644
+--- a/src/binary64/asinpi/asinpi.c
++++ b/src/binary64/asinpi/asinpi.c
+@@ -269,8 +269,8 @@ static double asinpi_acc(double x){
+     sm2.a += dsm3.a;
+     int k = ixe-ce;
+     ss = 24 + k;
+-    u128_u Cm = {.bl = 0, .bh = cm},
+-      D = {.bl = (u64)dc << ss, .bh = (u64)(dc>>(64-ss))};
++    // 25 <= ss <= 76: ss > 63 next to +-1, so shift on 128 bits
++    u128_u Cm = {.bl = 0, .bh = cm}, D = {.a = (u128)dc << ss};
+     Cm.a -= D.a;
+     h = sm2.a>>14;
+     dc = mh(h, ixm);
+```
+
+**How it was checked.** `cr_asinpi()` from master and from the patched tree,
+with GCC and with Clang, give the same results over a million arguments next to
+±1 (1 − |x| from 2<sup>−53</sup> to 2<sup>−30</sup>) in the four directions.
+Over 3.9 million more (1 − |x| from 2<sup>−53</sup> to 2<sup>−1</sup>) and the
+8,193 doubles nearest to √(1 − 4<sup>−j</sup>) for j = 1 to 27, 19,041 calls
+took `asinpi_acc()` in one of the four directions, down to
+1 − |x| ≈ 2<sup>−46</sup>, 2,172 of them with ss > 63: master and the patch
+give the same results there, all the correct rounding (mpmath, 300 bits).
+UBSan reports nothing on the patched file. For the authors:
+`asinpi_acc()` called directly, which `cr_asinpi()` does not do there, on
+x = ±0x1.fffffffffffffp-1 in the downward and toward-zero directions, finds
+c = √(1 − x²) rounded just below 2<sup>−26</sup>, `dc` = −2<sup>51</sup> and
+ss = 76, so that `Cm.a - D.a` wraps around 2<sup>128</sup> and the patched
+function returns a wrong result where master happens to return the right one;
+`cr_asinpi()` rounds these arguments in its fast phase, in every direction, but
+the bound on ss the proof relies on may deserve a look.
+
+**Status.** Present in master; GAOL computes the same 128-bit shift with
+`gaol_u128_shl(gaol_u128_of_i64(dc), ss)` (item 4 above).
+
+#### 3. The `__builtin_expect` of `rsqrt.c`
+
+**The defect.** In `cr_rsqrt()`, line 172, `__builtin_expect(ix.u, 1)` tests
+x ≠ +0 for a subnormal x, but the builtin takes a `long`: where `long` has
+32 bits, the test sees the low 32 bits of x only, and the subnormals
+m·2<sup>−1042</sup>, 1 ≤ m < 2<sup>20</sup>, are taken for +0: their `rsqrt`
+is +∞, with the divide-by-zero exception, rather than 2<sup>521</sup> and
+below. `exp2.c` writes `frac != 0` for the same reason (line 362, "on 32-bit
+machines, `__builtin_expect(frac,1)` does not work"), and so does the patch.
+
+The patch, to commit as
+`[rsqrt] pass __builtin_expect a comparison, not 64 bits`:
+
+```diff
+diff --git a/src/binary64/rsqrt/rsqrt.c b/src/binary64/rsqrt/rsqrt.c
+index 43ffbd18..6bc8cf64 100644
+--- a/src/binary64/rsqrt/rsqrt.c
++++ b/src/binary64/rsqrt/rsqrt.c
+@@ -169,7 +169,7 @@ double cr_rsqrt(double x){
+   b64u64_u ix = {.f = x};
+   double r;
+   if(__builtin_expect(ix.u < 1ll<<52, 0)){ // 0 <= x < 0x1p-1022
+-    if(__builtin_expect(ix.u, 1)){ // x <> +0
++    if(__builtin_expect(ix.u != 0, 1)){ // x <> +0
+       r = __builtin_sqrt(x)/x;
+     } else {
+ #ifdef CORE_MATH_SUPPORT_ERRNO
+```
+
+**How it was checked.** With MinGW-w64 for Windows x64 (a 32-bit `long`, and
+`__int128`), master returns +∞ in the four directions for all the 149,797
+subnormals tried whose low 32 bits are 0 (every seventh m); the patched
+`rsqrt` returns the results of x86-64 Linux for them and for 100,000 random
+subnormals. GCC 13 makes the same object code before and after on x86-64
+Linux. GAOL's continuous integration found it on Debian i386 and armhf, with
+MinGW-w64 and with MSYS2 (item 5 above).
+
+**Status.** Fixed in master by `0d8b885a` (14 October 2026), which rewrote the
+test (`if (ix.u)`, a comparison of the 64 bits that `__builtin_expect` no
+longer sees); the patch no longer applies, and there is nothing to send.
+GAOL's copy had made the same change, and went back to upstream's file with the
+import of 27 October 2026.
+
+#### 4. The `__builtin_roundeven` of `sin.c`
+
+**The defect.** Since the rewrite of `sin.c` (merged in `6b84457`),
+`cr_sin_moderate()`, line 829, calls `__builtin_roundeven()` unconditionally.
+GCC has it from version 10 only (<https://gcc.gnu.org/gcc-10/changes.html>),
+and GCC 9.4 did not link the call. The other sources that round to an integer
+(`exp.c`, `exp2.c`, `expm1.c`, `acos.c`, `erfc.c`, `tgamma.c`...) take the
+builtin from GCC 10 and Clang 17 only, and call `roundeven_finite()` otherwise:
+the patch copies that block of `exp.c` into `sin.c` and calls it.
+
+The patch, to commit as
+`[sin] guard __builtin_roundeven as exp.c does`:
+
+```diff
+diff --git a/src/binary64/sin/sin.c b/src/binary64/sin/sin.c
+index 8e78fdc7..35fa7c0c 100644
+--- a/src/binary64/sin/sin.c
++++ b/src/binary64/sin/sin.c
+@@ -38,6 +38,43 @@ SOFTWARE.
+
+ #pragma STDC FENV_ACCESS ON
+
++/* __builtin_roundeven was introduced in gcc 10:
++   https://gcc.gnu.org/gcc-10/changes.html,
++   and in clang 17 */
++#if ((defined(__GNUC__) && __GNUC__ >= 10) || (defined(__clang__) && __clang_major__ >= 17)) && !defined(_MSC_VER) && (defined(__aarch64__) || defined(__x86_64__) || defined(__i386__))
++# define roundeven_finite(x) __builtin_roundeven (x)
++#else
++/* round x to nearest integer, breaking ties to even */
++static double
++roundeven_finite (double x)
++{
++  double ix;
++# if (defined(__GNUC__) || defined(__clang__)) && (defined(__AVX__) || defined(__SSE4_1__) || (__ARM_ARCH >= 8))
++#  if defined __AVX__
++   __asm__("vroundsd $0x8,%1,%1,%0":"=x"(ix):"x"(x));
++#  elif __ARM_ARCH >= 8
++   __asm__ ("frintn %d0, %d1":"=w"(ix):"w"(x));
++#  else /* __SSE4_1__ */
++   __asm__("roundsd $0x8,%1,%0":"=x"(ix):"x"(x));
++#  endif
++# else
++  ix = __builtin_round (x); /* nearest, away from 0 */
++  if (__builtin_fabs (ix - x) == 0.5)
++  {
++    /* if ix is odd, we should return ix-1 if x>0, and ix+1 if x<0 */
++    union { double f; uint64_t n; } u, v;
++    u.f = ix;
++    v.f = ix - __builtin_copysign (1.0, x);
++    /* Warning: v.n is 0 when x=0.5; while u.n cannot be zero since ix
++       is rounded away from zero. */
++    if (v.n == 0 || __builtin_ctzll (v.n) > __builtin_ctzll (u.n))
++      ix = v.f;
++  }
++# endif
++  return ix;
++}
++#endif
++
+ #if (defined(__clang__) && __clang_major__ >= 14) || (defined(__GNUC__) && __GNUC__ >= 14 && __BITINT_MAXWIDTH__ && __BITINT_MAXWIDTH__ >= 128)
+ typedef unsigned _BitInt(128) u128;
+ #else
+@@ -826,7 +863,7 @@ cr_sin_moderate (double x, int sbit)
+   double ax = __builtin_fabs(x);
+   static const double invpi = 0x1.45f306dc9c883p+12;
+   // |invpi/2^14 - 1/pi| < 2^-55.496
+-  double k = __builtin_roundeven (invpi * ax);
++  double k = roundeven_finite (invpi * ax);
+   // |2^14*(pih + pil) + pi| < 2^-108.041
+   double rh = __builtin_fma (k, pih, ax), rl = k * pil; // rh is exact
+
+```
+
+**How it was checked.** GCC 13, which has the builtin, makes the same object
+code before and after on x86-64 Linux. With the condition made false, so that
+`roundeven_finite()` is the function in its three forms (`vroundsd` with AVX,
+`roundsd` with SSE 4.1, and the portable code), `cr_sin()` gives the results of
+master over 3 million arguments (any bit pattern, and 2<sup>−26</sup> to
+2<sup>31</sup>, where `cr_sin_moderate()` works) in the four directions, and
+`roundeven_finite()` gives those of `__builtin_roundeven()` over 16 million
+values, half of them halfway between two integers. No compiler without the
+builtin was at hand.
+
+**Status.** Fixed in master since, by commit `19e85418` (5 October 2026), with
+this very guard: not to send. GAOL's copy has it since the import of 27 October
+2026 (the new `cos.c` has it too), and `gaol/math/gaol_core_math_port.h` still
+gives the other sources a `__builtin_roundeven()` where the compiler has none.
+
+#### 5. The rounding direction of `pow`
+
+**The defect.** `dint_tod_subnormal()` and `subnormalize_qint()` of `pow.h`
+(lines 236, 261 and 408) round a subnormal result themselves, in the direction
+`fegetround()` returns, where every other operation of `pow` rounds in the
+direction of MXCSR, x86-64 computing the doubles with SSE. The `fegetround()`
+of glibc reads the control word of the x87 unit only
+(`sysdeps/x86_64/fpu/fegetround.c`: "We only check the x87 FPU unit. The SSE
+unit should be the same"), and so do those of mingw-w64 (`fnstcw` alone, in
+the `libmingwex.a` of mingw-w64 11) and of newlib, which Cygwin uses
+(`newlib/libm/machine/shared_x86/fenv.c`), so a program that sets MXCSR
+without the x87 unit, with `_mm_setcsr()` as interval libraries do, gets its
+subnormal powers rounded in the direction of the x87 unit. This is how GAOL's
+`pow` was found to miss the exact value of such results with the x87 unit to
+nearest and MXCSR upward. `cbrt.c`, `rsqrt.c` and `asinpi.c` read MXCSR
+already, with their `get_rounding_mode()`, but with mingw-w64 they call
+`fegetround()`, and with clang-cl and on Cygwin they read it wrong
+([patch 6](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-asinpic-and-powlc)): the
+patch gives `pow.h` a `get_rounding_mode()` of the form patch 6 gives them,
+which on x86-64 reads the rounding field of MXCSR and looks its `FE_*` value up
+in a table, whatever values the C library gives them, and calls `fegetround()`
+elsewhere. `tan.c` and `sincos.c` carry the same rounding code
+(`subnormalize_dint()`), but their accurate phases never give a subnormal, and
+they are left alone; `cos.c` has no such code.
+
+The patch, to commit as
+`[pow] read the rounding mode from MXCSR on x86-64 for the subnormal results`:
+
+```diff
+diff --git a/src/binary64/pow/pow.h b/src/binary64/pow/pow.h
+index 84513b3e..e55896d4 100644
+--- a/src/binary64/pow/pow.h
++++ b/src/binary64/pow/pow.h
+@@ -219,6 +219,24 @@ static inline int64_t dint_toi(const dint64_t *a) {
+   return a->sgn ? -r : r;
+ }
+
++/* The doubles are rounded by the SSE unit on x86-64: read the rounding mode
++   from MXCSR. The fegetround() of some C libraries (GNU libc, mingw-w64,
++   newlib) reads the control word of the x87 unit, which differs from MXCSR
++   if a program changed one without the other. The rounding field of MXCSR
++   is 0 to nearest, 1 downward, 2 upward and 3 toward zero, whatever values
++   the C library gives FE_TONEAREST, ... (0x400 for FE_DOWNWARD with GNU
++   libc and mingw-w64, 0x100 with the UCRT of Windows, 1 with newlib): look
++   them up. */
++static inline int get_rounding_mode (void)
++{
++#if defined(__x86_64__)
++  static const int lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
++  return lut[_MM_GET_ROUNDING_MODE()>>13];
++#else
++  return fegetround ();
++#endif
++}
++
+ // round a, assuming a is in the subnormal range
+ // exact is non-zero iff x^y is exact
+ static inline double dint_tod_subnormal(dint64_t *a, int exact) {
+@@ -233,7 +251,7 @@ static inline double dint_tod_subnormal(dint64_t *a, int exact) {
+   uint64_t rb, sb;
+
+   if (ex >= 64) { // all bits disappear: |a| < 2^-1074
+-    switch (fegetround()) {
++    switch (get_rounding_mode ()) {
+     case FE_TONEAREST:
+       rb = (a->hi >> 63);        // only used when e=64
+       sb = (a->hi << 1) | a->lo; // idem
+@@ -258,7 +276,7 @@ static inline double dint_tod_subnormal(dint64_t *a, int exact) {
+   rb = (a->hi >> (ex - 1)) & 0x1; // round bit
+   sb = (a->hi << (65 - ex)) || a->lo; // sticky bit
+
+-  switch (fegetround()) {
++  switch (get_rounding_mode ()) {
+   case FE_TONEAREST:
+     // if ex=12 there is no underflow when hi rounds to 2^52 and rb=1
+     // and the next bit is 1 too
+@@ -405,7 +423,7 @@ static inline void subnormalize_qint(qint64_t *a) {
+   uint64_t md = (a->hh >> (ex - 1)) & 0x1;
+   uint64_t lo = (a->hh & (~0ull >> ex)) || a->hl || a->lh || a->ll;
+
+-  switch (fegetround()) {
++  switch (get_rounding_mode ()) {
+   case FE_TONEAREST:
+     hi += lo ? md : hi & md;
+     break;
+```
+
+**How it was checked.** With the x87 unit to nearest and MXCSR upward,
+`pow(0x1.4a1249ba9b6d5p-1, 0x1.97f9e85175cf7p+10)`, whose exact value is
+1458662373659.29·2<sup>−1074</sup>, is `0x0.001539f0d791bp-1022` with master
+rather than `0x0.001539f0d791cp-1022`, and two more powers of values
+567863.26·2<sup>−1074</sup> and 1.30·2<sup>−1074</sup> are rounded down too
+(references from mpmath); the patched `pow` rounds the three upward, with GCC
+and with Clang. The patched object code reads MXCSR (`stmxcsr`) and no longer
+calls `fegetround()`. Over 1.2 million pairs (those of `pow.wc`, and 200,000
+whose power is next to 2<sup>−1022</sup> or below), with the x87 unit to
+nearest and MXCSR set to each direction, master gives about 97,000 results per
+directed rounding other than those it gives with both units set, with GCC and
+Clang on Linux, with MinGW-w64 (GCC and Clang) under wine, and with Cygwin,
+emulated as for patch 6; the patched `pow` gives none. With clang-cl, emulated
+in the same way, the patched `pow` gives the results of Linux, where a copy of
+the `get_rounding_mode()` of `rsqrt.c` gives 193,196 wrong results upward and
+1,168 downward.
+
+**Status.** Present in master.
+
+#### 6. The rounding field of MXCSR in `cbrt.c`, `rsqrt.c`, `asinpi.c` and `powl.c`
+
+**The defect.** On x86-64, the `get_rounding_mode()` of these four files reads
+the rounding field of MXCSR and makes of it the `FE_*` value of the C library
+by a shift that depends on the library (`cbrt.c` lines 84 to 101, `rsqrt.c` 84
+to 101, `asinpi.c` 93 to 110, and `powl.c` of `binary80` 105 to 122): by 3 for
+the values of glibc (`FE_DOWNWARD` 0x400, `FE_UPWARD` 0x800); where `__WIN32__`
+or `__WIN64__` is defined, by 5 or through a table for the two layouts of the
+UCRT of Windows (`FE_UPWARD` 0x200, or 0x100 before Windows 10 14393, as the
+comment there says), and otherwise with a `#warning` and
+`return fegetround();`. Two compilers and Cygwin get it wrong:
+
+- **mingw-w64** (GCC, and Clang for the CLANG64 environment of MSYS2) defines
+  `__WIN32__`, and before version 13 gives `FE_*` the values of glibc (`fenv.h`
+  of mingw-w64 11; from 13 on, those of the UCRT): it takes the last branch.
+  `rsqrt.c`, `asinpi.c` and `powl.c` compare the value with `FE_*` and stay
+  right as long as the two units agree, the `fegetround()` of mingw-w64 reading
+  the x87 unit only. But `cr_cbrt()` wants 0 to 3 (to nearest, downward,
+  upward, toward zero), which the switch at the end of its
+  `get_rounding_mode()` makes of the `FE_*` value, and the `return` skips the
+  switch: rounding upward, `rm` is 0x800, `off[rm]` (lines 204, 205, 215 and
+  216) reads 16 KiB past its four elements, and `rm+sign == 2` (line 235)
+  never holds, so that hard cases are rounded wrong in the three directed
+  roundings. Upward, `cr_cbrt(0x1.3a9ccd7f022dbp+0)` is `0x1.1236160ba9b93p+0`,
+  below the cube root, about `0x1.1236160ba9b930000000000001e7e8fap+0`.
+  `cbrt.c` took this branch from `rsqrt.c` in `49d77f99` ("Fix handling of
+  FE_UPWARD on Windows pre-14393 update", 5 February 2026), where returning the
+  `FE_*` value is right.
+- **clang-cl** defines `__x86_64__`, `_WIN32` and `_WIN64` but neither
+  `__WIN32__` nor `__WIN64__` (clang-cl 18), and uses the `fenv.h` of the UCRT:
+  the four files shift by 3 and compare 0x400, 0x800 and 0xc00 with the
+  UCRT's 0x100, 0x200 and 0x300, so that the downward and upward roundings are
+  taken for toward zero.
+- **Cygwin**, where GCC and Clang define `__x86_64__` but neither `__WIN32__`
+  nor `__WIN64__`, uses the `fenv.h` of newlib
+  (`newlib/libc/machine/shared_x86/sys/fenv.h`), which gives `FE_*` the values
+  0 to 3: the four files shift by 3, as with clang-cl, and the downward and
+  upward roundings are taken for toward zero in the same way. Upward,
+  `cr_cbrt(0x1.3a9ccd7f022dbp+0)` is `0x1.1236160ba9b93p+0` there too.
+  Upstream has fixed this itself since (commit `70076f6a`, 8 November 2026).
+
+Visual C++ defines no `__x86_64__` and calls `fegetround()`, and glibc, musl,
+macOS and the BSDs, whose `FE_*` are the values of the rounding field in the
+x87 control word, are right. The rounding field of MXCSR is 0 to nearest, 1
+downward, 2 upward and 3 toward zero whatever the system: the patch reads it so
+in the four files, whatever values the C library gives `FE_*`, as the table of
+the branch `FE_UPWARD == 0x0100` already does, and as the `binary128` functions
+do with `_MM_ROUND_*`. `cbrt.c` returns the field itself, which is its 0 to 3;
+`rsqrt.c`, `asinpi.c` and `powl.c` look their `FE_*` value up in that table.
+The `#warning` and the call to `fegetround()` go, so that these read MXCSR
+with mingw-w64 too, as they mean to (see patch 5). The smallest change,
+`mode = fegetround();` for `return fegetround();` in `cbrt.c`, would fix `cbrt`
+with mingw-w64 only, while the two units agree.
+
+The patch, to commit as
+`[cbrt,rsqrt,asinpi,powl] read the rounding field of MXCSR whatever the values of FE_*`:
+
+```diff
+diff --git a/src/binary64/asinpi/asinpi.c b/src/binary64/asinpi/asinpi.c
+index ce089f18..12e34afe 100644
+--- a/src/binary64/asinpi/asinpi.c
++++ b/src/binary64/asinpi/asinpi.c
+@@ -90,24 +90,13 @@ inline static unsigned int get_arm_rounding_mode(void)
+ static inline int get_rounding_mode (void)
+ {
+ #if defined(__x86_64__)
+-  #if defined(__WIN32__) || defined(__WIN64__)
+-    // Windows 10 14393 swapped FE_UPWARD and FE_DOWNWARD.
+-    // Before: FE_UPWARD = 0x0100, FE_DOWNWARD = 0x0200
+-    // After:  FE_UPWARD = 0x0200, FE_DOWNWARD = 0x0100
+-    // The amount we need to shift changes depending on the value.
+-    #if FE_UPWARD == 0x0200
+-      return _MM_GET_ROUNDING_MODE()>>5;
+-    #elif FE_UPWARD == 0x0100
+-      // Lookup table used to eliminate branches.
+-      static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
+-      return lut[_MM_GET_ROUNDING_MODE()>>13];
+-    #else
+-      #warning The floating point rounding constants have an unknown value. A slower path will be taken.
+-      return fegetround();
+-    #endif
+-  #else
+-    return _MM_GET_ROUNDING_MODE()>>3;
+-  #endif
++  // The rounding field of MXCSR is 0 to nearest, 1 downward, 2 upward and
++  // 3 toward zero, whatever values the C library gives FE_TONEAREST, ...
++  // (0x400 for FE_DOWNWARD with GNU libc and mingw-w64 before 13, 0x100 with
++  // the UCRT of Windows and later mingw-w64, 1 with newlib; clang-cl and
++  // Cygwin define __x86_64__ and not __WIN32__): look them up.
++  static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
++  return lut[_MM_GET_ROUNDING_MODE()>>13];
+ #elif defined(__arm64__) || defined(_M_ARM64) || defined(__aarch64__)
+   return get_arm_rounding_mode();
+ #else
+diff --git a/src/binary64/cbrt/cbrt.c b/src/binary64/cbrt/cbrt.c
+index b416c6f0..607ec3de 100644
+--- a/src/binary64/cbrt/cbrt.c
++++ b/src/binary64/cbrt/cbrt.c
+@@ -81,24 +81,12 @@ static inline int get_rounding_mode (fexcept_t *flagp)
+   unsigned int mode;
+ #if defined(__x86_64__)
+   *flagp = _mm_getcsr ();
+-  #if defined(__WIN32__) || defined(__WIN64__)
+-    // Windows 10 14393 swapped FE_UPWARD and FE_DOWNWARD.
+-    // Before: FE_UPWARD = 0x0100, FE_DOWNWARD = 0x0200
+-    // After:  FE_UPWARD = 0x0200, FE_DOWNWARD = 0x0100
+-    // The amount we need to shift changes depending on the value.
+-    #if FE_UPWARD == 0x0200
+-      mode = (*flagp & _MM_ROUND_MASK)>>5;
+-    #elif FE_UPWARD == 0x0100
+-      // Lookup table used to eliminate branches.
+-      static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
+-      mode = lut[(*flagp & _MM_ROUND_MASK)>>13];
+-    #else
+-      #warning The floating point rounding constants have an unknown value. A slower path will be taken.
+-      return fegetround();
+-    #endif
+-  #else
+-    mode = (*flagp & _MM_ROUND_MASK)>>3;
+-  #endif
++  // The rounding field of MXCSR is 0 to nearest, 1 downward, 2 upward and
++  // 3 toward zero, the values this function returns, whatever values the C
++  // library gives FE_TONEAREST, ... (0x400 for FE_DOWNWARD with GNU libc and
++  // mingw-w64 before 13, 0x100 with the UCRT of Windows and later mingw-w64,
++  // 1 with newlib; clang-cl and Cygwin define __x86_64__ and not __WIN32__).
++  return (*flagp & _MM_ROUND_MASK)>>13;
+ #elif defined(__arm64__) || defined(_M_ARM64) || defined(__aarch64__)
+   fegetexceptflag (flagp, FE_ALL_EXCEPT);
+   mode = get_arm_rounding_mode();
+diff --git a/src/binary64/rsqrt/rsqrt.c b/src/binary64/rsqrt/rsqrt.c
+index 6bc8cf64..ca03ca29 100644
+--- a/src/binary64/rsqrt/rsqrt.c
++++ b/src/binary64/rsqrt/rsqrt.c
+@@ -81,24 +81,13 @@ inline static unsigned int get_arm_rounding_mode(void)
+ static inline int get_rounding_mode (void)
+ {
+ #if defined(__x86_64__)
+-  #if defined(__WIN32__) || defined(__WIN64__)
+-    // Windows 10 14393 swapped FE_UPWARD and FE_DOWNWARD.
+-    // Before: FE_UPWARD = 0x0100, FE_DOWNWARD = 0x0200
+-    // After:  FE_UPWARD = 0x0200, FE_DOWNWARD = 0x0100
+-    // The amount we need to shift changes depending on the value.
+-    #if FE_UPWARD == 0x0200
+-      return _MM_GET_ROUNDING_MODE()>>5;
+-    #elif FE_UPWARD == 0x0100
+-      // Lookup table used to eliminate branches.
+-      static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
+-      return lut[_MM_GET_ROUNDING_MODE()>>13];
+-    #else
+-      #warning The floating point rounding constants have an unknown value. A slower path will be taken.
+-      return fegetround();
+-    #endif
+-  #else
+-    return _MM_GET_ROUNDING_MODE()>>3;
+-  #endif
++  // The rounding field of MXCSR is 0 to nearest, 1 downward, 2 upward and
++  // 3 toward zero, whatever values the C library gives FE_TONEAREST, ...
++  // (0x400 for FE_DOWNWARD with GNU libc and mingw-w64 before 13, 0x100 with
++  // the UCRT of Windows and later mingw-w64, 1 with newlib; clang-cl and
++  // Cygwin define __x86_64__ and not __WIN32__): look them up.
++  static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
++  return lut[_MM_GET_ROUNDING_MODE()>>13];
+ #elif defined(__arm64__) || defined(_M_ARM64) || defined(__aarch64__)
+   return get_arm_rounding_mode();
+ #else
+diff --git a/src/binary80/pow/powl.c b/src/binary80/pow/powl.c
+index b1e9063a..cc3b615e 100644
+--- a/src/binary80/pow/powl.c
++++ b/src/binary80/pow/powl.c
+@@ -102,24 +102,13 @@ typedef union {
+ static inline int get_rounding_mode (void)
+ {
+ #if defined(__x86_64__)
+-  #if defined(__WIN32__) || defined(__WIN64__)
+-    // Windows 10 14393 swapped FE_UPWARD and FE_DOWNWARD.
+-    // Before: FE_UPWARD = 0x0100, FE_DOWNWARD = 0x0200
+-    // After:  FE_UPWARD = 0x0200, FE_DOWNWARD = 0x0100
+-    // The amount we need to shift changes depending on the value.
+-    #if FE_UPWARD == 0x0200
+-      return _MM_GET_ROUNDING_MODE()>>5;
+-    #elif FE_UPWARD == 0x0100
+-      // Lookup table used to eliminate branches.
+-      static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
+-      return lut[_MM_GET_ROUNDING_MODE()>>13];
+-    #else
+-      #warning The floating point rounding constants have an unknown value. A slower path will be taken.
+-      return fegetround();
+-    #endif
+-  #else
+-    return _MM_GET_ROUNDING_MODE()>>3;
+-  #endif
++  // The rounding field of MXCSR is 0 to nearest, 1 downward, 2 upward and
++  // 3 toward zero, whatever values the C library gives FE_TONEAREST, ...
++  // (0x400 for FE_DOWNWARD with GNU libc and mingw-w64 before 13, 0x100 with
++  // the UCRT of Windows and later mingw-w64, 1 with newlib; clang-cl and
++  // Cygwin define __x86_64__ and not __WIN32__): look them up.
++  static const unsigned lut[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO};
++  return lut[_MM_GET_ROUNDING_MODE()>>13];
+ #else
+   return fegetround ();
+ #endif
+```
+
+**How it was checked.** With MinGW-w64 11 for Windows x64, GCC 13 and Clang 18
+(`--target=x86_64-w64-mingw32`), the programs run under wine 9.0 and the
+direction set in both units, as `fesetround()` does, over 1,212,574 arguments
+(those of `cbrt.wc` on both signs, the seven of `wlist` times 8<sup>k</sup>
+for k = 0, ±1 and ±340 on both signs, and a million random bit patterns),
+master's `cbrt` gives 771 to 778 results per directed rounding other than those
+of x86-64 Linux, and none to nearest. Checked with mpmath (400 bits), 2,315
+(GCC) and 2,321 (Clang) of these 3,140 results are wrong, 60 of the 70 of
+`wlist` among them, and those of Linux and of the patched `cbrt` are all
+right. The patched `cbrt`, `rsqrt` (1,020,000 arguments: those of `rsqrt.wc`,
+the powers of 2 and their neighbours, random ones) and `asinpi` (1,058,405:
+those of `asinpi.wc`, random ones in [−1, 1] and next to ±1) give the results
+of Linux in the four directions, with both compilers. Master's `rsqrt` and
+`asinpi` do too while the two units agree, but with MXCSR set alone (the x87
+unit to nearest) they give 187 to 1,225 and about 513,000 wrong results per
+directed rounding, and the patched ones none. clang-cl, emulated with Clang 18
+on Linux (the `FE_*` values of the UCRT put over those of glibc, `__WIN32__`
+undefined as there): master gives 42 wrong `cbrt` results downward and 42
+upward, 1,338 wrong `rsqrt` results upward, and 499,838 and 526,673 wrong
+`asinpi` results downward and upward; the patched files none. Cygwin,
+emulated in the same way with GCC 13 and Clang 18 (the `FE_*` values of
+newlib, 0 to 3, put over those of glibc, and a `fegetround()` that reads the
+x87 unit, as newlib's does): master gives 42 wrong `cbrt` results downward and
+42 upward, 1,338 (Clang) and 1,341 (GCC) wrong `rsqrt` results upward, and
+499,838 and 526,673 different `asinpi` results downward and upward (mpmath:
+all those of `cbrt` and `rsqrt` and 3,000 sampled of `asinpi` are wrong); the
+patched files none, the direction being set in both units or in MXCSR alone.
+The patched files compile without a warning with GCC 13 and Clang 18, for Linux
+and for MinGW-w64, where master's `#warning` fires, and their object code no
+longer calls `fegetround()` on x86-64. With MPFR, `./check.sh --worst`
+(212,508, 19,844 and 116,822 arguments per direction) and
+`./check.sh --special` with 2,000,000 random arguments pass for the three
+functions. On x86-64 Linux the patched `cbrt` is as fast as master (about 12 ns
+a call with GCC 13, within the noise of the measure). `powl`, emulated for
+Cygwin in the same way with GCC 15 over the 3,417,041 arguments of `powl.wc`,
+gives results other than those of x86-64 Linux at 2 of them downward and
+695,080 upward with master, and at none with the patched file, in the four
+directions.
+
+**Status.** Present in master. GAOL's copy makes it in `cbrt.c`, `rsqrt.c` and
+`asinpi.c` (item 6 above) since 12 October 2026, where it made the two smallest
+changes before, `mode = fegetround();` in `cbrt.c` for mingw-w64 and
+`|| defined(_WIN32)` in the three files for clang-cl, which left Cygwin as it
+was; it does not build `powl.c`.
+
+#### 7. The exact and midpoint powers of `pow` on 32-bit ARM
+
+**The defect.** Where the second phase of `cr_pow()` cannot round,
+`exact_pow()` (`pow.c`, lines 1231 to 1348) computes the exact and midpoint
+powers, c<sup>a</sup>·2<sup>s</sup> with c<sup>a</sup> of at most 54 bits, as
+a 64-bit integer, which `(double)` converts (lines 1306 and 1337) before
+`pow2()` scales it. The conversion of a midpoint, c<sup>a</sup> odd of 54
+bits, is the one rounding of the result, and has to be made in the rounding
+direction in effect. On 32-bit ARM, VFP has no instruction converting a 64-bit
+integer: GCC calls `__aeabi_l2d` of libgcc, integer code that rounds to
+nearest whatever the rounding mode of FPSCR is (a probe under qemu-arm:
+`(double)` of 3<sup>34</sup> is 16677181699666568 in the four directions, while
+the VFP addition 16677181699666568.0 + 1.0 gives 16677181699666570 upward). The
+midpoints that reach `exact_pow()`, powers below about 2<sup>−950</sup>, were
+so rounded to nearest in the directed roundings too: rounding upward,
+`cr_pow(0x1.8p-29, 34)`, 3<sup>34</sup>·2<sup>−1020</sup>, is
+`0x1.d9fe779881944p-967` with master, below the power, rather than
+`0x1.d9fe779881945p-967`. The patch converts the integer as its two 32-bit
+halves, whose conversions and product by 2<sup>32</sup> are exact, and one
+addition, the only rounding, which every floating-point unit makes in the
+direction in effect.
+
+The patch, to commit as
+`[pow] round the exact and midpoint results in the rounding mode on 32-bit ARM`:
+
+```diff
+diff --git a/src/binary64/pow/pow.c b/src/binary64/pow/pow.c
+index e5af998e..c29245ee 100644
+--- a/src/binary64/pow/pow.c
++++ b/src/binary64/pow/pow.c
+@@ -1215,6 +1215,21 @@ static void exp_3 (qint64_t *r, qint64_t *x) {
+    The only remaining one is the first one, where 2^-F divides E.
+ */
+
++/* Convert k, |k| <= 2^54, to double, rounding in the current rounding mode.
++   (double) k does not do so on every target: on 32-bit ARM, GCC converts a
++   64-bit integer with __aeabi_l2d from libgcc, which always rounds to
++   nearest, so that a midpoint k*2^g (k odd with 54 bits) was rounded to
++   nearest in the directed rounding modes too. The conversions of the two
++   32-bit halves of k are exact, and so is the product by 2^32: the sum is the
++   only rounding. */
++static inline double
++i64_to_double (int64_t k)
++{
++  double hi = (double) (int32_t) (k >> 32) * 0x1p32;
++  double lo = (double) (uint32_t) k;
++  return hi + lo;
++}
++
+ /*
+   Computes x^y and returns 1 if the result fits into 54 bits, i.e. computes
+   exactly x^y for exact and midpoint cases.
+@@ -1303,7 +1318,7 @@ exact_pow (double *r, double x, double y, const dint64_t *z,
+        to reduce to 2^X*r with odd r. It checks whether k is an odd number
+        multiplied by 2^(g-G). */
+     if (((k & ~(~1ull << (g - G))) == (1ull << (g - G)))) {
+-      *r = (double)((k >> (g - G)) * _s);
++      *r = i64_to_double ((k >> (g - G)) * _s);
+       pow2(r, g);
+       goto end;
+     }
+@@ -1334,7 +1349,7 @@ exact_pow (double *r, double x, double y, const dint64_t *z,
+   if (k >> 54)
+     return 0;
+
+-  *r = (double)(k * _s);
++  *r = i64_to_double (k * _s);
+   int64_t G = E * (n << F);
+   pow2(r, G);
+
+```
+
+**How it was checked.** Over 13,302,409 pairs (powers of two to the powers
+n/e at the ends of the exponents, perfect 2<sup>k</sup>-th powers to the
+powers a/2<sup>k</sup>, random pairs, and the neighbours of each, 579,436 of
+them with a power that is a double) and 3,950 midpoints c<sup>a</sup>·2<sup>s</sup>
+with c<sup>a</sup> odd of 54 bits, s from −1075 to 969, whose roundings
+downward and upward were computed with MPFR 4.2.1 and exactly: compiled by
+the GCC 13.3 cross compiler for armhf (`-mfpu=neon-vfpv4 -mfloat-abi=hard`)
+and run under qemu-arm 8.2.2, master gives 415 wrong results downward and
+toward zero and 631 upward, all at midpoints, and the patched `pow` none; on
+x86-64 Linux, GCC 13.3, the two give the same bits in the four directions,
+all right. With MPFR, `./check.sh --worst` (1,003,179 arguments per direction)
+passes to nearest, toward zero and upward; downward it stopped at the spurious
+underflow exception said above, where master stopped as well (upstream has
+fixed that since, `e072473e`: the check passes on master `018fa97c`).
+`./check.sh --special` with `CORE_MATH_TESTS=200000`, exact and midpoint values
+among its arguments, passes in the four directions.
+
+**Status.** Present in master (`b1a4badf`, and `284b3b0` of 1 October 2026,
+whose `pow.c` is the same); GAOL's copy makes the same change (item 7 above).
+
+#### 8. The first phase of `pow` next to the overflow
+
+**The defect.** `exp_1()` of `pow.c` (lines 954 to 1057) multiplies its
+approximation of exp(rh + rl) by 2<sup>M−1023</sup>, with M = (K >> 12) +
+0x3ff and K = k the integer nearest to rh·`INVLOG2` (`INVLOG2` is
+2<sup>12</sup>/log 2), and its comment says "we should have 1 < M < 2047 here,
+since we filtered out potential underflow/overflow cases at the beginning of
+this function". The test at the beginning, rh > `RHO2` with `RHO2` =
+`0x1.62e42e709a95bp+9`, does not do so: K is 2<sup>22</sup> as soon as
+rh·`INVLOG2` rounds to 4194303.5, which `roundeven` takes to the even integer
+above, that is from rh = `0x1.62e42d29db3f1p+9` (about 709.78263) with the
+rounding to nearest and upward (one double farther downward and toward zero),
+so for the rh from there to `RHO2` (709.78267) M is 0x7ff, the factor is +∞
+and both parts of the approximation are infinite.
+`cr_pow()` then computes `res_h + fma (err, -res_h, res_l)`, ∞ − ∞, which
+raises the invalid-operation exception, before the second phase gives the
+right result: `cr_pow(2, 1023.9999)` and `cr_pow(0x1.000003f82a1fp+0,
+3000000001)`, the powers 0x1.fff6ea43bd988p+1023 and 0x1.fff7155c90a68p+1023
+(rounded downward), raise it in the four rounding directions, as does
+`cr_pow(-0x1.000003f82a1fp+0, 3000000001)` with its sign. The result is right,
+but a program that has enabled the exception (`feenableexcept (FE_INVALID)`,
+as the programs of interval arithmetic that want to know of an invalid
+operation do) dies on SIGFPE. The patch lowers `RHO2` to the largest double
+such that rh·`INVLOG2` ≤ 4194303.5 − 2<sup>−31</sup>, the double below the tie,
+for which K ≤ 4194303 and M ≤ 0x7fe in every rounding direction (the product
+is rounded to 4194303.5 − 2<sup>−31</sup> at the most, and `roundeven` rounds
+to nearest whatever the direction); `exp_1()` then sends the rh from there to
+the former `RHO2` to the second phase, where it already sends those from
+`RHO2` to `RHO3`. The first phase is not slowed down.
+
+The patch, to commit as
+`[pow] defer to the second phase the rh for which the first phase computes Inf - Inf`:
+
+```diff
+diff --git a/src/binary64/pow/pow.c b/src/binary64/pow/pow.c
+index c29245ee..97e9b68c 100644
+--- a/src/binary64/pow/pow.c
++++ b/src/binary64/pow/pow.c
+@@ -959,7 +959,14 @@ exp_1 (double *eh, double *el, double rh, double rl, double s) {
+    bound on |el| from the input value rh, thus this modified value of RHO1
+    is obtained experimentally. */
+ #define RHO1 -0x1.483b8cca421afp+9
+-#define RHO2 0x1.62e42e709a95bp+9
++/* RHO2 is the largest double such that rh * INVLOG2 <= 4194303.5 - 2^-31, the
++   double below the tie 4194303.5: in every rounding mode, K < 2^22 and
++   M = (K >> 12) + 0x3ff < 0x7ff below. From the next double on,
++   rh * INVLOG2 can round to the tie, which roundeven rounds to 2^22: M is
++   0x7ff, _d.f is +Inf, eh and el are infinite, and the caller computes
++   Inf - Inf (invalid operation) before the 2nd phase gives the result. Those
++   rh are thus deferred to the 2nd phase, as the larger ones are. */
++#define RHO2 0x1.62e42d29db3f0p+9
+ #define RHO3 0x1.62e4316ea5df9p+9
+
+   /* Section 7.12.17 from the C standard (N3220) says: "Relational operators
+```
+
+**How it was checked.** `cr_pow()` was called in the four rounding directions,
+with GCC 13.3 on x86-64 Linux (`-O3 -frounding-math -ffp-contract=off -mfma`),
+and the invalid-operation flag read after each call. With the base 2, master
+(the sources before the patch) takes k = 2<sup>22</sup> from the exponent
+`0x1.fffffc00002cap+9` to nearest, whose rh is `0x1.62e42d29db3f1p+9` (the one
+before, `0x1.fffffc00002c9p+9`, has rh = `0x1.62e42d29db3fp+9`, K = 4194303 and
+raises nothing), up to `0x1.fffffdd765c65p+9` (the next one has rh above
+`RHO2`). Over 1,754,203 exponents (600,001 consecutive doubles around each of
+the ends `0x1.fffffcp+9` and `0x1.fffffdd765c65p+9`, and one double in 1,013
+from 2<sup>−18</sup> below the first to 2<sup>−18</sup> above the second),
+master raises the flag 1,087,240 times to nearest and upward and 1,087,239
+downward and toward zero; and 390,177, 388,888, 390,090 and 389,420 times, to
+nearest, downward, upward and toward zero, in 4 million pairs each whose rh
+lies from 709.7825 to 709.7829, drawn with a real exponent and a base above or
+below 1, and with an integer exponent and a base of either sign next to 1. The
+patched `cr_pow()` raises it for none of them and gives the same bits as
+master for all of them (a hash of the results of each run), and for 12 million
+pairs per direction drawn all over the domain (bases and exponents of random
+bits or of every magnitude, integers, the neighbours of 1, and rh around 709).
+Over 1,129 exponents of the base 2 (1,001 from 1024 − 2<sup>−13</sup> in steps
+of 2<sup>−24</sup>, and 128 consecutive doubles from `0x1.fffffc00002a0p+9`)
+the patched `cr_pow()` raises no flag and gives finite results, and for six
+powers next to the largest double it gives, in each direction, the rounding of
+the power to the double around it that the direction asks for, computed with
+mpmath at 6000 bits apart from CORE-MATH (`tests/core_math.cpp` of GAOL v5).
+Master raises the flag for 1,026 to 1,029 of the 1,129 exponents, according to
+the direction, and for the six powers. A patch that stopped one double too
+high, `RHO2` = `0x1.62e42d29db3f1p+9`, still raises it for one exponent to
+nearest and two upward, which the 128 consecutive doubles find. CORE-MATH's own
+`./check.sh --worst pow` passes with the patch, applied to master `018fa97c`
+with the others of the series (13 November 2026).
+
+**Status.** Present in master (`b1a4badf`, and `6fc21797` of 19 October 2026,
+whose `pow.c` has these lines at the same places); GAOL's copy makes the same
+change (item 9 above).
+
+#### 9. The `is_exact()` of `pow` and a huge y
+
+**The defect.** For x = ±2<sup>e</sup> (the case `m == 1` of `is_exact()` in
+`pow.c`), `-1074 <= y * e && y * e < 1024` computes y·e in double. For |y| ≥
+2<sup>1024</sup>/1074, about 2<sup>1013.93</sup>, the product overflows and
+raises the overflow exception, while the result of `cr_pow()` is 0 or tiny:
+`cr_pow(0x1p-1074, 0x1.8p+1014)` is 0 with the flags overflow, underflow and
+inexact, and a program that has enabled the overflow exception dies on SIGFPE
+(GCC 15.2 and Clang 21). The patch writes `y <= 1074 &&` first: e is not 0
+there (the case |x| = 1 is treated before), so x<sup>y</sup> can be exact only
+if y ≤ 1074.
+
+The patch, to commit as
+`[pow] is_exact(): do not compute y * e for a huge y (spurious overflow exception)`:
+
+```diff
+diff --git a/src/binary64/pow/pow.c b/src/binary64/pow/pow.c
+index 1c8abde7..e3410729 100644
+--- a/src/binary64/pow/pow.c
++++ b/src/binary64/pow/pow.c
+@@ -1414,7 +1414,10 @@ is_exact (double x, double y)
+     if (y == 0 || y == 1)
+       return 1;
+     if (m == 1)
+-      return -1074 <= y * e && y * e < 1024;
++      /* e <> 0 since the case |x|=1 has already been treated, thus |y * e| >= y,
++         and y * e < 1024 needs y <= 1074: this also avoids y * e overflowing
++         (spurious overflow exception) for a huge y */
++      return y <= 1074 && -1074 <= y * e && y * e < 1024;
+     // now for y < 0 or 33 < y it cannot be exact
+     if (y < 0 || 33 < y)
+       return 0;
+```
+
+**How it was checked.** `cr_pow()` of master and the patched one were compared
+for x = ±2<sup>e</sup> (e from −1074 to 1023, e ≠ 0) and integers y with their
+42 low bits zero, in the four rounding directions: 50,896,000 calls, the same
+results bit for bit and the same flags but overflow; master raises overflow
+4,551,008 times where 2<sup>e·y</sup> does not overflow, the patch never, and
+both raise it whenever it does. `./check.sh --worst pow` passes.
+
+**Status.** Present in master (`018fa97c`, 10 November 2026). GAOL's copy does
+not make this change: `pow_rounded_up()` (`gaol/core/gaol_interval_internal.h`)
+takes the tiny powers of |y| ≥ 2<sup>1013</sup> apart instead, and will drop
+that shortcut if upstream fixes `is_exact()`.
+
+#### 10. The `return` of `erfc.c`
+
+**The defect.** `cr_erf_accurate()` of `erfc.c` is `static void`, and its line
+`return cr_erf_accurate_tiny (h, l, z);` returns a void expression from a void
+function, which C forbids (C11 6.8.6.4p1, a constraint): GCC 15.2 with
+`-Wpedantic` says "ISO C forbids 'return' with expression, in function
+returning void", Clang 21 "void function 'cr_erf_accurate' should not return
+void expression", and Visual C++ warns (C4098, an error under `/W4 /WX`, which
+GAOL's continuous integration saw). The patch writes the call, then `return;`,
+as `erf.c` does.
+
+The patch, to commit as
+`[erfc] no return with a void expression in cr_erf_accurate()`:
+
+```diff
+diff --git a/src/binary64/erfc/erfc.c b/src/binary64/erfc/erfc.c
+index a069931d..780cb631 100644
+--- a/src/binary64/erfc/erfc.c
++++ b/src/binary64/erfc/erfc.c
+@@ -393,7 +393,10 @@ cr_erf_accurate (double *h, double *l, double z)
+ {
+   double th, tl;
+   if (z < 0.125) /* z < 1/8 */
+-    return cr_erf_accurate_tiny (h, l, z);
++  {
++    cr_erf_accurate_tiny (h, l, z);
++    return;
++  }
+   double v = __builtin_floor (8.0 * z);
+   uint32_t i = 8.0 * z;
+   z = (z - 0.0625) - 0.125 * v;
+```
+
+**How it was checked.** No warning with `-Wpedantic` after the patch, and the
+same object code.
+
+**Status.** Present in master (`018fa97c`), in GAOL's copy, and in glibc's
+`s_erfc.c` (see [glibc](#glibc)).
+
+#### Already fixed upstream: the shifts of `cospi.c`
+
+The three signed shifts of item 3 above (lines 179 to 181 at `6b84457`) were
+fixed upstream on 29 September 2026 by `b1a4badf` ("[cospi] make the sanitizer
+happy"), which declares `m` as `uint64_t` rather than converting it at each
+shift. Over 4 million arguments (integers and half-integers among them) in the
+four directions, `cospi` of master gives the results of GAOL's, and UBSan,
+which stops on `6b84457`, reports nothing. Nothing to send: GAOL's change went
+with the import of 27 October 2026, and `cospi.c` is upstream's file again.
+
+### glibc
+
+glibc takes functions from CORE-MATH, each file saying "copied from the
+CORE-MATH project": functions of floats from 2.41 (`sysdeps/ieee754/flt-32`),
+and functions of doubles from 2.43 (`sysdeps/ieee754/dbl-64`): `acosh`,
+`asinh`, `atanh`, `erf`, `erfc`, `lgamma` and `tgamma` in 2.43, `cosh`, `sinh`
+and `tanh` in 2.44, and `cbrt` on master (`30f988fbe795`, 29 September 2026).
+None of the defects of items 1 to 9 is in them, in any of these releases:
+
+- the masks: glibc's `cosh`, `sinh` and `tanh` write `MANTISSA_MASK`, which is
+  `UINT64_C(0x000fffffffffffff)` (`sysdeps/ieee754/dbl-64/math_config.h`),
+  where CORE-MATH writes `~0ul>>12` (on master, `e_cosh.c` lines 97, 106, 222
+  and 295, `e_sinh.c` 105, 213 and 286, `s_tanh.c` 104 and 284), and `lgamma`
+  writes `~UINT64_C(0) >> 12` (`e_lgamma_r.c` 1003); the `__glibc_likely()`
+  and `__glibc_unlikely()` of these files, glibc's `__builtin_expect()`, take
+  comparisons only;
+- `asinpi`, `rsqrt` and `cospi` of doubles are glibc's own generic code
+  (`math/s_asinpi_template.c`, `math/s_rsqrt_template.c`,
+  `math/s_cospi_template.c`), and its `sin` and `pow` are other code (`s_sin.c`
+  from the IBM Accurate Mathematical Library, `e_pow.c` from 2018);
+- the rounding direction: inside glibc it is read with `get_rounding_mode()`
+  (`sysdeps/generic/get-rounding-mode.h`), which on x86 reads the control word
+  of the x87 unit (`_FPU_GETCW`, `fnstcw`, in `sysdeps/x86/fpu_control.h`), as
+  `fegetround()` does, and of the functions of doubles it took from CORE-MATH,
+  only `cbrt` asks for it (`s_cbrt.c`, line 37). That the two units agree is
+  glibc's model, `fesetround()` setting both: a program that sets MXCSR alone
+  is outside it, and there is nothing to propose. Nor has `cbrt` the defect of
+  patch 6: glibc's `get_rounding_mode()` maps the rounding field of the
+  control word (`_FPU_RC_*`) to glibc's own `FE_*` values and aborts on
+  anything else, and `cbrt_rounding_index()` maps these four to 0 to 3 with a
+  switch whose default is `__builtin_unreachable()`, so that no raw value
+  reaches `off[]`; there is no branch for other C libraries.
+
+Item 10 is in them: `cr_erf_accurate()` of `sysdeps/ieee754/dbl-64/s_erfc.c`
+(lines 58 to 62 at `30f988fbe795`, the only commit read for this one) is
+`static void` and returns `__cr_erf_accurate_tiny (h, l, z, false)`, as
+CORE-MATH's does.
+
+So there is nothing to send to glibc for items 1 to 9. Were one of these
+defects to reach it with a later import, the patch would go by `git send-email` to
+libc-alpha@sourceware.org, its subject starting with `math:`, with a
+`Signed-off-by:` line under the Developer's Certificate of Origin (glibc has
+not required a copyright assignment to the FSF since August 2021), and a test
+in `math/auto-libm-test-in` for the arguments above.

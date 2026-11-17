@@ -1,13 +1,37 @@
 # Builds GAOL with CMake and runs its tests in containers of official images:
 # Debian (amd64, arm64, armhf, i386), manylinux_2_28, Alpine (musl), and under
-# qemu on s390x (big-endian), ppc64le and riscv64. Checks that Clang is refused
-# for 32-bit ARM processors.
+# qemu on s390x (big-endian), ppc64le, POWER9 (Ubuntu 24.04) and riscv64, and
+# on armhf and POWER9 built for size too. Checks that the three builds refuse
+# Clang for 32-bit ARM processors, as the C compiler or as the C++ compiler,
+# and that GAOL stops on Debian armel, whose floating point is in software.
+# On Debian, numbers reads and writes numbers under a locale writing a decimal
+# comma, which the job generates and checks.
+#
+# A job is a group of configurations that run one after the other on the
+# same image of runner, each one an action of .github/actions/ called
+# with the row of the matrix it had when it was a job of its own: the
+# configurations, their options and their checks are those of the jobs
+# they replace (GAOL v5). Below, a job is one of these configurations.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 name: Linux containers
 
 on:
   push:
-    branches: ['**']
+    branches: [master, dev]
+    paths-ignore:
+      # The notes of the work on GAOL v5, which dev holds, and master once a
+      # version is merged into it: a push of them changes no code and starts
+      # no check (GAOL v5)
+      - 'TODO*.md'
+      - 'process.md'
+      - 'STEP.md'
   pull_request:
   workflow_dispatch:
 
@@ -18,73 +42,394 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-jobs:
-  container:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'debian:trixie',   tools: apt, desc: 'Debian 13 Trixie amd64' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'debian:trixie',   tools: apt, desc: 'Debian 13 Trixie arm64' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:trixie',   tools: apt, desc: 'Debian 13 Trixie armhf' }
-          - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'debian:bookworm', tools: apt, desc: 'Debian 12 Bookworm amd64' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'debian:bookworm', tools: apt, desc: 'Debian 12 Bookworm arm64' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:bookworm', tools: apt, desc: 'Debian 12 Bookworm armhf' }
-          - { os: ubuntu-24.04,     platform: linux/386,     image: 'debian:bookworm', tools: apt, desc: 'Debian 12 Bookworm i386' }
-          # Not Debian 11 Bullseye, out of support since August 2026: its
-          # security repository lists packages that are no longer downloadable
-          # (libc-dev-bin 2.31-13+deb11u14...), so that g++ cannot be installed
-          - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'quay.io/pypa/manylinux_2_28_x86_64',  tools: none, desc: 'manylinux_2_28 x86_64' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'quay.io/pypa/manylinux_2_28_aarch64', tools: none, desc: 'manylinux_2_28 aarch64' }
-          - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'alpine:3.22',     tools: apk, desc: 'Alpine 3.22 x86_64 (musl)' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm64,   image: 'alpine:3.22',     tools: apk, desc: 'Alpine 3.22 aarch64 (musl)' }
-          - { os: ubuntu-24.04,     platform: linux/s390x,   image: 'debian:trixie',   tools: apt, qemu: true, desc: 'Debian 13 Trixie s390x (qemu)' }
-          - { os: ubuntu-24.04,     platform: linux/ppc64le, image: 'debian:trixie',   tools: apt, qemu: true, desc: 'Debian 13 Trixie ppc64le (qemu)' }
-          - { os: ubuntu-24.04,     platform: linux/riscv64, image: 'debian:trixie',   tools: apt, qemu: true, desc: 'Debian 13 Trixie riscv64 (qemu)' }
-          - { os: ubuntu-24.04,     platform: linux/386,     image: 'debian:bookworm', tools: apt, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Debian 12 Bookworm i386, rounding direction preserved' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:trixie',   tools: apt, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Debian 13 Trixie armhf, rounding direction preserved' }
-    steps:
-      - uses: actions/checkout@v7
-      - if: matrix.cfg.qemu
-        uses: docker/setup-qemu-action@v4
-      - name: Build and tests
-        run: |
-          case "${{ matrix.cfg.tools }}" in
-            apt) tools='apt-get update -qq && apt-get install -y -qq g++ cmake make ca-certificates > /dev/null' ;;
-            apk) tools='apk add --no-cache build-base cmake linux-headers ca-certificates > /dev/null' ;;
-            *) tools='true' ;;
-          esac
-          docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol ${{ matrix.cfg.image }} sh -c "
-            set -e
-            $tools
-            uname -m
-            c++ --version
-            cmake --version
-            cmake -S . -B /tmp/build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON ${{ matrix.cfg.opts }}
-            cmake --build /tmp/build -j 4
-            cd /tmp/build
-            ctest -j 4 --output-on-failure
-            ./tests/gaol_performance | tee /gaol/performance.md"
-          cat performance.md >> "$GITHUB_STEP_SUMMARY"
+# make test (the target test of CMake, RUN_TESTS with Visual Studio) runs
+# ctest, which reads these: four tests at a time, and the output of those that
+# fail (GAOL v5)
+env:
+  # actions/checkout runs git init, whose hint about the name of the initial
+  # branch was in the log of every job
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
+  CTEST_PARALLEL_LEVEL: 4
+  CTEST_OUTPUT_ON_FAILURE: 1
 
-  clang-arm32:
-    name: Debian 13 Trixie armhf, Clang refused
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 30
+jobs:
+
+  c1:
+    name: 'Containers x86_64 and i386, Debian, Alpine, manylinux (8 configurations)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
-      - name: Configure with Clang, which has to fail
+      - id: c1
+        name: 'Debian 12 Bookworm amd64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 12 Bookworm amd64'
+          platform: 'linux/amd64'
+          image: 'debian:bookworm'
+          tools: 'apt'
+      - id: c2
+        name: 'Debian 13 Trixie amd64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 13 Trixie amd64'
+          platform: 'linux/amd64'
+          image: 'debian:trixie'
+          tools: 'apt'
+      # The relations between intervals testing the empty sets before the
+      # bounds, the order of RISC-V (GAOL_RELATION_BOUNDS_FIRST=0): GCC 14
+      # folds the quiet comparison of the bounds and an equality test into
+      # a signaling comparison there, which tests/rounding_direction.cpp
+      # catches on amd64 only in this order
+      - id: c3
+        name: 'Debian 13 Trixie amd64, the relations test the empty sets first'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 13 Trixie amd64, the relations test the empty sets first'
+          platform: 'linux/amd64'
+          image: 'debian:trixie'
+          tools: 'apt'
+          opts: '-DCMAKE_CXX_FLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0'
+      - id: c4
+        name: 'Debian 12 Bookworm i386'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 12 Bookworm i386'
+          platform: 'linux/386'
+          image: 'debian:bookworm'
+          tools: 'apt'
+      - id: c5
+        name: 'Debian 12 Bookworm i386, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 12 Bookworm i386, rounding direction preserved'
+          platform: 'linux/386'
+          image: 'debian:bookworm'
+          tools: 'apt'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - id: c6
+        name: 'Debian 12 Bookworm armel (floating point in software), GAOL stops'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-armel-soft-float
+        timeout-minutes: 30
+        with:
+          desc: 'Debian 12 Bookworm armel (floating point in software), GAOL stops'
+      - id: c7
+        name: 'Alpine 3.22 x86_64 (musl)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Alpine 3.22 x86_64 (musl)'
+          platform: 'linux/amd64'
+          image: 'alpine:3.22'
+          tools: 'apk'
+      # security repository lists packages that are no longer downloadable
+      # (libc-dev-bin 2.31-13+deb11u14...), so that g++ cannot be installed
+      - id: c8
+        name: 'manylinux_2_28 x86_64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'manylinux_2_28 x86_64'
+          platform: 'linux/amd64'
+          image: 'quay.io/pypa/manylinux_2_28_x86_64'
+          tools: 'none'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }} c7=${{ steps.c7.outcome }} c8=${{ steps.c8.outcome }}
         run: |
-          docker run --rm --platform linux/arm/v7 -v "$PWD:/gaol" -w /gaol debian:trixie sh -c '
-            apt-get update -qq && apt-get install -y -qq clang cmake make ca-certificates > /dev/null
-            clang++ --version
-            if cmake -S . -B /tmp/build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ > /tmp/configure.log 2>&1; then
-              cat /tmp/configure.log
-              echo "Clang was not refused for a 32-bit ARM processor"
-              exit 1
-            fi
-            cat /tmp/configure.log
-            grep -q "GAOL cannot be built with Clang for a 32-bit ARM processor" /tmp/configure.log'
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Containers x86_64 and i386, Debian, Alpine, manylinux' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Debian 12 Bookworm amd64' ;;
+              c2) name='Debian 13 Trixie amd64' ;;
+              c3) name='Debian 13 Trixie amd64, the relations test the empty sets first' ;;
+              c4) name='Debian 12 Bookworm i386' ;;
+              c5) name='Debian 12 Bookworm i386, rounding direction preserved' ;;
+              c6) name='Debian 12 Bookworm armel (floating point in software), GAOL stops' ;;
+              c7) name='Alpine 3.22 x86_64 (musl)' ;;
+              c8) name='manylinux_2_28 x86_64' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  c2:
+    name: 'Debian 13 Trixie ppc64le (qemu)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Debian 13 Trixie ppc64le (qemu)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        with:
+          desc: 'Debian 13 Trixie ppc64le (qemu)'
+          platform: 'linux/ppc64le'
+          image: 'debian:trixie'
+          tools: 'apt'
+          qemu: 'true'
+
+  c3:
+    name: 'Debian 13 Trixie riscv64 (qemu)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Debian 13 Trixie riscv64 (qemu)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        with:
+          desc: 'Debian 13 Trixie riscv64 (qemu)'
+          platform: 'linux/riscv64'
+          image: 'debian:trixie'
+          tools: 'apt'
+          qemu: 'true'
+
+  c4:
+    name: 'Debian 13 Trixie s390x (qemu)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Debian 13 Trixie s390x (qemu)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        with:
+          desc: 'Debian 13 Trixie s390x (qemu)'
+          platform: 'linux/s390x'
+          image: 'debian:trixie'
+          tools: 'apt'
+          qemu: 'true'
+
+  c5:
+    name: 'Ubuntu 24.04 ppc64le POWER9 (qemu)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Ubuntu 24.04 ppc64le POWER9 (qemu)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        with:
+          desc: 'Ubuntu 24.04 ppc64le POWER9 (qemu)'
+          platform: 'linux/ppc64le'
+          image: 'ubuntu:24.04'
+          tools: 'apt'
+          qemu: 'true'
+          opts: '-DCMAKE_C_FLAGS=-mcpu=power9 -DCMAKE_CXX_FLAGS=-mcpu=power9'
+
+  c6:
+    name: 'Ubuntu 24.04 ppc64le POWER9, built for size (qemu)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Ubuntu 24.04 ppc64le POWER9, built for size (qemu)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        with:
+          desc: 'Ubuntu 24.04 ppc64le POWER9, built for size (qemu)'
+          platform: 'linux/ppc64le'
+          image: 'ubuntu:24.04'
+          tools: 'apt'
+          qemu: 'true'
+          opts: '-DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_C_FLAGS=-mcpu=power9 -DCMAKE_CXX_FLAGS=-mcpu=power9'
+
+  c7:
+    name: 'Containers arm64 (5 configurations)'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Debian 12 Bookworm arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 12 Bookworm arm64'
+          platform: 'linux/arm64'
+          image: 'debian:bookworm'
+          tools: 'apt'
+      - id: c2
+        name: 'Debian 13 Trixie arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 13 Trixie arm64'
+          platform: 'linux/arm64'
+          image: 'debian:trixie'
+          tools: 'apt'
+      - id: c3
+        name: 'Alpine 3.22 aarch64 (musl)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Alpine 3.22 aarch64 (musl)'
+          platform: 'linux/arm64'
+          image: 'alpine:3.22'
+          tools: 'apk'
+      - id: c4
+        name: 'manylinux_2_28 aarch64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'manylinux_2_28 aarch64'
+          platform: 'linux/arm64'
+          image: 'quay.io/pypa/manylinux_2_28_aarch64'
+          tools: 'none'
+      - id: c5
+        name: 'Rounding direction preserved, arm64: FPCR with the NEON intervals or the C library'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-control-register-performance
+        timeout-minutes: 60
+        with:
+          desc: 'Rounding direction preserved, arm64: FPCR with the NEON intervals or the C library'
+          platform: 'linux/arm64'
+          before: '-DGAOL_SIMD=OFF'
+          before_label: 'FPU intervals, C library'
+          after_label: 'NEON intervals, FPCR'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Containers arm64' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Debian 12 Bookworm arm64' ;;
+              c2) name='Debian 13 Trixie arm64' ;;
+              c3) name='Alpine 3.22 aarch64 (musl)' ;;
+              c4) name='manylinux_2_28 aarch64' ;;
+              c5) name='Rounding direction preserved, arm64: FPCR with the NEON intervals or the C library' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  c8:
+    name: 'Containers armhf (6 configurations)'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Debian 12 Bookworm armhf'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 12 Bookworm armhf'
+          platform: 'linux/arm/v7'
+          image: 'debian:bookworm'
+          tools: 'apt'
+      - id: c2
+        name: 'Debian 13 Trixie armhf'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 13 Trixie armhf'
+          platform: 'linux/arm/v7'
+          image: 'debian:trixie'
+          tools: 'apt'
+      - id: c3
+        name: 'Debian 13 Trixie armhf, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 13 Trixie armhf, rounding direction preserved'
+          platform: 'linux/arm/v7'
+          image: 'debian:trixie'
+          tools: 'apt'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      # POWER9, where GCC 13 reversed the quiet comparison of is_empty()
+      # into a signaling one (#60), and builds for size (MinSizeRel, -Os),
+      # where GCC 14 for 32-bit ARM and GCC 13 for POWER9 call operator&
+      # rather than inlining it: tests/rounding_direction.cpp checks the
+      # choices a program makes on is_empty() of an empty interval there
+      # too (GAOL v5)
+      - id: c4
+        name: 'Debian 13 Trixie armhf, built for size'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 13 Trixie armhf, built for size'
+          platform: 'linux/arm/v7'
+          image: 'debian:trixie'
+          tools: 'apt'
+          opts: '-DCMAKE_BUILD_TYPE=MinSizeRel'
+      - id: c5
+        name: 'Debian 13 Trixie armhf, Clang refused'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-clang-arm32
+        timeout-minutes: 30
+        with:
+          desc: 'Debian 13 Trixie armhf, Clang refused'
+      - id: c6
+        name: 'Rounding direction preserved, armhf: FPSCR or the C library'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-control-register-performance
+        timeout-minutes: 60
+        with:
+          desc: 'Rounding direction preserved, armhf: FPSCR or the C library'
+          platform: 'linux/arm/v7'
+          before: '-DCMAKE_CXX_FLAGS=-DGAOL_RND_FPSCR_DIRECT=0'
+          before_label: 'C library'
+          after_label: 'FPSCR'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Containers armhf' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Debian 12 Bookworm armhf' ;;
+              c2) name='Debian 13 Trixie armhf' ;;
+              c3) name='Debian 13 Trixie armhf, rounding direction preserved' ;;
+              c4) name='Debian 13 Trixie armhf, built for size' ;;
+              c5) name='Debian 13 Trixie armhf, Clang refused' ;;
+              c6) name='Rounding direction preserved, armhf: FPSCR or the C library' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status

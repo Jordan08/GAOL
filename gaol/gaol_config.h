@@ -1,21 +1,15 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. Gaol was primarily
- * developed at the Swiss Federal Institute of Technology, Lausanne,
- * Switzerland, and is now developed at the Laboratoire d'Informatique de
- * Nantes-Atlantique, France.
- *
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Frederic Goualard, Jordan NININ
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: gaol_config.h 191 2012-03-06 17:08:58Z goualard $
- * Last modified:
- * By:
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -28,66 +22,91 @@
   compiling gaol with Borland C++ Builder.
 
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Jordan NININ
   \date   2002-12-03
 */
 
-#ifndef __gaol_config_h__
-#define __gaol_config_h__
+#ifndef GAOL_CONFIG_H
+#define GAOL_CONFIG_H
 
-#if defined (_MSC_VER)
+/* The configuration the build wrote, the same macros with the three builds
+   and every compiler (see doc/building.md): CMake from
+   cmake/gaol_configuration.h.in, configure from gaol/gaol_configuration.h.in,
+   meson from gaol/gaol_configuration_meson.h.in. It no longer defines
+   PACKAGE nor VERSION, which were undefined before including it, and
+   undefined those of the code including GAOL with them; Visual C++ and MinGW
+   included it through gaol/gaol_config_msvc.h and gaol/gaol_config_mingw.h,
+   which included nothing else (GAOL v5). */
+#include "gaol/gaol_configuration.h"
 
-# define GAOL_ERRNO errno
-# ifndef __GAOL_PUBLIC__
-#   ifdef _COMPILING__GAOL_PUBLIC__
-#     define __GAOL_PUBLIC__ __declspec(dllexport)
-#   else
-#     define __GAOL_PUBLIC__ __declspec(dllimport)
-#   endif
-# endif
-# define INLINE inline
-# include "gaol/gaol_config_msvc.h"
+#define GAOL_ERRNO errno
+#define GAOL_INLINE inline
 
-#elif defined (__MINGW32__)
-
-# define GAOL_ERRNO errno
-# undef PACKAGE
-# undef VERSION
-# include "gaol/gaol_config_mingw.h"
-# ifndef __GAOL_PUBLIC__
-#  if defined (HAVE_VISIBILITY_OPTIONS)
-#     define __GAOL_PUBLIC__ __attribute__ ((visibility("default")))
-#  else
-#     define __GAOL_PUBLIC__
-#  endif
-# endif
-# define INLINE inline
-
-#elif defined (__GNUC__)
-# define GAOL_ERRNO errno
-# undef PACKAGE
-# undef VERSION
-# include "gaol/gaol_configuration.h"
-# ifndef __GAOL_PUBLIC__
-#  if defined (HAVE_VISIBILITY_OPTIONS)
-#     define __GAOL_PUBLIC__ __attribute__ ((visibility("default")))
-#  else
-#     define __GAOL_PUBLIC__
-#  endif
-# endif
-# define INLINE inline
-
+/* GAOL_UNLIKELY(condition): a condition the compiler is told is rarely true,
+   so that it puts the code it guards out of the way of the one that is
+   usually run (GAOL v5); GAOL_LIKELY(condition), one it is told is usually
+   true */
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_UNLIKELY(condition) __builtin_expect(!!(condition), 0)
+#  define GAOL_LIKELY(condition) __builtin_expect(!!(condition), 1)
 #else
-
-# define GAOL_ERRNO errno
-# undef PACKAGE
-# undef VERSION
-# ifndef __GAOL_PUBLIC__
-#  define __GAOL_PUBLIC__
-# endif
-# define INLINE inline
-# include "gaol/gaol_configuration.h"
+#  define GAOL_UNLIKELY(condition) (condition)
+#  define GAOL_LIKELY(condition) (condition)
 #endif
+
+/* GAOL_PUBLIC: what GAOL's public declarations carry, __GAOL_PUBLIC__ in
+   GAOL 4 (GAOL v5). With GCC and Clang, the default visibility where the
+   library is compiled with -fvisibility=hidden (GAOL_HAVE_VISIBILITY_OPTIONS),
+   so that the shared library exports them. Nothing with Visual C++ and
+   clang-cl, with which GAOL is always a static library: GAOL 4 declared them
+   __declspec(dllimport) there, or __declspec(dllexport) with
+   _COMPILING__GAOL_PUBLIC__, which no build defined, so that GAOL and the code
+   using it had to define __GAOL_PUBLIC__ empty, as the CMake and meson builds,
+   gaol::gaol and gaol.pc did. No header reads __GAOL_PUBLIC__ any longer, and
+   a program still defining it changes nothing; one defining GAOL_PUBLIC before
+   including GAOL replaces it. */
+#ifndef GAOL_PUBLIC
+#  if defined(__GNUC__) && !defined(_MSC_VER) && GAOL_HAVE_VISIBILITY_OPTIONS
+#    define GAOL_PUBLIC __attribute__ ((visibility("default")))
+#  else
+#    define GAOL_PUBLIC
+#  endif
+#endif
+
+/* GAOL_VECTORCALL: the calling convention of the functions taking a __m128d
+   by value (add_bounds() and the others of gaol/core/gaol_interval_sse.h, GAOL v5).
+   The convention of Windows for x86-64 passes a __m128d by a hidden reference
+   to a copy in the frame of the caller; __vectorcall of Visual C++ and
+   clang-cl passes it in xmm0 and xmm1, as the x86-64 conventions of Linux and
+   macOS do. On 32-bit x86 the convention of Windows passes it by value on the
+   stack, and __vectorcall in xmm0 and xmm1 too (GAOL v5, with the SSE2
+   intervals of Visual C++ and clang-cl there). It is empty with the other
+   compilers: MinGW-w64 and MSYS2 keep the convention of Windows. */
+#ifndef GAOL_VECTORCALL
+#  if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
+#    define GAOL_VECTORCALL __vectorcall
+#  else
+#    define GAOL_VECTORCALL
+#  endif
+#endif
+
+
+/* ---------------------------------------------------------------------------
+   The intervals of floats, gaol::intervalf and gaol::interval2f
+
+   Unfinished (sqrt(intervalf) returns its argument, interval2f::inverse()
+   aborts, pow(interval2f, int) does not handle the empty set) and used by
+   nothing: GAOL leaves them out, and none of its three builds has an option
+   to compile them (GAOL v5). A developer of GAOL working on them defines
+   GAOL_FLOAT_INTERVALS below, for GAOL and the code using them alike:
+   gaol/core/gaol_interval_core.cpp then compiles them, gaol::interval2f where SSE3
+   instructions are used (GAOL_USING_SSE3_INSTRUCTIONS), and the code using them
+   includes their headers, gaol/float/gaol_intervalf.h and
+   gaol/float/gaol_interval2f.h, which the builds do not install and
+   gaol/gaol does not include.
+   --------------------------------------------------------------------------- */
+
+/* #define GAOL_FLOAT_INTERVALS 1 */
 
 
 /* ---------------------------------------------------------------------------
@@ -98,54 +117,109 @@
    and meson builds agree, and cross-compilation and containers (an armhf
    container on an arm64 machine) get the target rather than the machine
    building. GAOL reads the names of the system to allocate aligned memory
-   (gaol/gaol_port.h) and to negate a double (gaol/gaol_fpu_fenv.h); both have
-   a fallback for the other systems. The sizes of the integer types come from
-   <limits.h> where the build system did not measure them.
+   (gaol/gaol_port.h), which has a fallback for the other systems. The sizes of
+   the integer types come from <limits.h>, the builds no longer measuring them
+   (GAOL v5).
    --------------------------------------------------------------------------- */
 
 #include <limits.h>
 
 #if defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
 /* Define this if your system is a Linux-based ix86 or compatible */
-#  define IX86_LINUX 1
+#  define GAOL_IX86_LINUX 1
 #elif defined(__linux__) && defined(__aarch64__)
 /* Define this if your system is an AARCH64-based computer under Linux */
-#  define AARCH64_LINUX 1
+#  define GAOL_AARCH64_LINUX 1
 #elif defined(__APPLE__) && (defined(__i386__) || defined(__x86_64__))
 /* Define this if your system is a ix86 running MacOSX */
-#  define IX86_MACOSX 1
+#  define GAOL_IX86_MACOSX 1
 #elif defined(__APPLE__) && (defined(__aarch64__) || defined(__arm__))
 /* Define this if your system is an ARM running MacOSX */
-#  define ARM_MACOSX 1
+#  define GAOL_ARM_MACOSX 1
+#endif
+/* The three others are 0, as the macros of gaol/gaol_configuration.h, so
+   that #if reads them under -Wundef (GAOL v5) */
+#ifndef GAOL_IX86_LINUX
+#  define GAOL_IX86_LINUX 0
+#endif
+#ifndef GAOL_AARCH64_LINUX
+#  define GAOL_AARCH64_LINUX 0
+#endif
+#ifndef GAOL_IX86_MACOSX
+#  define GAOL_IX86_MACOSX 0
+#endif
+#ifndef GAOL_ARM_MACOSX
+#  define GAOL_ARM_MACOSX 0
 #endif
 
-#ifndef SIZEOF_INT
+#ifndef GAOL_SIZEOF_INT
 #  if UINT_MAX == 0xFFFFFFFFu
-#    define SIZEOF_INT 4
+#    define GAOL_SIZEOF_INT 4
 #  elif UINT_MAX == 0xFFFFFFFFFFFFFFFFu
-#    define SIZEOF_INT 8
+#    define GAOL_SIZEOF_INT 8
 #  endif
 #endif
-#ifndef SIZEOF_LONG
-#  if ULONG_MAX == 0xFFFFFFFFul
-#    define SIZEOF_LONG 4
-#  elif ULONG_MAX == 0xFFFFFFFFFFFFFFFFul
-#    define SIZEOF_LONG 8
-#  endif
-#endif
-#ifndef SIZEOF_LONG_LONG_INT
+#ifndef GAOL_SIZEOF_LONG_LONG_INT
 #  if ULLONG_MAX == 0xFFFFFFFFFFFFFFFFull
-#    define SIZEOF_LONG_LONG_INT 8
+#    define GAOL_SIZEOF_LONG_LONG_INT 8
 #  endif
 #endif
 
-/* WORDS_BIGENDIAN: the processor stores words with the most significant byte
+/* GAOL_WORDS_BIGENDIAN: the processor stores words with the most significant byte
    first. The test on __BYTE_ORDER__, which GCC and Clang define, is the one of
    the fork of mathlib by Fabrice Le Bars (https://github.com/lebarsfa/mathlib,
    src/mathlib_endian.h); Visual C++ only targets little-endian processors. */
-#if !defined(WORDS_BIGENDIAN) && defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) \
+#if !defined(GAOL_WORDS_BIGENDIAN) && defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) \
     && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-#  define WORDS_BIGENDIAN 1
+#  define GAOL_WORDS_BIGENDIAN 1
+#endif
+#ifndef GAOL_WORDS_BIGENDIAN
+#  define GAOL_WORDS_BIGENDIAN 0 /* GAOL v5 */
+#endif
+
+/* GAOL_NODISCARD: the attribute on the functions whose result is all they do
+   (GAOL v5), so that the compiler warns about a call whose result is thrown
+   away, as sqrt(I); or I.emptyset(); written to change I, which they leave
+   as it was. A program is compiled in the standard its project sets, or else
+   in the one of its compiler, C++14 for GCC 6 to 10, Clang 6 to 15 and Visual
+   C++; GAOL itself is compiled in C++11, in C++14 with Visual C++, which has
+   no C++11 mode. The macro is [[nodiscard]] from C++17 on, and before C++17
+   where __has_cpp_attribute(nodiscard) says the compiler takes it there: GCC
+   7 and later, silent about it even with -pedantic, and Visual C++ 2019 16.4
+   (_MSC_VER 1924) and later, whose warning is C4834. Clang says so too, but
+   warns about it with -pedantic (-Wc++17-attribute-extensions): it takes
+   __attribute__((warn_unused_result)), whose warning is -Wunused-result (on
+   by default), as GCC before 7 does. Visual C++ 2017 and 2019 16.0 refuse
+   [[nodiscard]] before C++17 (error C2429), and 2019 16.1 to 16.3 ignore it
+   (warning C5051): __has_cpp_attribute(nodiscard) is 0 in 2019 16.0 to 16.3,
+   but 2017 15.8 and 15.9, the first to have __has_cpp_attribute, were not
+   checked, and the macro asks for _MSC_VER 1924 too. Older Visual C++ takes
+   _Check_return_ of <sal.h>, which only the code analysis reports (/analyze,
+   warning C6031). A cast to void silences them all but GCC's attribute.
+   Visual C++ keeps __cplusplus at 199711L without /Zc:__cplusplus, and gives
+   the standard in _MSVC_LANG; Clang for Windows defines __clang__ and
+   _MSC_VER, and takes the attribute of Clang. Defining GAOL_NODISCARD before
+   including GAOL replaces it, an empty definition removing the attribute. */
+#ifndef GAOL_NODISCARD
+#  if defined(__cplusplus) \
+      && (__cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L))
+#    define GAOL_NODISCARD [[nodiscard]]
+#  elif defined(__cplusplus) && defined(__has_cpp_attribute) && !defined(__clang__) \
+        && (!defined(_MSC_VER) || _MSC_VER >= 1924)
+#    if __has_cpp_attribute(nodiscard)
+#      define GAOL_NODISCARD [[nodiscard]]
+#    endif
+#  endif
+#  ifndef GAOL_NODISCARD
+#    if defined(__GNUC__) || defined(__clang__)
+#      define GAOL_NODISCARD __attribute__((warn_unused_result))
+#    elif defined(_MSC_VER) && _MSC_VER >= 1400
+#      include <sal.h>
+#      define GAOL_NODISCARD _Check_return_
+#    else
+#      define GAOL_NODISCARD
+#    endif
+#  endif
 #endif
 
 
@@ -162,28 +236,301 @@
    --------------------------------------------------------------------------- */
 
 #if defined(__FAST_MATH__)
-#  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results"
+#  error "GAOL cannot be compiled with -ffast-math (nor -Ofast): the bounds it computes would not enclose the exact results (remove the option, or put the flags of gaol.pc and gaol::gaol after it)"
+#endif
+/* -ffinite-math-only, which -ffast-math and -Ofast turn on, has the compiler
+   take NaN and infinities never to occur, in the inline functions of GAOL's
+   headers as anywhere else: the empty interval has NaN bounds, and is_empty()
+   reads it as !std::islessequal(left(), right()) (std::isunordered() first on
+   32-bit ARM and POWER9). The compiler then folds the test away, and
+   ([1, 2] & [3, 4]).is_empty() is false: with GCC 9.4 and 13 at -O0, -O2 and
+   -O3, with Clang 18 at -O0, and at -O2 and -O3 when the bounds are volatile.
+   The tests refused_finite_math_only and refused_fast_math
+   (tests/CMakeLists.txt) and tests/refused_options.sh check the refusal. GCC
+   and Clang define __FINITE_MATH_ONLY__, as 0 or 1; Visual C++ defines nothing
+   of the kind (its /fp:fast is refused below). This also refuses what
+   __FAST_MATH__ does not show: with Clang, -Ofast or -ffast-math followed by
+   -frounding-math leave it undefined, and __FINITE_MATH_ONLY__ at 1.
+   -fno-fast-math, one of the flags of gaol.pc and gaol::gaol, turns the option
+   off when the option comes before it on the command line, and does nothing
+   when the option comes after it, where the compilation stops here. With
+   Clang, -ffast-math and -Ofast turn -frounding-math off too, which
+   -fno-fast-math does not turn on again: the remedy the two messages give is
+   all the flags of gaol.pc and gaol::gaol after the option, not -fno-fast-math
+   alone, with which Clang 18 compiled GAOL's operations as if rounding to
+   nearest (54 checks of tests/rounding_direction.cpp failed after -ffast-math
+   -fno-fast-math, 126 after -Ofast -fno-fast-math, none with the flags). */
+#if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__
+#  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (remove the option that turns it on, or put the flags of gaol.pc and gaol::gaol after that option)"
+#endif
+/* -fno-signed-zeros, -fno-trapping-math, -fassociative-math and
+   -freciprocal-math, which -funsafe-math-optimizations turns on, as do
+   -ffast-math and -Ofast (with -fno-finite-math-only too), with GCC, which
+   defines __NO_SIGNED_ZEROS__, __NO_TRAPPING_MATH__, __ASSOCIATIVE_MATH__ and
+   __RECIPROCAL_MATH__ for them from GCC 12 on (12.2 and 15.2 checked; GCC 9.4
+   and 11.4 define none of them, and these options are not refused there;
+   GAOL v5, where they were said to show no macro). Compiled with GCC 15.2,
+   each option after all the flags of interval arithmetic:
+   - -fno-signed-zeros: 6 of the 63 tests failed. GCC drops the + 0.0 of the
+     probe !(1.0 + (subnormal + 0.0) > 1.0) of round_upward_if_needed()
+     (gaol/gaol_fpu.h), which then misses the flush-to-zero mode alone: under
+     it, width() of [2, 3]*2^-1074 was 0, below the exact width. With
+     -funsafe-math-optimizations GCC rewrote the former probe
+     1.0 + tiny == 1.0 as tiny == 0.0 (GCC 9.4), so that an operation did not
+     set the rounding direction upward again after the code using GAOL left
+     it elsewhere;
+   - -fno-trapping-math: 52 checks of tests/rounding_direction.cpp failed,
+     operations with an empty operand, whose bounds are NaNs, raising the
+     invalid-operation flag, which no operation of GAOL raises then;
+   - -freciprocal-math, with which no test failed: it lets the compiler
+     compute x / y as x * (1 / y), whose two roundings upward do not bound
+     x / y from above where x is negative; -fassociative-math, which GCC
+     takes only with -fno-signed-zeros and -fno-trapping-math, lets it
+     reorder the operations whose rounding a bound depends on.
+   -fno-fast-math turns these options off when they come before it on the
+   command line, as it does -ffinite-math-only. The tests
+   refused_no_signed_zeros, refused_no_trapping_math, refused_unsafe_math and
+   refused_reciprocal_math (tests/CMakeLists.txt) and tests/refused_options.sh
+   check the refusal, where the compiler shows the options by these macros.
+
+   No macro shows what follows, which GAOL cannot refuse: these options with
+   GCC before 12; with Clang (18 and 21), which defines none of the macros
+   above, -fno-signed-zeros, with which Clang drops the + 0.0 of the probe as
+   GCC does, -fno-trapping-math, -fassociative-math and -freciprocal-math, and
+   -funsafe-math-optimizations, which turns them on, and -ffast-math or -Ofast
+   with -fno-finite-math-only, with which Clang defines __NO_MATH_ERRNO__ alone;
+   -fno-honor-nans of Clang, given without -fno-honor-infinities, which does
+   to the empty interval what -ffinite-math-only does (the sum of the empty
+   set and [1, 2] was not empty with Clang 21), and -fno-honor-infinities,
+   given without -fno-honor-nans, which does it to the unbounded intervals
+   (interval::universe().is_entire() was false, and [-oo, 5] was empty); and
+   -ffast-math or -Ofast followed by -fno-fast-math with Clang, which leaves
+   -frounding-math off (above). See doc/three-builds.md. */
+#if defined(__NO_SIGNED_ZEROS__)
+#  error "GAOL cannot be compiled with -fno-signed-zeros (which -funsafe-math-optimizations, -ffast-math and -Ofast turn on): the compiler then drops the + 0.0 by which GAOL sees the modes flushing the subnormal numbers to zero, and some bounds would not enclose the exact results (remove the option that turns it on, or put the flags of gaol.pc and gaol::gaol after that option)"
+#endif
+#if defined(__NO_TRAPPING_MATH__)
+#  error "GAOL cannot be compiled with -fno-trapping-math (which -funsafe-math-optimizations, -ffast-math and -Ofast turn on): the compiler then takes floating-point operations to raise no exception, and operations with an empty operand raise the invalid-operation exception, which GAOL keeps from them (remove the option that turns it on, or put the flags of gaol.pc and gaol::gaol after that option)"
+#endif
+#if defined(__ASSOCIATIVE_MATH__) || defined(__RECIPROCAL_MATH__)
+#  error "GAOL cannot be compiled with -fassociative-math or -freciprocal-math (which -funsafe-math-optimizations, -ffast-math and -Ofast turn on): the compiler may then reorder and rewrite the operations whose rounding the bounds depend on, and the bounds would not be certified (remove the option that turns them on, or put the flags of gaol.pc and gaol::gaol after that option)"
 #endif
 #if defined(_M_FP_FAST)
 #  error "GAOL cannot be compiled with /fp:fast: the bounds it computes would not enclose the exact results (it needs /fp:strict)"
 #endif
-/* Visual C++, not clang-cl (which says __clang__, and whose macros of the
-   floating-point model are not checked): /fp:strict defines _M_FP_STRICT, on
-   x86, x64 and arm64 with Visual Studio 2022 and 2026, and nothing else does. */
-#if defined(_MSC_VER) && !defined(__clang__) && !defined(_M_FP_FAST) && !defined(_M_FP_STRICT)
-#  error "GAOL cannot be compiled by Visual C++ without /fp:strict: Visual C++ then assumes rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, so that the bounds GAOL computes would not be certified (gaol::gaol, of the CMake package of GAOL, gives /fp:strict to the code linking it)"
+/* Visual C++, and clang-cl from Clang 16, which defines the same macros of the
+   floating-point model: /fp:strict defines _M_FP_STRICT, on x86, x64 and
+   arm64 with Visual Studio 2022 and 2026, and nothing else does (_M_FP_PRECISE
+   by default). Without it, clang-cl compiles with -fno-rounding-math and
+   -ffp-contract=on, as Visual C++ assumes rounding to nearest, and was not
+   refused (GAOL v5). clang-cl before 16 does not tell its model, and is not
+   checked. */
+#if defined(_MSC_VER) && (!defined(__clang__) || __clang_major__ >= 16) && !defined(_M_FP_FAST) \
+    && !defined(_M_FP_STRICT)
+#  error "GAOL cannot be compiled by Visual C++ or clang-cl without /fp:strict: they then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, so that the bounds GAOL computes would not be certified (gaol::gaol, of the CMake package of GAOL, gives /fp:strict to the code linking it)"
 #endif
 #if (defined(__i386__) || defined(__x86_64__)) && defined(__GNUC__) && !defined(__SSE2_MATH__)
-#  error "GAOL needs doubles computed with SSE2 on x86 processors (-msse2 -mfpmath=sse): computed on the x87 unit, in extended precision, its bounds and the results of mathlib are wrong"
+#  error "GAOL needs doubles computed with SSE2 on x86 processors (-msse2 -mfpmath=sse): computed on the x87 unit, in extended precision, CORE-MATH rounds some results twice and some of its bounds are wrong (see tests/extended_precision.cpp)"
 #endif
 #if defined(_M_IX86_FP) && (_M_IX86_FP < 2)
-#  error "GAOL needs doubles computed with SSE2 on x86 processors (/arch:SSE2): computed on the x87 unit, in extended precision, its bounds and the results of mathlib are wrong"
+#  error "GAOL needs doubles computed with SSE2 on x86 processors (/arch:SSE2): computed on the x87 unit, in extended precision, CORE-MATH rounds some results twice and some of its bounds are wrong (see tests/extended_precision.cpp)"
 #endif
 #if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
 #  error "GAOL cannot be compiled by Clang for 32-bit ARM processors: Clang does not honour the rounding direction there (see CMakeLists.txt)"
 #endif
-#if defined(__MINGW64_VERSION_MAJOR) && (__MINGW64_VERSION_MAJOR < 13)
-#  error "GAOL cannot be compiled with a mingw-w64 older than version 13: before 12, its math library gave hyperbolic functions far from their exact values; in 12, fesetround() runs the instruction cpuid at each call (see CMakeLists.txt)"
+/* ARM64EC, the 64-bit ARM code of Windows that keeps the conventions of x64,
+   for which Visual C++ and clang-cl define _M_ARM64EC along with _M_X64:
+   GAOL would take its paths for x64 there, which set the rounding direction
+   through the MXCSR of the SSE instructions, not known to reach the FPCR that
+   rounds the ARM64 instructions the code runs, and no build of GAOL targets
+   it nor tests it (GAOL v5: gaol/gaol_fpu.h said it was refused here, and
+   nothing refused it). The test refused_arm64ec (tests/CMakeLists.txt) and
+   tests/refused_options.sh define _M_ARM64EC and check the refusal. */
+#if defined(_M_ARM64EC)
+#  error "GAOL cannot be compiled for ARM64EC: its paths for x64 would set the rounding direction through the MXCSR, which is not known to reach the FPCR of the processor there, and no build of GAOL targets ARM64EC (build for ARM64, where GAOL computes with the NEON instructions)"
+#endif
+/* 1 with Visual C++ (cl) for 64-bit ARM, whose NEON header is
+   <arm_neon.h> as the others', and which reads and writes the control register
+   FPCR through the intrinsics _ReadStatusReg() and _WriteStatusReg() where GCC
+   and Clang have the instructions mrs and msr in an asm statement (GAOL v5).
+   Not clang-cl, which has that asm statement, nor ARM64EC, which is a build
+   for x64. Always defined, to 0 or 1 */
+#if defined(_MSC_VER) && !defined(__clang__) && defined(_M_ARM64)
+#  define GAOL_NEON_MSVC 1
+#else
+#  define GAOL_NEON_MSVC 0
+#endif
+/* The NEON intervals (GAOL v5, GAOL_SIMD of the builds): the two bounds in a
+   float64x2_t, on 64-bit ARM processors only (NEON of 32-bit ARM has no
+   vector of doubles), with every compiler of them: GCC, Clang and AppleClang,
+   clang-cl and the Clang of MinGW-w64 and MSYS2 (the rounding direction is
+   written into FPCR with mrs and msr in an asm statement, see gaol_fpu.h), and
+   Visual C++ (GAOL_NEON_MSVC); and never together with the SSE2 intervals. */
+#if GAOL_USING_NEON_INSTRUCTIONS \
+    && (GAOL_USING_SSE2_INSTRUCTIONS \
+        || !((defined(__aarch64__) && defined(__ARM_NEON) \
+              && (defined(__GNUC__) || defined(__clang__))) \
+             || GAOL_NEON_MSVC))
+#  error "GAOL computes its intervals with NEON instructions on 64-bit ARM processors only, with GCC, Clang or Visual C++, and not together with the SSE2 intervals (GAOL_USING_NEON_INSTRUCTIONS)"
+#endif
+/* 1 when an SSE2 interval keeps its two bounds as two doubles, which need an
+   alignment of 8 bytes only, and loads and stores them with unaligned
+   instructions (movupd), rather than as a __m128d, which needs 16 (GAOL v5).
+   The memory of new is aligned on 8 bytes on 32-bit Windows, and Visual C++
+   and clang-cl have no flag asking the compiler for the aligned memory that a
+   __m128d needs (see below): they take this form there, with the Clang that
+   targets Visual C++ (_MSC_VER is defined for all of them).
+   -DGAOL_SSE2_UNALIGNED_STORAGE=ON of CMake, which writes it in
+   gaol/gaol_configuration.h, gives it to any SSE2 build, which the tests use
+   to run it where the memory is aligned on 16. Always defined, to 0 or 1 */
+#ifndef GAOL_SSE2_UNALIGNED_STORAGE
+#  if GAOL_USING_SSE2_INSTRUCTIONS && defined(_WIN32) && !defined(_WIN64) && defined(_MSC_VER)
+#    define GAOL_SSE2_UNALIGNED_STORAGE 1
+#  else
+#    define GAOL_SSE2_UNALIGNED_STORAGE 0
+#  endif
+#endif
+/* The SSE2 intervals of a __m128d on 32-bit Windows (GAOL v5): an interval has
+   to be aligned on 16 bytes, and the C runtime of 32-bit Windows aligns the
+   memory of malloc() and new on 8. GCC takes the memory of new to be aligned on
+   __STDCPP_DEFAULT_NEW_ALIGNMENT__ bytes, 16 there, so that a std::vector of
+   intervals, or a new of a type holding one, crashed on its first movaps
+   (MinGW-w64 14.2 and 15.2 for x86). The compiler has to be told what the
+   runtime gives, so that it asks for aligned memory (the operator new of C++17
+   that takes an alignment): -faligned-new=8 with GCC and Clang, which sets
+   __STDCPP_DEFAULT_NEW_ALIGNMENT__ to 8 in every standard. The allocation is
+   made in the code using GAOL, which needs the flag too (gaol::gaol of CMake
+   and gaol.pc give it). Visual C++ and clang-cl have no such flag, their
+   /Zc:alignedNew doing nothing in C++14 (cl) or breaking the STL (clang-cl),
+   and only C++17 turning the aligned new on: they keep the bounds as two
+   doubles (GAOL_SSE2_UNALIGNED_STORAGE above), and this refuses the SSE2
+   intervals of a __m128d compiled without aligned new.
+   Checked with the macros of the standard: __cpp_aligned_new says the compiler
+   asks for aligned memory, and __STDCPP_DEFAULT_NEW_ALIGNMENT__, when it is
+   defined, that it is told 8 bytes at most. */
+#if defined(__cplusplus) && GAOL_USING_SSE2_INSTRUCTIONS && !GAOL_SSE2_UNALIGNED_STORAGE \
+    && defined(_WIN32) && !defined(_WIN64) \
+    && !(defined(__cpp_aligned_new) \
+         && (!defined(__STDCPP_DEFAULT_NEW_ALIGNMENT__) || __STDCPP_DEFAULT_NEW_ALIGNMENT__ <= 8))
+#  error "GAOL's SSE2 intervals on 32-bit Windows need the compiler to ask for aligned memory: the C runtime aligns the memory of new on 8 bytes, and an interval needs 16, so that a std::vector of intervals would crash on its first movaps. Compile with -faligned-new=8 (GCC and Clang; gaol::gaol of CMake and gaol.pc give it), or use the FPU intervals (GAOL_SIMD=OFF)"
+#endif
+/* 1 when the intervals keep their two bounds in one vector register, SSE2 or
+   NEON, 0 for the intervals of two doubles (FPU). Always defined, to 0 or 1,
+   so that #if reads it under -Wundef (GAOL v5) */
+#if GAOL_USING_SSE2_INSTRUCTIONS || GAOL_USING_NEON_INSTRUCTIONS
+#  define GAOL_VECTOR_INTERVALS 1
+#else
+#  define GAOL_VECTOR_INTERVALS 0
+#endif
+/* The rounding direction and the modes that flush the subnormals to zero of
+   the FPU intervals of 32-bit ARM processors are read and written directly in
+   FPSCR, with vmrs and vmsr, where the NEON intervals do so in FPCR on 64-bit
+   ARM processors (GAOL v5): with GCC (the only compiler GAOL takes there) and
+   a floating-point unit of doubles. -DGAOL_RND_FPSCR_DIRECT=0 gives the
+   functions of the C library back (fegetround() and fesetround(), and the
+   addition that shows the direction). Always defined, to 0 or 1 */
+#ifndef GAOL_RND_FPSCR_DIRECT
+#  if defined(__arm__) && !defined(__aarch64__) && defined(__GNUC__) && !defined(__clang__) \
+      && defined(__ARM_FP) && (__ARM_FP & 8)
+#    define GAOL_RND_FPSCR_DIRECT 1
+#  else
+#    define GAOL_RND_FPSCR_DIRECT 0
+#  endif
+#endif
+/* 1 when the control register is read and written directly: FPCR with the NEON
+   intervals, FPSCR with GAOL_RND_FPSCR_DIRECT (GAOL v5) */
+#if GAOL_USING_NEON_INSTRUCTIONS || GAOL_RND_FPSCR_DIRECT
+#  define GAOL_RND_DIRECT 1
+#else
+#  define GAOL_RND_DIRECT 0
+#endif
+/* mingw-w64 whose fma() or round() is wrong. Those of its own math library
+   (math/fma.c and math/round.c, the same code from version 9 to 13) are, on
+   x86-64:
+
+   - fma() adds the four products of the halves of x and y to z with four
+     roundings. With mingw-w64 11 on x86-64 (under wine), 10.7 % of the
+     error-free products fma(a, b, -a*b) and 25 to 73 % of other triples,
+     depending on the rounding direction, were wrong. CORE-MATH computes with
+     __builtin_fma(), a call to fma() without -mfma (GCC for Windows then,
+     before GAOL_FMA gave it -mfma -mprefer-vector-width=128 on x86-64 and on
+     32-bit x86, and still with GAOL_FMA off; see CMakeLists.txt), and GAOL's exact products
+     with std::fma(): bounds of tan, asin, atan and others at small arguments
+     did not enclose the exact values (tan(0x1.56e1fc2f8f359p-997) rounded
+     upward was two doubles above the argument), in tests/core_math.cpp,
+     elementary.cpp and reverse.cpp, and in the continuous integration with
+     GCC 11 to 13 of Chocolatey;
+   - round() is ceil(x), less 1 when that is more than 1/2 above x, a
+     difference computed in doubles, rounded in the direction in effect:
+     round(0x1.fffffffffffffp-2) is 1 in every direction but upward, and
+     round_ties_to_away() (gaol_interval_core.h) calls it in the caller's.
+
+   Before version 12 both are in libmingwex, which every program links; from
+   12 on, only in the library of msvcrt.dll, which lacks them. A toolchain
+   linking the UCRT then takes those of ucrtbase.dll, which pass the tests;
+   one linking msvcrt.dll still takes mingw-w64's (those of MSYS2 MINGW64,
+   whose headers say mingw-w64 14, gave the same wrong bounds). _UCRT tells
+   them apart, for GCC and Clang: the headers of a UCRT toolchain define it
+   (__MSVCRT_VERSION__ 0xE00, the default from mingw-w64 12 on), and so does
+   -mcrtdll=ucrt of GCC 14 and later; nothing does for msvcrt.dll (MSYS2
+   MINGW64, the cross compilers of Debian and Ubuntu). The test has two
+   limits: a program defining _UCRT itself while linking msvcrt.dll is not
+   refused here, and fails tests/core_math.cpp; nor is a git snapshot of
+   mingw-w64 that calls itself 12 but predates the move of fma.c and round.c
+   out of libmingwex, which still gives its programs mingw-w64's own fma()
+   and round() (GAOL v5). Accepted and tested: MinGW-Builds GCC 14 and 15,
+   MSYS2 UCRT64 and CLANG64, and Cygwin (below). Cygwin, whose headers of
+   Windows are those of mingw-w64 but whose math library is its own, does not
+   say __MINGW32__. Its
+   fma() is not correctly rounded either (fma(1 + 2^-30, 1 - 2^-30, -1) gave 0
+   instead of -2^-60), as std::fma is a call of it without optimization: GAOL
+   needs the instruction there, -mfma (GAOL_FMA), and refuses Cygwin without
+   it (GAOL v5, below).
+
+   On 32-bit x86, the same fma() and round() compute on the x87 unit, in
+   extended precision where the compiler keeps the values in its registers
+   (CORE-MATH calls that fma() with GAOL_FMA off only: GCC for Windows takes
+   -mfma there as on x86-64, GAOL v5).
+   The GCC 11.2 of WinLibs (mingw-w64 9) compiled fma() without optimization,
+   each partial sum rounded to a double: the continuous integration saw the
+   same wrong bounds as on x86-64, and mingw-w64 before 11 is refused.
+   MinGW-Builds GCC 12 and 13 (mingw-w64 11) and the mingw-w64 11 of Ubuntu,
+   accepted, keep the sums in extended precision: the error-free products
+   tried were exact and the tests pass, but 125 of 400,000 other results were
+   one double off. round() is right there, in the four builds looked at, but
+   for the sign of a zero rounding downward. From version 12 on, a toolchain
+   linking the UCRT (MinGW-Builds GCC 14 and 15) takes those of ucrtbase.dll,
+   as on x86-64. One linking msvcrt.dll (MSYS2 MINGW32, which has no other)
+   takes mingw-w64's own, and is refused where the build has no -mfma, as on
+   x86-64: GAOL_FMA off, or a processor without the instructions, then have
+   CORE-MATH call that fma() (GAOL v5, decided on 27 October 2026). With
+   -mfma, the default, MSYS2 MINGW32 is built and tested. Version 11 is left
+   out: it stays accepted without -mfma, as above, its job being the measure.
+
+   On ARM, mingw-w64 is refused as on x86-64, before version 12 or linked
+   with msvcrt.dll (GAOL v5; mingw-w64 before 11 only
+   was refused before), the refusal not being tested there (MSYS2 CLANGARM64,
+   which links the UCRT, is built and tested). Its fma() is an
+   instruction: fmadd, fused, on 64-bit ARM; fmacd, which is vmla.f64, a
+   product and a sum each rounded, on 32-bit ARM, where Clang, the only
+   compiler of mingw-w64 there, is refused above. Its round() is the code
+   above, computed in doubles, though Clang 18 for 64-bit ARM computes round()
+   with the instruction frinta, even without optimization; a toolchain linking
+   the UCRT takes the round() of ucrtbase.dll. */
+#if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR)
+#  if defined(__x86_64__) && (__MINGW64_VERSION_MAJOR < 12 || !defined(_UCRT))
+#    error "GAOL cannot be compiled with this mingw-w64: before version 12, or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library, whose fma() is not correctly rounded and whose round() depends on the rounding direction, and the bounds of the elementary functions (CORE-MATH computes with fma()) would not enclose the exact values. Build GAOL with a toolchain of mingw-w64 12 or later linking the UCRT: the MinGW-w64 GCC 14 or 15 of MinGW-Builds (choco install mingw --version=15.2.0), MSYS2 UCRT64 or CLANG64 (pacman -S mingw-w64-ucrt-x86_64-gcc), or with Visual Studio"
+#  elif defined(__i386__) && __MINGW64_VERSION_MAJOR < 11
+#    error "GAOL cannot be compiled with this mingw-w64 for 32-bit x86 before version 11, as the mingw-w64 9 of WinLibs (GCC 11), whose fma(), which CORE-MATH computes with, rounds each of its partial sums to a double: the bounds of the elementary functions did not enclose the exact values. Build GAOL with the MinGW-w64 GCC 14 or 15 of MinGW-Builds (choco install mingw --version=15.2.0 --x86), which link the UCRT, or with Visual Studio"
+#  elif defined(__i386__) && __MINGW64_VERSION_MAJOR >= 12 && !defined(_UCRT) && !defined(__FMA__)
+#    error "GAOL cannot be compiled with this mingw-w64 for 32-bit x86 linked with msvcrt.dll rather than the UCRT, without the fused multiply-add instructions (-mfma, which GAOL_FMA gives on a processor that has them: Intel Haswell, AMD Piledriver and later): its fma() is that of mingw-w64's own math library, which is not correctly rounded, and CORE-MATH computes with fma(), so that the bounds of the elementary functions could not enclose the exact values. Build GAOL with GAOL_FMA on a processor that has them, with the MinGW-w64 GCC 14 or 15 of MinGW-Builds (choco install mingw --version=15.2.0 --x86), which link the UCRT, or with Visual Studio"
+#  elif !defined(__x86_64__) && !defined(__i386__) && (__MINGW64_VERSION_MAJOR < 12 || !defined(_UCRT))
+#    error "GAOL cannot be compiled with this mingw-w64 for ARM: before version 12, or linked with msvcrt.dll rather than the UCRT, its round() is that of mingw-w64's own math library, computed in doubles, which depends on the rounding direction, and GAOL v5 was not tested with it. Build GAOL with a mingw-w64 of version 12 or later linking the UCRT, or with Visual Studio"
+#  endif
 #endif
 
-#endif /* __gaol_config_h__ */
+#if defined(__CYGWIN__) && !defined(__FMA__)
+#  error "GAOL cannot be compiled with Cygwin without the fused multiply-add instructions (-mfma, which GAOL_FMA gives on a processor that has them: Intel Haswell, AMD Piledriver and later): the fma() of the C library of Cygwin is not correctly rounded, and CORE-MATH computes with fma(), so that the bounds of the elementary functions could not enclose the exact values"
+#endif
+
+#endif /* GAOL_CONFIG_H */

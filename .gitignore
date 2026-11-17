@@ -1,0 +1,52 @@
+autom4te.cache/
+# The line-by-line coverage report, which the target coverage writes: only
+# coverage/README.md, the page of conclusions, is kept in the repository
+coverage/*.css
+coverage/*.js
+coverage/coverage.json
+
+# What an in-source build leaves in the vendored sources of CORE-MATH
+3rd/math-core/**/*.o
+3rd/math-core/**/*.lo
+3rd/math-core/**/.libs/
+3rd/math-core/**/.deps/
+3rd/math-core/**/.dirstamp
+
+# The link to the sources of GAOL that tests/meson_subproject takes as its
+# subproject (see its meson.build)
+tests/meson_subproject/subprojects/
+
+# Written by the performance target of check/Makefile.am
+check/performances_result.txt
+
+build/*
+*/.deps/*
+*/*.lo
+*/*.o
+*/*.so
+*/*.a
+*/*.la
+*/*.dirstamp
+*/*.libs/
+*/*.loTAGS
+*/*.loTAGS.tmp
+*/*/build
+
+# The local files of the Continue extension of the editor
+.continue/
+
+# The manual of GAOL v5 compiled by hand in manual/v5 (pdflatex manual_gaolv5.tex,
+# bibtex, makeindex): the files of LaTeX carry the name of the main file
+/manual/v5/manual_gaolv5.*
+!/manual/v5/manual_gaolv5.tex
+# and the files of LaTeX of a build in the source tree (the PDF goes to manual/)
+/manual/v5/Manual_GAOLv5.*
+/manual/v5/pdflatex-*.log
+/manual/v5/gaol_version.tex
+
+# The lock files of gcore (.github/scripts), when it runs in the tree
+/.github/corelocks/
+
+
+.cache/
+compile_commands.json

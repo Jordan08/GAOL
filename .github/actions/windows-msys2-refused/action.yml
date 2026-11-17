@@ -1,0 +1,69 @@
+# MSYS2 MINGW64 links msvcrt.dll rather than the UCRT: its mingw-w64, 12 or
+# later, still gives the programs the fma() and round() of mingw-w64's own
+# math library, which gaol/gaol_config.h refuses, with GCC and with Clang
+# (_UCRT undefined). MINGW32 links it too: its fma() is refused where the
+# build has no -mfma (GAOL_FMA OFF here; with it, the default, MINGW32 is
+# built and tested in build-systems.yml). UCRT64, CLANG64 and CLANGARM64 are
+# built and tested by the configurations of windows-msys2.
+# The steps of the job msys2-refused of windows.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: windows-msys2-refused
+description: The job msys2-refused of windows.yml for one configuration
+inputs:
+  cc:
+    description: The key cc of the row of the matrix of the job
+    default: ''
+  cxx:
+    description: The key cxx of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  message:
+    description: The key message of the row of the matrix of the job
+    default: ''
+  msystem:
+    description: The key msystem of the row of the matrix of the job
+    default: ''
+  opts:
+    description: The key opts of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    # The environment of MSYS2 of this configuration, which the step of the
+    # group that calls the action chose with MSYSTEM (GAOL v5)
+    - name: The environment of MSYS2 asked for
+      shell: msys2 {0}
+      run: test "$MSYSTEM" = "${{ inputs.msystem }}"
+    - name: The version and the C runtime of mingw-w64, and a build that has to fail
+      shell: msys2 {0}
+      run: |
+        ${{ inputs.cxx }} --version
+        echo '#include <stdlib.h>' | ${{ inputs.cxx }} -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) |__MSVCRT_VERSION__ |define _UCRT( |$)'
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ inputs.cc }} -DCMAKE_CXX_COMPILER=${{ inputs.cxx }} ${{ inputs.opts }}
+        if cmake --build build > build.log 2>&1; then
+          cat build.log
+          echo "This MinGW-w64 was not refused"
+          exit 1
+        fi
+        cat build.log
+        grep -F -q "GAOL cannot be compiled with this mingw-w64" build.log
+        grep -F -q "${{ inputs.message }}" build.log

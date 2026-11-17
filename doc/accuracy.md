@@ -1,6 +1,12 @@
+<!-- Copyright (c) 2026 ENSTA, France
+
+     By: Jordan NININ (created 2026-09-20)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # Accuracy of the operations
 
-Part of the documentation of [this fork of GAOL](../README.md#documentation).
+Part of the documentation of [GAOL v5](../README.md#documentation).
 
 IEEE 1788-2015 requires an implementation to document the tightness of each
 of its interval operations, dividing the possible inputs into ranges and
@@ -29,23 +35,44 @@ tightest; the other elementary functions, the reverse functions and the
 recommended functions to be valid, and recommends them to be accurate
 (12.10.2).
 
-A bound computed as the correctly rounded value moved one double outward is
-at most one double beyond the tightest bound, since the tightest bound is
-that value or the double next to it: the result is within
-nextOut(f<sub>tightest</sub>(x)), hence accurate. Below, "within k doubles"
-means that each bound is at most k doubles beyond the tightest one.
+GAOL bounds its elementary functions with CORE-MATH, which is correctly
+rounded in the rounding direction in effect. Computing in the upward rounding
+it keeps, GAOL takes the value at a bound as the upper bound, with nothing to
+add, and the double below it as the lower one: those are the tightest bounds,
+the second one unless the exact value is a double, which the operations below
+give exactly where it happens (log(1) = 0, sin(0) = 0, asin(1) = the bounds of
+π/2...). Where an algorithm evaluates the function at the bounds of the
+interval, the bounds of the interval are therefore the tightest ones.
+
+Before GAOL v5, the elementary functions but the hyperbolic ones were
+correctly rounded to nearest and moved one double outward, which is at most one
+double beyond the tightest bound but for the sine, computed as cos(x − [π/2]),
+and the real power, computed as exp(y log x), which were wider: accurate or not,
+and not tightest; the
+hyperbolic functions came from the mathematical library of the system, whose
+values are sometimes further than one double from the exact ones. Below, "within k doubles" means that each bound is
+at most k doubles beyond the tightest one.
 
 ## Conditions
 
-The statements hold for GAOL as the three builds make it: with the mathlib
-2.1.1 of `3rd/mathlib`, fixed and compiled as they do it (see
+The statements hold for GAOL as the three builds make it: with the CORE-MATH
+of `3rd/math-core`, compiled as they do it (see
 [3rd/README.md](../3rd/README.md)), and the code including GAOL's
 headers compiled with the flags of interval arithmetic (see
-[Using GAOL](using.md)); for the SSE2 intervals and the FPU intervals alike;
+[Using GAOL](using.md)); for the SSE2 intervals, the NEON intervals (GAOL v5) and the FPU intervals alike, and for the AVX-512 path
+of `GAOL_PREFER_AVX512`, whose bounds are those of the SSE2 path, bit for
+bit but for the sign of a zero bound of `x * d` (see [The same bounds on every
+machine](#the-same-bounds-on-every-machine));
 whatever the rounding direction the calling code left
-(`tests/rounding_direction.cpp`). The last section gives the differences with CRlibm and with the math library
-of the system. The float intervals `gaol::intervalf` and `gaol::interval2f`,
-off by default and unfinished, are not covered.
+(`tests/rounding_direction.cpp`), and with the floating-point exceptions
+masked, as a program starts: an operation that raises an enabled exception
+stops the program rather than give its bounds (see
+[The floating-point exceptions](using.md#the-floating-point-exceptions)). They
+hold on every architecture and with every compiler alike, CORE-MATH giving the
+same bits everywhere: there is no other mathematical library to build GAOL with
+(see [What differs from GAOL](differences.md)). The float intervals
+`gaol::intervalf` and `gaol::interval2f`, unfinished, which only a developer of
+GAOL compiles (`gaol/gaol_config.h`), are not covered.
 
 ## Basic operations (Table 9.1): tightest required
 
@@ -58,7 +85,7 @@ off by default and unfinished, are not covered.
 | `recip` | `inverse(x)`, `x.inverse()` | 1 divided by the bounds, rounded upward | tightest | tightest |
 | `sqr` | `sqr(x)` | Squares of the bounds rounded upward, 0 when x contains 0 | tightest | tightest |
 | `sqrt` | `sqrt(x)` | On x ∩ [0, +∞]: the square root u rounded upward, from the square root of the C library checked with a product rounded the other way and moved one double when needed; the lower bound is u when u·u = x exactly, the double below u otherwise | tightest | tightest |
-| `fma` | — | Not provided | | |
+| `fma` | `fma(x, y, z)` | x·y ranges over the hull of the products of the bounds, being bilinear, so x·y + z ranges from the least product plus inf z to the greatest plus sup z; each corner is rounded once by `std::fma`, upward for the upper bound and downward for the lower one as −fma(−a, b, −c), the result of `std::fma` going through `rnd_keep()` before it is negated: GCC folded −fma(−a, b, −c) into fma(a, b, c), a single instruction rounded upward, and the lower bound came one double above the exact one. A bound 0 times an infinite one counts as 0 (GAOL v5) | tightest | tightest, over 200 000 boxes against exact rational arithmetic |
 
 ## Integer and absmax functions: tightest required
 
@@ -66,7 +93,7 @@ off by default and unfinished, are not covered.
 |---|---|---|---|---|
 | `floor`, `ceil` | `floor(x)`, `ceil(x)` | Of each bound | tightest (exact) | exact |
 | — | `integer(x)` | The integers in x: [ceil(lower), floor(upper)] | tightest (exact) | exact |
-| `sign`, `trunc`, `roundTiesToEven`, `roundTiesToAway` | — | Not provided | | |
+| `sign`, `trunc`, `roundTiesToEven`, `roundTiesToAway` | `sign(x)`, `trunc(x)`, `round_ties_to_even(x)`, `round_ties_to_away(x)` | The value at each bound, each function being non-decreasing, as `ceil` and `floor` above; ∅ for ∅, which the four test: GAOL holds the empty interval as the two bounds NaN, which `trunc` and the two roundings send to themselves, where `sign` would give [0, 0], a NaN comparing false both to 0 and above it. None of them rounds, each returning a double that is an integer: `trunc` and `round_ties_to_away` are `std::trunc` and `std::round`, which the C++ standard defines without reading the rounding direction, and `round_ties_to_even` reads the bits (`gaol/math/gaol_roundeven.h`), where `std::nearbyint` and `std::rint` would round in the direction in effect, upward in GAOL (GAOL v5) | tightest, and exact | tightest; the same result in the four rounding directions, over 22 407 doubles (halfway values, whole numbers and the doubles on either side of them) |
 | `abs` | `abs(x)` | Magnitudes of the bounds, 0 when x contains 0 | tightest (exact) | tightest |
 | `min`, `max` | `min(x, y)`, `max(x, y)` | Of the bounds | tightest (exact) | tightest |
 
@@ -74,39 +101,57 @@ off by default and unfinished, are not covered.
 
 | IEEE 1788 | GAOL | Algorithm | Tightness | Tests |
 |---|---|---|---|---|
-| `pown(x, n)` | `pow(x, n)` for an int n, `uipow(x, n)` for an unsigned n, and `pow(x, y)` for a degenerate integer y | Binary exponentiation of the bounds from exact products: each product is rounded, and the rest, which `fma` gives exactly, is carried along and bounded, so that the power is rounded outward once at the end (n ≥ 3, and from 2<sup>−968</sup> up to the overflow; elsewhere, and for n = 2, each product rounded outward, as GAOL did for every power). x<sup>−n</sup> is 1/x<sup>n</sup>, or (1/x)<sup>n</sup> where x<sup>n</sup> is beyond the largest double, and [\|x\|<sup>−n</sup>, +∞] or [−∞, +∞] where x contains 0 inside | n = 0, 1, 2: tightest. n ≥ 3: the tightest bounds, or one double beyond where the power is within n·2<sup>−104</sup> of a double; exact where the power is a double; the rounded products, within about 2(n − 1) doubles, below 2<sup>−968</sup> and at the overflow. Negative n: valid, one rounded division more, within 2 doubles where x<sup>n</sup> is normal; tightest where the exact bounds are doubles | tightest for x between 2<sup>−30</sup> and 2<sup>30</sup>; within n doubles for all doubles; −n: within 8 doubles for n ≤ 3, overflows included; tightest on the special cases |
-| `pow(x, y)` | `pow(x, y)`, `pow(x, d)` for a non-integer y | On x ∩ [0, +∞], with finite bounds: mathlib's pow, correctly rounded to nearest, at the corners of the box x × y where x<sup>y</sup> is the least and the greatest, which the places of the bounds about 1 and 0 give, moved one double outward; 1 where a corner has the base 1 or the exponent 0; [0, ·] for a base from 0 and exponents above 0. With an infinite bound, or a base from 0 and an exponent that is not above 0: exp(y·log(x)), which gives the limits; 0<sup>y</sup> = 0 for y > 0, ∅ for y ≤ 0 | accurate with finite bounds: within one double; valid otherwise | within 1 double at points and over 385 boxes; 4 doubles on the special cases |
-| `exp` | `exp(x)` | mathlib's exp, correctly rounded to nearest, at the bounds, moved one double outward; the lower bound at least 0; exp(0) = 1 exactly | accurate: within one double | within 1 double |
-| `log` | `log(x)` | CORE-MATH's log at the bounds of x ∩ [0, +∞], correctly rounded upward: the value at the right bound, and the double below the value at the left bound (with mathlib and CRlibm, where the compiler has a 128-bit integer type, `GAOL_CORE_MATH_LOG`; mathlib's log moved one double outward otherwise, with Visual C++ and on 32-bit targets); ∅ when x holds no positive number; log(0) = −∞, log(1) = 0 exactly | tight; accurate, within one double, with mathlib's log | tight at the 75 doubles of the tests and the million intervals of doc/compare (within 1 double with mathlib's log) |
-| `exp2`, `exp10`, `log2`, `log10` | — | Not provided | | |
+| `pown(x, n)` | `pow(x, n)` for an integer n of any type, and `pow(x, y)` and `pow(x, d)` for a degenerate integer y or an integer double d (`gaol_pown()`, `gaol_uipow()`, `gaol_pown_ll()`); `gaol_ieee1788::pown(x, n)` | Within the ints: n = 2 is `sqr(x)` (GAOL v5), the squares of the bounds rounded outward; any other n, the powers of the two corners of x where x<sup>n</sup> is the least and the greatest, computed at once, in the two lanes of an SSE2 register with the FMA instructions or of a NEON register, or of a pair of doubles otherwise (the FPU intervals, and SSE2 without FMA), the same operations in the same order (GAOL v5). Binary exponentiation from exact products: each product is rounded, and its rest, which `fma` gives exactly, is carried along, so that the power is h + l, within K·\|h\| of it, K = (8n·L + 16)·2<sup>−104</sup> for an n of L bits, a bound proved beforehand (`gaol/core/gaol_interval_core.cpp`); each bound is then rounded once, h + l + K·\|h\| upward and h + l − K·\|h\| downward, and K is left out where every rest is 0, x<sup>n</sup> being a double. x<sup>−n</sup> is 1/(h + l): the inverse of h rounded, corrected with the rest of 1 − q(h + l) to the second order, rounded once the same way; x<sup>−1</sup> is the inverse. A corner whose powers leave [2<sup>−968</sup>, 2<sup>960</sup>] is computed alone, scaled to [1, 2) and its power kept below 2<sup>501</sup> by powers of two, then scaled back with one rounding in the direction of the bound, beyond the largest double and among the subnormals too; 0 and ±∞ give the limits of x<sup>n</sup>: [mag(x)<sup>n</sup>, +∞] where x holds 0 for an even n < 0, [−∞, +∞] where it holds 0 inside for an odd one, ∅ for [0]. Beyond the ints: CORE-MATH's pow at the corners, as `pow(x, y)` below, the sign from the parity of n; for an n of more than 53 bits that is no double, x<sup>h</sup>·x<sup>l</sup> rounded outward, n = h + l, h a double and \|l\| < 2<sup>11</sup>; beyond 64 bits, n is taken as ±(2<sup>63</sup> − 1) or ±(2<sup>63</sup> − 2), of its sign and parity, every power of a double but 0, ±1 and ±∞ being beyond the doubles there (GAOL v5: [−∞, +∞] beyond the unsigned ints, and beyond the ints for `pow(x, y)`; within them, 1/x<sup>n</sup> rounded twice, and the products rounded outward, as GAOL computed every power, where a bound was 0 or infinite or its power beyond the doubles) | tightest, or one double beyond where x<sup>n</sup> is within 2K of a double, relatively (none for n = 2, which is `sqr(x)`; K is 2<sup>−98</sup> at n = 3, 2<sup>−88</sup> at n = 1000, 2<sup>−65</sup> at n = 2<sup>31</sup> − 1, and about 2<sup>−62</sup> at n = −2<sup>31</sup>, where one bound in about 400 is one double beyond); exact where x<sup>n</sup> is a double. Beyond the ints: tightest where n is a double, within three doubles otherwise | tightest at 5 000 doubles drawn at random, with exponents from −30 to 30 and over all the doubles, subnormal results and overflows included, for n from 2 to 9, 16, 31 to 33 and −1 to −4, −7, −16 and −33, and over 5 000 intervals drawn so, for n from 2 to 5, 12, 31 and −1 to −3, −6, −17, x holding 0 included, against the exact powers; tightest over 4 000 intervals near the ends of the doubles (a bound 0 or infinite, powers below 2<sup>−1000</sup> or above 2<sup>1100</sup>); exact at the 8 679 powers that are doubles; tightest at 13 powers for n from 2<sup>24</sup> + 1 to 2<sup>32</sup> − 1, and at 6 corners computed alone, against mpmath; beyond the ints: tightest at the powers of `elementary` and `ieee1788` there (odd and even exponents, negative bases, exponents of 64 and 128 bits), tightest at 5 beyond 2<sup>53</sup> where n is a double, and within three doubles at 4 where it is none, of intervals, against mpmath; x<sup>2</sup> is `sqr(x)` over 400 intervals near 1, 3, 0.75 and 2<sup>−500</sup>, and bit for bit, the sign of a zero included, in each of its forms (`pow(x, 2)`, `2u`, `2.0`, `[2]`, `gaol_ieee1788::pown(x, 2)` and `pow(x, [2])`), over the special bounds and 90 000 random intervals, in each direction of the calling code and with each flush mode; (−c)<sup>n</sup> is ±c<sup>n</sup>, and the bound from a corner the same whether the other corner is computed with it or alone, at 1 088 points near 1, 1.5 and 3 and at 12 736 more within 16 doubles of 1; ITF1788: the tightest in its 163 cases of `pown` |
+| `pow(x, y)` | `pow(x, y)`, `pow(x, d)` for a non-integer y (`gaol_pow_hybrid()`, `gaol_pow_real()`); `gaol_ieee1788::pow(x, y)` for any y | On x ∩ [0, +∞]: CORE-MATH's pow at the corners of the box x × y where x<sup>y</sup> is the least and the greatest, which the places of the bounds about 1 and 0 give, correctly rounded upward: the value at the upper corner, and the double below the value at the lower one unless x<sup>y</sup> is a double there, which it is for x = 2<sup>p</sup> and an integer p·y of [−1074, 1023], and for x = c<sup>2<sup>k</sup></sup>·2<sup>f·2<sup>k</sup></sup> (c ≥ 3 odd) and y = a/2<sup>k</sup> (a > 0, odd if k > 0) where c<sup>a</sup> < 2<sup>53</sup> and c<sup>a</sup>·2<sup>f·a</sup> is within the doubles, y being then a multiple of 1/32 in (0, 33]; the lower bound is then x<sup>y</sup> itself, which a test on x and y proves with integers and exact operations, leaving at once for nearly every y, where calling CORE-MATH downward too would double the cost of the power (GAOL v5); 1 where a corner has the base 1 or the exponent 0; at a corner where the base is 0 or +∞ or the exponent infinite, the limit of x<sup>y</sup> there, 0 or +∞, which is the bound itself (GAOL v5: exp(y·log(x)) before, which gave bounds one to hundreds of doubles beyond); 0<sup>y</sup> = 0 for y > 0, ∅ for y ≤ 0. An integer y beyond the ints, in `gaol_ieee1788::pow`: the corners at the bounds of x, x<sup>y</sup> being monotone in x, where the `pow` of `gaol` takes `pown` (GAOL v5: [−∞, +∞]) | tightest, at the corners and at their limits (`pow([4], 0.5)` is [2], `pow([4, +∞], 0.5)` [2, +∞]), those at the bounds of x for an integer y beyond the ints included; for a degenerate integer y within the ints, the integer power of `pown` above, one double beyond the tightest where x<sup>y</sup> is within 2K of a double (`gaol_ieee1788::pow([0x1.fffffffffffffp+1], [7])` has its lower bound, 0x1.ffffffffffff8p+13, one double below the tightest, 0x1.ffffffffffff9p+13) | within 1 double at points and over 385 boxes; the tightest, or one double beyond for one integer power, on the 117 boxes of `ieee1788`, the limits at 0 and +∞ included, against mpmath; tightest on the 1347 cases of `pow` of [ITF1788](compare/itf1788.md); tightest at 5 integer exponents beyond the ints; tightest, both bounds, at the corners of 84 070 boxes of a base and an exponent (powers of two, perfect powers, midpoints, at the edges of the doubles too, and their neighbours), against x<sup>y</sup> computed exactly at the 8 981 where it is rational, 3 211 of them with a power that is a double, and compared exactly at the 12 540 where it is the 2<sup>k</sup>-th root of a rational, k ≤ 6 |
+| `exp` | `exp(x)` | CORE-MATH's exp at the bounds, correctly rounded upward: the value at the right bound, and the double below the value at the left bound; the lower bound at least 0; exp(0) = 1 exactly | tightest where the function is evaluated at the bounds | tightest at about 9 000 doubles of every magnitude |
+| `log` | `log(x)` | CORE-MATH's log at the bounds of x ∩ [0, +∞], correctly rounded upward: the value at the right bound, and the double below the value at the left bound; ∅ when x holds no positive number; log(0) = −∞, log(1) = 0 exactly | tightest | tightest at the 75 doubles of the tests and the million intervals of doc/compare |
+| `exp2`, `exp10` | `exp2(x)`, `exp10(x)` | CORE-MATH's exp2 and exp10 at the bounds, correctly rounded upward: the value at the right bound, and the double below the value at the left bound unless that value is a double, which 2<sup>x</sup> is for an integer x of [−1074, 1023] and 10<sup>x</sup> for an integer x of [0, 22] (10<sup>23</sup> is no double, and no negative power of ten is); the lower bound at least 0 (GAOL v5) | tightest | tightest, over 6 483 doubles each, and at the values that are doubles |
+| `log2`, `log10` | `log2(x)`, `log10(x)` | CORE-MATH's log2 and log10 at the bounds of x ∩ [0, +∞], correctly rounded upward, the double below the value at the left bound unless that value is a double, which log<sub>2</sub>x is for a power of two and log<sub>10</sub>x for a power of ten of [10<sup>0</sup>, 10<sup>22</sup>]; ∅ when x holds no positive number (GAOL v5) | tightest | tightest, over 6 483 doubles each, and at the values that are doubles |
 
 ## Trigonometric and hyperbolic functions: valid required, accurate recommended
 
 | IEEE 1788 | GAOL | Algorithm | Tightness | Tests |
 |---|---|---|---|---|
-| `cos` | `cos(x)` | The bounds divided by an enclosure of π, rounded outward, tell whether x lies on one piece where cos is monotonic; rounded inward, whether an extremum is within x for sure. Where they cannot tell, a bound being within about \|x\|·2<sup>−52</sup> of a multiple of π, or beyond 2<sup>52</sup>, the signs of mathlib's sin at the bounds do, exactly, x being narrower than 2π (and the sign at the middle of x from π on): signs that differ show one extremum, −1 or 1 according to their order. Then mathlib's cos at the bounds, correctly rounded to nearest, moved one double outward, within [−1, 1]; cos(0) = 1 exactly | accurate, at every magnitude: within one double, −1 and 1 exactly where x holds a multiple of π. [−1, 1] from the width 2·π̲ on, π̲ being the double below π: tightest but for the widths between 2·π̲ and 2π | within 1 double, for all doubles, and over intervals next to the extrema and of width about π and 2π |
-| `sin` | `sin(x)` | As cos, the bounds divided by an enclosure of π, minus 1/2, and the signs of mathlib's cos where the quotients cannot tell; mathlib's sin at the bounds, moved one double outward, within [−1, 1]; sin(0) = 0 exactly | accurate, at every magnitude, as cos | as cos |
-| `tan` | `tan(x)` | [−∞, +∞] when x is wider than π or holds a pole: (x + [π/2])/[π] at the bounds, rounded outward, tells that no pole is within x when the integer parts agree, and rounded inward that one is for sure; where they cannot tell, the signs of mathlib's cos at the bounds do, exactly, a pole being within x when they differ. Otherwise mathlib's tan at the bounds, moved one double outward; tan(0) = 0 exactly | accurate, at every magnitude: within one double between two poles, [−∞, +∞] exactly when a pole is within x, but for the widths between π̲ and π | within 1 double, for all doubles, and over intervals next to the poles |
-| `asin`, `acos` | `asin(x)`, `acos(x)` | mathlib's asin and acos at the bounds of x ∩ [−1, 1], moved one double outward; at −1, 0 and 1, 0 exactly or the tightest bounds of ±π/2 and π | accurate: within one double; tightest at −1, 0 and 1 | within 1 double; tightest at −1, 0 and 1 |
-| `atan` | `atan(x)` | mathlib's atan at the bounds, moved one double outward; at 0, ±1 and ±∞, 0 exactly or the tightest bounds of ±π/4 and ±π/2 | accurate: within one double; tightest at 0, ±1 and ±∞ | within 1 double; tightest at 0, ±1 and ±∞ |
-| `atan2` | `atan2(y, x)` | mathlib's atan2, correctly rounded to nearest, at the corners of the box y × x where the angle is the least and the greatest, which the signs of the bounds give, moved one double outward; 0, ±π/4, ±π/2 and π where a corner is on an axis, on a diagonal of the right half-plane or at an infinity; [−π, π] when the box has points on the half-line y = 0, x < 0, where the angle is π, and points below it; ∅ for the box {(0, 0)} | accurate: within one double; tightest where a bound is 0, ±π/4, ±π/2 or ±π | within 1 double; tightest on the special cases |
-| `sinh`, `tanh`, `asinh` | `sinh(x)`, `tanh(x)`, `asinh(x)` | CORE-MATH's functions at the bounds (mathlib has none), correctly rounded to nearest, moved one double outward; tanh within [−1, 1]. 0 at 0 exactly; sinh(x) beyond ±MAX for \|x\| ≥ 711, and tanh(x) beyond ±(1 − 2<sup>−53</sup>) for \|x\| ≥ 20, where 1 − \|tanh(x)\| < 2<sup>−54</sup> | accurate: within one double, whatever the math library of the system; tightest at 0 and at the bounds given | within 1 double; tightest at 0, and beyond 711 and 20 |
-| `cosh` | `cosh(x)` | As sinh, at the bound of largest magnitude; 1 when x contains 0, and at 0; beyond MAX for \|x\| ≥ 711 | accurate: within one double; tightest at 0 and beyond 711 | within 1 double; tightest at 0 and beyond 711 |
-| `acosh`, `atanh` | `acosh(x)`, `atanh(x)` | As sinh, on x ∩ [1, +∞], respectively x ∩ [−1, 1]; acosh(1) = 0 and atanh(0) = 0 exactly | accurate: within one double; tightest at 1, respectively 0 | within 1 double; tightest at 1 and 0 |
+| `cos` | `cos(x)` | The bounds divided by an enclosure of π, rounded outward, tell whether x lies on one piece where cos is monotonic; rounded inward, whether an extremum is within x for sure. Where they cannot tell, a bound being within about \|x\|·2<sup>−52</sup> of a multiple of π, or beyond 2<sup>52</sup>, the signs of CORE-MATH's sin at the bounds do, exactly, x being narrower than 2π (and the sign at the middle of x from π on): signs that differ show one extremum, −1 or 1 according to their order. Then CORE-MATH's cos at the bounds, correctly rounded upward (the double below the value at the bound where the cosine is the least), within [−1, 1]; cos(0) = 1 exactly | tightest where the function is evaluated at the bounds, at every magnitude: −1 and 1 exactly where x holds a multiple of π. [−1, 1] from the width 2·π̲ on (π̲ being the double below π), and [−1, 1] is then the tightest result: an interval that wide misses an arc shorter than 2.5·10<sup>−16</sup>, around an extremum, where the sine and the cosine stay within 10<sup>−31</sup> of ±1; that the test of a width below π̲ gives the tightest bounds is measured, not proved: the tightest bounds of sin and cos over 29 400 intervals of width about π whose bounds are next to extrema of sin | tightest at about 9 000 doubles of every magnitude, and over intervals next to the extrema and of width about π and 2π |
+| `sin` | `sin(x)` | As cos, the bounds divided by an enclosure of π, minus 1/2, and the signs of CORE-MATH's cos where the quotients cannot tell; CORE-MATH's sin at the bounds, correctly rounded upward, within [−1, 1]; sin(0) = 0 exactly | tightest, at every magnitude, as cos | as cos |
+| `tan` | `tan(x)` | [−∞, +∞] when x is wider than π̲, the double below π, or holds a pole: (x + [π/2])/[π] at the bounds, rounded outward, tells that no pole is within x when the integer parts agree, and rounded inward that one is for sure; where they cannot tell, the signs of CORE-MATH's cos at the bounds do, exactly, a pole being within x when they differ. Otherwise CORE-MATH's tan at the bounds, correctly rounded upward; tan(0) = 0 exactly | tightest between two poles, at every magnitude, [−∞, +∞] exactly when a pole is within x, but for the widths above π̲ and below π, a theoretical case | tightest at about 9 000 doubles of every magnitude, and over intervals next to the poles, [−M_PI_2, M_PI_2] and the intervals of width π̲ or next to it between two poles included |
+| `asin`, `acos` | `asin(x)`, `acos(x)` | CORE-MATH's asin and acos at the bounds of x ∩ [−1, 1], correctly rounded upward; at −1, 0 and 1, 0 exactly or the tightest bounds of ±π/2 and π | tightest; and exactly 0 or the bounds of ±π/2 and π at −1, 0 and 1 | within 1 double; tightest at −1, 0 and 1 |
+| `atan` | `atan(x)` | CORE-MATH's atan at the bounds, correctly rounded upward; at 0, ±1 and ±∞, 0 exactly or the tightest bounds of ±π/4 and ±π/2 | tightest; and exactly 0 or the bounds of ±π/4 and ±π/2 at 0, ±1 and ±∞ | within 1 double; tightest at 0, ±1 and ±∞ |
+| `atan2` | `atan2(y, x)` | CORE-MATH's atan2 at the corners of the box y × x where the angle is the least and the greatest, which the signs of the bounds give, correctly rounded upward; 0, ±π/4, ±π/2 and π where a corner is on an axis, on a diagonal of the right half-plane or at an infinity; [−π, π] when the box has points on the half-line y = 0, x < 0, where the angle is π, and points below it; ∅ for the box {(0, 0)} | tightest at the corners; and exactly 0, ±π/4, ±π/2 or ±π where a bound is one of them | within 1 double; tightest on the special cases |
+| `sinh`, `tanh`, `asinh` | `sinh(x)`, `tanh(x)`, `asinh(x)` | CORE-MATH's functions at the bounds, correctly rounded upward; tanh within [−1, 1]. 0 at 0 exactly; sinh(x) beyond ±MAX for \|x\| ≥ 711, and tanh(x) beyond ±(1 − 2<sup>−53</sup>) for \|x\| ≥ 20, where 1 − \|tanh(x)\| < 2<sup>−54</sup> | tightest; and exact at 0 and at the bounds given | within 1 double; tightest at 0, and beyond 711 and 20 |
+| `cosh` | `cosh(x)` | As sinh, at the bound of largest magnitude for the upper bound and, for the lower one, at the bound of smallest magnitude, or 1 when x contains 0; beyond MAX for \|x\| ≥ 711 | tightest; and exact at 0 and beyond 711 | within 1 double; tightest at 0 and beyond 711 |
+| `acosh`, `atanh` | `acosh(x)`, `atanh(x)` | As sinh, on x ∩ [1, +∞], respectively x ∩ [−1, 1]; acosh(1) = 0 and atanh(0) = 0 exactly. atanh is defined on (−1, 1), −∞ and +∞ being its limits at −1 and 1, which are bounds but no values: ∅ when x holds no point of (−1, 1), as [1], [1, 5], [−1] and [−5, −1] (GAOL v5) | tightest; and exact at 1, respectively 0 | within 1 double; tightest at 1 and 0; ∅ for those four |
 
-The hyperbolic functions are those of [CORE-MATH](https://core-math.gitlabpages.inria.fr/)
-(`gaol/core_math_*.c`, see [3rd/core-math](../3rd/core-math/README.md)),
-correctly rounded as mathlib's functions are: GAOL took them from the libm of
-the system, whose values are sometimes further than one double from the exact
-ones, and millions of doubles away for the `acosh` of some
-([issue #1](https://github.com/Jordan08/GAOL/issues/1)).
+Every elementary function above is that of
+[CORE-MATH](https://core-math.gitlabpages.inria.fr/) (`3rd/math-core`, see
+[3rd/README.md](../3rd/README.md)). Before v5, GAOL took the hyperbolic
+functions from the libm of the system, whose values are sometimes further than
+one double from the exact ones, and millions of doubles away for the `acosh` of
+some ([issue #1](https://github.com/Jordan08/GAOL/issues/1)), and the others
+from a library correctly rounded to nearest only, whose values it moved one
+double outward.
 
 ## Recommended functions (Table 10.5)
 
 | IEEE 1788 | GAOL | Algorithm | Tightness | Tests |
 |---|---|---|---|---|
-| `rootn(x, n)`, n > 0 | `nth_root(x, n)` | n = 1: x; n = 2: `sqrt`. Otherwise, on x (odd n, the root of a negative number being the opposite of the root of its magnitude) or x ∩ [0, +∞] (even n): the lower bound is the largest double l with l<sup>n</sup> rounded upward at most the bound of x, the upper bound the smallest double u with u<sup>n</sup> rounded downward at least it, which proves them; they are looked for from mathlib's pow with the exponent 1/n rounded, after a step of Newton's method, by steps that double then by bisection, two powers where the start is next to the root; the roots of 0 and 1 are 0 and 1 | n = 1, 2: tightest; tightest where the bound of x is an n-th power of a double. Otherwise accurate: the n − 1 rounded products of l<sup>n</sup> move the root by less than 2<sup>−53</sup> relatively, the bounds being the tightest or one double beyond, whatever the magnitude of x and whatever the math library | within 2 doubles, for all doubles (1 found) |
-| others | — | Not provided | | |
+| `rootn(x, n)`, n > 0 | `nth_root(x, n)` | n = 1: x; n = 2: `sqrt`; **n = 3: CORE-MATH's cbrt at the bounds, correctly rounded upward on their magnitudes, the root of a negative number being the opposite of the root of its magnitude: the tightest bounds, and exact where the cube root is a double, which cubing the value tells (GAOL v5; 50 ns rather than 189 with the search below, Intel i7-1185G7, Clang 18.1)**. Otherwise, on x (odd n, the root of a negative number being the opposite of the root of its magnitude) or x ∩ [0, +∞] (even n): the lower bound is the largest double l with l<sup>n</sup> rounded upward at most the bound of x, the upper bound the smallest double u with u<sup>n</sup> rounded downward at least it, which proves them; they are looked for from CORE-MATH's pow with the exponent 1/n rounded, after a step of Newton's method, by steps that double then by bisection, two powers where the start is next to the root; the roots of 0 and 1 are 0 and 1 | n = 1, 2, 3: tightest; tightest where the bound of x is an n-th power of a double. Otherwise the n − 1 rounded products of l<sup>n</sup> move the root by less than 2<sup>−52</sup> relatively, the bounds being the tightest or up to 2 doubles beyond, whatever the magnitude of x, which is not accurate where the order is large (`nth_root([0x1.16ef146ba87dap-473], 1000)` has its upper bound 2 doubles above the tightest one, 1 above the accurate one). An order beyond the ints and the unsigned ints (GAOL v5): CORE-MATH's pow at the corners, with the exponent 1/n as an interval, within 1 double of the tightest | within 2 doubles at the doubles they draw (1 found), among them the x below 2<sup>−1020</sup>, subnormal ones included, with n up to 2<sup>32</sup> − 1, against exact arithmetic and mpmath (GAOL v5); beyond the unsigned ints, the tightest on the values of `ieee1788` |
+| `rootn(x, q)`, q < 0 | `nth_root(x, q)` | 1/x<sup>1/\|q\|</sup>, the inverse of the root above: the domain is then ℝ∖{0} for an odd q and (0, +∞) for an even one, which taking the inverse gives, an interval holding 0 having for inverse the hull of the values away from it. `nth_root(x, 0)` is ∅ (GAOL v5) | valid: the root above, then the tightest division, up to 4 doubles beyond the tightest bounds | encloses, over 1.5 million values against a reference in long double; the inverse of the positive root, over 8 000 values |
+| `expm1`, `exp2m1`, `exp10m1` | `expm1(x)`, `exp2m1(x)`, `exp10m1(x)` | CORE-MATH's functions at the bounds, correctly rounded upward, the double below the value at the left bound unless it is a double, which b<sup>x</sup> − 1 is at 0, and at the integers of [−53, 53] for b = 2 and of [0, 15] for b = 10; within [−1, +∞] (GAOL v5) | tightest | tightest, over 400 000 points and intervals each |
+| `sinPi`, `cosPi` | `sinpi(x)`, `cospi(x)` | The extrema are at the multiples of 1/2, which are doubles: doubling the bounds, which is exact, and taking their ceiling and floor give exactly the integers t = 2x within, and sin(πx) has its maximum 1 at the t congruent to 1 modulo 4 and its minimum −1 at those congruent to 3 (cos at 0 and 2); otherwise CORE-MATH's functions at the bounds, exact at the multiples of 1/2. Beyond 2<sup>61</sup> two distinct doubles are whole periods apart, [−1, 1] (GAOL v5) | tightest, at every magnitude: sinPi(10<sup>17</sup>) is 0, where sin(π·x) gave [−1, 1] | tightest, over 400 000 points and intervals each |
+| `tanPi` | `tanpi(x)` | As sinPi, its poles at the odd t: [−∞, +∞] with a pole within, −∞ or +∞ for a pole at a bound, and ∅ for a pole alone, where tanPi has no value (GAOL v5) | tightest | tightest, over 400 000 points and intervals |
+| `logp1`, `log2p1`, `log10p1` | `log1p(x)`, `log2p1(x)`, `log10p1(x)` | CORE-MATH's functions at the bounds of x ∩ [−1, +∞], the value at −1 being the limit −∞, and x holding no number above −1 giving ∅; the double below the value at the left bound unless it is a double, which log<sub>b</sub>(1 + x) is at 0, at 2<sup>k</sup> − 1 for b = 2 (k in [−53, 53]) and at 10<sup>k</sup> − 1 for b = 10 (k in [0, 15]) only (GAOL v5) | tightest | tightest, over 40 000 intervals each, their bounds drawn among those points and their neighbours |
+| `hypot` | `hypot(x, y)` | CORE-MATH's hypot at the point of the box nearest to the origin, (mig x, mig y), and at the farthest, (mag x, mag y). The lower bound is the value itself where it is a double: writing a, b and h = √(a² + b²) as odd integers times powers of two, a² + b² = h² can only hold where h has the power of two of the one of a, b whose power is the smaller, and h² − b² = a²·4<sup>d</sup> is then compared exactly on 107 bits (GAOL v5) | tightest | tightest, over 200 000 boxes, among them Pythagorean triples scaled by powers of two and the doubles next to them |
+| `rSqrt` | `rsqrt(x)` | CORE-MATH's rsqrt at the bounds of x ∩ [0, +∞], decreasing, the value at 0 being the limit +∞, and x holding no positive number giving ∅; exact at the powers of 4 (GAOL v5) | tightest | tightest, over 40 000 intervals |
+| `atanPi`, `asinPi`, `acosPi` | `atanpi(x)`, `asinpi(x)`, `acospi(x)` | CORE-MATH's functions at the bounds, asinPi and acosPi on x ∩ [−1, 1], acosPi decreasing; exact at 0 and ±1 (and ±∞ for atanPi), the only doubles where the values are doubles (asinPi(±1/2) = ±1/6, acosPi(1/2) = 1/3 and acosPi(−1/2) = 2/3 are rational too, but not doubles) (GAOL v5) | tightest | tightest, over 400 000 points and intervals each (40 000 intervals for asinPi, and the arguments next to ±1 where CORE-MATH's asinpi shifted a 64-bit integer by 65 to 69 bits, see [3rd/README.md](../3rd/README.md)) |
+| `atan2Pi` | `atan2pi(y, x)` | The analysis of the box of `atan2`, the angles divided by π: [−1, 1] for a box crossing the half-line y = 0, x < 0, the corners elsewhere. The values at the multiples of 1/4 (0, ±1/4, ±1/2, ±3/4, 1, and −1 as a limit) are exact, CORE-MATH's atan2pi giving the others, which are irrational (GAOL v5) | tightest | tightest, over 200 000 boxes |
+| `compoundm1(x, y)` | `compoundm1(x, y)` | The analysis of the box of `pow` for the base 1 + x: the value at the corner each bound is at, since (1 + x)<sup>y</sup> − 1 increases with y for x > 0 and decreases for x < 0, increases with x for y > 0 and decreases for y < 0, and is 0 on x = 0 and y = 0. The limits −1 and +∞ are the bounds at x = −1, x = +∞ and for an infinite y, and the empty set is the result for x < −1 and for x = −1 with y ≤ 0, where the function has no value. CORE-MATH has no compoundm1, and exp(y log1p(x)) − 1 computed with doubles multiplies the relative error of log1p by \|y log1p(x)\| (up to 1 100 doubles from the value near the overflow, over 300 draws with `math.expm1` and `math.log1p`): the value at a corner is computed in `gaol/math/gaol_compoundm1.h` with integers only: a fast phase with 64-bit fixed point first, whose error bound is proved (27 to 200 units of 2<sup>−63</sup> relatively, 4.6 to 10 times the worst error found) and which settles 95 % of the pairs for \|y log1p(x)\| below 0.35, 92 % from 0.35 to 1, 90 % from 1 to 2, 83 % from 2 to 4 and 71 % from 4 to 8 (and none past, nor for \|log1p(x)\| above 8, x < −0.99966 or x > 2 980), the others going on to a 128-bit significand in balls that add the error of each operation to a bound of the error. Both start from log1p(x) of CORE-MATH, corrected by one step of Newton's method, as the balls do (d = (1 + x) exp(−y0) − 1, y0 + d − d<sup>2</sup>/2 + d<sup>3</sup>/3), multiplied by y, then exp − 1 by a series of 27 terms after the reduction by a multiple of log 2. The ball is no wider than 2<sup>−111</sup> relatively for \|y log1p(x)\| below 746 (2<sup>−118</sup> below 10, 2<sup>−120</sup> below 1), and the bounds are the doubles around it. A corner takes 0.1 µs where the fast phase settles it and 0.6 to 0.9 µs in the balls (i7-1185G7, GCC 15): 0.12 µs for a point and 0.23 µs for a box of x between −0.3 and 0.5 and y between 0.1 and 3, instead of 2 µs with the balls alone. y = −1 is the quotient −x/(1 + x) of two integers, which is divided exactly (the value is the double where the division is exact). The value is the double d where (1 + x)<sup>y</sup> = 1 + d, which integers prove for y = P/2<sup>k</sup>: s = 1 + x a power of two with y log<sub>2</sub> s an integer, or s the 2<sup>k</sup>-th power of an integer R times a power of two with R<sup>P</sup> = 1 + d (2.375 = 1.5<sup>3</sup> − 1, 1.25, 0.5 = √2.25 − 1, 2<sup>m</sup> − 1 for \|m\| ≤ 53); it is y x on the side y (y − 1) tells where y x is a double and x (\|y\| + 2) ≤ 1/2, the ball not telling the side where x \|y − 1\| is below 2<sup>−119</sup>; and 2<sup>m</sup> − 1 is between the double below 2<sup>m</sup> and 2<sup>m</sup> for m past 53, which the ball cannot tell from m = 118 on (GAOL v5) | tightest, but where the value is within 2<sup>−111</sup> relatively of a double that is not the value, none of the cases above tells it and the fast phase (which tells the doubles apart that are 2<sup>−55</sup> to 2<sup>−58</sup> apart relatively or more) has not settled the pair: about one pair (x, y) in 10<sup>17</sup> drawn at random for the balls, 5 % of the pairs going to them, and none among the 5 854 pairs of the tests, then one double wider on that side. The contrived values of y = −1 and x = ±(2<sup>e</sup> + 2<sup>2e−1</sup>) for e from −51 to −40 (1/(1 + x) = 1 − x + x<sup>2</sup> − x<sup>3</sup>... has its cubic term cancelled, and is within 2<sup>−155</sup> of a double) are the tightest ones now, with the division | tightest, over 5 854 pairs (x, y) of every magnitude, among them the values that are doubles, the tiny x down to the subnormals, y = −1 (719 values of x, the contrived ones among them, 633 of them divided), the edges of the fast phase (\|log1p(x)\| = 1/2 and 8, y log1p(x) = 8 and log(2)/2), the thresholds of the reduction and of the cuts, and 850 boxes (the definition read from the hull of the corners), against mpmath at 1 500 to 7 000 bits and fractions; the balls of log1p and exp − 1 against mpmath to 256 bits (GAOL v5) |
+
+## The error functions, which IEEE 1788-2015 does not name
+
+| IEEE 1788 | GAOL | Algorithm | Tightness | Tests |
+|---|---|---|---|---|
+| — | `erf(x)`, `erfc(x)` | CORE-MATH's erf and erfc at the bounds, correctly rounded upward, erf being increasing and erfc decreasing: the value at one bound, and the double below the value at the other one unless that value is a double, which it is at 0 (erf(0) = 0, erfc(0) = 1) and at ±∞ (the limits ±1 of erf, 2 and 0 of erfc); within [−1, 1] and [0, 2]. erf(x) is within 2<sup>−53</sup> of ±1 from \|x\| = 5.87 on, where its bounds are 1 − 2<sup>−53</sup> and 1, or −1 and −(1 − 2<sup>−53</sup>), and erfc(x) is subnormal from x = 26.55 on, and below 2<sup>−1074</sup> from x = 27.22 on, where its lower bound is 0. erf and erfc are not known to take a value that is a double at any other double, and CORE-MATH's sources treat no such case (GAOL v5) | tightest | tightest, at the 409 doubles of `elementary_values.h` (tiny arguments, changes of binade, the arguments where the values round to ±1, 2 or 0 or become subnormal, hard cases of CORE-MATH's erfc.c) and over the intervals between them, against mpmath; over 9 225 doubles and 80 000 intervals against CORE-MATH in both directed roundings |
 
 ## Reverse functions (Table 10.1): accurate
 
@@ -125,12 +170,15 @@ the values they are given, within the number of doubles below.
 |---|---|---|---|
 | `sqrRev(c, x)` | `sqrt_rel(c, x)` | accurate | accurate; within 1 double of the value it keeps |
 | `absRev(c, x)` | `invabs_rel(c, x)` | tightest: the bounds of J, of −J and of I | tightest |
-| `pownRev(c, x, p)`, p > 0 | `nth_root_rel(c, p, x)` | accurate (the roots of `nth_root()`) | accurate, within 1 double of the tightest; within 2 doubles of the value it keeps |
+| `pownRev(c, x, p)`, p > 0 | `nth_root_rel(c, p, x)`; beyond the unsigned ints, the hull of the parts of x in the roots of `nth_root()` and, for an even p, in their opposites (GAOL v5) | the roots of `nth_root()`: tightest for p ≤ 3, up to 2 doubles beyond the tightest otherwise, which is not accurate where the order is large | within 1 double of the tightest on the cases of the tests; within 2 doubles of the value it keeps |
+| `pownRev(c, x, p)`, p ≤ 0 | `nth_root_rel(c, p, x)` (GAOL v5) | p = 0: x where 1 is in c, ∅ elsewhere. p < 0: c is cut at 0, and the part at least 0 and, for an odd p, the part at most 0 each give the roots `nth_root(part, p)` (the root, then the tightest division: up to 4 doubles beyond the tightest bounds), whose parts in x, 0 left out, have the hull (the hull of the roots of c, which joins its parts, would keep the part of x between them, and the roots reach 0 where c is unbounded, 0 having no power of negative exponent): valid | p = 0: exact. p < 0: valid; ∅ where the hull is ∅, in the cases written out; within 2 doubles of the accurate bounds of 12.10.1 on the tests, but for [2.25] and p = −127, where it is 3 beyond (of the 18 052 random cases with p < 0 of `nonpositive_pown_rev_cases(20000)` in `tests/reverse_values.py`, 12 495 have a nonempty result with nonempty accurate bounds: 521 are one double beyond them, 25 two, none more); at most 2 doubles from the tightest bounds on the table of `tests/reverse.cpp`, and 3 on those random cases (60 of them); 4 found for [2.25] and p = −127. Where p = −1 and 1/c reaches beyond the largest double (c below 1/DBL_MAX, about 2<sup>−1024</sup>), a bound saturates at ±DBL_MAX, as `div_rel` does: valid, but beyond 4 doubles of the tightest, and not empty where the hull is (`nth_root_rel([2^-1074], -1, [0, DBL_MAX])` is [DBL_MAX]) |
 | `sinRev`, `cosRev`, `tanRev` | `asin_rel`, `acos_rel`, `atan_rel` | accurate, or one double beyond: the pieces of the preimage are k·π, enclosed within about one double from π in double-double, plus or minus the inverse function of J, which is added before the sum is rounded; beyond 2<sup>52</sup> a bound of x is kept, and an x of a single double is decided by the image of the function | accurate but for one double, with the bounds of x beyond 2<sup>52</sup>; within 6 doubles (4, 5 and 3 found) of the value they keep from 1 to 2<sup>50</sup>, away from the points where the inverse function magnifies the width of the image |
 | `coshRev(c, x)` | `acosh_rel(c, x)` | accurate | accurate; within 16 doubles of the value it keeps |
-| — | `asinh_rel`, `atanh_rel` | accurate | within 10 and 26 doubles of the value they keep |
+| `sinhRev`, `tanhRev` (not in Table 10.1, named after `coshRev`) | `asinh_rel`, `atanh_rel` | accurate; `atanh_rel(J, x)` is ∅ where J holds no point of (−1, 1), the values of tanh (GAOL v5) | within 10 and 26 doubles of the value they keep; ∅ for J = [1] and [−1] |
 | `mulRev(b, c, x)` | `div_rel(c, b, x)`, and `c % b` for x = [−∞, +∞] | accurate; tightest where the bounds of the quotients are doubles | accurate, the tightest bounds over the cases of `%`; within 2 doubles of the value `div_rel` keeps |
-| `powRev1`, `powRev2`, `atan2Rev1`, `atan2Rev2`, `pownRev` for p < 0 | — | | |
+| `powRev1(b, c, x)`, `powRev2(a, c, x)` | `pow_rel(c, b, x)`, `pow_exponent_rel(c, a, x)` (GAOL v5) | tightest: the pieces of the solutions over the signs of the other argument (y > 0, y < 0; x > 1, x < 1), with 0^y = 0 for y > 0, x^0 = 1 and 1^y = 1, end at c^(1/y) or log(c)/log(x), bounds c, x and y of the arguments, whose bounds are the largest double d with d^y (or x^d) proved by CORE-MATH's pow, correctly rounded, to be on one side of c, and the smallest one on the other side; but a bound of x where the solutions start between it and the next double, and whose power is within one double of c, is kept, which only knowing whether that power is a double would settle: within the tightest result for x one double wider | tightest on the 804 cases of ITF1788 and on 1 244 others, random or whose solutions are doubles; within the tightest result for x one double wider on 966 cases where a bound of x is next to an end of the solutions; the 54 305 points of 6 000 random boxes whose power is within c kept by both |
+| — (not in Table 10.1, which names no reverse of max, min, sign and floor) | `max_rel(z, y, x)`, `min_rel(z, y, x)`, `sign_rel(z, x)`, `floor_rel(z, x)` (GAOL v5) | tightest: the bounds of x and z, 0, ceil(inf z) and floor(sup z) + 1, the open ends of the sets of `sign_rel` (0) and `floor_rel` (floor(sup z) + 1) included, the last rounded upward beyond 2<sup>53</sup> | tightest, against the definitions: on every interval of half-integer bounds, on cases written out, and by sampling; `floor_rel` at every magnitude, against floor(sup z) + 1 computed exactly (`tests/other_functions.cpp`) |
+| `atan2Rev1(b, c, x)`, `atan2Rev2(a, c, x)` | `atan2_rel_y(c, b, x)`, `atan2_rel_x(c, a, x)` (GAOL v5) | accurate: the angles of c in (−π, π] cut at the axes into four cones, whose sides have the slopes tan(θ) at the bounds θ of c (CORE-MATH, correctly rounded, the slope of a subnormal θ being θ itself), and 0 or +∞ at the axes; the bounds of the box, and their products and quotients with the slopes, rounded outward. Within 2 doubles of the tightest where both are nonempty; a box within one rounding of the cone may give a point the tightest enclosure, the empty set, does not hold | within 2 doubles of the tightest over 2 071 cases (1 338 nonempty) against mpmath at 3000 bits, around the multiples of π/4, the axes, the half-line y = 0, x < 0 and with zero, subnormal and infinite bounds; every point whose angle is in c kept, over about 600 000 such points of the boxes, among them points of their sides next to the sides of the cones |
 
 Where a bound of J is one double from the image of a bound of the preimage,
 these functions keep a point of I whose image is just outside J:
@@ -138,8 +186,20 @@ these functions keep a point of I whose image is just outside J:
 tightest enclosure is `[1, 1 + 2^-52]`. They are accurate all the same, the
 widened J of nextOut holding that image.
 
-`mulRevToPair` (10.5.5), `cancelMinus` and `cancelPlus` (10.5.6) are not
-provided.
+`mulRevToPair(b, c)` (10.5.5) is the pair of the two parts, each `div_rel(c, .,
+[−∞, +∞])` over the part of b at most 0 and the part at least 0 (GAOL v5): as
+tight as `mulRev`, so the tightest where the bounds of the quotients are
+doubles; `tests/ieee1788.cpp` checks it against exact quotients, and 172 cases
+of [ITF1788](compare/itf1788.md) pass.
+
+`cancelMinus(x, y)` and `cancelPlus(x, y)` (10.5.6) are `cancel_minus(x, y)` and
+`cancel_plus(x, y)`, the tightest, which 12.12.5 requires: whether the result
+exists depends on x being at least as wide as y, which rounding the differences
+of the bounds cannot decide when they are within a double of each other; each
+difference is computed exactly, as the sum of its value rounded to nearest and
+of its error by the TwoSum of Knuth. [−∞, +∞] where there is no value, and ∅ for
+an empty x and a bounded y. Checked over 200 000 pairs against exact rational
+arithmetic, 11 524 of them of exactly equal widths (GAOL v5).
 
 ## Set operations, constructors, numeric and boolean functions
 
@@ -147,33 +207,97 @@ provided.
 |---|---|---|---|---|
 | `intersection`, `convexHull` | `x & y`, `x \| y` | Of the bounds | tightest (exact) | exact |
 | `numsToInterval(l, u)` | `interval(l, u)`, `interval(d)` | The bounds; the empty set where l > u, l = +∞, u = −∞ or a bound is NaN | tightest (exact) | exact |
-| `textToInterval(s)` | `interval(s)`, `interval(sl, su)`, `operator>>` | Numbers, decimal or hexadecimal, compared exactly with the doubles around them; rational numbers p/q divided as intervals; the uncertain form read as its exact decimal bounds; the literals `[ ]`, `[empty]`, `[entire]`, infinite and missing bounds; any case of letters. GAOL also reads expressions (`"sin(1)+0.1"`), computed with the operations above | tightest for the literals of IEEE 1788, p and q being doubles; valid for expressions | tightest |
-| `inf`, `sup` | `left()`, `right()` | The stored bounds; NaN for the empty set, where IEEE 1788 has +∞ and −∞ | exact | exact |
-| `mid` | `midpoint()` | (l + u)/2 rounded to nearest, ties to even, or l/2 + u/2 when l + u overflows; 0, −MAX and MAX for unbounded intervals; NaN for the empty set | as 12.12.8 requires | exact |
+| `textToInterval(s)` | `gaol::textToInterval(s)`, `operator>>` | Numbers, decimal, hexadecimal, octal or binary, compared exactly with the doubles around them; rational numbers p/q divided as intervals; the uncertain form read as its exact decimal bounds; the literals `[ ]`, `[empty]`, `[entire]`, infinite and missing bounds; any case of letters. GAOL also reads expressions (`"sin(1)+0.1"`), computed with the operations above | tightest for the literals of IEEE 1788, p and q being doubles; the literal `[l, u]` is empty where l is above u, numbers that are not doubles being compared exactly, but for `pi` and another number between the same two doubles, a number far beyond the doubles, or bounds that are computed, which give the interval from the lower bound of l to the upper bound of u (GAOL v5); valid for expressions | tightest |
+| `inf`, `sup` | `left()`, `right()` | The stored bounds; NaN for the empty set, where IEEE 1788 has +∞ and −∞; a zero lower bound of either sign, where `inf` gives −0, and a zero upper bound of either sign, where `sup` gives +0 (12.12.8) | exact | exact |
+| `mid` | `midpoint()` | (l + u)/2 rounded to nearest, ties to even, or l/2 + u/2 where l + u may overflow, a bound being 2<sup>1023</sup> or more in magnitude, which is tested first (no overflow exception for [MAX], GAOL v5); 0, −MAX and MAX for unbounded intervals; NaN for the empty set | as 12.12.8 requires | exact |
 | — | `mid()` | The same midpoint, rounded outward | tightest | tightest |
 | `wid` | `width()` | u − l rounded upward; NaN for the empty set | as 12.12.8 requires | exact |
 | `rad`, `midRad` | `rad()`, `mid_rad(m, r)` | The greater of m − l and u − m rounded upward, m being `midpoint()`; +∞ for unbounded intervals, NaN for the empty set | as 12.12.8 requires | exact |
+| — | `width_enclosure()` | interval(r) − interval(l) for x = [l, r]: r − l rounded downward and upward, the upper bound being `width()`; [0] for a point interval, ∅ for ∅, and [MAX, +∞] for an unbounded interval, whose width +∞ is no real number (GAOL v5) | tightest | tightest, over 10 000 random intervals (exponents from −30 to 30, and all the doubles), against the exact width computed with rational arithmetic; the special cases written out (`tests/other_functions.cpp`) |
+| — | `inflate(r)` | x + [−r, r] for x = [a, b]: the lower bound a − r rounded downward and the upper bound b + r rounded upward, each in its own direction, where rounding both upward made the lower bound too large ([1, 2] inflated by 10<sup>−20</sup> had the lower bound 1); ±∞ past the largest double; x for r = 0, the whole line for r = +∞, and ∅ for ∅, for r < 0 and for a NaN r (GAOL v5) | tightest | tightest, over the same 10 000 intervals with random radii, against exact rational arithmetic: the tightest enclosure of [a − r, b + r]; the special cases written out (`tests/other_functions.cpp`) |
+| — | `interval::centered_form(m, r)` | interval(m) + [−r, r]: m − r rounded downward and m + r rounded upward, so that the interval holds [m − r, m + r], which `interval(m - r, m + r)` does not, both bounds being computed upward; ±∞ past the largest double; the point m for r = 0, the whole line for r = +∞, and ∅ for r < 0, for a NaN r and for an infinite or NaN m, as `interval(m)` (GAOL v5) | tightest | tightest, over the same 10 000 intervals and radii (m the lower bound), against exact rational arithmetic: the tightest enclosure of [m − r, m + r]; `gaol_ieee1788::centeredForm(m, r)` has its bounds, bit for bit (`tests/other_functions.cpp`, `tests/ieee1788.cpp`) |
 | `mag`, `mig` | `mag()`, `mig()` | Of the bounds | exact | exact |
 | — | `smig()`, `hausdorff(x, y)` | Of the bounds; the distance rounded upward | exact; tightest | exact; tightest |
 | `isEmpty`, `isSingleton`, `isMember` | `is_empty()`, `is_a_double()`, `set_contains(d)` | Of the bounds | exact | exact |
 | `equal`, `subset`, `interior`, `disjoint` | `set_eq`, `set_contains` and `set_leq`, `set_strictly_contains` and `set_le`, `set_disjoint` | Of the bounds, as Tables 10.3 and 10.4 | exact | exact |
 | `precedes`, `strictPrecedes` | `certainly_leq`, `certainly_le` (and `certainly_geq`, `certainly_ge`) | Of the bounds, true when an interval is empty | exact | exact |
-| `isEntire`, `isCommonInterval`, `less`, `strictLess` | — | Not provided | | |
-| `intervalToText` | `operator<<` | Hexadecimal format: the bits of the bounds. Decimal formats: each bound written to nearest by the C library with the digits asked for, compared exactly with the bound, and its last digit moved outward when it is on the wrong side | hexadecimal: exact; decimal: valid, and the tightest with the digits asked for where the C library rounds to nearest as it should | hexadecimal: exact; decimal: less than one unit of the last digit |
+| `overlap` | `x.overlap(y)`, `gaol_ieee1788::overlap(x, y)` | The state of Table 10.7 of the 16 (`overlapping_state`): `bothEmpty`, `firstEmpty` or `secondEmpty` for an empty operand, else the order of the four bounds, told as the integers of their bits (`gaol_detail::bound_key()`: -0 and +0 are the same bound, an infinite bound is the same as itself); a point interval on a bound of the other one is `starts`, `finishes`, `finishedBy`, `startedBy` or `equals`, never `meets` nor `metBy` (GAOL v5) | exact | exact: the set specification of Table 10.7, read with quantifiers over a finite model of the real line, on 31 449 pairs (the empty set, the 104 intervals of a grid of bounds, infinities, zeros of both signs, subnormals and neighbours of a double among them, and 20 000 random pairs whose bounds meet); `disjoint`, `equal` and `subset` as masks of the states; the converse state when the operands are exchanged; the 48 cases of ITF1788 without decorations; the same state with a mode that flushes the subnormals to zero |
+| `isEntire`, `isCommonInterval` | `is_entire()`, `is_common_interval()` | Of the bounds; a common interval is nonempty and bounded, the empty set's NaN bounds being no infinities (GAOL v5) | exact | exact |
+| `less`, `strictLess` | `less(y)`, `strictly_less(y)` | Of the bounds, as Table 10.3, strictLess counting an infinite bound as below itself; the empty cases of Table 10.4 (GAOL v5) | exact | exact, and against Tables 10.3 and 10.4 over 20 000 pairs |
+| `intervalToText` | `gaol_ieee1788::intervalToText(x)`; `operator<<` in the formats `bounds` and `hexa`, and in `agreeing` for the intervals it writes with their bounds (those whose bounds are not both finite, nonzero and of the same sign, or are written with different numbers of digits before the point or different exponents, or share no first digit that is not 0) | `intervalToText`: the bounds `[l, r]`, `[a]` for a point interval whose digits are exact (`[4]`, and `[0]` for a zero of either sign), or `[empty]`, in decimal with the digits of `interval::precision()` and a decimal point, whatever the global format and the locale (GAOL v5). `operator<<` in the format `bounds`, and in `agreeing` for those intervals: the same, with the digits of `interval::precision()` (not those of the stream) and the flags of the stream, and a decimal point whatever its locale, so that the reader reads the text back; `agreeing` writes the other intervals with the digits their bounds share (`1.25~[0, 67]`, `-1.25~[67, 0]`, and `4.000000000000000` for `interval(4)`). Each bound is written to nearest by the C library, compared exactly with the bound, and its last digit moved outward when it is on the wrong side. Hexadecimal format: the bounds in the hexadecimal-significand form of 13.4.1, `[a]` for a point interval and `[0x0p+0]` for a zero | decimal: valid, and the tightest with the digits asked for where the C library rounds to nearest as it should; hexadecimal: exact | decimal: less than one unit of the last digit; hexadecimal: exact; the text of `intervalToText` read back as a literal, over every format, precision and a comma locale; under that locale, the text `operator<<` writes for a point read back as the point, or as an interval containing it |
+| — | `operator<<` in the formats `width` and `center` | The `midpoint()` written to nearest, and the `rad()` written rounded upward (GAOL v5): `c (+/- w)`, or `c` for a point interval; `[empty]` for the empty set. Formats for the eye: the digits of c are those of the precision, so that the text need not contain the interval | as doubles, [c − w, c + w] contains x, w being the smallest radius that does so; a nonzero radius is never written 0 | the radius written at least the exact half-width and `rad()` rounded upward with less than one unit of its last digit, [c − w, c + w] containing x, the midpoint written to nearest with at most half a unit of its last digit, over the special values, the subnormals, the largest doubles and random intervals, every precision and flag |
+| `intervalToExact`, `exactToInterval` | `exact_string(x)`, which `operator<<` writes with `interval_format::hexa`; `gaol::textToInterval(s)` | The recovery requirement of 13.4: an interval written in hexadecimal and read again gives the same bounds, bit for bit, the empty set, the infinite bounds, a bound -0 and the subnormals included, but for a point interval of zero, written `[0x0p+0]` whatever the signs of its bounds and read back as [+0, +0], the same set (GAOL v5) | exact | exact, over 2 000 random intervals and the values written apart |
 
-## With CRlibm or the math library of the system
+## The same bounds on every machine
 
-Built with CRlibm (`--with-mathlib=crlibm`, `-Dwith-mathlib=crlibm`), `exp`,
-`log`, `cos`, `tan`, `asin`, `acos`, `atan`, `sinh` and `cosh` take CRlibm's
-functions rounded downward and upward, and `sin` too: their bounds are the
-tightest where the algorithms above evaluate the functions at the bounds. `pow` takes CRlibm's
-pow rounded to nearest, moved one double outward, as with mathlib; `tanh`,
-`asinh`, `acosh` and `atanh` CORE-MATH's, as above.
+GAOL is built with CORE-MATH only, whose sources are compiled into the
+library: the bounds above are the bounds on every machine.
 
-Built with the math library of the system (`--with-mathlib=m`,
-`-Dwith-mathlib=default`), every elementary function takes the libm's value
-rounded to nearest and moves it outward by 2·2<sup>−52</sup> relatively and
-by the smallest normal double: the bounds are valid only where the libm is
-within about one double of the exact value, which is not certified, and each
-bound is several doubles beyond the tightest one, and one smallest normal
-double away from it near 0. configure and meson warn about it.
+The bounds of this page are therefore those of every build of GAOL, and
+`tests/core_math.cpp` checks them against CORE-MATH called in the downward and
+the upward rounding, which are the tightest bounds there are.
+
+The SSE2, the NEON and the FPU intervals compute the integer powers with the same
+code, from exact products (`pown_products()` of
+`gaol/core/gaol_interval_core.cpp`), and the square from one product per bound,
+and give the same bounds (GAOL v5: the SSE2 intervals multiplied rounded
+products from the highest bit of n, and the bounds of the two differed for
+about half of the intervals with a bound 0 or infinite or whose power is
+beyond the exact products). The sign of a zero
+bound may differ: `sqr(interval(-2.0, 3.0))` is [−0, 9] with the SSE2 and the
+NEON intervals and [0, 9] with the FPU intervals. So may the sign of a zero bound of
+a product or of a quotient: the SSE2 intervals take the larger of four
+products and the quotient of the corners their signs choose, with no
+branch (GAOL v5), where GAOL 4 chose one product by the signs of the bounds,
+and `[-1, 0] * [-1, 0]` has the lower bound +0 where it had −0. The FPU
+intervals take the larger of four products too (GAOL v5; for each bound, the
+lower one made of products with a factor negated), but with a comparison and a
+selection that the compiler compiles as it chooses, not an instruction: where
+two products are zeros of opposite signs, the sign of the zero bound of a
+product is the compiler's and the target's, +0 or −0 (the lower bound of
+`[-1, 0] * [-1, 0]` is +0 with GCC for 32-bit ARM and for arm64, with Clang and
+with Visual C++ for x86, and −0 with GCC 13 for POWER9, which compiles the selection
+into an `xsmaxcdp` that returns its first operand for a +0 and a −0). They give
+the bits of the SSE2 intervals (checked against a model of their kernels, not
+by running them) for the products of finite bounds but for that sign, and for
+the quotients by a divisor without zero: `[0, 1] / [-2, -1]` has the upper
+bound −0, where the FPU intervals gave +0 before, the zero bound of the
+dividend being divided. `div_rel(K, J, I)` of the SSE2 intervals takes the code
+of the FPU and the NEON intervals where a finite bound of K is 2^500 or more
+in magnitude, or a bound of J that is not 0 is below 2^-500 (GAOL v5: the quotients
+of the vectors may overflow), so that a zero lower bound
+may have the sign of that code: `div_rel([0, 0x1.e2ab041732196p-5], [2^-1074,
+0x1.182p+9], [-DBL_MAX, 0x1.70ef9db22d0e5p+2])` is [0, 5.764625], whose zero lower bound has the other sign than the one the
+vector code gives: with a J from 1, which the vector code takes, the result is
+[−0, 0x1.e2ab041732196p-5]. The two
+paths of the SSE2 intervals, with and without `GAOL_PREFER_AVX512`, give the
+same bits, but for the sign of a zero bound of `x * d`, `x *= d` and `d * x`
+(computed as `x * d`) where the zero bounds of x have different signs,
+`[+0, -0]` (+0 and −0 are the same
+number): `[+0, -0]` with SSE2 and `[-0, +0]` with AVX-512. The NEON intervals
+(GAOL v5) take the larger of four products too, with the maximum of 64-bit
+ARM, which ranks +0 above −0, where the `maxpd` of the SSE2 intervals returns
+its second operand when the two compare equal: the lower bound of
+`[-1, 0] * [-1, 0]` is −0 with the NEON intervals, where the SSE2 ones give +0
+and the FPU ones the compiler's, and so may another zero bound of a product. `interval::zero()` is
+stored `<+0, +0>` as with SSE2, so that its lower bound is −0. The tool
+`tests/tools/arith` compares the NEON and the FPU intervals on a grid of
+operands, with the calling code in each of the four rounding directions: it
+found no other difference.
+
+`pow(x, 2)` is `sqr(x)` (GAOL v5), in every form of the integer power with the
+exponent 2 (`pow(x, 2)`, `2u`, `2.0` and `[2]`, `gaol_ieee1788::pown(x, 2)`,
+and `gaol_ieee1788::pow(x, [2])` on the part of x in [0, +∞], which is [0] for
+the part [0]): the same function, so the same bits, the sign of a zero bound
+that of `sqr` in each build. The integer power made its square from exact
+products, which has the same bounds and gave a zero bound of the other sign for
+part of the intervals holding 0 (`pow(interval(0, 2), 2)` was [−0, 4] with the
+NEON intervals and `pow(interval(-1, 2), 2)` was [−0, 4] with the FPU ones,
+where `sqr` gives [0, 4]; with the NEON intervals `pow(interval::universe(), 2)`
+was [0, +∞] and is [−0, +∞], as `sqr` has it). The exception flags are those of
+`sqr` as well: the corner products that are not a bound of the result raise the
+inexact and underflow flags too (`pow([-1e-310, 1e154], 2)` raises underflow
+for the square of its lower bound, which its lower bound 0 leaves out); the
+overflow flag is raised when the upper bound is +∞ only, the smaller of two
+squares overflowing only with the larger (none of 14 million cases of each
+build had a finite upper bound with it).

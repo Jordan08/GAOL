@@ -1,27 +1,39 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of this fork of GAOL: what they have in common.
+ * Tests of GAOL v5: what they have in common.
  *
  * The tests check the bounds GAOL computes against the exact results of the
  * operations, independently of GAOL and of the floating-point environment:
- * the exact results are computed with integers, or were computed with 400
- * bits of precision (tests/elementary_values.py). A bound is right when it is
- * on the right side of the exact result, and as tight as it can be when no
- * double between it and the exact result is.
+ * the exact results are computed with integers, or were computed with 2000
+ * bits of precision (tests/elementary_values.py, tests/reverse_values.py),
+ * 3000 (tests/atan2_rel_values.py) or 5000
+ * (tests/extended_precision_values.py); the bounds of the table of pow in
+ * tests/ieee1788.cpp, taken from the code, were checked against the powers
+ * computed with 500 bits (tests/tools/pow/checkrows.py). A bound is right
+ * when it is on the right side of the exact result, and as tight as it can
+ * be when no double between it and the exact result is.
  *
  * They follow the tests Codac (https://github.com/codac-team/codac) makes of
  * the rounding of its intervals, which are GAOL's
  * (tests/core/domains/interval/codac2_tests_Interval_rounding.cpp, Jordan
- * Ninin): the same random doubles, the same checks, and the same list of
- * operations after which the rounding direction has to be upward still.
+ * Ninin): the same generator of random doubles (xorshift64, the same seed, but
+ * drawing the exponent, the sign and then the mantissa where Codac draws the
+ * mantissa, the exponent and the sign), tighter checks, and almost the same
+ * list of operations after which the rounding direction has to be upward
+ * still. tests/test_ibex_codac.cpp has the operations and the points of that
+ * test of Codac that these tests lack.
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-09-20)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
-#ifndef __gaol_tests_h__
-#define __gaol_tests_h__
+#ifndef GAOL_TESTS_H
+#define GAOL_TESTS_H
 
 #include <cfenv>
 #include <cmath>
@@ -30,13 +42,66 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <limits>
+#include <locale>
 #include <map>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "gaol/gaol"
+
+// The tests write the smallest positive double as the literal 0x1p-1074, not as
+// std::numeric_limits<double>::denorm_min(): with -frounding-math, GCC 12.1 to
+// 12.3 and 13.1 to 13.2 write the long double of that value, 16 bytes on
+// aarch64, in a list, an array or a table of constants, and the constants after
+// it are then read 8 bytes too early (tests/numbers.cpp, doc/using.md; GAOL v5)
+
+// 1 with Visual C++ and the NEON intervals, whose tests read and write FPCR
+// through _ReadStatusReg() and _WriteStatusReg(), where GCC and Clang have
+// the instructions mrs and msr in an asm statement (GAOL v5)
+#if GAOL_NEON_MSVC && GAOL_USING_NEON_INSTRUCTIONS
+#  include <intrin.h>
+#  define GAOL_TESTS_FPCR_MSVC 1
+#else
+#  define GAOL_TESTS_FPCR_MSVC 0
+#endif
+
+// The modes that flush the subnormal numbers to zero, which the tests set and
+// clear themselves, apart from GAOL (GAOL v5): flush-to-zero and
+// denormals-are-zero of MXCSR on x86 processors, FZ and FIZ of FPCR on 64-bit
+// ARM processors, FZ of FPSCR on 32-bit ARM processors with a floating-point
+// unit (the last two with GCC and Clang, whose asm reads and writes them; FPCR
+// with Visual C++ and the NEON intervals too).
+// GAOL_TESTS_FLUSH is 1 there, where GAOL clears the modes too
+// (GAOL_RND_FLUSH_BITS of gaol/gaol_fpu.h), and 0 elsewhere.
+// GAOL_TESTS_SET_FLUSH is 1 where the tests can set the modes: there, and with
+// the FPU intervals of Visual C++ for 64-bit ARM, where they set FZ through
+// _controlfp_s(), and where GAOL does not clear it (GAOL v5).
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  include <xmmintrin.h>
+#  define GAOL_TESTS_FLUSH 1
+#elif (defined(__aarch64__) || (defined(__arm__) && defined(__ARM_FP))) && (defined(__GNUC__) || defined(__clang__))
+#  define GAOL_TESTS_FLUSH 1
+#elif GAOL_TESTS_FPCR_MSVC
+#  define GAOL_TESTS_FLUSH 1
+#else
+#  define GAOL_TESTS_FLUSH 0
+#endif
+#if defined(_MSC_VER) && defined(_M_ARM64) && !GAOL_TESTS_FLUSH
+#  include <float.h>
+#  define GAOL_TESTS_CONTROLFP_FLUSH 1
+#  define GAOL_TESTS_SET_FLUSH 1
+#else
+#  define GAOL_TESTS_CONTROLFP_FLUSH 0
+#  define GAOL_TESTS_SET_FLUSH GAOL_TESTS_FLUSH
+#endif
+
+#if defined(_MSC_VER) && defined(_DEBUG)
+#  include <crtdbg.h>
+#endif
 
 namespace gaol_tests
 {
@@ -107,6 +172,47 @@ namespace gaol_tests
                  distance <= limit, describe);
   }
 
+  /*
+    What an exception of GAOL says. GAOL throws the exceptions of the
+    standard library, std::invalid_argument and std::domain_error, whose
+    what() is "file:line: explanation" (GAOL_ERROR of gaol/gaol_common.h; GAOL
+    v5), the file being a name without directories. The first colon followed
+    by digits and by a colon and a blank ends the file name. A text of another
+    form has no file, and 0 for its line: it is the explanation whole.
+  */
+  struct exception_text {
+    std::string file;
+    long line = 0;
+    std::string explanation;
+  };
+
+  inline exception_text split_what(const std::exception& e)
+  {
+    const std::string text = e.what();
+    for (std::size_t p = text.find(':'); p != std::string::npos; p = text.find(':', p + 1)) {
+      std::size_t q = p + 1;
+      while (q < text.size() && text[q] >= '0' && text[q] <= '9') {
+        ++q;
+      }
+      if (q > p + 1 && text.compare(q, 2, ": ") == 0) {
+        exception_text t;
+        t.file = text.substr(0, p);
+        t.line = std::stol(text.substr(p + 1, q - p - 1));
+        t.explanation = text.substr(q + 2);
+        return t;
+      }
+    }
+    exception_text t;
+    t.explanation = text;
+    return t;
+  }
+
+  // The explanation of an exception of GAOL, without its file and its line
+  inline std::string explanation(const std::exception& e)
+  {
+    return split_what(e).explanation;
+  }
+
   // f(), or the empty set, with a failure of the check named name, when it
   // throws an exception
   template<class F, class Describe>
@@ -122,16 +228,70 @@ namespace gaol_tests
     return gaol::interval::emptyset();
   }
 
-  // Prints the number of checks and failures of each name, and returns the
-  // exit status of the test
-  inline int summary()
+#if defined(_MSC_VER) && defined(_DEBUG)
+  /*
+    The Debug C runtime of Visual C++ reports a failed assertion, of its own
+    or of the checked iterators of its library, and an invalid parameter, in
+    a dialog box, which waits for a click that never comes on a machine of the
+    CI: the test hangs until ctest stops it at 300 s, and its output, which is
+    buffered, is lost. The reports are written to stderr instead, where the
+    test goes on, and counted: summary() makes a failure of them.
+  */
+  inline long& debug_runtime_reports()
   {
+    static long n = 0;
+    return n;
+  }
+
+  inline int __cdecl count_report(int type, char*, int*)
+  {
+    debug_runtime_reports() += (type != _CRT_WARN) ? 1 : 0;
+    return 0; // Reported as _CrtSetReportMode() says
+  }
+
+  inline int __cdecl count_wide_report(int type, wchar_t*, int*)
+  {
+    debug_runtime_reports() += (type != _CRT_WARN) ? 1 : 0;
+    return 0;
+  }
+
+  struct DebugRuntimeReports
+  {
+    DebugRuntimeReports()
+    {
+      const int types[] = { _CRT_WARN, _CRT_ERROR, _CRT_ASSERT };
+      for (int type : types) {
+        _CrtSetReportMode(type, _CRTDBG_MODE_FILE);
+        _CrtSetReportFile(type, _CRTDBG_FILE_STDERR);
+      }
+      _CrtSetReportHook2(_CRT_RPTHOOK_INSTALL, count_report);
+      _CrtSetReportHookW2(_CRT_RPTHOOK_INSTALL, count_wide_report);
+      _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+    }
+  };
+
+  const DebugRuntimeReports debug_runtime_reports_to_stderr;
+#endif
+
+  // Prints the number of checks and failures of each name, and the largest
+  // distances from the tightest bounds, or, with only_failed, only the names
+  // that failed, then the total, and returns the exit status of the test
+  inline int summary(bool only_failed = false)
+  {
+#if defined(_MSC_VER) && defined(_DEBUG)
+    check("the Debug C runtime of Visual C++ reports no assertion and no error", debug_runtime_reports() == 0,
+          [] { return std::to_string(debug_runtime_reports()) + " reports, written to stderr"; });
+#endif
     for (const auto& d : largest_distances()) {
-      std::printf("%-60s at most %d doubles from the tightest bounds\n", d.first.c_str(), d.second);
+      if (!only_failed) {
+        std::printf("%-60s at most %d doubles from the tightest bounds\n", d.first.c_str(), d.second);
+      }
     }
     long checks = 0, failures = 0;
     for (const auto& t : tallies()) {
-      std::printf("%-60s %8ld checks, %ld failed\n", t.first.c_str(), t.second.checks, t.second.failures);
+      if (!only_failed || t.second.failures != 0) {
+        std::printf("%-60s %8ld checks, %ld failed\n", t.first.c_str(), t.second.checks, t.second.failures);
+      }
       checks += t.second.checks;
       failures += t.second.failures;
     }
@@ -139,9 +299,12 @@ namespace gaol_tests
     return failures == 0 ? 0 : 1;
   }
 
+  // In the C locale: a test that sets a global locale writing a decimal comma
+  // got 0x1,4p+2 in its messages
   inline std::string hex(double x)
   {
     std::ostringstream s;
+    s.imbue(std::locale::classic());
     s << std::hexfloat << x;
     return s.str();
   }
@@ -177,6 +340,19 @@ namespace gaol_tests
       const int saved_;
   };
 
+  // fma(a, b, c) as CORE-MATH and GAOL compute it (GAOL v5): __builtin_fma, the
+  // instruction with -mfma at every level of optimization, where std::fma is a
+  // call of the fma() of the C library without optimization, and that of Cygwin
+  // is not correctly rounded
+  inline double fma_as_gaol(double a, double b, double c)
+  {
+#if defined(__GNUC__)
+    return __builtin_fma(a, b, c);
+#else
+    return std::fma(a, b, c);
+#endif
+  }
+
   // The doubles next to x, computed rounding to nearest (nextafter() was found
   // by IBEX to crash on ARM64 macOS when not rounding to nearest)
   inline double next_double(double x)
@@ -190,6 +366,129 @@ namespace gaol_tests
     RoundingToNearest nearest;
     return std::nextafter(x, -inf);
   }
+
+#if GAOL_TESTS_SET_FLUSH
+  //---------------------------------------------------------------------------
+  // The modes that flush the subnormals to zero (GAOL v5)
+  //---------------------------------------------------------------------------
+
+  // The bits of the control register that set them: flush-to-zero (bit 15),
+  // which flushes the subnormal results, and denormals-are-zero (bit 6), which
+  // reads the subnormal operands as zeros, of MXCSR; FZ (bit 24), which flushes
+  // both, and FIZ (bit 0, Armv8.7), which flushes the operands, of FPCR; FZ
+  // (bit 24) of FPSCR. With _controlfp_s(), the bit of FZ in FPCR stands for
+  // its _DN_FLUSH.
+#  if GAOL_TESTS_CONTROLFP_FLUSH
+  const unsigned int all_flush_bits = 0x1000000u;
+#  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+  const unsigned int all_flush_bits = 0x8040u;
+#  elif defined(__aarch64__) || GAOL_TESTS_FPCR_MSVC
+  const unsigned int all_flush_bits = 0x1000001u;
+#  else
+  const unsigned int all_flush_bits = 0x1000000u;
+#  endif
+
+  // The bits of all_flush_bits set in the control register
+  inline unsigned int flush_bits()
+  {
+#  if GAOL_TESTS_CONTROLFP_FLUSH
+    unsigned int control = 0;
+    _controlfp_s(&control, 0, 0);
+    return ((control & _MCW_DN) == _DN_FLUSH) ? all_flush_bits : 0u;
+#  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+    return _mm_getcsr() & all_flush_bits;
+#  elif GAOL_TESTS_FPCR_MSVC
+    return static_cast<unsigned int>(_ReadStatusReg(ARM64_FPCR)) & all_flush_bits;
+#  elif defined(__aarch64__)
+    unsigned long long fpcr;
+    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+    return static_cast<unsigned int>(fpcr) & all_flush_bits;
+#  else
+    unsigned int fpscr;
+    __asm__ __volatile__ ("vmrs %0, fpscr" : "=r" (fpscr));
+    return fpscr & all_flush_bits;
+#  endif
+  }
+
+  // Sets the bits of all_flush_bits that bits has, and clears the others,
+  // leaving the rest of the control register alone
+  inline void set_flush_bits(unsigned int bits)
+  {
+#  if GAOL_TESTS_CONTROLFP_FLUSH
+    unsigned int ignored = 0;
+    _controlfp_s(&ignored, ((bits & all_flush_bits) != 0u) ? _DN_FLUSH : _DN_SAVE, _MCW_DN);
+#  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+    _mm_setcsr((_mm_getcsr() & ~all_flush_bits) | bits);
+#  elif GAOL_TESTS_FPCR_MSVC
+    const unsigned long long fpcr = static_cast<unsigned long long>(_ReadStatusReg(ARM64_FPCR));
+    _ReadWriteBarrier();
+    _WriteStatusReg(ARM64_FPCR, static_cast<__int64>((fpcr & ~static_cast<unsigned long long>(all_flush_bits)) | bits));
+    _ReadWriteBarrier();
+#  elif defined(__aarch64__)
+    unsigned long long fpcr;
+    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+    fpcr = (fpcr & ~static_cast<unsigned long long>(all_flush_bits)) | bits;
+    __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+#  else
+    unsigned int fpscr;
+    __asm__ __volatile__ ("vmrs %0, fpscr" : "=r" (fpscr));
+    fpscr = (fpscr & ~all_flush_bits) | bits;
+    __asm__ __volatile__ ("vmsr fpscr, %0" : : "r" (fpscr) : "memory");
+#  endif
+  }
+
+  // Whether the modes of bits, set, make 2^-1060 + 0 or 1e-300*1e-20 a zero:
+  // an emulator may keep the bits without honouring them. The inexact product
+  // is not the probe of GAOL, which an exact sum makes: a processor flushing
+  // only the inexact subnormal results would have its mode tried, and the
+  // test fail, rather than skip it. The results are written to volatile
+  // memory before the modes are restored, the compilers not modelling the
+  // control register.
+  inline bool flush_honoured(unsigned int bits)
+  {
+    volatile double subnormal = 0x1p-1060, zero = 0.0, tiny = 1e-300, small = 1e-20;
+    volatile double sum, product;
+    const unsigned int saved = flush_bits();
+    set_flush_bits(bits);
+    const bool kept = flush_bits() == bits;
+    sum = subnormal + zero;
+    product = tiny*small;
+    set_flush_bits(saved);
+    return kept && (sum == 0.0 || product == 0.0);
+  }
+
+  struct FlushMode
+  {
+    std::string name;
+    unsigned int bits;
+  };
+
+  // The modes of the processor, alone and together, that it honours (FIZ, whose
+  // bit is reserved before Armv8.7, where it has it); the others are named on
+  // the standard output
+  inline std::vector<FlushMode> flush_modes()
+  {
+#  if GAOL_TESTS_CONTROLFP_FLUSH
+    const std::vector<FlushMode> all = { { "FZ", 0x1000000u } };
+#  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+    const std::vector<FlushMode> all = { { "flush-to-zero", 0x8000u }, { "denormals-are-zero", 0x0040u },
+                                         { "flush-to-zero and denormals-are-zero", 0x8040u } };
+#  elif defined(__aarch64__) || GAOL_TESTS_FPCR_MSVC
+    const std::vector<FlushMode> all = { { "FZ", 0x1000000u }, { "FIZ", 0x1u }, { "FZ and FIZ", 0x1000001u } };
+#  else
+    const std::vector<FlushMode> all = { { "FZ", 0x1000000u } };
+#  endif
+    std::vector<FlushMode> modes;
+    for (const FlushMode& m : all) {
+      if (flush_honoured(m.bits)) {
+        modes.push_back(m);
+      } else {
+        std::printf("The processor does not flush the subnormals with %s: not checked\n", m.name.c_str());
+      }
+    }
+    return modes;
+  }
+#endif
 
   //---------------------------------------------------------------------------
   // Exact arithmetic
@@ -549,8 +848,10 @@ namespace gaol_tests
   inline int doubles_below_tightest(double l, const Exact& v, int limit)
   {
     int n = 0;
-    for (double t = next_double(l); is_lower_bound(t, v) && n <= limit; t = next_double(t)) {
+    double t = next_double(l);
+    while (is_lower_bound(t, v) && n <= limit) {
       ++n;
+      t = next_double(t);
     }
     return n;
   }
@@ -558,8 +859,10 @@ namespace gaol_tests
   inline int doubles_above_tightest(double u, const Exact& v, int limit)
   {
     int n = 0;
-    for (double t = previous_double(u); is_upper_bound(t, v) && n <= limit; t = previous_double(t)) {
+    double t = previous_double(u);
+    while (is_upper_bound(t, v) && n <= limit) {
       ++n;
+      t = previous_double(t);
     }
     return n;
   }
@@ -591,7 +894,13 @@ namespace gaol_tests
       // emax
       double operator()(int emin, int emax)
       {
-        return make(bits() & 1u, static_cast<std::uint64_t>(1023 + integer(emin, emax)));
+        // The exponent, the sign, then the mantissa in make(), drawn one at a
+        // time: the order in which the arguments of a call are evaluated is
+        // unspecified, and GCC and Clang drew different doubles from
+        // make(bits() & 1u, ...). The order kept is the one of GCC.
+        const std::uint64_t biased_exponent = static_cast<std::uint64_t>(1023 + integer(emin, emax));
+        const std::uint64_t sign = bits() & 1u;
+        return make(sign, biased_exponent);
       }
 
       // A positive double with a random mantissa and an exponent from emin to
@@ -605,7 +914,10 @@ namespace gaol_tests
       // mantissa and exponent
       double any()
       {
-        return make(bits() & 1u, bits() % 2047u);
+        // Drawn one at a time, as in operator()
+        const std::uint64_t biased_exponent = bits() % 2047u;
+        const std::uint64_t sign = bits() & 1u;
+        return make(sign, biased_exponent);
       }
 
       // A double from lo to hi, about
@@ -634,4 +946,4 @@ namespace gaol_tests
   }
 }
 
-#endif /* __gaol_tests_h__ */
+#endif /* GAOL_TESTS_H */

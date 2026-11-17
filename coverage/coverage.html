@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html class="theme-green">
+
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>Coverage of GAOL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style type="text/css">
+:root {
+    font-family: sans-serif;
+    --tab_size: 4;
+}
+
+.theme-green, .theme-blue {
+    --unknown_color: lightgray;
+    --low_color: #FF6666;
+    --medium_color: #F9FD63;
+    --partial_covered_color: var(--medium_color);
+    --uncovered_color: #FF8C8C;
+    --warning_color: orangered;
+    --notTakenBranch_color: red;
+    --uncheckedDecision_color: darkorange;
+    --notTakenDecision_color: red;
+    --notInvokedCall_color: red;
+    --excluded_color: rgb(255, 241, 229);
+}
+
+.theme-green {
+    --high_color: #85E485;
+    --covered_color: #85E485;
+    --takenBranch_color: green;
+    --takenDecision_color: green;
+    --invokedCall_color: green;
+}
+
+.theme-blue {
+    --high_color: #66B4FF;
+    --covered_color: #66B4Ff;
+    --takenBranch_color: blue;
+    --takenDecision_color: blue;
+    --invokedCall_color: blue;
+}
+
+body
+{
+    color: #000000;
+    background-color: #FFFFFF;
+}
+
+h1
+{
+    text-align: center;
+    margin: 0;
+    padding-bottom: 10px;
+    font-size: 20pt;
+    font-weight: bold;
+}
+
+hr
+{
+    background-color: navy;
+    height: 2px;
+    border: 0;
+}
+
+/* Link formats: use maroon w/underlines */
+a:link
+{
+    color: navy;
+    text-decoration: underline;
+}
+a:visited
+{
+    color: maroon;
+    text-decoration: underline;
+}
+
+/*** Summary formats ***/
+
+.summary
+{
+    display: flex;
+    flex-flow: row wrap;
+    max-width: 100%;
+    justify-content: flex-start;
+}
+
+.summary > table
+{
+    flex: 1 0 7em;
+    border: 0;
+}
+
+.summary > :last-child {
+    margin-left: auto;
+}
+
+table.legend
+{
+    color: black;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: flex-start;
+}
+
+table.legend th[scope=row]
+{
+    font-weight: normal;
+    text-align: right;
+    white-space: nowrap;
+}
+
+table.legend td
+{
+    color: blue;
+    text-align: left;
+    white-space: nowrap;
+    padding-left: 5px;
+}
+
+table.legend td.legend
+{
+    color: black;
+    font-size: 80%;
+}
+
+table.legend td.warning_text
+{
+    color: var(--warning_color);
+}
+
+table.coverage td,
+table.coverage th
+{
+    text-align: right;
+    color: black;
+    font-weight: normal;
+    white-space: nowrap;
+    padding-left: 5px;
+    padding-right: 4px;
+}
+
+table.coverage td
+{
+    background-color: LightSteelBlue;
+}
+
+table.coverage th[scope=row]
+{
+    color: black;
+    font-weight: normal;
+    white-space: nowrap;
+}
+
+table.coverage th[scope=col]
+{
+    color: blue;
+    font-weight: normal;
+    white-space: nowrap;
+}
+
+table.legend span
+{
+    margin-right: 4px;
+    padding: 2px;
+}
+
+table.legend span.coverage-unknown,
+table.legend span.coverage-none,
+table.legend span.coverage-low,
+table.legend span.coverage-medium,
+table.legend span.coverage-high
+{
+    padding-left: 3px;
+    padding-right: 3px;
+}
+
+table.legend span.coverage-unknown,
+table.coverage td.coverage-unknown,
+table.file-list td.coverage-unknow
+{
+    background-color: var(--unknown_color) !important;
+}
+
+table.legend span.coverage-none,
+table.legend span.coverage-low,
+table.coverage td.coverage-none,
+table.coverage td.coverage-low,
+table.file-list td.coverage-none,
+table.file-list td.coverage-low
+{
+    background-color: var(--low_color) !important;
+}
+
+table.legend span.coverage-medium,
+table.coverage td.coverage-medium,
+table.file-list td.coverage-medium
+{
+    background-color: var(--medium_color) !important;
+}
+
+table.legend span.coverage-high,
+table.coverage td.coverage-high,
+table.file-list td.coverage-high
+{
+    background-color: var(--high_color) !important;
+}
+/*** End of Summary formats ***/
+/*** Meter formats ***/
+
+/* Common */
+meter {
+    -moz-appearance: none;
+
+    width: 30vw;
+    min-width: 4em;
+    max-width: 15em;
+    height: 0.75em;
+    padding: 0;
+    vertical-align: baseline;
+    margin-top: 3px;
+    /* Outer background for Mozilla */
+    background: none;
+    background-color: whitesmoke;
+}
+
+/* Webkit */
+
+meter::-webkit-meter-bar {
+    /* Outer background for Webkit */
+    background: none;
+    background-color: whitesmoke;
+    height: 0.75em;
+    border-radius: 0px;
+}
+
+meter::-webkit-meter-optimum-value,
+meter::-webkit-meter-suboptimum-value,
+meter::-webkit-meter-even-less-good-value
+{
+    /* Inner shadow for Webkit */
+    border: solid 1px black;
+}
+
+meter.coverage-none::-webkit-meter-optimum-value,
+meter.coverage-low::-webkit-meter-optimum-value
+{
+    background: var(--low_color);
+}
+
+meter.coverage-medium::-webkit-meter-optimum-value
+{
+    background: var(--medium_color);
+}
+
+meter.coverage-high::-webkit-meter-optimum-value
+{
+    background: var(--high_color);
+}
+
+/* Mozilla */
+
+meter::-moz-meter-bar
+{
+    box-sizing: border-box;
+}
+
+meter:-moz-meter-optimum::-moz-meter-bar,
+meter:-moz-meter-sub-optimum::-moz-meter-bar,
+meter:-moz-meter-sub-sub-optimum::-moz-meter-bar
+{
+    /* Inner shadow for Mozilla */
+    border: solid 1px black;
+}
+
+meter.coverage-none:-moz-meter-optimum::-moz-meter-bar,
+meter.coverage-low:-moz-meter-optimum::-moz-meter-bar
+{
+    background: var(--low_color);
+}
+
+meter.coverage-medium:-moz-meter-optimum::-moz-meter-bar
+{
+    background: var(--medium_color);
+}
+
+meter.coverage-high:-moz-meter-optimum::-moz-meter-bar
+{
+    background: var(--high_color);
+}
+
+/*** End of Meter formats ***/
+.file-list td, .file-list th {
+    padding: 0 10px;
+    font-weight: bold;
+}
+
+.file-list th[scope^=col]
+{
+    text-align: center;
+    color: white;
+    background-color: SteelBlue;
+    font-size: 120%;
+}
+
+.file-list th[scope=row]
+{
+    text-align: left;
+    color: black;
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 110%;
+}
+
+.file-list tr > td,
+.file-list tr > th {
+    background: aliceblue;
+}
+
+.file-list tr:nth-child(even) > td,
+.file-list tr:nth-child(even) > th {
+    background: LightSteelBlue
+}
+
+.file-list tr:hover > td,
+.file-list tr:hover > th[scope=row]
+{
+    background-color: #ddd;
+}
+td.CoverValue
+{
+    text-align: right;
+    white-space: nowrap;
+}
+
+td.coveredLine,
+span.coveredLine
+{
+    background-color: var(--covered_color) !important;
+}
+
+td.partialCoveredLine,
+span.partialCoveredLine
+{
+    background-color: var(--partial_covered_color) !important;
+}
+
+td.uncoveredLine,
+span.uncoveredLine
+{
+    background-color: var(--uncovered_color) !important;
+}
+
+td.excludedLine,
+span.excludedLine
+{
+    background-color: var(--excluded_color) !important;
+}
+
+.linebranch, .linedecision, .linecall, .linecount
+{
+    font-family: monospace;
+    border-right: 1px gray solid;
+    background-color: lightgray;
+    text-align: right;
+}
+
+
+.linebranchDetails, .linedecisionDetails, .linecallDetails
+{
+    position: relative;
+}
+.linebranchSummary, .linedecisionSummary, .linecallSummary
+{
+    cursor: help;
+}
+.linebranchContents, .linedecisionContents, .linecallContents
+{
+    font-family: sans-serif;
+    font-size: small;
+    text-align: left;
+    position: absolute;
+    width: 15em;
+    padding: 1em;
+    background: white;
+    border: solid gray 1px;
+    box-shadow: 5px 5px 10px gray;
+    z-index: 1; /* show in front of the table entries */
+}
+
+.takenBranch
+{
+    color: var(--takenBranch_color) !important;
+}
+
+.notTakenBranch
+{
+    color: var(--notTakenBranch_color) !important;
+}
+
+.takenDecision
+{
+    color: var(--takenDecision_color) !important;
+}
+
+.notTakenDecision
+{
+    color: var(--notTakenDecision_color) !important;
+}
+
+.uncheckedDecision
+{
+    color: var(--uncheckedDecision_color) !important;
+}
+
+.invokedCall
+{
+    color: var(--invokedCall_color) !important;
+}
+
+.notInvokedCall
+{
+    color: var(--notInvokedCall_color) !important;
+}
+
+.src
+{
+    padding-left: 12px;
+    text-align: left;
+
+    font-family: monospace;
+    white-space: pre;
+
+    tab-size: var(--tab_size);
+    -moz-tab-size: var(--tab_size);
+}
+
+span.takenBranch,
+span.notTakenBranch,
+span.takenDecision,
+span.notTakenDecision,
+span.uncheckedDecision
+{
+    font-family: monospace;
+    font-weight: bold;
+}
+
+pre
+{
+    height : 15px;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.listOfFunctions td, .listOfFunctions th {
+    padding: 0 10px;
+}
+.listOfFunctions th
+{
+    text-align: center;
+    color: white;
+    background-color: SteelBlue;
+}
+.listOfFunctions tr > td {
+    background: aliceblue;
+}
+.listOfFunctions tr:nth-child(even) > td {
+    background: LightSteelBlue
+}
+.listOfFunctions tr:hover > td
+{
+    background-color: #ddd;
+}
+.listOfFunctions tr > td > a
+{
+    text-decoration: none;
+    color: inherit;
+}
+
+.source-line
+{
+    height : 15px;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.lineno
+{
+    background-color: #EFE383;
+    border-right: 1px solid #BBB15F;
+    text-align: right;
+    unicode-bidi: embed;
+    font-family: monospace;
+    white-space: pre;
+}
+
+.lineno > a
+{
+    text-decoration: none;
+    color: inherit;
+}
+
+.file-list
+{
+    margin: 1em auto;
+    border: 0;
+    border-spacing: 1px;
+}
+
+.file-source table
+{
+    border-spacing: 0;
+}
+
+.file-source table td,
+.file-source table th
+{
+    padding: 1px 10px;
+}
+
+.file-source table th
+{
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.file-source table td:last-child
+{
+    width: 100%;
+}
+footer
+{
+    text-align: center;
+    padding-top: 3px;
+}
+
+/* pygments syntax highlighting */
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.hll { background-color: #ffffcc }
+.c { color: #3D7B7B; font-style: italic } /* Comment */
+.err { border: 1px solid #F00 } /* Error */
+.k { color: #008000; font-weight: bold } /* Keyword */
+.o { color: #666 } /* Operator */
+.ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.cp { color: #9C6500 } /* Comment.Preproc */
+.cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.gd { color: #A00000 } /* Generic.Deleted */
+.ge { font-style: italic } /* Generic.Emph */
+.ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.gr { color: #E40000 } /* Generic.Error */
+.gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.gi { color: #008400 } /* Generic.Inserted */
+.go { color: #717171 } /* Generic.Output */
+.gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.gs { font-weight: bold } /* Generic.Strong */
+.gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.gt { color: #04D } /* Generic.Traceback */
+.kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.kp { color: #008000 } /* Keyword.Pseudo */
+.kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.kt { color: #B00040 } /* Keyword.Type */
+.m { color: #666 } /* Literal.Number */
+.s { color: #BA2121 } /* Literal.String */
+.na { color: #687822 } /* Name.Attribute */
+.nb { color: #008000 } /* Name.Builtin */
+.nc { color: #00F; font-weight: bold } /* Name.Class */
+.no { color: #800 } /* Name.Constant */
+.nd { color: #A2F } /* Name.Decorator */
+.ni { color: #717171; font-weight: bold } /* Name.Entity */
+.ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.nf { color: #00F } /* Name.Function */
+.nl { color: #767600 } /* Name.Label */
+.nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.nt { color: #008000; font-weight: bold } /* Name.Tag */
+.nv { color: #19177C } /* Name.Variable */
+.ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.w { color: #BBB } /* Text.Whitespace */
+.mb { color: #666 } /* Literal.Number.Bin */
+.mf { color: #666 } /* Literal.Number.Float */
+.mh { color: #666 } /* Literal.Number.Hex */
+.mi { color: #666 } /* Literal.Number.Integer */
+.mo { color: #666 } /* Literal.Number.Oct */
+.sa { color: #BA2121 } /* Literal.String.Affix */
+.sb { color: #BA2121 } /* Literal.String.Backtick */
+.sc { color: #BA2121 } /* Literal.String.Char */
+.dl { color: #BA2121 } /* Literal.String.Delimiter */
+.sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.s2 { color: #BA2121 } /* Literal.String.Double */
+.se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.sh { color: #BA2121 } /* Literal.String.Heredoc */
+.si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.sx { color: #008000 } /* Literal.String.Other */
+.sr { color: #A45A77 } /* Literal.String.Regex */
+.s1 { color: #BA2121 } /* Literal.String.Single */
+.ss { color: #19177C } /* Literal.String.Symbol */
+.bp { color: #008000 } /* Name.Builtin.Pseudo */
+.fm { color: #00F } /* Name.Function.Magic */
+.vc { color: #19177C } /* Name.Variable.Class */
+.vg { color: #19177C } /* Name.Variable.Global */
+.vi { color: #19177C } /* Name.Variable.Instance */
+.vm { color: #19177C } /* Name.Variable.Magic */
+.il { color: #666 } /* Literal.Number.Integer.Long */
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>Coverage of GAOL</h1>
+
+      <hr/>
+
+      <div class="summary">
+<div>
+  <table class="legend">
+    <tr>
+      <th scope="row">Directory:</th>
+      <td>./</td>
+    </tr>
+    <tr>
+      <th scope="row">Date:</th>
+      <td>2026-11-17 16:25:17</td>
+    </tr>
+    <tr>
+      <th scope="row">Coverage:</th>
+      <td class="legend">
+        <span class="coverage-low">low: &ge; 0%</span>
+        <span class="coverage-medium">medium: &ge; 75.0%</span>
+        <span class="coverage-high">high: &ge; 90.0%</span>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<div>
+  <table class="coverage">
+    <tr>
+      <th></th>
+      <th scope="col">Exec</th>
+      <th scope="col">Total</th>
+      <th scope="col">Coverage</th>
+    </tr>
+    <tr>
+      <th scope="row">Lines:</th>
+      <td>14371</td>
+      <td>15994</td>
+      <td class="coverage-medium">89.9%</td>
+    </tr>
+    <tr>
+      <th scope="row">Functions:</th>
+      <td>2019</td>
+      <td>2109</td>
+      <td class="coverage-high">95.7%</td>
+    </tr>
+    <tr>
+      <th scope="row">Branches:</th>
+      <td>9224</td>
+      <td>13274</td>
+      <td class="coverage-low">69.5%</td>
+    </tr>
+  </table>
+</div>
+      </div>
+
+      <hr/>
+    </header>
+
+    <nav>
+
+    </nav>
+
+    <main>
+<table class="file-list">
+  <col/>
+  <colgroup span="3"/>
+  <colgroup span="2"/>
+  <colgroup span="2"/>
+
+  <tr>
+    <th scope="col">File</th>
+    <th scope="colgroup" colspan=3>Lines</th>
+    <th scope="colgroup" colspan=2>Functions</th>
+    <th scope="colgroup" colspan=2>Branches</th>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/acos/acos.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="99.2" title="99.2%">99.2</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">99.2%</td>
+    <td class="CoverValue line-coverage coverage-high">122 / 123</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">8 / 8</td>
+    <td class="CoverValue branch-coverage coverage-medium">79.4%</td>
+    <td class="CoverValue branch-coverage coverage-medium">27 / 34</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/acosh/acosh.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="91.1" title="91.1%">91.1</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">91.1%</td>
+    <td class="CoverValue line-coverage coverage-high">163 / 179</td>
+    <td class="CoverValue function-coverage coverage-high">90.0%</td>
+    <td class="CoverValue function-coverage coverage-high">9 / 10</td>
+    <td class="CoverValue branch-coverage coverage-low">73.9%</td>
+    <td class="CoverValue branch-coverage coverage-low">34 / 46</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/acospi/acospi.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="93.2" title="93.2%">93.2</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">93.2%</td>
+    <td class="CoverValue line-coverage coverage-high">137 / 147</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">7 / 7</td>
+    <td class="CoverValue branch-coverage coverage-medium">80.6%</td>
+    <td class="CoverValue branch-coverage coverage-medium">50 / 62</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/asin/asin.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="99.1" title="99.1%">99.1</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">99.1%</td>
+    <td class="CoverValue line-coverage coverage-high">106 / 107</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">7 / 7</td>
+    <td class="CoverValue branch-coverage coverage-medium">82.1%</td>
+    <td class="CoverValue branch-coverage coverage-medium">23 / 28</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/asinh/asinh.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="86.9" title="86.9%">86.9</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">86.9%</td>
+    <td class="CoverValue line-coverage coverage-medium">152 / 175</td>
+    <td class="CoverValue function-coverage coverage-medium">88.9%</td>
+    <td class="CoverValue function-coverage coverage-medium">8 / 9</td>
+    <td class="CoverValue branch-coverage coverage-low">68.8%</td>
+    <td class="CoverValue branch-coverage coverage-low">33 / 48</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/asinpi/asinpi.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="90.8" title="90.8%">90.8</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">90.8%</td>
+    <td class="CoverValue line-coverage coverage-high">226 / 249</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">14 / 14</td>
+    <td class="CoverValue branch-coverage coverage-low">68.1%</td>
+    <td class="CoverValue branch-coverage coverage-low">49 / 72</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/atan2/atan2.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="85.5" title="85.5%">85.5</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">85.5%</td>
+    <td class="CoverValue line-coverage coverage-medium">141 / 165</td>
+    <td class="CoverValue function-coverage coverage-medium">80.0%</td>
+    <td class="CoverValue function-coverage coverage-medium">4 / 5</td>
+    <td class="CoverValue branch-coverage coverage-low">60.0%</td>
+    <td class="CoverValue branch-coverage coverage-low">66 / 110</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/atan2/tint.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="95.0" title="95.0%">95.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">95.0%</td>
+    <td class="CoverValue line-coverage coverage-high">210 / 221</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">16 / 16</td>
+    <td class="CoverValue branch-coverage coverage-low">71.2%</td>
+    <td class="CoverValue branch-coverage coverage-low">79 / 111</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/atan2pi/atan2pi.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="96.8" title="96.8%">96.8</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">96.8%</td>
+    <td class="CoverValue line-coverage coverage-high">149 / 154</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">11 / 11</td>
+    <td class="CoverValue branch-coverage coverage-medium">86.2%</td>
+    <td class="CoverValue branch-coverage coverage-medium">112 / 130</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/atan2pi/tint.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="94.9" title="94.9%">94.9</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">94.9%</td>
+    <td class="CoverValue line-coverage coverage-high">203 / 214</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">15 / 15</td>
+    <td class="CoverValue branch-coverage coverage-low">69.2%</td>
+    <td class="CoverValue branch-coverage coverage-low">74 / 107</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/atan/atan.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="94.9" title="94.9%">94.9</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">94.9%</td>
+    <td class="CoverValue line-coverage coverage-high">93 / 98</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">6 / 6</td>
+    <td class="CoverValue branch-coverage coverage-medium">80.6%</td>
+    <td class="CoverValue branch-coverage coverage-medium">29 / 36</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/atanh/atanh.c
+    </th>
+    <td>
+      <meter class="coverage-low" min="0" max="100" value="58.7" title="58.7%">58.7</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-low">58.7%</td>
+    <td class="CoverValue line-coverage coverage-low">91 / 155</td>
+    <td class="CoverValue function-coverage coverage-low">72.7%</td>
+    <td class="CoverValue function-coverage coverage-low">8 / 11</td>
+    <td class="CoverValue branch-coverage coverage-low">46.9%</td>
+    <td class="CoverValue branch-coverage coverage-low">15 / 32</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/atanpi/atanpi.c
+    </th>
+    <td>
+      <meter class="coverage-low" min="0" max="100" value="71.6" title="71.6%">71.6</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-low">71.6%</td>
+    <td class="CoverValue line-coverage coverage-low">106 / 148</td>
+    <td class="CoverValue function-coverage coverage-medium">77.8%</td>
+    <td class="CoverValue function-coverage coverage-medium">7 / 9</td>
+    <td class="CoverValue branch-coverage coverage-low">59.3%</td>
+    <td class="CoverValue branch-coverage coverage-low">32 / 54</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/cbrt/cbrt.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="97.3" title="97.3%">97.3</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">97.3%</td>
+    <td class="CoverValue line-coverage coverage-high">73 / 75</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">3 / 3</td>
+    <td class="CoverValue branch-coverage coverage-medium">81.2%</td>
+    <td class="CoverValue branch-coverage coverage-medium">26 / 32</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/cos/cos.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="97.1" title="97.1%">97.1</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">97.1%</td>
+    <td class="CoverValue line-coverage coverage-high">132 / 136</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">12 / 12</td>
+    <td class="CoverValue branch-coverage coverage-medium">89.5%</td>
+    <td class="CoverValue branch-coverage coverage-medium">34 / 38</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/cosh/cosh.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="80.9" title="80.9%">80.9</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">80.9%</td>
+    <td class="CoverValue line-coverage coverage-medium">123 / 152</td>
+    <td class="CoverValue function-coverage coverage-low">71.4%</td>
+    <td class="CoverValue function-coverage coverage-low">5 / 7</td>
+    <td class="CoverValue branch-coverage coverage-low">61.9%</td>
+    <td class="CoverValue branch-coverage coverage-low">26 / 42</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/cospi/cospi.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="83.1" title="83.1%">83.1</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">83.1%</td>
+    <td class="CoverValue line-coverage coverage-medium">123 / 148</td>
+    <td class="CoverValue function-coverage coverage-medium">88.9%</td>
+    <td class="CoverValue function-coverage coverage-medium">8 / 9</td>
+    <td class="CoverValue branch-coverage coverage-low">52.1%</td>
+    <td class="CoverValue branch-coverage coverage-low">25 / 48</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/erf/erf.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="99.3" title="99.3%">99.3</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">99.3%</td>
+    <td class="CoverValue line-coverage coverage-high">150 / 151</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">7 / 7</td>
+    <td class="CoverValue branch-coverage coverage-high">97.5%</td>
+    <td class="CoverValue branch-coverage coverage-high">39 / 40</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/erfc/erfc.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="91.7" title="91.7%">91.7</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">91.7%</td>
+    <td class="CoverValue line-coverage coverage-high">277 / 302</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">17 / 17</td>
+    <td class="CoverValue branch-coverage coverage-medium">86.4%</td>
+    <td class="CoverValue branch-coverage coverage-medium">76 / 88</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/exp2/exp2.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="77.0" title="77.0%">77.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">77.0%</td>
+    <td class="CoverValue line-coverage coverage-medium">97 / 126</td>
+    <td class="CoverValue function-coverage coverage-high">90.0%</td>
+    <td class="CoverValue function-coverage coverage-high">9 / 10</td>
+    <td class="CoverValue branch-coverage coverage-low">69.2%</td>
+    <td class="CoverValue branch-coverage coverage-low">36 / 52</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/exp2m1/exp2m1.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="77.6" title="77.6%">77.6</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">77.6%</td>
+    <td class="CoverValue line-coverage coverage-medium">173 / 223</td>
+    <td class="CoverValue function-coverage coverage-high">92.9%</td>
+    <td class="CoverValue function-coverage coverage-high">13 / 14</td>
+    <td class="CoverValue branch-coverage coverage-low">74.2%</td>
+    <td class="CoverValue branch-coverage coverage-low">46 / 62</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/exp10/exp10.c
+    </th>
+    <td>
+      <meter class="coverage-low" min="0" max="100" value="73.5" title="73.5%">73.5</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-low">73.5%</td>
+    <td class="CoverValue line-coverage coverage-low">97 / 132</td>
+    <td class="CoverValue function-coverage coverage-medium">88.9%</td>
+    <td class="CoverValue function-coverage coverage-medium">8 / 9</td>
+    <td class="CoverValue branch-coverage coverage-low">63.5%</td>
+    <td class="CoverValue branch-coverage coverage-low">33 / 52</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/exp10m1/exp10m1.c
+    </th>
+    <td>
+      <meter class="coverage-low" min="0" max="100" value="52.1" title="52.1%">52.1</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-low">52.1%</td>
+    <td class="CoverValue line-coverage coverage-low">124 / 238</td>
+    <td class="CoverValue function-coverage coverage-low">71.4%</td>
+    <td class="CoverValue function-coverage coverage-low">10 / 14</td>
+    <td class="CoverValue branch-coverage coverage-low">58.1%</td>
+    <td class="CoverValue branch-coverage coverage-low">36 / 62</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/exp/exp.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="96.5" title="96.5%">96.5</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">96.5%</td>
+    <td class="CoverValue line-coverage coverage-high">110 / 114</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">10 / 10</td>
+    <td class="CoverValue branch-coverage coverage-medium">87.5%</td>
+    <td class="CoverValue branch-coverage coverage-medium">28 / 32</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/expm1/expm1.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="87.7" title="87.7%">87.7</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">87.7%</td>
+    <td class="CoverValue line-coverage coverage-medium">136 / 155</td>
+    <td class="CoverValue function-coverage coverage-high">90.0%</td>
+    <td class="CoverValue function-coverage coverage-high">9 / 10</td>
+    <td class="CoverValue branch-coverage coverage-low">74.1%</td>
+    <td class="CoverValue branch-coverage coverage-low">40 / 54</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/hypot/hypot.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="87.0" title="87.0%">87.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">87.0%</td>
+    <td class="CoverValue line-coverage coverage-medium">127 / 146</td>
+    <td class="CoverValue function-coverage coverage-medium">85.7%</td>
+    <td class="CoverValue function-coverage coverage-medium">6 / 7</td>
+    <td class="CoverValue branch-coverage coverage-low">61.5%</td>
+    <td class="CoverValue branch-coverage coverage-low">48 / 78</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/log1p/log1p.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="94.8" title="94.8%">94.8</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">94.8%</td>
+    <td class="CoverValue line-coverage coverage-high">145 / 153</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">10 / 10</td>
+    <td class="CoverValue branch-coverage coverage-medium">83.3%</td>
+    <td class="CoverValue branch-coverage coverage-medium">45 / 54</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/log2/log2.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="92.5" title="92.5%">92.5</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">92.5%</td>
+    <td class="CoverValue line-coverage coverage-high">86 / 93</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">7 / 7</td>
+    <td class="CoverValue branch-coverage coverage-medium">86.4%</td>
+    <td class="CoverValue branch-coverage coverage-medium">19 / 22</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/log2p1/dint_log2p1.h
+    </th>
+    <td>
+      <meter class="coverage-none" min="0" max="100" value="0.0" title="0.0%">0.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-none">0.0%</td>
+    <td class="CoverValue line-coverage coverage-none">0 / 124</td>
+    <td class="CoverValue function-coverage coverage-none">0.0%</td>
+    <td class="CoverValue function-coverage coverage-none">0 / 13</td>
+    <td class="CoverValue branch-coverage coverage-none">0.0%</td>
+    <td class="CoverValue branch-coverage coverage-none">0 / 47</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/log2p1/log2p1.c
+    </th>
+    <td>
+      <meter class="coverage-low" min="0" max="100" value="67.3" title="67.3%">67.3</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-low">67.3%</td>
+    <td class="CoverValue line-coverage coverage-low">152 / 226</td>
+    <td class="CoverValue function-coverage coverage-medium">80.0%</td>
+    <td class="CoverValue function-coverage coverage-medium">12 / 15</td>
+    <td class="CoverValue branch-coverage coverage-low">73.3%</td>
+    <td class="CoverValue branch-coverage coverage-low">63 / 86</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/log10/dint.h
+    </th>
+    <td>
+      <meter class="coverage-low" min="0" max="100" value="71.9" title="71.9%">71.9</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-low">71.9%</td>
+    <td class="CoverValue line-coverage coverage-low">69 / 96</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">9 / 9</td>
+    <td class="CoverValue branch-coverage coverage-low">53.7%</td>
+    <td class="CoverValue branch-coverage coverage-low">22 / 41</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/log10/log10.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="97.6" title="97.6%">97.6</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">97.6%</td>
+    <td class="CoverValue line-coverage coverage-high">124 / 127</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">11 / 11</td>
+    <td class="CoverValue branch-coverage coverage-low">67.9%</td>
+    <td class="CoverValue branch-coverage coverage-low">19 / 28</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/log10p1/dint.h
+    </th>
+    <td>
+      <meter class="coverage-none" min="0" max="100" value="0.0" title="0.0%">0.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-none">0.0%</td>
+    <td class="CoverValue line-coverage coverage-none">0 / 124</td>
+    <td class="CoverValue function-coverage coverage-none">0.0%</td>
+    <td class="CoverValue function-coverage coverage-none">0 / 13</td>
+    <td class="CoverValue branch-coverage coverage-none">0.0%</td>
+    <td class="CoverValue branch-coverage coverage-none">0 / 47</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/log10p1/log10p1.c
+    </th>
+    <td>
+      <meter class="coverage-low" min="0" max="100" value="65.4" title="65.4%">65.4</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-low">65.4%</td>
+    <td class="CoverValue line-coverage coverage-low">136 / 208</td>
+    <td class="CoverValue function-coverage coverage-medium">80.0%</td>
+    <td class="CoverValue function-coverage coverage-medium">12 / 15</td>
+    <td class="CoverValue branch-coverage coverage-low">69.1%</td>
+    <td class="CoverValue branch-coverage coverage-low">47 / 68</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/log/dint.h
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="76.0" title="76.0%">76.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">76.0%</td>
+    <td class="CoverValue line-coverage coverage-medium">73 / 96</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">9 / 9</td>
+    <td class="CoverValue branch-coverage coverage-low">58.5%</td>
+    <td class="CoverValue branch-coverage coverage-low">24 / 41</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/log/log.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">127 / 127</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">10 / 10</td>
+    <td class="CoverValue branch-coverage coverage-medium">85.3%</td>
+    <td class="CoverValue branch-coverage coverage-medium">29 / 34</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/pow/dint.h
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="86.2" title="86.2%">86.2</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">86.2%</td>
+    <td class="CoverValue line-coverage coverage-medium">131 / 152</td>
+    <td class="CoverValue function-coverage coverage-high">92.9%</td>
+    <td class="CoverValue function-coverage coverage-high">13 / 14</td>
+    <td class="CoverValue branch-coverage coverage-medium">78.3%</td>
+    <td class="CoverValue branch-coverage coverage-medium">47 / 60</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/pow/pow.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="83.4" title="83.4%">83.4</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">83.4%</td>
+    <td class="CoverValue line-coverage coverage-medium">417 / 500</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">18 / 18</td>
+    <td class="CoverValue branch-coverage coverage-low">66.7%</td>
+    <td class="CoverValue branch-coverage coverage-low">194 / 291</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/pow/pow.h
+    </th>
+    <td>
+      <meter class="coverage-low" min="0" max="100" value="69.5" title="69.5%">69.5</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-low">69.5%</td>
+    <td class="CoverValue line-coverage coverage-low">141 / 203</td>
+    <td class="CoverValue function-coverage coverage-high">94.4%</td>
+    <td class="CoverValue function-coverage coverage-high">17 / 18</td>
+    <td class="CoverValue branch-coverage coverage-low">49.6%</td>
+    <td class="CoverValue branch-coverage coverage-low">67 / 135</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/pow/qint.h
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="89.8" title="89.8%">89.8</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">89.8%</td>
+    <td class="CoverValue line-coverage coverage-medium">282 / 314</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">15 / 15</td>
+    <td class="CoverValue branch-coverage coverage-low">70.4%</td>
+    <td class="CoverValue branch-coverage coverage-low">76 / 108</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/rsqrt/rsqrt.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">69 / 69</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">3 / 3</td>
+    <td class="CoverValue branch-coverage coverage-high">93.8%</td>
+    <td class="CoverValue branch-coverage coverage-high">30 / 32</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/sin/sin.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="97.7" title="97.7%">97.7</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">97.7%</td>
+    <td class="CoverValue line-coverage coverage-high">170 / 174</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">14 / 14</td>
+    <td class="CoverValue branch-coverage coverage-high">91.7%</td>
+    <td class="CoverValue branch-coverage coverage-high">33 / 36</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/sinh/sinh.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="83.6" title="83.6%">83.6</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">83.6%</td>
+    <td class="CoverValue line-coverage coverage-medium">138 / 165</td>
+    <td class="CoverValue function-coverage coverage-medium">87.5%</td>
+    <td class="CoverValue function-coverage coverage-medium">7 / 8</td>
+    <td class="CoverValue branch-coverage coverage-low">63.2%</td>
+    <td class="CoverValue branch-coverage coverage-low">24 / 38</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/sinpi/sinpi.c
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="92.1" title="92.1%">92.1</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">92.1%</td>
+    <td class="CoverValue line-coverage coverage-high">163 / 177</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">10 / 10</td>
+    <td class="CoverValue branch-coverage coverage-low">60.0%</td>
+    <td class="CoverValue branch-coverage coverage-low">30 / 50</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/tan/tan.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="84.7" title="84.7%">84.7</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">84.7%</td>
+    <td class="CoverValue line-coverage coverage-medium">399 / 471</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">31 / 31</td>
+    <td class="CoverValue branch-coverage coverage-low">57.2%</td>
+    <td class="CoverValue branch-coverage coverage-low">91 / 159</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/tanh/tanh.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="84.7" title="84.7%">84.7</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">84.7%</td>
+    <td class="CoverValue line-coverage coverage-medium">127 / 150</td>
+    <td class="CoverValue function-coverage coverage-medium">88.9%</td>
+    <td class="CoverValue function-coverage coverage-medium">8 / 9</td>
+    <td class="CoverValue branch-coverage coverage-low">61.1%</td>
+    <td class="CoverValue branch-coverage coverage-low">22 / 36</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      3rd/math-core/src/binary64/tanpi/tanpi.c
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="79.5" title="79.5%">79.5</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">79.5%</td>
+    <td class="CoverValue line-coverage coverage-medium">151 / 190</td>
+    <td class="CoverValue function-coverage coverage-medium">87.5%</td>
+    <td class="CoverValue function-coverage coverage-medium">7 / 8</td>
+    <td class="CoverValue branch-coverage coverage-low">67.1%</td>
+    <td class="CoverValue branch-coverage coverage-low">47 / 70</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_avx512_impl.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="93.2" title="93.2%">93.2</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">93.2%</td>
+    <td class="CoverValue line-coverage coverage-high">274 / 294</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">41 / 41</td>
+    <td class="CoverValue branch-coverage coverage-high">93.0%</td>
+    <td class="CoverValue branch-coverage coverage-high">172 / 185</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_core.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="98.9" title="98.9%">98.9</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">98.9%</td>
+    <td class="CoverValue line-coverage coverage-high">438 / 443</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">38 / 38</td>
+    <td class="CoverValue branch-coverage coverage-low">63.4%</td>
+    <td class="CoverValue branch-coverage coverage-low">672 / 1060</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_core.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="96.8" title="96.8%">96.8</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">96.8%</td>
+    <td class="CoverValue line-coverage coverage-high">398 / 411</td>
+    <td class="CoverValue function-coverage coverage-high">97.2%</td>
+    <td class="CoverValue function-coverage coverage-high">206 / 212</td>
+    <td class="CoverValue branch-coverage coverage-low">72.2%</td>
+    <td class="CoverValue branch-coverage coverage-low">452 / 626</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_detail.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="98.3" title="98.3%">98.3</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">98.3%</td>
+    <td class="CoverValue line-coverage coverage-high">57 / 58</td>
+    <td class="CoverValue function-coverage coverage-high">94.7%</td>
+    <td class="CoverValue function-coverage coverage-high">107 / 113</td>
+    <td class="CoverValue branch-coverage coverage-medium">80.4%</td>
+    <td class="CoverValue branch-coverage coverage-medium">37 / 46</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_exp_log.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">140 / 140</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">24 / 24</td>
+    <td class="CoverValue branch-coverage coverage-medium">76.6%</td>
+    <td class="CoverValue branch-coverage coverage-medium">144 / 188</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_fpu.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">77 / 77</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">18 / 18</td>
+    <td class="CoverValue branch-coverage coverage-medium">79.3%</td>
+    <td class="CoverValue branch-coverage coverage-medium">46 / 58</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_fpu_impl.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">244 / 244</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">20 / 20</td>
+    <td class="CoverValue branch-coverage coverage-high">93.9%</td>
+    <td class="CoverValue branch-coverage coverage-high">186 / 198</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_fpu_kernels.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">47 / 47</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">5 / 5</td>
+    <td class="CoverValue branch-coverage coverage-low">71.7%</td>
+    <td class="CoverValue branch-coverage coverage-low">33 / 46</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_hyperbolic.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">61 / 61</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">12 / 12</td>
+    <td class="CoverValue branch-coverage coverage-medium">78.3%</td>
+    <td class="CoverValue branch-coverage coverage-medium">47 / 60</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_internal.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="99.6" title="99.6%">99.6</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">99.6%</td>
+    <td class="CoverValue line-coverage coverage-high">242 / 243</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">50 / 50</td>
+    <td class="CoverValue branch-coverage coverage-medium">80.1%</td>
+    <td class="CoverValue branch-coverage coverage-medium">354 / 442</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_io.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="94.6" title="94.6%">94.6</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">94.6%</td>
+    <td class="CoverValue line-coverage coverage-high">365 / 386</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">23 / 23</td>
+    <td class="CoverValue branch-coverage coverage-low">67.2%</td>
+    <td class="CoverValue branch-coverage coverage-low">501 / 745</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_neon.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">118 / 118</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">37 / 37</td>
+    <td class="CoverValue branch-coverage coverage-high">100.0%</td>
+    <td class="CoverValue branch-coverage coverage-high">16 / 16</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_neon_impl.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">222 / 222</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">23 / 23</td>
+    <td class="CoverValue branch-coverage coverage-high">100.0%</td>
+    <td class="CoverValue branch-coverage coverage-high">90 / 90</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_neon_kernels.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="99.2" title="99.2%">99.2</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">99.2%</td>
+    <td class="CoverValue line-coverage coverage-high">124 / 125</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">19 / 19</td>
+    <td class="CoverValue branch-coverage coverage-high">98.2%</td>
+    <td class="CoverValue branch-coverage coverage-high">55 / 56</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_pow.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="96.9" title="96.9%">96.9</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">96.9%</td>
+    <td class="CoverValue line-coverage coverage-high">533 / 550</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">57 / 57</td>
+    <td class="CoverValue branch-coverage coverage-low">72.0%</td>
+    <td class="CoverValue branch-coverage coverage-low">747 / 1038</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_relational.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="99.7" title="99.7%">99.7</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">99.7%</td>
+    <td class="CoverValue line-coverage coverage-high">742 / 744</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">78 / 78</td>
+    <td class="CoverValue branch-coverage coverage-low">71.8%</td>
+    <td class="CoverValue branch-coverage coverage-low">1220 / 1699</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_sse.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">101 / 101</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">27 / 27</td>
+    <td class="CoverValue branch-coverage coverage-low">72.3%</td>
+    <td class="CoverValue branch-coverage coverage-low">60 / 83</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_sse_impl.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="95.0" title="95.0%">95.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">95.0%</td>
+    <td class="CoverValue line-coverage coverage-high">458 / 482</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">25 / 25</td>
+    <td class="CoverValue branch-coverage coverage-low">66.0%</td>
+    <td class="CoverValue branch-coverage coverage-low">389 / 589</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_sse_kernels.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">52 / 52</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">7 / 7</td>
+    <td class="CoverValue branch-coverage coverage-low">56.2%</td>
+    <td class="CoverValue branch-coverage coverage-low">18 / 32</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/core/gaol_interval_trig.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="98.7" title="98.7%">98.7</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">98.7%</td>
+    <td class="CoverValue line-coverage coverage-high">375 / 380</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">42 / 42</td>
+    <td class="CoverValue branch-coverage coverage-medium">85.8%</td>
+    <td class="CoverValue branch-coverage coverage-medium">429 / 500</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/gaol_common.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="94.9" title="94.9%">94.9</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">94.9%</td>
+    <td class="CoverValue line-coverage coverage-high">75 / 79</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">11 / 11</td>
+    <td class="CoverValue branch-coverage coverage-medium">82.7%</td>
+    <td class="CoverValue branch-coverage coverage-medium">43 / 52</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/gaol_common.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="95.2" title="95.2%">95.2</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">95.2%</td>
+    <td class="CoverValue line-coverage coverage-high">20 / 21</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">7 / 7</td>
+    <td class="CoverValue branch-coverage coverage-low">66.7%</td>
+    <td class="CoverValue branch-coverage coverage-low">12 / 18</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/gaol_fpu.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">94 / 94</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">35 / 35</td>
+    <td class="CoverValue branch-coverage coverage-high">94.4%</td>
+    <td class="CoverValue branch-coverage coverage-high">17 / 18</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/gaol_fpu_fenv.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">41 / 41</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">15 / 15</td>
+    <td class="CoverValue branch-coverage coverage-high">100.0%</td>
+    <td class="CoverValue branch-coverage coverage-high">8 / 8</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/gaol_ieee1788.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">15 / 15</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">3 / 3</td>
+    <td class="CoverValue branch-coverage coverage-low">66.7%</td>
+    <td class="CoverValue branch-coverage coverage-low">18 / 27</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/gaol_ieee1788.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">116 / 116</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">99 / 99</td>
+    <td class="CoverValue branch-coverage coverage-low">61.2%</td>
+    <td class="CoverValue branch-coverage coverage-low">82 / 134</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/gaol_init_cleanup.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">19 / 19</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">6 / 6</td>
+    <td class="CoverValue branch-coverage coverage-low">50.0%</td>
+    <td class="CoverValue branch-coverage coverage-low">4 / 8</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/gaol_interval.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">46 / 46</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">7 / 7</td>
+    <td class="CoverValue branch-coverage coverage-low">58.8%</td>
+    <td class="CoverValue branch-coverage coverage-low">47 / 80</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/gaol_interval.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">5 / 5</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">8 / 8</td>
+    <td class="CoverValue branch-coverage coverage-unknown">-%</td>
+    <td class="CoverValue branch-coverage coverage-unknown">0 / 0</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/gaol_port.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">3 / 3</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">1 / 1</td>
+    <td class="CoverValue branch-coverage coverage-unknown">-%</td>
+    <td class="CoverValue branch-coverage coverage-unknown">0 / 0</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/gaol_port.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">52 / 52</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">20 / 20</td>
+    <td class="CoverValue branch-coverage coverage-high">100.0%</td>
+    <td class="CoverValue branch-coverage coverage-high">48 / 48</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/math/gaol_compoundm1.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="99.1" title="99.1%">99.1</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">99.1%</td>
+    <td class="CoverValue line-coverage coverage-high">801 / 808</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">88 / 88</td>
+    <td class="CoverValue branch-coverage coverage-medium">88.9%</td>
+    <td class="CoverValue branch-coverage coverage-medium">542 / 610</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/math/gaol_core_math_port.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">6 / 6</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">1 / 1</td>
+    <td class="CoverValue branch-coverage coverage-high">100.0%</td>
+    <td class="CoverValue branch-coverage coverage-high">4 / 4</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/math/gaol_double_op.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">30 / 30</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">30 / 30</td>
+    <td class="CoverValue branch-coverage coverage-unknown">-%</td>
+    <td class="CoverValue branch-coverage coverage-unknown">0 / 0</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/math/gaol_ldexp.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">23 / 23</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">4 / 4</td>
+    <td class="CoverValue branch-coverage coverage-high">100.0%</td>
+    <td class="CoverValue branch-coverage coverage-high">12 / 12</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/math/gaol_roundeven.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">19 / 19</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">1 / 1</td>
+    <td class="CoverValue branch-coverage coverage-high">100.0%</td>
+    <td class="CoverValue branch-coverage coverage-high">14 / 14</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/math/gaol_u128.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">91 / 91</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">46 / 46</td>
+    <td class="CoverValue branch-coverage coverage-high">100.0%</td>
+    <td class="CoverValue branch-coverage coverage-high">32 / 32</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/parser/gaol_eval_stack.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="97.1" title="97.1%">97.1</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">97.1%</td>
+    <td class="CoverValue line-coverage coverage-high">33 / 34</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">25 / 25</td>
+    <td class="CoverValue branch-coverage coverage-low">66.7%</td>
+    <td class="CoverValue branch-coverage coverage-low">20 / 30</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/parser/gaol_expr_eval.h
+    </th>
+    <td>
+      <meter class="coverage-medium" min="0" max="100" value="88.2" title="88.2%">88.2</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-medium">88.2%</td>
+    <td class="CoverValue line-coverage coverage-medium">165 / 187</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">39 / 39</td>
+    <td class="CoverValue branch-coverage coverage-low">56.9%</td>
+    <td class="CoverValue branch-coverage coverage-low">169 / 297</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/parser/gaol_expression.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="94.5" title="94.5%">94.5</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">94.5%</td>
+    <td class="CoverValue line-coverage coverage-high">813 / 860</td>
+    <td class="CoverValue function-coverage coverage-high">90.9%</td>
+    <td class="CoverValue function-coverage coverage-high">209 / 230</td>
+    <td class="CoverValue branch-coverage coverage-low">39.0%</td>
+    <td class="CoverValue branch-coverage coverage-low">405 / 1038</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/parser/gaol_expression.h
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">91 / 91</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">44 / 44</td>
+    <td class="CoverValue branch-coverage coverage-low">61.5%</td>
+    <td class="CoverValue branch-coverage coverage-low">32 / 52</td>
+  </tr>
+
+
+  <tr>
+    <th scope="row">
+      gaol/parser/gaol_parser.cpp
+    </th>
+    <td>
+      <meter class="coverage-high" min="0" max="100" value="100.0" title="100.0%">100.0</meter>
+    </td>
+    <td class="CoverValue line-coverage coverage-high">100.0%</td>
+    <td class="CoverValue line-coverage coverage-high">4 / 4</td>
+    <td class="CoverValue function-coverage coverage-high">100.0%</td>
+    <td class="CoverValue function-coverage coverage-high">1 / 1</td>
+    <td class="CoverValue branch-coverage coverage-high">100.0%</td>
+    <td class="CoverValue branch-coverage coverage-high">2 / 2</td>
+  </tr>
+
+</table>
+      <hr/>
+    </main>
+
+    <footer>
+      Generated by: <a href="http://gcovr.com/en/7.2">GCOVR (Version 7.2)</a>
+    </footer>
+  </body>
+</html>

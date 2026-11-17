@@ -1,0 +1,2443 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Tests of GAOL v5: the intervals built from a string.
+ *
+ * textToInterval("...") lexes the string, parses it into the tree of
+ * gaol/parser/gaol_expression.h, and evaluates that tree
+ * (gaol/parser/gaol_expr_eval.h). This test
+ * goes through every node of the tree and
+ * every way the string can be wrong, so that the parts of GAOL the other
+ * tests never reach are run too:
+ *
+ * - the numbers, in every form the lexer takes (decimal, exponent,
+ *   hexadecimal, the bounds given apart);
+ * - the operators and the functions, alone and nested;
+ * - the strings the parser refuses, which have to raise an exception rather
+ *   than give an interval, and what the exceptions of GAOL say (what(), file,
+ *   line and explanation);
+ * - the long and the deeply nested expressions: sums, and products and
+ *   quotients, of 200000 terms read from a string, sums and products of 200000
+ *   terms and differences and quotients of 20000 built in C++, and chains of
+ *   200000 minus signs and 20000 sines, which have to be evaluated and deleted
+ *   whatever their depth, on a stack that does not grow with it, and the
+ *   nesting the reader refuses;
+ * - the NUL characters of a std::string, a null pointer, the bounds of a
+ *   literal in the wrong order, the bounds of <a, b> that are no doubles, the
+ *   integer exponents beyond the ints, and the allocations that fail.
+ *
+ * The value is compared with the same computation written in C++, which the
+ * other tests check against the exact results: here what is tested is the
+ * lexer, the parser and the evaluation of the tree, not the operations.
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-09-20)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
+/* The expressions are in gaol_core, and their headers are not installed
+   (GAOL v5): this test is built with the sources of GAOL. It includes them
+   before gaol/gaol_ieee1788.h (gaol_tests.h), which gaol_expression.h includes
+   first all the same: the checks below see that gaol_ieee1788 names nothing of
+   the expressions */
+#include "gaol/parser/gaol_expr_eval.h"
+
+#include "gaol_tests.h"
+
+#include <algorithm>
+#include <cctype>
+#include <chrono>
+#include <clocale>
+#include <cstdio>
+#include <functional>
+#include <iostream>
+#include <random>
+#include <type_traits>
+#include <typeinfo>
+#include <utility>
+#include <vector>
+
+#if defined(_MSC_VER)
+#  include <intrin.h>
+#endif
+#include <cstdlib>
+#include <new>
+
+/* The allocations of the program, counted by a replacement of the global
+   operator new and operator delete, and one of them made to fail on purpose
+   (GAOL v5): allocation_failures() below makes each allocation of a reading
+   or an evaluation fail in turn. The replacement reaches the code of GAOL
+   where the library is static, or shared on Linux and macOS, whose loaders
+   bind the operator new of a shared library to that of the program; not with
+   a DLL on Windows, where the test sees it and says it skips the checks. */
+namespace
+{
+  std::size_t allocations_made = 0;    // by operator new, since the program started
+  std::size_t allocations_live = 0;    // made and not deleted yet
+  std::size_t allocations_peak = 0;    // the most live at once
+  std::size_t failing_allocation = 0;  // the number of the one that fails, 0 for none
+
+  void* counted_new(std::size_t size)
+  {
+    ++allocations_made;
+    if (allocations_made == failing_allocation) {
+      throw std::bad_alloc();
+    }
+    void* const p = std::malloc(size == 0 ? 1 : size);
+    if (p == nullptr) {
+      throw std::bad_alloc();
+    }
+    ++allocations_live;
+    allocations_peak = std::max(allocations_peak, allocations_live);
+    return p;
+  }
+
+  void counted_delete(void* p) noexcept
+  {
+    if (p != nullptr) {
+      --allocations_live;
+      std::free(p);
+    }
+  }
+}
+
+void* operator new(std::size_t size) { return counted_new(size); }
+void* operator new[](std::size_t size) { return counted_new(size); }
+void* operator new(std::size_t size, const std::nothrow_t&) noexcept
+{
+  try {
+    return counted_new(size);
+  } catch (...) {
+    return nullptr;
+  }
+}
+void* operator new[](std::size_t size, const std::nothrow_t&) noexcept
+{
+  try {
+    return counted_new(size);
+  } catch (...) {
+    return nullptr;
+  }
+}
+void operator delete(void* p) noexcept { counted_delete(p); }
+void operator delete[](void* p) noexcept { counted_delete(p); }
+void operator delete(void* p, const std::nothrow_t&) noexcept { counted_delete(p); }
+void operator delete[](void* p, const std::nothrow_t&) noexcept { counted_delete(p); }
+#if defined(__cpp_sized_deallocation)
+void operator delete(void* p, std::size_t) noexcept { counted_delete(p); }
+void operator delete[](void* p, std::size_t) noexcept { counted_delete(p); }
+#endif
+
+// Commented out: the tests run no thread (GAOL v5)
+// // std::thread, which libstdc++ has only when built with a thread model
+// #if !defined(__GLIBCXX__) || defined(_GLIBCXX_HAS_GTHREADS)
+// #  include <atomic>
+// #  include <thread>
+// #  include <vector>
+// #  define GAOL_TESTS_THREADS 1
+// #endif
+
+using namespace gaol;
+using namespace gaol_core;
+using namespace gaol_tests;
+
+/* The powers of expressions, which gaol_core does not name (GAOL v5: gaol::pow
+   of expressions is gone, and the namespaces hold the powers of intervals):
+   gaol_pow_exp() and gaol_pown_exp(), the functions the reader of strings
+   builds its nodes with. Here, and not in the namespace below, which they
+   would make hide the pow of intervals the unnamed namespace sees */
+inline expression pow(const expression& e1, const expression& e2) { return gaol_pow_exp(e1, e2); }
+inline expression pow(const expression& e, int n) { return gaol_pown_exp(e, n); }
+
+namespace
+{
+  /* expression(double) and expression(const interval&) are explicit, as
+     interval(double) (GAOL v5): gaol::sin(0.5), which was ambiguous between
+     the sin of [0.5] and that of an expression, does not compile, and
+     gaol::sin(x) on an interval is the sin of the interval. The expressions
+     are in gaol_core only (GAOL v5): gaol and gaol_ieee1788 name the
+     functions of intervals, and gaol::sin(e) and gaol_ieee1788::sin(e) of an
+     expression do not compile */
+  template <typename T, typename = void> struct has_gaol_sin : std::false_type {};
+  template <typename T>
+  struct has_gaol_sin<T, decltype(void(gaol::sin(std::declval<const T&>())))> : std::true_type {};
+  template <typename T, typename = void> struct has_ieee1788_sin : std::false_type {};
+  template <typename T>
+  struct has_ieee1788_sin<T, decltype(void(gaol_ieee1788::sin(std::declval<const T&>())))> : std::true_type {};
+  static_assert(has_gaol_sin<interval>::value && has_ieee1788_sin<interval>::value, "the detection works");
+  static_assert(!has_gaol_sin<expression>::value, "gaol::sin(e) of an expression does not compile");
+  static_assert(!has_ieee1788_sin<expression>::value, "gaol_ieee1788::sin(e) of an expression does not compile");
+  static_assert(!std::is_convertible<double, expression>::value, "a double does not convert implicitly to an expression");
+  static_assert(!std::is_convertible<interval, expression>::value, "an interval does not convert implicitly to an expression");
+  static_assert(std::is_constructible<expression, double>::value && std::is_constructible<expression, interval>::value,
+                "expression(d) and expression(x) build the expressions of [d, d] and x");
+  static_assert(!has_gaol_sin<double>::value, "gaol::sin(0.5) does not compile");
+  // An integer neither, and expression(n) is expression(interval(n)) (GAOL v5)
+  static_assert(!std::is_convertible<long long, expression>::value && std::is_constructible<expression, long long>::value,
+                "expression(n) builds the expression of interval(n)");
+  static_assert(std::is_same<decltype(gaol::sin(std::declval<const interval&>())), interval>::value,
+                "gaol::sin(x) on an interval is the sin of x");
+
+  /* An empty expression of static storage, which refers to the node of the
+     empty expression and is destroyed after main() has called
+     gaol::cleanup(): cleanup() deleted that node, and the destructor of the
+     expression then wrote into freed memory, which the sanitizers report
+     (GAOL v5). The node is now freed by the automatic cleanup, after the
+     static objects of the program are destroyed. */
+  expression static_expression;
+
+  // The interval of a string, and the same interval computed in C++
+  /* Written on the standard error as each part starts, and flushed, so that a
+     crash says where it happened: the test prints nothing else until its
+     summary, and a floating-point exception left no trace at all of where it
+     came from (MinGW-w64 for a 32-bit target, GAOL v5). */
+  void step(const char* what)
+  {
+    std::fprintf(stderr, "-- %s\n", what);
+    std::fflush(stderr);
+    // What the checks of the last part printed, which a crash in this one
+    // would take with the buffer of a pipe (GAOL v5)
+    std::fflush(stdout);
+  }
+
+  void same(const std::string& text, const interval& expected)
+  {
+    interval got;
+    bool threw = false;
+    try {
+      got = textToInterval(text);
+    } catch (const std::exception& e) {
+      threw = true;
+      check("expression: no exception on a string that is right", false,
+            [&] { return text + ": " + e.what(); });
+    }
+    if (threw) {
+      return;
+    }
+    check("expression: the same interval as the operations of C++",
+          (got.left() == expected.left() && got.right() == expected.right())
+            || (got.is_empty() && expected.is_empty()),
+          [&] {
+            std::ostringstream o;
+            o << text << " gave " << got << " rather than " << expected;
+            return o.str();
+          });
+  }
+
+  // A string whose value is no double: the interval has to hold it
+  void encloses(const std::string& text, double a, double b)
+  {
+    try {
+      const interval got = textToInterval(text);
+      check("expression: the interval holds the value written",
+            got.left() <= a && got.right() >= b,
+            [&] {
+              std::ostringstream o;
+              o << text << " gave " << got;
+              return o.str();
+            });
+    } catch (const std::exception& e) {
+      check("expression: no exception on a string that is right", false,
+            [&] { return text + ": " + e.what(); });
+    }
+  }
+
+  // A string the parser has to refuse
+  void refused(const std::string& text)
+  {
+#if GAOL_EXCEPTIONS_ENABLED
+    bool threw = false;
+    try {
+      const interval got = textToInterval(text);
+      (void)got;
+    } catch (const std::exception&) {
+      threw = true;
+    } catch (...) {
+      threw = true;
+    }
+    check("expression: a string that is wrong raises an exception", threw,
+          [&] { return text + " gave an interval"; });
+#else
+    // Without exceptions (configure --disable-exceptions, meson
+    // -Denable-exception=false), textToInterval() would end the program: the
+    // reader has to refuse the string, a wrong call, an uncertain number as a
+    // bound and <a, b> of two different bounds included, which ended the
+    // program inside it (GAOL v5, #98)
+    interval x;
+    check("expression: a string that is wrong is refused", !gaol_core::parse_interval(text.c_str(), x),
+          [&] { return text + " was read"; });
+#endif
+  }
+
+  void numbers()
+  {
+    same("[1,2]", interval(1.0, 2.0));
+    same("[1.5,2.5]", interval(1.5, 2.5));
+    same("[-2,-1]", interval(-2.0, -1.0));
+    same("3", interval(3.0, 3.0));
+    same("-3", interval(-3.0, -3.0));
+    same("0", interval(0.0, 0.0));
+    same("[0,0]", interval(0.0, 0.0));
+    same("1e3", interval(1000.0, 1000.0));
+    // 1e-3 is no double: the parser has to enclose it, not to round it
+    encloses("1e-3", 1e-3, 1e-3);
+    encloses("[1e-3,1e3]", 1e-3, 1000.0);
+    encloses("0.1", 0.1, 0.1);
+    encloses("[0.1,0.2]", 0.1, 0.2);
+    encloses("[-0.3,-0.1]", -0.3, -0.1);
+    same("[ 1 , 2 ]", interval(1.0, 2.0));
+    // the bounds given apart, as tests/numbers.cpp writes them
+    check("expression: the bounds given apart",
+          textToInterval("[0.1,0.1]", "[0.2,0.2]").left() <= 0.1
+            && textToInterval("[0.1,0.1]", "[0.2,0.2]").right() >= 0.2);
+  }
+
+  void operators()
+  {
+    same("1+2", interval(3.0, 3.0));
+    same("[1,2]+[3,4]", interval(1.0, 2.0) + interval(3.0, 4.0));
+    same("[1,2]-[3,4]", interval(1.0, 2.0) - interval(3.0, 4.0));
+    same("[1,2]*[3,4]", interval(1.0, 2.0) * interval(3.0, 4.0));
+    same("[1,2]/[3,4]", interval(1.0, 2.0) / interval(3.0, 4.0));
+    same("-[1,2]", -interval(1.0, 2.0));
+    same("-(-[1,2])", interval(1.0, 2.0));
+    same("([1,2]+[3,4])*[0,1]", (interval(1.0, 2.0) + interval(3.0, 4.0)) * interval(0.0, 1.0));
+    same("[1,2]+[3,4]*[0,1]", interval(1.0, 2.0) + interval(3.0, 4.0) * interval(0.0, 1.0));
+    same("[1,2]-[3,4]-[0,1]", interval(1.0, 2.0) - interval(3.0, 4.0) - interval(0.0, 1.0));
+    same("[1,2]/[3,4]/[1,2]", interval(1.0, 2.0) / interval(3.0, 4.0) / interval(1.0, 2.0));
+    // a division by an interval holding 0
+    same("[1,2]/[-1,1]", interval(1.0, 2.0) / interval(-1.0, 1.0));
+    /* Every string is an expression, the intervals among its terms (GAOL v5):
+       with two grammars, GAOL refused an interval after a number, and one in
+       a bound, but read [1,2]*2 */
+    same("1+[1,2]", interval(1.0) + interval(1.0, 2.0));
+    same("2*cos([0,1])", 2.0 * cos(interval(0.0, 1.0)));
+    same("[1,2]+1+[1,2]", interval(1.0, 2.0) + interval(1.0) + interval(1.0, 2.0));
+    same("[1,2]*2", interval(1.0, 2.0) * 2.0);
+    same("[cos([0,1]), 2]", interval(cos(interval(0.0, 1.0)).left(), 2.0));
+    same("[[1,2], 3]", interval(1.0, 3.0));
+    same("3.56?1*2", textToInterval("3.56?1") * 2.0);
+    // a newline is a space: flex wrote it on the standard output (GAOL v5)
+    same("[1,2]\n+[3,4]", interval(1.0, 2.0) + interval(3.0, 4.0));
+    same("1 +\n 2", interval(3.0));
+    /* pow(x, n) is gaol::pow for a negative n too: the parser took 1/x^|n|,
+       whose x^|n| overflowed, and [0, 5.6e-309] for 2^-1050 (GAOL v5) */
+    same("pow(2,-1050)", pow(interval(2.0), -1050));
+    same("pow([-4,-1],2)", pow(interval(-4.0, -1.0), 2));
+  }
+
+  void functions()
+  {
+    same("cos(0)", cos(interval(0.0, 0.0)));
+    same("sin(0)", sin(interval(0.0, 0.0)));
+    same("tan(0)", tan(interval(0.0, 0.0)));
+    same("cos([0,1])", cos(interval(0.0, 1.0)));
+    same("sin([0,1])", sin(interval(0.0, 1.0)));
+    same("tan([0,1])", tan(interval(0.0, 1.0)));
+    same("acos([0,1])", acos(interval(0.0, 1.0)));
+    same("asin([0,1])", asin(interval(0.0, 1.0)));
+    same("atan([0,1])", atan(interval(0.0, 1.0)));
+    same("cosh([0,1])", cosh(interval(0.0, 1.0)));
+    same("sinh([0,1])", sinh(interval(0.0, 1.0)));
+    same("tanh([0,1])", tanh(interval(0.0, 1.0)));
+    same("acosh([1,2])", acosh(interval(1.0, 2.0)));
+    same("asinh([0,1])", asinh(interval(0.0, 1.0)));
+    same("atanh([0,0.5])", atanh(interval(0.0, 0.5)));
+    same("exp([0,1])", exp(interval(0.0, 1.0)));
+    same("log([1,2])", log(interval(1.0, 2.0)));
+    same("sqrt([4,9])", sqrt(interval(4.0, 9.0)));
+    same("atan2([1,2],[3,4])", atan2(interval(1.0, 2.0), interval(3.0, 4.0)));
+    same("nth_root([1,8],3)", nth_root(interval(1.0, 8.0), 3));
+    /* A negative exponent is the rootn of IEEE 1788-2015 for q < 0,
+       1/x^(1/|q|), as nth_root(x, q) computes it in C++: the parser converted
+       it to an unsigned int, and nth_root(16, -2) was the 4294967294-th root of
+       16, [1.000000000645543, 1.000000000645544] rather than [0.25] (GAOL v5).
+       Alone, then in the bounds of a literal. */
+    same("nth_root(16,-2)", interval(0.25, 0.25));
+    same("nth_root([4,16],-2)", nth_root(interval(4.0, 16.0), -2));
+    same("nth_root([-8,27],-3)", nth_root(interval(-8.0, 27.0), -3));
+    same("nth_root([0,16],-2)", nth_root(interval(0.0, 16.0), -2));
+    same("[nth_root(16,-2)]", interval(0.25, 0.25));
+    same("[nth_root(16,-2), nth_root(1,-2)]", interval(0.25, 1.0));
+    same("[nth_root(-8,-3)]", interval(-0.5, -0.5));
+    same("[nth_root(0,-2), 1]", interval::emptyset());
+    /* The names GAOL v5 adds to the reader. cbrt(x) is nth_root(x, 3), as
+       sqrt(x) is nth_root(x, 2); the lexer takes the longest name, so exp2 and
+       log2 are read as themselves rather than as exp and log followed by 2. */
+    same("exp2([1,2])", exp2(interval(1.0, 2.0)));
+    same("log2([1,8])", log2(interval(1.0, 8.0)));
+    same("cbrt([1,8])", nth_root(interval(1.0, 8.0), 3));
+    same("cbrt([-8,-1])", nth_root(interval(-8.0, -1.0), 3));
+    same("sign([-2,3])", sign(interval(-2.0, 3.0)));
+    same("trunc([-1.5,2.7])", trunc(interval(-1.5, 2.7)));
+    // the letters may be in any case, as for every other name
+    same("EXP2([1,2])", exp2(interval(1.0, 2.0)));
+    same("Trunc([-1.5,2.7])", trunc(interval(-1.5, 2.7)));
+    // The same names in the bounds of a literal
+    same("[exp2(1), exp2(2)]", interval(2.0, 4.0));
+    same("[log2(1), log2(8)]", interval(0.0, 3.0));
+    same("[cbrt(1), cbrt(8)]", interval(1.0, 2.0));
+    same("[sign(-2), sign(3)]", interval(-1.0, 1.0));
+    same("[trunc(-1.5), trunc(2.7)]", interval(-1.0, 2.0));
+    same("[cbrt(27)]", interval(3.0, 3.0));
+    same("[log2(exp2(5))]", interval(5.0, 5.0));
+    same("[cbrt(8)+sign(5), exp2(3)]", interval(3.0, 8.0));
+    // nested, and mixed with the operators
+    same("exp(log([1,2]))", exp(log(interval(1.0, 2.0))));
+    same("sin(cos(tan([0,1])))", sin(cos(tan(interval(0.0, 1.0)))));
+    same("cos([0,1])+sin([0,1])*exp([0,1])",
+         cos(interval(0.0, 1.0)) + sin(interval(0.0, 1.0)) * exp(interval(0.0, 1.0)));
+    same("-exp([0,1])", -exp(interval(0.0, 1.0)));
+    same("log(exp([1,2])*exp([1,2]))", log(exp(interval(1.0, 2.0)) * exp(interval(1.0, 2.0))));
+    same("log2(exp2([1,2]))", log2(exp2(interval(1.0, 2.0))));
+    same("trunc(exp([1,2]))", trunc(exp(interval(1.0, 2.0))));
+    same("exp2([1,2])*log2([2,4])", exp2(interval(1.0, 2.0)) * log2(interval(2.0, 4.0)));
+    // outside the domain: the empty set rather than an exception
+    same("log([-2,-1])", log(interval(-2.0, -1.0)));
+    same("sqrt([-2,-1])", sqrt(interval(-2.0, -1.0)));
+    same("acos([2,3])", acos(interval(2.0, 3.0)));
+    same("log2([-2,-1])", log2(interval(-2.0, -1.0)));
+    /* The functions of GAOL the reader did not know, which it now looks up in
+       the table of GAOL's names (GAOL v5) */
+    const interval u(0.0, 1.0), v(1.0, 2.0), w(3.0, 4.0);
+    same("exp10([0,1])", exp10(u));
+    same("log10([1,2])", log10(v));
+    same("expm1([0,1])", expm1(u));
+    same("exp2m1([0,1])", exp2m1(u));
+    same("exp10m1([0,1])", exp10m1(u));
+    same("log1p([0,1])", log1p(u));
+    same("log2p1([0,1])", log2p1(u));
+    same("log10p1([0,1])", log10p1(u));
+    same("hypot([1,2],[3,4])", hypot(v, w));
+    same("compoundm1([1,2],[3,4])", compoundm1(v, w));
+    same("rsqrt([1,2])", rsqrt(v));
+    same("sinpi([0,1])", sinpi(u));
+    same("cospi([0,1])", cospi(u));
+    same("tanpi([0,0.25])", tanpi(interval(0.0, 0.25)));
+    same("asinpi([0,1])", asinpi(u));
+    same("acospi([0,1])", acospi(u));
+    same("atanpi([0,1])", atanpi(u));
+    same("atan2pi([1,2],[3,4])", atan2pi(v, w));
+    same("sqr([-2,3])", sqr(interval(-2.0, 3.0)));
+    same("abs([-2,1])", abs(interval(-2.0, 1.0)));
+    same("min([1,2],[0,3])", min(v, interval(0.0, 3.0)));
+    same("max([1,2],[0,3])", max(v, interval(0.0, 3.0)));
+    same("floor([1.5,2.5])", floor(interval(1.5, 2.5)));
+    same("ceil([1.5,2.5])", ceil(interval(1.5, 2.5)));
+    same("integer([1.5,3.5])", integer(interval(1.5, 3.5)));
+    same("round_ties_to_even([0.5,2.5])", round_ties_to_even(interval(0.5, 2.5)));
+    same("round_ties_to_away([0.5,2.5])", round_ties_to_away(interval(0.5, 2.5)));
+    same("inverse([2,4])", inverse(interval(2.0, 4.0)));
+    same("fma([1,2],[3,4],[0,1])", fma(v, w, u));
+    /* erf, erfc, cancel_minus, cancel_plus, hull and intersect, which the
+       table of the names did not have (GAOL v5), with the values written
+       apart from the functions where they are exact */
+    same("erf([0,1])", erf(u));
+    same("erfc([0,1])", erfc(u));
+    same("erf(0)", interval(0.0, 0.0));
+    same("erfc(0)", interval(1.0, 1.0));
+    same("cancel_minus([1,5],[0,2])", interval(1.0, 3.0));
+    same("cancel_plus([1,5],[0,2])", interval(3.0, 5.0));
+    same("hull([1,2],[3,4])", interval(1.0, 4.0));
+    same("intersect([1,3],[2,4])", interval(2.0, 3.0));
+    same("intersect([1,2],[3,4])", interval::emptyset());
+    same("hull(intersect([1,2],[3,4]),[3,4])", interval(3.0, 4.0));
+    same("Hull([1,2],[3,4])+Intersect([1,3],[2,4])", interval(3.0, 7.0));
+    same("erf(erfc(cancel_minus([1,5],[0,2])))", erf(erfc(interval(1.0, 3.0))));
+    same("SinPi([0,1])", sinpi(u));
+    same("[exp10(0), hypot(3,4)]", interval(1.0, 5.0));
+
+    // gaol::textToInterval reads the names of GAOL, nth_root among them
+    check("gaol::textToInterval(s) reads the names of GAOL",
+          textToInterval("[1,2]+nth_root([8,27],3)").set_eq(interval(1.0, 2.0) + nth_root(interval(8.0, 27.0), 3)));
+    check("gaol::textToInterval(sl, sr) takes the left bound of sl and the right bound of sr",
+          textToInterval("[-5,4]+1", "[4,6]-[2,3]").set_eq(interval(-4.0, 4.0)));
+    // Bounds in the wrong order give the empty set, which stays empty: the
+    // constructor from two strings kept the bounds [2, 1], whose sum with
+    // [0, 1] was [2, 2] (review #6 of examples/examples.md; GAOL v5)
+    check("gaol::textToInterval(\"2\", \"1\") is the empty set, which stays empty",
+          textToInterval("2", "1").is_empty() && (textToInterval("2", "1") + interval(0.0, 1.0)).is_empty(),
+          [] { return hex(textToInterval("2", "1") + interval(0.0, 1.0)); });
+#if GAOL_EXCEPTIONS_ENABLED
+    bool threw = false;
+    try {
+      const interval z = textToInterval("pown([2,5],5)");
+      (void)z;
+    } catch (const std::invalid_argument&) {
+      threw = true;
+    }
+    check("gaol::textToInterval throws std::invalid_argument for a name of IEEE 1788-2015 alone", threw);
+#endif
+  }
+
+  /*
+    The names of the functions in any case of letters, under a locale of the
+    C library where std::tolower('I') is not 'i' (GAOL v5): the Turkish
+    locales of glibc, where it is 'I' (tr_TR.UTF-8) or the dotless i, 0xfd
+    (tr_TR.ISO-8859-9), as a program calling setlocale(LC_ALL, "") under
+    LANG=tr_TR.UTF-8 has them. The reader compared the names with those of
+    its tables by std::tolower(), and refused "SIN([0,1])" there, as any name
+    written with a capital I. Read by parse_interval(), which refuses an
+    unknown name without throwing, with or without exceptions. Nothing is
+    checked where the system has no such locale, as on the Ubuntu runners of
+    the continuous integration.
+  */
+  void names_under_turkish_locale()
+  {
+    const char *const current = std::setlocale(LC_CTYPE, nullptr);
+    const std::string saved = (current != nullptr) ? current : "C";
+    const char *turkish = nullptr;
+    for (const char *name : { "tr_TR.UTF-8", "tr_TR.utf8", "tr_TR.ISO-8859-9", "tr_TR.iso88599", "tr_TR.ISO8859-9",
+                              "tr_TR", "Turkish_Turkey.1254", "tr-TR" }) {
+      if (std::setlocale(LC_CTYPE, name) != nullptr && std::tolower('I') != 'i') {
+        turkish = name;
+        break;
+      }
+    }
+    if (turkish == nullptr) {
+      std::setlocale(LC_CTYPE, saved.c_str());
+      std::printf("No locale where std::tolower('I') is not 'i': the names read under such a locale are not checked\n");
+      return;
+    }
+    const interval u(0.0, 1.0), v(1.0, 2.0);
+    const struct { const char *text; gaol_core::parsing_names names; interval value; } calls[] = {
+      { "SIN([0,1])", gaol_core::parsing_names::gaol, sin(u) },
+      { "Sin([0,1])", gaol_core::parsing_names::gaol, sin(u) },
+      { "sin([0,1])", gaol_core::parsing_names::gaol, sin(u) },
+      { "ASINH([0,1])", gaol_core::parsing_names::gaol, asinh(u) },
+      { "LOG1P([0,1])", gaol_core::parsing_names::gaol, log1p(u) },
+      { "SINPI([0,1])", gaol_core::parsing_names::gaol, sinpi(u) },
+      { "MIN([1,2],[0,3])", gaol_core::parsing_names::gaol, min(v, interval(0.0, 3.0)) },
+      { "NTH_ROOT([8,27],3)", gaol_core::parsing_names::gaol, nth_root(interval(8.0, 27.0), 3) },
+      { "SINPI([0,1])", gaol_core::parsing_names::ieee1788, gaol_ieee1788::sinPi(u) },
+      { "ROUNDTIESTOEVEN([1.5,2.5])", gaol_core::parsing_names::ieee1788, gaol_ieee1788::roundTiesToEven(interval(1.5, 2.5)) },
+      { "ROOTN([8,27],3)", gaol_core::parsing_names::ieee1788, gaol_ieee1788::rootn(interval(8.0, 27.0), 3) },
+    };
+    for (const auto& c : calls) {
+      interval x;
+      const bool read = gaol_core::parse_interval(c.text, x, c.names);
+      check("parse_interval: the names in any case of letters under a locale where std::tolower('I') is not 'i'",
+            read && x.left() == c.value.left() && x.right() == c.value.right(),
+            [&] { return std::string(turkish) + ", \"" + c.text + "\": " + (read ? hex(x) : std::string("refused")); });
+    }
+    std::setlocale(LC_CTYPE, saved.c_str());
+  }
+
+  void wrong_strings()
+  {
+    refused("");
+    refused("[");
+    refused("]");
+    refused("[1,");
+    refused("[1 2]");
+    refused("1+");
+    refused("+");
+    refused("*[1,2]");
+    refused("([1,2]");
+    refused("[1,2])");
+    refused("cos");
+    refused("cos(");
+    refused("cos()");
+    refused("unknown([1,2])");
+    refused("[1,2] [3,4]");
+    refused("$");
+    refused("[1,2]^3");        // the parser has no power operator
+    refused("atan2([1,2])");   // atan2 takes two arguments
+    refused("sin(1,2)");
+    refused("pow(2)");
+    refused("fma(1,2)");
+    refused("nth_root(8)");
+    refused("erf(1,2)");
+    refused("erfc()");
+    refused("cancel_minus(1)");
+    refused("cancel_plus(1,2,3)");
+    refused("hull([1,2])");
+    refused("intersect([1,2],[3,4],[0,5])");
+    /* The names of IEEE 1788-2015 alone, which gaol_ieee1788::textToInterval
+       reads: gaol::textToInterval reads those of GAOL */
+    refused("pown([2,5],5)");
+    refused("rootn(8,3)");
+    refused("recip([2,4])");
+    refused("logp1(0)");
+    refused("roundTiesToEven(1)");
+    refused("add(1,2)");
+    refused("cancelMinus([1,5],[0,2])");
+    refused("cancelPlus([1,5],[0,2])");
+    refused("intersection([1,3],[2,4])");
+    refused("convexHull([1,2],[3,4])");
+    /* An error stops the reading: each literal set the flag of success again,
+       and this string gave [-oo, +oo] (GAOL v5) */
+    refused("[nth_root(8,1.5)]+[1,2]");
+    refused("[1,2]+[nth_root(8,1.5)]");
+  }
+
+  /* A null pointer is no string, so no expression (GAOL v5): parse_interval()
+     took its length with std::strlen(), which read
+     it, and the program died of a segmentation fault. It returns false, as for
+     any other string that is no expression, with the names of GAOL and with
+     those of the standard, with or without exceptions, and leaves the interval
+     as it was. */
+  void null_pointer()
+  {
+    const char *volatile none = nullptr;
+    const struct { const char *label; gaol_core::parsing_names names; } readings[] = {
+      { "the names of GAOL", gaol_core::parsing_names::gaol },
+      { "the names of IEEE 1788-2015", gaol_core::parsing_names::ieee1788 },
+    };
+    for (const auto& r : readings) {
+      interval x(1.0, 2.0);
+      bool read = true, threw = false;
+      try {
+        read = gaol_core::parse_interval(none, x, r.names);
+      } catch (...) {
+        threw = true;
+      }
+      check("parse_interval: a null pointer is refused, with no exception and the interval unchanged",
+            !read && !threw && x.left() == 1.0 && x.right() == 2.0,
+            [&] {
+              return std::string(r.label) + ": " + (read ? "read" : "refused") + (threw ? ", threw" : "") + ", " + hex(x);
+            });
+    }
+  }
+
+  /* A null pointer is no text for the functions that read one either (GAOL
+     v5): gaol::textToInterval(nullptr),
+     textToInterval(nullptr, "1"), gaol_ieee1788::textToInterval(nullptr) and
+     exactToInterval(nullptr) took a const std::string&, which the call builds
+     from the pointer before GAOL is reached, and the standard leaves that
+     undefined (libstdc++ throws std::logic_error, libc++ and Visual C++
+     probably read the pointer with strlen()). The overloads of a C string
+     throw std::invalid_argument, with the names of GAOL and with those of the
+     standard, whose textToInterval() gives the empty set for a text that is
+     no interval. The literal nullptr and a null pointer variable are both
+     read, as is a null pointer in either place of the two bounds. Without
+     exceptions, the error is a message and abort(), which cannot be checked
+     here. */
+  void null_text()
+  {
+#if GAOL_EXCEPTIONS_ENABLED
+    const char *volatile none = nullptr;
+    const std::string one("1");
+    const struct { const char *label; std::function<void()> read; } readings[] = {
+      { "gaol::textToInterval(nullptr)", [] { static_cast<void>(gaol::textToInterval(nullptr)); } },
+      { "gaol::textToInterval(a null variable)", [&] { static_cast<void>(gaol::textToInterval(none)); } },
+      { "gaol::textToInterval(nullptr, \"1\")", [] { static_cast<void>(gaol::textToInterval(nullptr, "1")); } },
+      { "gaol::textToInterval(\"1\", nullptr)", [] { static_cast<void>(gaol::textToInterval("1", nullptr)); } },
+      { "gaol::textToInterval(nullptr, nullptr)", [] { static_cast<void>(gaol::textToInterval(nullptr, nullptr)); } },
+      { "gaol::textToInterval(nullptr, std::string)", [&] { static_cast<void>(gaol::textToInterval(none, one)); } },
+      { "gaol::textToInterval(std::string, nullptr)", [&] { static_cast<void>(gaol::textToInterval(one, none)); } },
+      { "gaol_ieee1788::textToInterval(nullptr)", [] { static_cast<void>(gaol_ieee1788::textToInterval(nullptr)); } },
+      { "gaol_ieee1788::textToInterval(a null variable)", [&] { static_cast<void>(gaol_ieee1788::textToInterval(none)); } },
+      { "gaol_ieee1788::exactToInterval(nullptr)", [] { static_cast<void>(gaol_ieee1788::exactToInterval(nullptr)); } },
+      { "gaol_ieee1788::exactToInterval(a null variable)", [&] { static_cast<void>(gaol_ieee1788::exactToInterval(none)); } },
+    };
+    for (const auto& r : readings) {
+      bool format_error = false, other = false;
+      try {
+        r.read();
+      } catch (const std::invalid_argument&) {
+        format_error = true;
+      } catch (...) {
+        other = true;
+      }
+      check("a null pointer given to textToInterval() or exactToInterval() throws std::invalid_argument",
+            format_error && !other,
+            [&] { return std::string(r.label) + (other ? ": threw another exception" : ": no exception"); });
+    }
+    // The C strings that are not null are read as the std::string of them
+    check("textToInterval of a C string is the one of its std::string",
+          gaol::textToInterval("[1, 2]").set_eq(interval(1.0, 2.0))
+          && gaol::textToInterval("1", "2").set_eq(interval(1.0, 2.0))
+          && gaol::textToInterval("1", std::string("2")).set_eq(interval(1.0, 2.0))
+          && gaol::textToInterval(std::string("1"), "2").set_eq(interval(1.0, 2.0))
+          && gaol_ieee1788::textToInterval("[1, 2]").set_eq(interval(1.0, 2.0))
+          && gaol_ieee1788::exactToInterval("[1, 2]").set_eq(interval(1.0, 2.0))
+          && gaol_ieee1788::textToInterval("[1, 2").is_empty());
+#else
+    std::printf("Without exceptions, a null pointer given to textToInterval() is a message and abort(): not checked\n");
+#endif
+  }
+
+  // The text read with the names of GAOL or with those of the standard, as gaol::textToInterval() and
+  // gaol_ieee1788::textToInterval() read it: the empty set, with a failure of the check, when it throws
+  interval read_as(const char *names, const std::string& text)
+  {
+    return evaluate(std::string("textToInterval with the names of ") + names,
+                    [&] { return (names[0] == 'g') ? textToInterval(text) : gaol_ieee1788::textToInterval(text); },
+                    [&] { return text; });
+  }
+
+  /* pow and pown in a string are those of the names that read it: the nodes
+     of gaol_ieee1788::textToInterval() compute with the pow and the pown of
+     the standard, and those of gaol::textToInterval() with GAOL's pow, which
+     takes the power of a negative base (the expressions of pow and pown were
+     built in C++ too, before the namespaces stopped naming them, GAOL v5) */
+  void powers_of_the_names()
+  {
+    const interval standard_pow = read_as("the standard", "pow([-4,-1],[2])");
+    const interval standard_pown = read_as("the standard", "pown([-4,-1],2)");
+    const interval gaol_pow = read_as("gaol", "pow([-4,-1],[2])");
+    check("pow and pown of a string: those of the standard with its names, GAOL's pow with those of GAOL",
+          standard_pow.is_empty() && standard_pown.set_eq(interval(1.0, 16.0)) && gaol_pow.set_eq(interval(1.0, 16.0)),
+          [&] { return hex(standard_pow) + " " + hex(standard_pown) + " " + hex(gaol_pow); });
+  }
+
+  /* [l, u] with l above u is the empty set (GAOL v5), as
+     IEEE 1788-2015 has it (9.7.4 a and 12.12.7), and as [2, 1] was. The
+     literal was read from the lower bound of the interval of l to the upper
+     bound of the interval of u, the doubles around the numbers written, so
+     that it was not empty where those intervals meet: [9007199254740993,
+     9007199254740992] was [2^53], which does not hold 2^53 + 1,
+     [0x1.999999999999ap-4, 0.1] was [0x1.999999999999ap-4], which does not
+     hold 0.1, the double above it being the one written, and
+     [1.00000000000000001, 1] was [1]. The expected bounds are known apart
+     from the reader: a number written that is not a double is strictly
+     between the two doubles around it, and one that is a double is that
+     double. Two numbers that are not doubles and lie between the same two
+     doubles are compared exactly, as digits: [1.00000000000000002,
+     1.00000000000000001] is empty and [1.00000000000000001,
+     1.00000000000000002] is that pair of doubles, as are two spellings of the
+     same number. They are not told apart where a bound is pi and the other is
+     not, or a number far beyond the doubles (10^311 or more or below 10^-331 in
+     decimal, about 2^1026 and 2^-1081 in the other bases), or a computed
+     bound (0.1+0): the literal is then the pair, whichever is above, which
+     holds the values. */
+  void reversed_bounds()
+  {
+    // Written as literals, not as std::numeric_limits<double>::denorm_min(): GCC 12.1 to 12.3 and 13.1 to 13.2, with
+    // -frounding-math, store that value wrongly in a table of structures, over the next member (doc/using.md)
+    const double dmax = 0x1.fffffffffffffp+1023, oo = GAOL_INFINITY;
+    const double tiny = 0x1p-1074;
+    const double pi_dn = 0x1.921fb54442d18p+1, pi_up = 0x1.921fb54442d19p+1;       // the doubles around pi
+    const double tenth_dn = 0x1.9999999999999p-4, tenth_up = 0x1.999999999999ap-4;  // those around 0.1
+    const double third_dn = 0x1.3333333333333p-2, third_up = 0x1.3333333333334p-2;  // those around 0.3
+    struct Case { const char *text; bool empty; double lo, hi; };
+    const Case cases[] = {
+      // l above u, the intervals meeting: the empty set
+      { "[9007199254740993, 9007199254740992]", true, 0.0, 0.0 },
+      { "[0x1.999999999999ap-4, 0.1]", true, 0.0, 0.0 },
+      { "[1.00000000000000001, 1]", true, 0.0, 0.0 },
+      { "[-0.1, -0x1.999999999999ap-4]", true, 0.0, 0.0 },
+      { "[--0x1.999999999999ap-4, --0.1]", true, 0.0, 0.0 },
+      { "[+0x1.999999999999ap-4, +0.1]", true, 0.0, 0.0 },
+      { "[---0.1, ---0x1.999999999999ap-4]", true, 0.0, 0.0 },
+      { "[pi, 0x1.921fb54442d18p+1]", true, 0.0, 0.0 },
+      { "[0x1.921fb54442d19p+1, pi]", true, 0.0, 0.0 },
+      { "[1e400, 0x1.fffffffffffffp+1023]", true, 0.0, 0.0 },
+      { "[1e-400, 0]", true, 0.0, 0.0 },
+      { "[(0x1.999999999999ap-4), (0.1)]", true, 0.0, 0.0 },
+      { "[ 1.00000000000000001 , 1 ]", true, 0.0, 0.0 },
+      // l above u, the intervals apart, as before
+      { "[2, 1]", true, 0.0, 0.0 },
+      { "[0.2, 0.1]", true, 0.0, 0.0 },
+      // l below u: from the lower bound of the interval of l to the upper bound of that of u, as before
+      { "[9007199254740992, 9007199254740993]", false, 0x1p53, 0x1.0000000000001p53 },
+      { "[0.1, 0x1.999999999999ap-4]", false, tenth_dn, tenth_up },
+      { "[(0.1), (0x1.999999999999ap-4)]", false, tenth_dn, tenth_up },
+      { "[--0.1, --0x1.999999999999ap-4]", false, tenth_dn, tenth_up },
+      { "[1, 1.00000000000000001]", false, 1.0, 0x1.0000000000001p0 },
+      { "[-0x1.999999999999ap-4, -0.1]", false, -tenth_up, -tenth_dn },
+      { "[0x1.921fb54442d18p+1, pi]", false, pi_dn, pi_up },
+      { "[pi, 0x1.921fb54442d19p+1]", false, pi_dn, pi_up },
+      { "[0x1.fffffffffffffp+1023, 1e400]", false, dmax, oo },
+      { "[0, 1e-400]", false, 0.0, tiny },
+      { "[0.1, 0.2]", false, tenth_dn, 0x1.999999999999ap-3 },
+      // the same double: the point
+      { "[0.5, 0.5]", false, 0.5, 0.5 },
+      { "[0x1.999999999999ap-4, 0x1.999999999999ap-4]", false, tenth_up, tenth_up },
+      // two numbers that are not doubles, between the same two doubles: compared exactly
+      { "[0.30000000000000001, 0.3]", true, 0.0, 0.0 },
+      { "[0.3, 0.30000000000000001]", false, third_dn, third_up },
+      { "[-0.3, -0.30000000000000001]", true, 0.0, 0.0 },
+      { "[-0.30000000000000001, -0.3]", false, -third_up, -third_dn },
+      { "[--0.30000000000000001, --0.3]", true, 0.0, 0.0 },
+      { "[-(0.3), -(0.30000000000000001)]", true, 0.0, 0.0 },
+      { "[(0.3), (0.30000000000000001)]", false, third_dn, third_up },
+      { "[1.00000000000000002, 1.00000000000000001]", true, 0.0, 0.0 },
+      { "[1.00000000000000001, 1.00000000000000002]", false, 1.0, 0x1.0000000000001p0 },
+      // the same number written twice, or in two ways: not empty
+      { "[0.3, 0.3]", false, third_dn, third_up },
+      { "[1.00000000000000001, 100000000000000001e-17]", false, 1.0, 0x1.0000000000001p0 },
+      { "[100000000000000001e-17, 1.00000000000000001]", false, 1.0, 0x1.0000000000001p0 },
+      { "[1.00000000000000002, 100000000000000001e-17]", true, 0.0, 0.0 },
+      { "[0x1.33333333333335p-2, 0.3]", true, 0.0, 0.0 },       // 0x1.3333333333333|5, above 0.3
+      { "[0.3, 0x1.33333333333335p-2]", false, third_dn, third_up },
+      { "[0x1.33333333333335p-2, 0x1.33333333333334p-2]", true, 0.0, 0.0 },   // 5/16 and 4/16 of a unit in the last place above the double
+      { "[0x1.33333333333334p-2, 0x1.33333333333335p-2]", false, third_dn, third_up },
+      { "[0x1.33333333333335p-2, 0x1.3333333333334p-2]", false, third_dn, third_up },  // the second is the double above
+      { "[0b1.00000000000000000000000000000000000000000000000000001, 1.00000000000000001]", true, 0.0, 0.0 },        // 1 + 2^-53, above 1.00000000000000001
+      { "[1.00000000000000001, 0b1.00000000000000000000000000000000000000000000000000001]", false, 1.0, 0x1.0000000000001p0 },
+      { "[0o1.000000000000000001, 1.00000000000000001]", true, 0.0, 0.0 },        // 1 + 8^-18 = 1 + 2^-54
+      // beyond the largest double and below the least one, the numbers being not far enough to be set aside (below)
+      { "[1.8e308, 1.7976931348623159e308]", true, 0.0, 0.0 },
+      { "[1.7976931348623159e308, 1.8e308]", false, dmax, oo },
+      { "[1e-324, 1e-325]", true, 0.0, 0.0 },
+      { "[1e-325, 1e-324]", false, 0.0, tiny },
+      // not told apart: the pair, whichever is above (pi and the numbers set aside, 10^311 or more, and below 10^-331)
+      { "[pi, pi]", false, pi_dn, pi_up },
+      { "[pi, 3.14159265358979323846]", false, pi_dn, pi_up },
+      { "[3.14159265358979323847, pi]", false, pi_dn, pi_up },
+      { "[1e400, 1e399]", false, dmax, oo },
+      { "[1e-400, 1e-401]", false, 0.0, tiny },
+      { "[1.8e308, 1e400]", false, dmax, oo },                  // one number only is far beyond the doubles
+      { "[1e400, 1.8e308]", false, dmax, oo },
+      { "[1.8e308, 1e311]", false, dmax, oo },
+      { "[1e311, 1e310]", false, dmax, oo },
+      { "[0x1.8p1024, 0x1p1030]", false, dmax, oo },
+      { "[0x1p1030, 0x1p1029]", false, dmax, oo },              // in the other bases they are so from about 2^1026
+      { "[1e-325, 1e-400]", false, 0.0, tiny },
+      { "[1e-400, 1e-325]", false, 0.0, tiny },
+      { "[0.1+0, 0.1]", false, tenth_dn, tenth_up },
+      { "[0.1, 0.1+0]", false, tenth_dn, tenth_up },
+    };
+    for (const char *names : { "gaol", "ieee1788" }) {
+      for (const Case& c : cases) {
+        const interval got = read_as(names, c.text);
+        check("textToInterval: [l, u] is empty where l is above u, and the interval of the bounds otherwise",
+              c.empty ? got.is_empty() : (!got.is_empty() && got.left() == c.lo && got.right() == c.hi),
+              [&] { return std::string(names) + " " + c.text + " = " + hex(got); });
+      }
+    }
+    /* Two hexadecimal numbers between the same two doubles, 1.5 and the double above, 0x1.8p0 followed by two more
+       digits k t, k being the fraction of the last place of the double: the literal is empty where the digits of
+       the first, as numbers, are above those of the second, whichever the base and the signs */
+    {
+      const char *const hexa = "0123456789abcdef", *const tails = "018f";
+      for (const char *names : { "gaol", "ieee1788" }) {
+        for (int k1 = 1; k1 < 16; ++k1) {
+          for (int k2 = 1; k2 < 16; ++k2) {
+            for (const char *t1 = tails; *t1 != '\0'; ++t1) {
+              for (const char *t2 = tails; *t2 != '\0'; ++t2) {
+                const std::string da = std::string() + hexa[k1] + *t1, db = std::string() + hexa[k2] + *t2;
+                const std::string a = "0x1.8000000000000" + da, b = "0x1.8000000000000" + db;
+                const int above = da.compare(db);  // as numbers: the two digits have the same length
+                const interval got = read_as(names, "[" + a + ", " + b + "]");
+                check("textToInterval: [l, u] of two hexadecimal numbers between the same two doubles is empty where l is above u",
+                      (above > 0) ? got.is_empty() : (!got.is_empty() && got.left() == 1.5 && got.right() == 0x1.8000000000001p0),
+                      [&] { return std::string(names) + " [" + a + ", " + b + "] = " + hex(got); });
+                const interval negated = read_as(names, "[-" + b + ", -" + a + "]");
+                check("textToInterval: [-u, -l] is empty where l is above u",
+                      (above > 0) ? negated.is_empty()
+                                  : (!negated.is_empty() && negated.left() == -0x1.8000000000001p0 && negated.right() == -1.5),
+                      [&] { return std::string(names) + " [-" + b + ", -" + a + "] = " + hex(negated); });
+              }
+            }
+          }
+        }
+      }
+    }
+    // operator>> reads the same literal
+    for (const char *text : { "[9007199254740993, 9007199254740992]", "[1.00000000000000001, 1]" }) {
+      std::istringstream in(text);
+      interval x(1.0, 2.0);
+      in >> x;
+      check("operator>>: [l, u] is empty where l is above u", x.is_empty(), [&] { return std::string(text) + " = " + hex(x); });
+    }
+  }
+
+  /* The bounds of <a, b> are doubles (GAOL v5): a number
+     that is not a double is refused, as is pi, where the reader took the
+     interval of the doubles around it for the bound. <0.1, 0x1.9999999999999p-4>,
+     the double just below 0.1, was the point interval [0x1.9999999999999p-4]:
+     the lower bound of the interval of 0.1 is that double. The bounds are
+     written as the doubles around 0.1, around the largest double and around 0,
+     and as numbers behind signs and parentheses.
+     A bound that is computed and is no double is refused too (GAOL v5,
+     decided on 2026-10-24): [0.1], 0.1 + 0, 1/3 and their kind are the
+     interval of the two doubles around the number, and a bound given as one
+     of them, the other bound being the double just below or above, was read
+     as that double (<[0.1], 0x1.9999999999999p-4> was [0x1.9999999999999p-4],
+     the lower bound of [0.1]; <0x1.5555555555556p-2, 1/3> was the point
+     0x1.5555555555556p-2, the upper bound of 1/3). A bound is a double when
+     its value is a point, as 0.5, (0.25+0.25), 2*0.25 and [0.5] are. */
+  void degenerate_bounds()
+  {
+    const char *const wrong[] = {
+      "<0.1, 0x1.9999999999999p-4>",        // the double below 0.1
+      "<0x1.999999999999ap-4, 0.1>",        // the double above 0.1
+      "<-0.1, -0x1.999999999999ap-4>",
+      "<-0x1.9999999999999p-4, -0.1>",
+      "<0.1, 0.1>",
+      "<(0.1), (0x1.9999999999999p-4)>",
+      "<--0.1, 0x1.9999999999999p-4>",
+      "<pi, pi>",
+      "<pi, 0x1.921fb54442d18p+1>",
+      "<0x1.921fb54442d19p+1, pi>",
+      "<1e400, 0x1.fffffffffffffp+1023>",    // above the largest double
+      "<0x1.fffffffffffffp+1023, 1e400>",
+      "<1e-400, 0>",                         // below the least one
+      "<0, 1e-400>",
+      "<[0.1], 0x1.9999999999999p-4>",      // a bound that is the interval of the two doubles around 0.1
+      "<0x1.999999999999ap-4, [0.1]>",
+      "<0.1+0, 0x1.9999999999999p-4>",      // computed: [0x1.9999999999999p-4, 0x1.999999999999ap-4]
+      "<0x1.999999999999ap-4, 0.1+0>",
+      "<1/3, 0x1.5555555555555p-2>",        // the lower bound of 1/3
+      "<0x1.5555555555556p-2, 1/3>",        // the upper bound of 1/3
+      "<-[0.1], -0x1.999999999999ap-4>",
+      "<[0.1], [0.1]>",
+    };
+    for (const char *text : wrong) {
+      refused(text);
+#if GAOL_EXCEPTIONS_ENABLED
+      bool format_error = false;
+      try {
+        const interval x = textToInterval(text);
+        (void)x;
+      } catch (const std::invalid_argument&) {
+        format_error = true;
+      } catch (...) {
+      }
+      check("textToInterval: <a, b> with a bound that is not a double throws std::invalid_argument", format_error,
+            [&] { return text; });
+#endif
+      check("gaol_ieee1788::textToInterval: <a, b> with a bound that is not a double is the empty set",
+            gaol_ieee1788::textToInterval(text).is_empty(), [&] { return text; });
+    }
+    same("<0.5, 0.5>", interval(0.5));
+    same("<[0.5], 0.5>", interval(0.5));      // a point is a double, however it is written
+    same("<0.5, [0.5]>", interval(0.5));
+    same("<2*0.25, 0.5>", interval(0.5));
+    same("<[0.5], [0.5]>", interval(0.5));
+    same("<0x1.999999999999ap-4, 0x1.999999999999ap-4>", interval(0x1.999999999999ap-4));
+    same("<(0.25+0.25), 0.5>", interval(0.5));
+    same("<-0x1.999999999999ap-4, -(0x1.999999999999ap-4)>", interval(-0x1.999999999999ap-4));
+    same("<0x1.fffffffffffffp+1023, 0x1.fffffffffffffp+1023>", interval(0x1.fffffffffffffp+1023));
+  }
+
+  /* The integer second argument of nth_root(), pown() and rootn() beyond the
+     ints (GAOL v5): nth_root(8,3000000000) threw
+     std::domain_error and rootn(8,3000000000) and pown([2,3],3000000000)
+     were the empty set, where nth_root(8, 3000000000LL) and
+     pown([2,3], 3000000000LL) are computed. The bounds are the tightest ones,
+     from mpmath at 3000 bits, apart from the reader: the powers are, and the
+     roots of an order beyond the unsigned ints are enclosed, as nth_root(I,
+     long long) does within one double of them. An exponent of 2^63 or more in
+     magnitude, an even integer as every double from 2^53 on, is taken as
+     +-(2^63 - 2): the powers are the same, and the roots of the orders beyond
+     lie between 1 and the one of that order, whose enclosure holds 1. */
+  void integer_exponents()
+  {
+    // As literals (see reversed_bounds())
+    const double dmax = 0x1.fffffffffffffp+1023, oo = GAOL_INFINITY;
+    const double tiny = 0x1p-1074;
+    struct Case { const char *names, *text; interval value; double lo, hi; };
+    const interval eight(8.0), base(0x1.00000004p+0), two_three(2.0, 3.0);
+    // the roots: equal to nth_root(I, long long), and within one double of the tightest bounds
+    const Case roots[] = {
+      { "gaol", "nth_root(8,3000000000)", nth_root(eight, 3000000000LL), 0x1.00000002fa1f9p+0, 0x1.00000002fa1fap+0 },
+      { "gaol", "nth_root(8,-3000000000)", nth_root(eight, -3000000000LL), 0x1.fffffffa0bc0dp-1, 0x1.fffffffa0bc0ep-1 },
+      { "ieee1788", "rootn(8,3000000000)", gaol_ieee1788::rootn(eight, 3000000000LL),
+        0x1.00000002fa1f9p+0, 0x1.00000002fa1fap+0 },
+      { "ieee1788", "rootn(8,-3000000000)", gaol_ieee1788::rootn(eight, -3000000000LL),
+        0x1.fffffffa0bc0dp-1, 0x1.fffffffa0bc0ep-1 },
+      { "gaol", "nth_root(1.5,4000000000)", nth_root(interval(1.5), 4000000000LL), 0x1.000000006f741p+0, 0x1.000000006f742p+0 },
+    };
+    for (const Case& c : roots) {
+      const interval got = read_as(c.names, c.text);
+      check("textToInterval: a root of an order beyond the ints is nth_root(I, long long)",
+            !got.is_empty() && got.left() == c.value.left() && got.right() == c.value.right(),
+            [&] { return std::string(c.text) + " = " + hex(got) + " rather than " + hex(c.value); });
+      check("textToInterval: a root of an order beyond the ints encloses the root, within one double of the tightest bounds",
+            !got.is_empty() && got.left() <= c.lo && got.right() >= c.hi
+              && got.left() >= previous_double(c.lo) && got.right() <= next_double(c.hi),
+            [&] {
+              return std::string(c.text) + " = " + hex(got) + ", the root being in [" + hex(c.lo) + ", " + hex(c.hi) + "]";
+            });
+    }
+    // the integer powers: pown(I, long long), the tightest bounds where the power is no overflow nor underflow
+    const Case powers[] = {
+      { "ieee1788", "pown(0x1.00000004p+0,3000000000)", gaol_ieee1788::pown(base, 3000000000LL),
+        0x1.05882dafd5b9dp+4, 0x1.05882dafd5b9ep+4 },
+      { "ieee1788", "pown(0x1.00000004p+0,-3000000000)", gaol_ieee1788::pown(base, -3000000000LL),
+        0x1.f52b8da795f53p-5, 0x1.f52b8da795f54p-5 },
+      { "ieee1788", "pown([2,3],3000000000)", gaol_ieee1788::pown(two_three, 3000000000LL), dmax, oo },
+      { "ieee1788", "pown([2,3],-3000000000)", gaol_ieee1788::pown(two_three, -3000000000LL), 0.0, tiny },
+      // beyond the long longs, taken as +-(2^63 - 2): the power of an even exponent
+      { "ieee1788", "pown([2,3],1e22)", gaol_ieee1788::pown(two_three, 9223372036854775806LL), dmax, oo },
+      { "ieee1788", "pown(0.5,-1e22)", gaol_ieee1788::pown(interval(0.5), -9223372036854775806LL), dmax, oo },
+      { "ieee1788", "pown(-2,1e22)", gaol_ieee1788::pown(interval(-2.0), 9223372036854775806LL), dmax, oo },
+      { "ieee1788", "pown(2,0x1p70)", gaol_ieee1788::pown(interval(2.0), 9223372036854775806LL), dmax, oo },
+      { "ieee1788", "pown(2,-0x1p70)", gaol_ieee1788::pown(interval(2.0), -9223372036854775806LL), 0.0, tiny },
+      // -2^63, the least long long, and 2^63, the least double beyond the greatest: also taken as +-(2^63 - 2)
+      { "ieee1788", "pown(2,-9223372036854775808)", gaol_ieee1788::pown(interval(2.0), (std::numeric_limits<long long>::min)()),
+        0.0, tiny },
+      { "ieee1788", "pown(2,-9223372036854775808)", gaol_ieee1788::pown(interval(2.0), -9223372036854775806LL), 0.0, tiny },
+      { "ieee1788", "pown(2,9223372036854775808)", gaol_ieee1788::pown(interval(2.0), 9223372036854775806LL), dmax, oo },
+    };
+    for (const Case& c : powers) {
+      const interval got = read_as(c.names, c.text);
+      check("textToInterval: an integer power beyond the ints is pown(I, long long), the tightest bounds",
+            !got.is_empty() && got.left() == c.value.left() && got.right() == c.value.right()
+              && got.left() == c.lo && got.right() == c.hi,
+            [&] { return std::string(c.text) + " = " + hex(got) + " rather than [" + hex(c.lo) + ", " + hex(c.hi) + "]"; });
+    }
+    // the roots of an order beyond the long longs hold the exact root: just above 1 for a base above 1 and a
+    // positive order, just below for a base below 1 or a negative order
+    const double below_one = 0x1.fffffffffffffp-1, above_one = 0x1.0000000000001p0;
+    const struct { const char *names, *text; double lo, hi; } huge[] = {
+      { "gaol", "nth_root(8,1e22)", 1.0, above_one },
+      { "gaol", "nth_root(8,-1e22)", below_one, 1.0 },
+      { "gaol", "nth_root(0.5,1e22)", below_one, 1.0 },
+      { "gaol", "nth_root(0.5,-1e22)", 1.0, above_one },
+      { "gaol", "nth_root(8,-0x1p70)", below_one, 1.0 },
+      { "ieee1788", "rootn(8,0x1p70)", 1.0, above_one },
+      { "ieee1788", "rootn(0.5,-0x1p70)", 1.0, above_one },
+    };
+    for (const auto& c : huge) {
+      const interval got = read_as(c.names, c.text);
+      check("textToInterval: a root of an order beyond the long longs encloses the exact root",
+            !got.is_empty() && got.left() <= c.lo && got.right() >= c.hi,
+            [&] { return std::string(c.text) + " = " + hex(got); });
+    }
+    check("textToInterval: a root of an order beyond the long longs is the root of order 2^63 - 2",
+          read_as("gaol", "nth_root(8,1e22)").set_eq(nth_root(eight, 9223372036854775806LL))
+            && read_as("gaol", "nth_root(8,-1e22)").set_eq(nth_root(eight, -9223372036854775806LL)));
+    // What is no integer is still refused: a number between two integers, an infinity, an interval
+    for (const char *text : { "nth_root(8,2.5)", "nth_root(8,3000000000.5)", "nth_root(8,inf)", "nth_root(8,-inf)",
+                              "nth_root(8,[3000000000,3000000001])", "nth_root(8,1e22+2)" }) {
+      refused(text);
+    }
+    for (const char *text : { "rootn(8,3000000000.5)", "rootn(8,inf)", "pown([2,3],2.5)", "pown([2,3],inf)",
+                              "pown([2,3],[3000000000,3000000001])" }) {
+      const interval got = gaol_ieee1788::textToInterval(text);
+      check("textToInterval: a second argument that is no integer gives the empty set with the names of the standard",
+            got.is_empty(), [&] { return std::string(text) + " = " + hex(got); });
+    }
+#if GAOL_EXCEPTIONS_ENABLED
+    bool threw_invalid_action = false;
+    try {
+      const interval got = textToInterval("nth_root(8,3000000000.5)");
+      (void)got;
+    } catch (const std::domain_error&) {
+      threw_invalid_action = true;
+    } catch (...) {
+    }
+    check("textToInterval: nth_root(8,3000000000.5) throws std::domain_error", threw_invalid_action);
+#endif
+  }
+
+  /* gaol_warning() and gaol_error() with a null file name or a null message
+     (GAOL v5, decided on 2026-10-24): they wrote the pointer to std::cerr,
+     which the standard leaves undefined and libstdc++ puts in the state bad,
+     and the diagnostics written after it were lost. They write "(unknown
+     file)" for a null file name and nothing for a null message now, and
+     std::cerr stays good. std::cerr is redirected to a string for the time of
+     the calls. */
+  void null_pointers_in_diagnostics()
+  {
+    std::ostringstream captured;
+    std::streambuf *const saved = std::cerr.rdbuf(captured.rdbuf());
+    const char* const none = nullptr;
+    gaol_core::gaol_warning(none, 7, "careful");
+    gaol_core::gaol_error(none, 8, "wrong");
+    gaol_core::gaol_warning("a.cpp", 9, none);
+    gaol_core::gaol_error("b.cpp", 10, none);
+    gaol_core::gaol_warning(none);
+    gaol_core::gaol_error(none);
+    gaol_core::gaol_warning(none, 11, none);
+    gaol_core::gaol_warning("a.cpp", 12, "after");
+    const bool cerr_is_good = std::cerr.good();
+    std::cerr.rdbuf(saved);
+    std::cerr.clear();
+    check("gaol_warning() and gaol_error() write an unknown file for a null file name and no text for a null message, "
+          "and std::cerr stays good",
+          cerr_is_good
+          && captured.str() == "[gaol warning in (unknown file):7]: careful\n"
+                               "[gaol error in (unknown file):8]: wrong\n"
+                               "[gaol warning in a.cpp:9]: \n"
+                               "[gaol error in b.cpp:10]: \n"
+                               "[gaol warning]: \n"
+                               "[gaol error]: \n"
+                               "[gaol warning in (unknown file):11]: \n"
+                               "[gaol warning in a.cpp:12]: after\n",
+          [&] { return captured.str(); });
+  }
+
+  /* The first argument of GAOL_ERROR (GAOL v5) is a class derived from
+     std::exception: the macro checks it with a static_assert on this
+     predicate, in the build with exceptions and in the one that aborts, which
+     takes any type otherwise. A static_assert that refuses a type cannot be
+     compiled in a test, so it is the predicate that is tested, on the classes
+     GAOL throws, another of the standard library, a class of a program and
+     types that are no exception. */
+  struct program_error : std::runtime_error { using std::runtime_error::runtime_error; };
+  struct not_an_exception {};
+  struct private_exception : private std::exception {};
+  static_assert(::gaol_detail::is_error_class<std::invalid_argument>::value, "std::invalid_argument is a valid error class");
+  static_assert(::gaol_detail::is_error_class<std::domain_error>::value, "std::domain_error is a valid error class");
+  static_assert(::gaol_detail::is_error_class<std::bad_alloc>::value, "std::bad_alloc is a valid error class");
+  static_assert(::gaol_detail::is_error_class<program_error>::value, "a class derived from std::runtime_error is a valid error class");
+  static_assert(!::gaol_detail::is_error_class<int>::value, "an int is no error class");
+  static_assert(!::gaol_detail::is_error_class<std::string>::value, "std::string is no error class");
+  static_assert(!::gaol_detail::is_error_class<not_an_exception>::value, "a class that is no exception is no error class");
+  static_assert(!::gaol_detail::is_error_class<private_exception>::value, "a handler of std::exception does not catch a private derived class");
+
+#if GAOL_EXCEPTIONS_ENABLED
+  /* What GAOL throws (GAOL v5): the exceptions of the standard library, where
+     GAOL 4 had classes of its own, gaol_exception, input_format_error,
+     unavailable_feature_error and invalid_action_error, with the accessors
+     file(), line() and explanation() and an operator<<. A string the reader
+     refuses, as it reads it or at its end, throws std::invalid_argument, and a
+     function called with an argument it does not take throws
+     std::domain_error: exactly these two types, which the tests tell apart
+     with typeid, as a handler of the one has to leave the other alone (both
+     derive from std::logic_error). A handler of std::exception, the one of a
+     program that knows nothing of GAOL, catches them, and what() says where
+     GAOL threw the exception and why, "file:line: explanation", which is all
+     an exception of the standard library holds. */
+  template<class Exception, class F>
+  exception_text thrown_says(const std::string& done, const char* type, const char* file,
+                             const std::string& expected, const F& f)
+  {
+    bool caught = false, right_type = false, other = false;
+    exception_text what;
+    try {
+      f();
+    } catch (const std::exception& e) {
+      caught = true;
+      right_type = (typeid(e) == typeid(Exception));
+      what = split_what(e);
+    } catch (...) {
+      other = true;
+    }
+    check(std::string("exception: GAOL throws ") + type + ", which a handler of std::exception catches",
+          caught && right_type,
+          [&] { return done + (other ? " threw an exception that is no std::exception"
+                                     : caught ? " threw another type than " + std::string(type)
+                                              : " threw nothing"); });
+    /* The file is the name of the source that threw, without a directory,
+       whatever the path the build gave the compiler (an absolute one with
+       CMake, a relative one with meson) */
+    const std::string name = file;
+    const bool in_file = (what.file == name);
+    check("exception: what() is the file, the line and the explanation, \"file:line: explanation\"",
+          caught && in_file && what.line > 0 && what.explanation == expected,
+          [&] { return done + ": file \"" + what.file + "\", line " + std::to_string(what.line)
+                       + ", explanation \"" + what.explanation + "\" rather than \"" + expected + "\" in " + name; });
+    return what;
+  }
+
+  void exception_messages()
+  {
+    // A string the reader refuses, as it reads it or at its end, and operator>>
+    const exception_text syntax = thrown_says<std::invalid_argument>(
+      "textToInterval(\"sin(1)+\")", "std::invalid_argument", "gaol_interval.cpp",
+      "Syntax error in interval initialization: sin(1)+",
+      [] { const interval x = textToInterval("sin(1)+"); (void)x; });
+    thrown_says<std::invalid_argument>("textToInterval(\"[1, 2\")", "std::invalid_argument", "gaol_interval.cpp",
+                                       "Syntax error in interval initialization: [1, 2",
+                                       [] { const interval x = textToInterval("[1, 2"); (void)x; });
+    const exception_text null_pointer = thrown_says<std::invalid_argument>(
+      "textToInterval(nullptr)", "std::invalid_argument", "gaol_interval.cpp",
+      "Null pointer in interval initialization: a null pointer is no string",
+      [] { const interval x = textToInterval(static_cast<const char*>(nullptr)); (void)x; });
+    // The line is that of the throw: two throws of one file are on two lines
+    check("exception: the line of what() is the one of the throw",
+          syntax.line > 0 && null_pointer.line > 0 && syntax.line != null_pointer.line,
+          [&] { return "lines " + std::to_string(syntax.line) + " and " + std::to_string(null_pointer.line); });
+    thrown_says<std::invalid_argument>("operator>> of \"[1, 2\"", "std::invalid_argument", "gaol_interval_io.cpp",
+                                       "Syntax error in expression of interval: [1, 2",
+                                       [] { std::istringstream in("[1, 2"); interval x; in >> x; });
+    // A function called with an argument it does not take
+    thrown_says<std::domain_error>("nb_fp_numbers(NaN, 1)", "std::domain_error", "gaol_interval_core.cpp",
+                                   "invalid argument(s) in call to nb_fp_numbers()",
+                                   [] { (void)nb_fp_numbers(std::numeric_limits<double>::quiet_NaN(), 1.0); });
+    thrown_says<std::domain_error>("bisect(0)", "std::domain_error", "gaol_interval_core.cpp",
+                                   "bisect(): the ratio is not in (0, 1)",
+                                   [] { (void)interval(1.0, 2.0).bisect(0.0); });
+    // From the parser, whose file is that of the grammar it was generated from,
+    // as the #line directives of bison give it (gaol_interval_parser.ypp)
+    thrown_says<std::domain_error>("textToInterval(\"nth_root(8,1.5)\")", "std::domain_error", "gaol_interval_parser.ypp",
+                                   "nth_root used with non integral 2nd arg.",
+                                   [] { const interval x = textToInterval("nth_root(8,1.5)"); (void)x; });
+    thrown_says<std::invalid_argument>("textToInterval(\"sin(1, 2)\")", "std::invalid_argument", "gaol_interval_parser.ypp",
+                                       "sin called with a wrong number of arguments",
+                                       [] { const interval x = textToInterval("sin(1, 2)"); (void)x; });
+
+    /* GAOL_ERROR itself: the text is "file:line: message" with the file and the
+       line of the macro, "(unknown file)" for a null file name and nothing for a
+       null message, as gaol_warning() and gaol_error() write them (error_text()
+       of gaol/gaol_common.h) */
+    check("exception: error_text() writes an unknown file for a null file name, and no text for a null message",
+          ::gaol_detail::error_text(nullptr, 7, "boom") == "(unknown file):7: boom"
+          && ::gaol_detail::error_text("a.cpp", 12, nullptr) == "a.cpp:12: "
+          && ::gaol_detail::error_text("a.cpp", 12, "boom") == "a.cpp:12: boom",
+          [&] { return ::gaol_detail::error_text(nullptr, 7, "boom") + " | " + ::gaol_detail::error_text("a.cpp", 12, nullptr); });
+    // The file has no directory: the path of the build is not in the messages
+    check("exception: error_text() keeps the name of the file, not its directories, with / and with \\",
+          ::gaol_detail::error_text("/home/me/gaol/gaol/f.cpp", 3, "m") == "f.cpp:3: m"
+          && ::gaol_detail::error_text("../gaol/f.cpp", 3, "m") == "f.cpp:3: m"
+          && ::gaol_detail::error_text("C:\\src\\gaol\\f.cpp", 3, "m") == "f.cpp:3: m"
+          && ::gaol_detail::error_text("f.cpp", 3, "m") == "f.cpp:3: m",
+          [&] { return ::gaol_detail::error_text("/home/me/gaol/gaol/f.cpp", 3, "m") + " | " + ::gaol_detail::error_text("C:\\src\\gaol\\f.cpp", 3, "m"); });
+    const long here = __LINE__ + 2;
+    try {
+      GAOL_ERROR(std::logic_error, static_cast<const char*>(nullptr));
+    } catch (const std::logic_error& e) {
+      const exception_text t = split_what(e);
+      check("exception: GAOL_ERROR throws the class it is given, with the file and the line of the macro, and no text for a null message",
+            typeid(e) == typeid(std::logic_error) && t.line == here && t.explanation.empty()
+            && t.file == "expressions.cpp",
+            [&] { return std::string(e.what()) + " rather than line " + std::to_string(here); });
+    }
+    // gaol_ERROR, the name of GAOL 4, is GAOL_ERROR
+    const long there = __LINE__ + 2;
+    try {
+      gaol_ERROR(std::domain_error, "boom");
+    } catch (const std::domain_error& e) {
+      const exception_text t = split_what(e);
+      check("exception: gaol_ERROR, the name of GAOL 4, throws as GAOL_ERROR does, at its own line",
+            typeid(e) == typeid(std::domain_error) && t.line == there && t.explanation == "boom"
+            && t.file == "expressions.cpp",
+            [&] { return std::string(e.what()) + " rather than line " + std::to_string(there); });
+    }
+  }
+#endif
+
+  // The least time, in seconds, that three readings of the text s take
+  double reading_time(const std::string& s)
+  {
+    double least = GAOL_INFINITY;
+    for (int i = 0; i < 3; ++i) {
+      const auto start = std::chrono::steady_clock::now();
+      static_cast<void>(textToInterval(s));
+      const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+      least = std::min(least, elapsed.count());
+    }
+    return least;
+  }
+
+  /* A number far beyond the doubles, whose digits are not put in an integer
+     (GAOL v5): the reader built the integer of the digits, in a time
+     quadratic in their number, before it knew that the number was above the
+     largest double or below the least positive one, whatever its digits (a
+     million digits 7 took 26 s, on an Intel i7-1185G7). It is [DBL_MAX, +oo]
+     above, and [0, DBL_MIN_SUBNORMAL] below, in decimal and in hexadecimal.
+     Each reading is timed against one of a number of the same length that is
+     0, whose digits no integer holds either: at most 10 times as long, and
+     50 ms more, a margin that a slow or a busy machine does not exhaust (the
+     fault made it 1000 times as long and more). */
+  void long_numbers_beyond_the_doubles()
+  {
+    const std::size_t n = 400000;
+    const double dmax = std::numeric_limits<double>::max(), dmin = 0x1p-1074;
+    struct Case { const char* name; std::string text; double left, right; };
+    const Case cases[] = {
+      {"decimal, above", std::string(n, '7'), dmax, GAOL_INFINITY},
+      {"decimal, below", "0." + std::string(n/2, '0') + std::string(n/2, '7'), 0.0, dmin},
+      {"decimal, above, with an exponent", "7." + std::string(n, '7') + "e400", dmax, GAOL_INFINITY},
+      {"hexadecimal, above", "0x" + std::string(n, 'f'), dmax, GAOL_INFINITY},
+      {"hexadecimal, below", "0x0." + std::string(n/8, '0') + std::string(n/2, 'f'), 0.0, dmin},
+    };
+    const double zeros = reading_time("0." + std::string(n, '0'));
+    for (const Case& c : cases) {
+      const interval x = textToInterval(c.text);
+      const double elapsed = reading_time(c.text);
+      check("textToInterval(long number beyond the doubles): the enclosure of the doubles beyond",
+            x.left() == c.left && x.right() == c.right, [&] { return std::string(c.name) + ": " + hex(x); });
+      check("textToInterval(long number beyond the doubles): the time of a number of the same length that is 0",
+            elapsed <= 10*zeros + 0.05,
+            [&] { return std::string(c.name) + ": " + std::to_string(elapsed) + " s, against "
+                         + std::to_string(zeros) + " s"; });
+    }
+  }
+
+  /* Many decimal intervals, whose bounds are no doubles: the interval read has
+     to hold them, and to be no wider than the two doubles around them. */
+  void decimals()
+  {
+    const char* texts[] = {
+      "[0.1,0.2]", "[1.23456789012345,1.23456789012346]", "[-1e-300,1e-300]",
+      "[1e300,1.0001e300]", "[3.141592653589793,3.141592653589794]",
+      "[0.333333333333333,0.666666666666667]", "[-2.5e-10,2.5e-10]",
+      "[1e-320,1e-310]", "[0.9999999999999999,1.0000000000000002]",
+    };
+    for (const char* t : texts) {
+      interval got;
+      try {
+        got = textToInterval(t);
+      } catch (const std::exception& e) {
+        check("expression: a decimal interval is read", false,
+              [&] { return std::string(t) + ": " + e.what(); });
+        continue;
+      }
+      double a = 0.0, b = 0.0;
+      if (std::sscanf(t, "[%lf,%lf]", &a, &b) != 2) {
+        continue;
+      }
+      check("expression: a decimal interval holds its bounds",
+            got.left() <= a && got.right() >= b,
+            [&] {
+              std::ostringstream o;
+              o << t << " gave " << got;
+              return o.str();
+            });
+      check("expression: a decimal interval is no wider than two doubles",
+            got.left() >= previous_float(a) && got.right() <= next_float(b),
+            [&] {
+              std::ostringstream o;
+              o << t << " gave " << got;
+              return o.str();
+            });
+    }
+  }
+
+  /* The expressions built in C++ rather than read from a string
+     (gaol/parser/gaol_expression.h): every node is built, printed, copied and
+     evaluated, which the strings alone do not reach. */
+  void built_expressions()
+  {
+    const expression x = expression(interval(1.0, 2.0));
+    const expression y = expression(interval(3.0, 4.0));
+    const expression d = expression(2.5);
+    // 2^53 + 1, which expression(double) made the double 2^53: expression(n)
+    // is the interval of the two doubles around it (GAOL v5)
+    const double two53 = std::ldexp(1.0, 53);
+    const expression n = expression(9007199254740993LL);
+
+    struct Case { expression e; interval value; const char* name; };
+    const Case cases[] = {
+      {x + y, interval(1.0, 2.0) + interval(3.0, 4.0), "x+y"},
+      {x - y, interval(1.0, 2.0) - interval(3.0, 4.0), "x-y"},
+      {x * y, interval(1.0, 2.0) * interval(3.0, 4.0), "x*y"},
+      {x / y, interval(1.0, 2.0) / interval(3.0, 4.0), "x/y"},
+      {-x, -interval(1.0, 2.0), "-x"},
+      {x + d, interval(1.0, 2.0) + interval(2.5), "x+d"},
+      {pow(x, y), pow(interval(1.0, 2.0), interval(3.0, 4.0)), "x^y"},
+      // pow(e, n) with an int n, which did not link: the library defined it
+      // with an unsigned int
+      {pow(x, 3), pow(interval(1.0, 2.0), 3), "x^3"},
+      {nth_root(y, 2), nth_root(interval(3.0, 4.0), 2), "nth_root(y,2)"},
+      {cos(x), cos(interval(1.0, 2.0)), "cos(x)"},
+      {sin(x), sin(interval(1.0, 2.0)), "sin(x)"},
+      {tan(expression(interval(0.0, 1.0))), tan(interval(0.0, 1.0)), "tan"},
+      {acos(expression(interval(0.0, 1.0))), acos(interval(0.0, 1.0)), "acos"},
+      {asin(expression(interval(0.0, 1.0))), asin(interval(0.0, 1.0)), "asin"},
+      {atan(x), atan(interval(1.0, 2.0)), "atan"},
+      {cosh(x), cosh(interval(1.0, 2.0)), "cosh"},
+      {sinh(x), sinh(interval(1.0, 2.0)), "sinh"},
+      {tanh(x), tanh(interval(1.0, 2.0)), "tanh"},
+      {acosh(x), acosh(interval(1.0, 2.0)), "acosh"},
+      {asinh(x), asinh(interval(1.0, 2.0)), "asinh"},
+      {atanh(expression(interval(0.0, 0.5))), atanh(interval(0.0, 0.5)), "atanh"},
+      {exp(x), exp(interval(1.0, 2.0)), "exp"},
+      {log(x), log(interval(1.0, 2.0)), "log"},
+      {exp2(x), exp2(interval(1.0, 2.0)), "exp2"},
+      {log2(x), log2(interval(1.0, 2.0)), "log2"},
+      {sign(x), sign(interval(1.0, 2.0)), "sign"},
+      {trunc(x), trunc(interval(1.0, 2.0)), "trunc"},
+      {nth_root(x, 3), nth_root(interval(1.0, 2.0), 3), "nth_root(x,3)"},
+      {n, interval(two53, two53 + 2), "expression(2^53+1)"},
+      {x + n, interval(1.0, 2.0) + interval(two53, two53 + 2), "x+expression(2^53+1)"},
+      {expression(7), interval(7.0), "expression(7)"},
+      // nth_root(e, n) for an integer of another type (GAOL v5): nth_root(e,
+      // -2) took the order 4294967294, and a long beyond the unsigned ints was
+      // reduced modulo 2^32. Beyond them, the roots are those of the
+      // intervals but where e contains 0 (see roots_of_expressions())
+      {nth_root(x, 3L), nth_root(interval(1.0, 2.0), 3), "nth_root(x,3L)"},
+      {nth_root(y, -2), interval(1.0) / nth_root(interval(3.0, 4.0), 2u), "nth_root(y,-2)"},
+      {nth_root(x, 5000000000LL), nth_root(interval(1.0, 2.0), 5000000000LL), "nth_root(x,5e9)"},
+      {nth_root(x, 5000000001LL), nth_root(interval(1.0, 2.0), 5000000001LL), "nth_root(x,5e9+1)"},
+      {nth_root(-x, 5000000001LL), nth_root(interval(-2.0, -1.0), 5000000001LL), "nth_root(-x,5e9+1)"},
+      {nth_root(x, -3000000000LL), nth_root(interval(1.0, 2.0), -3000000000LL), "nth_root(x,-3e9)"},
+      {nth_root(-x, -5000000001LL), nth_root(interval(-2.0, -1.0), -5000000001LL), "nth_root(-x,-5e9-1)"},
+      {cos(x) + sin(y) * exp(x), cos(interval(1.0, 2.0)) + sin(interval(3.0, 4.0)) * exp(interval(1.0, 2.0)), "nested"},
+    };
+
+    for (const Case& c : cases) {
+      // evaluated
+      expr_eval ev;
+      c.e.get_root()->accept(ev);
+      const interval got = ev.result();
+      check("built expression: the same interval as the operations",
+            got.left() == c.value.left() && got.right() == c.value.right(),
+            [&] {
+              std::ostringstream o;
+              o << c.name << " gave " << got << " rather than " << c.value;
+              return o.str();
+            });
+      // printed
+      std::ostringstream o;
+      o << c.e;
+      check("built expression: printed as something", !o.str().empty(),
+            [&] { return std::string(c.name) + " printed nothing"; });
+      // copied, assigned, and evaluated again
+      expression copy(c.e);
+      expression assigned;
+      assigned = c.e;
+      expr_eval ev2, ev3;
+      copy.get_root()->accept(ev2);
+      assigned.get_root()->accept(ev3);
+      const interval a = ev2.result(), b = ev3.result();
+      check("built expression: the copy and the assignment give the same",
+            a.left() == got.left() && a.right() == got.right()
+              && b.left() == got.left() && b.right() == got.right(),
+            [&] { return std::string(c.name); });
+      // cloned node by node
+      expr_node* clone = c.e.get_root()->clone();
+      expr_eval ev4;
+      clone->accept(ev4);
+      const interval cl = ev4.result();
+      check("built expression: the clone gives the same",
+            cl.left() == got.left() && cl.right() == got.right(),
+            [&] { return std::string(c.name); });
+      delete clone;
+    }
+
+    // expression(n) for an integer that is a double is expression(double),
+    // written as the double, and the evaluator sees a double_node, as before the
+    // overload for the integers (GAOL v5)
+    {
+      std::ostringstream a, b;
+      a << expression(7) << ' ' << pow(expression(-2), 2);
+      b << expression(7.0) << ' ' << pow(expression(-2.0), 2);
+      check("expression(7) is expression(7.0)", a.str() == b.str()
+              && dynamic_cast<double_node*>(expression(7).get_root()) != nullptr,
+            [&] { return a.str() + " rather than " + b.str(); });
+    }
+
+    // The roots of an expression of order beyond the unsigned ints, where e
+    // contains 0: an enclosure of those of the intervals, sign(e) being
+    // [-1, 1] there (GAOL v5)
+    {
+      const interval z(-3.0, 2.0);
+      expr_eval ev;
+      nth_root(expression(z), 5000000001LL).get_root()->accept(ev);
+      const interval got = ev.result(), roots = nth_root(z, 5000000001LL);
+      check("nth_root(e, 5e9 + 1) of an expression containing 0 encloses the roots", got.set_contains(roots),
+            [&] {
+              std::ostringstream o;
+              o << got << " does not contain " << roots;
+              return o.str();
+            });
+    }
+
+    // the operators that change the expression in place; /= was declared and
+    // not defined, and a program using it did not link (GAOL v5)
+    expression acc = expression(interval(1.0, 1.0));
+    acc += x;
+    acc -= d;
+    acc *= y;
+    acc /= x;
+    expr_eval ev;
+    acc.get_root()->accept(ev);
+    const interval got = ev.result();
+    const interval expected =
+      (((interval(1.0) + interval(1.0, 2.0)) - interval(2.5)) * interval(3.0, 4.0)) / interval(1.0, 2.0);
+    check("built expression: +=, -=, *= and /=",
+          got.left() == expected.left() && got.right() == expected.right(),
+          [&] {
+            std::ostringstream o;
+            o << got << " rather than " << expected;
+            return o.str();
+          });
+
+    /* Printed as written (GAOL v5): the division was printed with '*', and a
+       negative number without the parentheses a power of it needs */
+    {
+      const expression z = expression(interval(5.0, 6.0));
+      std::ostringstream quotient, power;
+      quotient << x / (y * z);
+      power << pow(expression(-2.0), 2);
+      check("built expression: printed as written, x/(y*z)",
+            quotient.str() == "[1, 2]/([3, 4]*[5, 6])", [&] { return quotient.str(); });
+      check("built expression: printed as written, (-2)^2",
+            power.str() == "(-2)^2", [&] { return power.str(); });
+    }
+
+    // the empty expression, whose evaluation is an error
+    expression empty;
+    std::ostringstream o;
+    o << empty;
+    check("built expression: the empty one is printed", true);
+  }
+
+  /* The empty expressions, of every thread, point to one node, the_null_expr,
+     whose references are not counted (GAOL v5): its count, a plain unsigned
+     int that expressions created and destroyed in two threads changed at
+     once, lost updates and came down to 0, and the node was deleted twice.
+     The tests run no thread: the count is checked not to change as empty
+     expressions are built, copied, assigned, extended and divided. */
+  void null_node_not_counted()
+  {
+    const unsigned int before = gaol_core::the_null_expr->references();
+    unsigned int during = 0;
+    {
+      expression e, f = e;
+      expression g;
+      g = f;
+      g += expression(1.0);
+      expression h;
+      h /= expression(2.0);
+      during = gaol_core::the_null_expr->references();
+    }
+    const unsigned int after = gaol_core::the_null_expr->references();
+    check("expression: the empty expressions do not count their references to the_null_expr",
+          before == during && during == after,
+          [&] { return std::to_string(before) + ", " + std::to_string(during) + ", " + std::to_string(after); });
+  }
+
+  // A stream buffer of no buffer, which reads the count of references of a
+  // node at each character written
+  class counting_buffer : public std::streambuf
+  {
+  public:
+    explicit counting_buffer(const gaol_core::expr_node* node) : node_(node) {}
+    const std::vector<unsigned int>& counts() const { return counts_; }
+
+  protected:
+    int_type overflow(int_type c) override
+    {
+      counts_.push_back(node_->references());
+      return traits_type::not_eof(c);
+    }
+
+  private:
+    const gaol_core::expr_node* node_;
+    std::vector<unsigned int> counts_;
+  };
+
+  /* Displaying an expression leaves the counts of references of its nodes as
+     they are (GAOL v5): the counts are plain unsigned ints, and an expression
+     may be displayed in two threads at once. unary_minus_node::display()
+     wrote its operand through operator<<(), which took it as a temporary
+     expression, one reference more while it was written and one less after:
+     two threads displaying the same -x lost updates, and the node of x was
+     deleted while x held it, a segmentation fault each time. The tests run no
+     thread: the count of the operand is read at each character written, for
+     every node of one or two operands, the operand being a sum, which some
+     nodes write within parentheses, or a sine, which none does. */
+  // A node is no expression unless it is written so (GAOL v5): the
+  // constructor expression(const expr_node&) is explicit, so that no function
+  // builds a temporary expression of a node, which changes its count, without
+  // writing it, as unary_minus_node::display() did (display_keeps_counts())
+  static_assert(!std::is_convertible<const gaol_core::expr_node&, expression>::value,
+                "expression(const expr_node&) has to be explicit");
+  static_assert(std::is_constructible<expression, const gaol_core::expr_node&>::value,
+                "expression(const expr_node&) has to exist");
+
+  /* A node is not copied, nor assigned, nor moved (GAOL v5): the copy the
+     compiler wrote took the interval an interval_node deletes, and
+     `interval_node b(*a);` deleted it twice. clone() copies a node. Checked
+     for the null node, the nodes of no operand, of one and of two */
+  template <class Node>
+  struct node_is_not_copied
+  {
+    static const bool value = !std::is_copy_constructible<Node>::value && !std::is_copy_assignable<Node>::value
+                              && !std::is_move_constructible<Node>::value && !std::is_move_assignable<Node>::value;
+  };
+  static_assert(node_is_not_copied<gaol_core::null_node>::value
+                  && node_is_not_copied<gaol_core::double_node>::value
+                  && node_is_not_copied<gaol_core::interval_node>::value
+                  && node_is_not_copied<gaol_core::unary_minus_node>::value
+                  && node_is_not_copied<gaol_core::sin_node>::value
+                  && node_is_not_copied<gaol_core::add_node>::value
+                  && node_is_not_copied<gaol_core::atan2_node>::value,
+                "a node is not copied");
+
+  void display_keeps_counts()
+  {
+    const expression x = expression(interval(1.0, 2.0));
+    const expression operands[] = { x + x, sin(x) };
+    using build = std::function<expression(const expression&)>;
+    struct Case { const char* name; build f; };
+    const Case cases[] = {
+      {"-c", [&](const expression& c) { return -c; }},
+      {"c+x", [&](const expression& c) { return c + x; }}, {"x+c", [&](const expression& c) { return x + c; }},
+      {"c-x", [&](const expression& c) { return c - x; }}, {"x-c", [&](const expression& c) { return x - c; }},
+      {"c*x", [&](const expression& c) { return c * x; }}, {"x*c", [&](const expression& c) { return x * c; }},
+      {"c/x", [&](const expression& c) { return c / x; }}, {"x/c", [&](const expression& c) { return x / c; }},
+      {"c^x", [&](const expression& c) { return pow(c, x); }}, {"x^c", [&](const expression& c) { return pow(x, c); }},
+      {"c^3", [&](const expression& c) { return pow(c, 3); }},
+      {"nth_root(c,3)", [&](const expression& c) { return nth_root(c, 3u); }},
+      {"atan2(c,x)", [&](const expression& c) { return atan2(c, x); }},
+      {"atan2(x,c)", [&](const expression& c) { return atan2(x, c); }},
+      {"cos", [&](const expression& c) { return cos(c); }}, {"sin", [&](const expression& c) { return sin(c); }},
+      {"tan", [&](const expression& c) { return tan(c); }}, {"acos", [&](const expression& c) { return acos(c); }},
+      {"asin", [&](const expression& c) { return asin(c); }}, {"atan", [&](const expression& c) { return atan(c); }},
+      {"cosh", [&](const expression& c) { return cosh(c); }}, {"sinh", [&](const expression& c) { return sinh(c); }},
+      {"tanh", [&](const expression& c) { return tanh(c); }}, {"acosh", [&](const expression& c) { return acosh(c); }},
+      {"asinh", [&](const expression& c) { return asinh(c); }}, {"atanh", [&](const expression& c) { return atanh(c); }},
+      {"exp", [&](const expression& c) { return exp(c); }}, {"log", [&](const expression& c) { return log(c); }},
+      {"exp2", [&](const expression& c) { return exp2(c); }}, {"log2", [&](const expression& c) { return log2(c); }},
+      {"sign", [&](const expression& c) { return sign(c); }}, {"trunc", [&](const expression& c) { return trunc(c); }},
+    };
+    for (const expression& c : operands) {
+      for (const Case& k : cases) {
+        const expression e = k.f(c);
+        const unsigned int before = c.get_root()->references();
+        counting_buffer counting(c.get_root());
+        std::ostream os(&counting);
+        os << e;
+        const std::vector<unsigned int>& during = counting.counts();
+        const bool kept = !during.empty() && std::all_of(during.begin(), during.end(),
+                                                         [&](unsigned int n) { return n == before; });
+        check("expression: displaying it leaves the counts of references of its operands as they are",
+              kept && c.get_root()->references() == before, [&] {
+                std::ostringstream o;
+                o << k.name << " of c = " << c << ": " << before << " references to c, then";
+                for (unsigned int n : during) {
+                  o << ' ' << n;
+                }
+                return o.str();
+              });
+      }
+    }
+  }
+
+  /* The long and the deeply nested expressions (GAOL v5)
+
+     A sum of 100000 terms read from a string, and an expression that long
+     built in C++, were trees 100000 nodes deep, whose evaluation and
+     deletion made one call within another per node: the evaluation
+     overflowed the stack of the program, 8 MB with Linux and macOS, and
+     crashed it (the deletion, whose frames are smaller, needs a longer
+     chain). The parser now computes an operation when it reads it, the
+     evaluation and the deletion of a tree take stacks of their own in the
+     heap, and the reader keeps what it reads in a stack of the heap too, of
+     10000 entries: a string nested deeper, with parentheses, signs or calls,
+     is refused. */
+
+  // The operation of the operator op, one of + - * /
+  interval operate(char op, const interval& a, const interval& b)
+  {
+    switch (op) {
+    case '+': return a + b;
+    case '-': return a - b;
+    case '*': return a * b;
+    default:  return a / b;
+    }
+  }
+
+  // The expression a op b
+  expression combine(char op, const expression& a, const expression& b)
+  {
+    switch (op) {
+    case '+': return a + b;
+    case '-': return a - b;
+    case '*': return a * b;
+    default:  return a / b;
+    }
+  }
+
+  /* "a op b op a op b ...", n terms, the operators in turn those of ops: the
+     operators of one cycle have the same precedence, and group from the left */
+  std::string repeated(int n, const std::string& ops, const std::string& a, const std::string& b)
+  {
+    std::string text;
+    text.reserve(static_cast<std::size_t>(n) * (std::max(a.size(), b.size()) + 1));
+    for (int i = 0; i < n; ++i) {
+      if (i > 0) {
+        text += ops[static_cast<std::size_t>(i - 1) % ops.size()];
+      }
+      text += (i % 2 == 0) ? a : b;
+    }
+    return text;
+  }
+
+  // The same bounds to the bit, the signs of the zeros and the empty set included
+  bool same_bits(const interval& a, const interval& b)
+  {
+    return hex(a) == hex(b);
+  }
+
+  /* Sums and products have to be 200000 terms long to overflow the stack of
+     8 MB of Linux and macOS with a recursion of about 100 bytes for each
+     node; the differences and the quotients, which do not commute, only have
+     to show that the operands are taken in the right order, in fewer */
+  const int long_terms = 200000;
+  const int short_terms = 20000;
+
+  int terms_of(char op)
+  {
+    return (op == '+' || op == '*') ? long_terms : short_terms;
+  }
+
+  // e op= x
+  void update(char op, expression& e, const expression& x)
+  {
+    switch (op) {
+    case '+': e += x; break;
+    case '-': e -= x; break;
+    case '*': e *= x; break;
+    default:  e /= x; break;
+    }
+  }
+
+  /* Chains of operations read from a string: the value is the one of the
+     same operations in C++, grouped from the left as the reader groups them.
+     The long chains are of pi, which the lexer reads in no time: it takes
+     tens of microseconds to read a number when the sanitizers slow it down,
+     as it does the decimals of the short chains, whose operations round. */
+  void long_strings()
+  {
+    struct Chain { const char* ops; const char* a; const char* b; int terms; };
+    const Chain chains[] = {
+      {"+", "pi", "pi", long_terms}, {"*/", "pi", "pi", long_terms}, {"-+", "pi", "pi", short_terms},
+      {"+", "0.1", "0.2", 2000}, {"-+", "0.1", "0.2", 2000}, {"*/", "1.0000001", "0.9999999", 2000},
+    };
+    for (const Chain& c : chains) {
+      const interval ta = textToInterval(c.a), tb = textToInterval(c.b);
+      const std::string ops = c.ops;
+      interval expected = ta;
+      for (int i = 1; i < c.terms; ++i) {
+        expected = operate(ops[static_cast<std::size_t>(i - 1) % ops.size()], expected, (i % 2 == 0) ? ta : tb);
+      }
+      const std::string what = std::string("\"") + c.a + c.ops[0] + c.b + "...\", " + std::to_string(c.terms) + " terms";
+      try {
+        const interval got = textToInterval(repeated(c.terms, ops, c.a, c.b));
+        check("long expression: a long string is read as its operators group them",
+              same_bits(got, expected),
+              [&] { return what + " gave " + hex(got) + " rather than " + hex(expected); });
+      } catch (const std::exception& e) {
+        check("long expression: no exception on a long string", false,
+              [&] { return what + ": " + e.what(); });
+      }
+    }
+  }
+
+  /* The chains built in C++, on the left with the operators that change an
+     expression in place, on the right with the others, then chains of unary
+     operations: the value is the one of the same operations in C++, in the
+     same order. The trees are deleted when they go out of scope, which is a
+     part of the test too. */
+  void long_built()
+  {
+    for (const char op : {'+', '-', '*', '/'}) {
+      const int terms = terms_of(op);
+      // Terms whose sums and products round, and neither overflow nor underflow in 200000 of them
+      const interval t = (op == '+' || op == '-') ? interval(0.1, 0.2) : interval(0.9999999, 1.0000001);
+
+      expression left(t), right(t);
+      interval expected_left = t, expected_right = t;
+      for (int i = 1; i < terms; ++i) {
+        update(op, left, expression(t));
+        expected_left = operate(op, expected_left, t);
+        right = combine(op, expression(t), right);
+        expected_right = operate(op, t, expected_right);
+      }
+      interval got_left, got_right;
+      const bool evaluated_left = evaluate_expr(left, got_left);
+      const bool evaluated_right = evaluate_expr(right, got_right);
+      check("long expression: a chain built on the left has the value of the operations in C++",
+            evaluated_left && same_bits(got_left, expected_left),
+            [&] { return std::string(1, op) + " gave " + hex(got_left) + " rather than " + hex(expected_left); });
+      check("long expression: a chain built on the right has the value of the operations in C++",
+            evaluated_right && same_bits(got_right, expected_right),
+            [&] { return std::string(1, op) + " gave " + hex(got_right) + " rather than " + hex(expected_right); });
+    }
+
+    // Chains of unary operations: minus signs, and sines
+    {
+      const interval t(0.1, 0.2);
+      expression signs(t), sines(t);
+      interval expected_sines = t;
+      for (int i = 0; i < long_terms; ++i) {
+        signs = -signs;
+      }
+      for (int i = 0; i < short_terms; ++i) {
+        sines = sin(sines);
+        expected_sines = sin(expected_sines);
+      }
+      interval got_signs, got_sines;
+      bool evaluated = evaluate_expr(signs, got_signs);
+      check("long expression: 200000 minus signs, an even number, are no sign",
+            evaluated && same_bits(got_signs, t), [&] { return hex(got_signs); });
+      signs = -signs;
+      evaluated = evaluate_expr(signs, got_signs);
+      check("long expression: 200001 minus signs are one",
+            evaluated && same_bits(got_signs, -t), [&] { return hex(got_signs); });
+      evaluated = evaluate_expr(sines, got_sines);
+      check("long expression: a sine of a sine of 20000 sines",
+            evaluated && same_bits(got_sines, expected_sines),
+            [&] { return hex(got_sines) + " rather than " + hex(expected_sines); });
+    }
+  }
+
+  /* What the reader does with a string nested deeper than its stack of 10000
+     entries: it refuses it, as a syntax error, where it read a string 9000
+     deep. The nesting of parentheses, of brackets, of signs and of calls of
+     functions: none is more than a few thousand nodes deep once read, which
+     the evaluation and the deletion of the tree take without recursion. */
+  void deep_strings()
+  {
+    const auto nested = [](int depth, const char* open, const char* inner, const char* close) {
+      std::string text;
+      for (int i = 0; i < depth; ++i) {
+        text += open;
+      }
+      text += inner;
+      for (int i = 0; i < depth; ++i) {
+        text += close;
+      }
+      return text;
+    };
+
+    // Accepted: 9000 levels of parentheses, of brackets and of signs, and thousands of calls
+    same(nested(9000, "(", "1", ")"), interval(1.0));
+    same(nested(9000, "[", "1", "]"), interval(1.0));
+    same(nested(4000, "sin(", "0", ")"), interval(0.0));
+    same(nested(2000, "pow(1,", "1", ")"), interval(1.0));
+    same(nested(9000, "-", "3", ""), interval(3.0));
+    same(nested(8999, "-", "3", ""), interval(-3.0));
+    same(nested(9000, "-", "inf", ""), textToInterval("inf"));
+    same(nested(8999, "-", "inf", ""), textToInterval("-inf"));
+    same("[" + nested(9000, "-", "1", "") + ", 2]", interval(1.0, 2.0));
+    same("[" + nested(9000, "-", "inf", "") + ", 2]", interval::emptyset());
+    same("[" + nested(8999, "-", "inf", "") + ", 2]", interval(-inf, 2.0));
+    same("1+" + nested(9000, "-", "3", "") + "*2", interval(7.0));
+    same(nested(4000, "(", "1", "+1)"), interval(4001.0));
+    // An uncertain number behind thousands of signs is still no bound
+    refused("[" + nested(9000, "-", "3.56?1", "") + ", 5]");
+    refused("[1, " + nested(9001, "-", "3.56?1", "") + "]");
+
+    // Refused as a syntax error, a std::invalid_argument, whatever the depth
+    const struct { const char* name; std::string text; } refusals[] = {
+      {"parentheses", nested(100000, "(", "1", ")")},
+      {"brackets", nested(100000, "[", "1", "]")},
+      {"signs", nested(100000, "-", "1", "")},
+      {"calls", nested(100000, "sin(", "1", ")")},
+      {"nested sums", nested(100000, "(", "1", "+1)")},
+    };
+    for (const auto& r : refusals) {
+      bool syntax_error = false, other = false;
+#if GAOL_EXCEPTIONS_ENABLED
+      try {
+        const interval x = textToInterval(r.text);
+        (void)x;
+      } catch (const std::invalid_argument&) {
+        syntax_error = true;
+      } catch (...) {
+        other = true;
+      }
+#else
+      // Without exceptions, textToInterval() would end the program: the
+      // reader refuses the string as it refuses any syntax error
+      interval x;
+      syntax_error = !gaol_core::parse_interval(r.text.c_str(), x);
+#endif
+      check("deep string: 100000 levels are refused with a std::invalid_argument", syntax_error && !other,
+            [&] { return std::string(r.name) + (other ? ": another exception" : ": read"); });
+    }
+  }
+
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_TESTS_FRAME_POSITION() reinterpret_cast<std::uintptr_t>(__builtin_frame_address(0))
+#elif defined(_MSC_VER)
+#  define GAOL_TESTS_FRAME_POSITION() reinterpret_cast<std::uintptr_t>(_AddressOfReturnAddress())
+#endif
+
+#ifdef GAOL_TESTS_FRAME_POSITION
+  /* A leaf that notes where the stack of the program is when it is visited
+     by an evaluation and when it is deleted. Under a chain of nodes, the
+     recursion of an evaluation or of a deletion has put a frame on the stack
+     for each node above the leaf: the further the leaf is from where the
+     evaluation or the deletion started, the deeper the recursion.
+     The position is the address of the frame, and not the one of a local
+     variable, which the sanitizers move to a stack of their own. */
+  class probe_leaf : public expr_node
+  {
+    public:
+      explicit probe_leaf(double v) : value_(v) {}
+      ~probe_leaf() override { deleted_at = GAOL_TESTS_FRAME_POSITION(); }
+      expr_node* clone() const override { return new probe_leaf(value_.get_val()); }
+      void accept(expr_eval& eval) override
+      {
+        visited_at = GAOL_TESTS_FRAME_POSITION();
+        eval.visit(&value_);
+      }
+      unsigned int get_precedence() const override { return value_.get_precedence(); }
+      std::ostream& display(std::ostream& os) const override { return value_.display(os); }
+
+      static std::uintptr_t visited_at, deleted_at;
+
+    private:
+      double_node value_;
+  };
+
+  std::uintptr_t probe_leaf::visited_at = 0;
+  std::uintptr_t probe_leaf::deleted_at = 0;
+
+  // The bytes of stack between two positions, whichever way the stack grows
+  std::uintptr_t stack_between(std::uintptr_t a, std::uintptr_t b)
+  {
+    return a > b ? a - b : b - a;
+  }
+#endif
+
+  /* The stack an evaluation and a deletion use does not depend on the depth of
+     the tree: the leaf at the bottom of a chain of 20000 nodes is visited and
+     deleted less than 64 KiB of stack away from the function that starts
+     them, where a recursion needs a frame, 16 bytes at the very least, for
+     each node: 320 KB. Deterministic, whatever the stack of the program and
+     the size of the frames (the sanitizers make them larger), and it fails
+     without crashing, where the chains of 200000 nodes above overflow the
+     stack of 8 MB only. */
+  void stack_use()
+  {
+#ifdef GAOL_TESTS_FRAME_POSITION
+    const int terms = 20000;
+    const std::uintptr_t limit = 64 * 1024;
+    const char* const shapes[] = {"on the left", "on the right", "of minus signs"};
+    const std::uintptr_t here = GAOL_TESTS_FRAME_POSITION();
+    for (int shape = 0; shape < 3; ++shape) {
+      probe_leaf::visited_at = probe_leaf::deleted_at = 0;
+      interval value;
+      bool evaluated = false;
+      {
+        // The leaf is at the bottom: leftmost, rightmost, or under the signs
+        expression e(*new probe_leaf(1.0));
+        for (int i = 1; i < terms; ++i) {
+          if (shape == 0) {
+            e += expression(1.0);
+          } else if (shape == 1) {
+            e = expression(1.0) + e;
+          } else {
+            e = -e;
+          }
+        }
+        evaluated = evaluate_expr(e, value);
+      }
+      const interval expected = (shape < 2) ? interval(static_cast<double>(terms)) : -interval(1.0);
+      check("stack use: the value of a chain of 20000 nodes", evaluated && same_bits(value, expected),
+            [&] { return std::string(shapes[shape]) + ": " + hex(value); });
+      const std::uintptr_t evaluation = stack_between(here, probe_leaf::visited_at);
+      const std::uintptr_t deletion = stack_between(here, probe_leaf::deleted_at);
+      check("stack use: the evaluation of a chain of 20000 nodes takes less than 64 KiB of stack",
+            probe_leaf::visited_at != 0 && evaluation < limit,
+            [&] { return std::string(shapes[shape]) + ": the leaf was visited " + std::to_string(evaluation) + " bytes down"; });
+      check("stack use: the deletion of a chain of 20000 nodes takes less than 64 KiB of stack",
+            probe_leaf::deleted_at != 0 && deletion < limit,
+            [&] { return std::string(shapes[shape]) + ": the leaf was deleted " + std::to_string(deletion) + " bytes down"; });
+    }
+#else
+    std::printf("stack use: no frame address on this compiler: skipped\n");
+#endif
+  }
+
+  // The value of a random expression, computed as the expression is built
+  struct Modeled
+  {
+    expression e;
+    interval v;
+  };
+
+  Modeled random_leaf(std::mt19937& rng)
+  {
+    const double doubles[] = {-2.5, -1.0, -0.5, 0.0, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0};
+    const interval intervals[] = {interval(-1.0, 1.0), interval(0.5, 2.0), interval(-3.0, -1.0),
+                                  interval(0.0, 0.5), interval(1.0, 4.0), interval(-0.5, 0.25)};
+    if (rng() % 2 == 0) {
+      const double d = doubles[rng() % 10];
+      return Modeled{expression(d), interval(d)};
+    }
+    const interval& i = intervals[rng() % 6];
+    return Modeled{expression(i), i};
+  }
+
+  Modeled random_tree(std::mt19937& rng, int depth)
+  {
+    if (depth == 0 || rng() % 6 == 0) {
+      return random_leaf(rng);
+    }
+    const unsigned int kind = static_cast<unsigned int>(rng() % 27);
+    const Modeled a = random_tree(rng, depth - 1);
+    if (kind < 21) {
+      switch (kind) {
+      case 0:  return Modeled{-a.e, -a.v};
+      case 1:  return Modeled{pow(a.e, 3), pow(a.v, 3)};
+      case 2:  return Modeled{nth_root(a.e, 3), nth_root(a.v, 3)};
+      case 3:  return Modeled{cos(a.e), cos(a.v)};
+      case 4:  return Modeled{sin(a.e), sin(a.v)};
+      case 5:  return Modeled{tan(a.e), tan(a.v)};
+      case 6:  return Modeled{acos(a.e), acos(a.v)};
+      case 7:  return Modeled{asin(a.e), asin(a.v)};
+      case 8:  return Modeled{atan(a.e), atan(a.v)};
+      case 9:  return Modeled{cosh(a.e), cosh(a.v)};
+      case 10: return Modeled{sinh(a.e), sinh(a.v)};
+      case 11: return Modeled{tanh(a.e), tanh(a.v)};
+      case 12: return Modeled{acosh(a.e), acosh(a.v)};
+      case 13: return Modeled{asinh(a.e), asinh(a.v)};
+      case 14: return Modeled{atanh(a.e), atanh(a.v)};
+      case 15: return Modeled{exp(a.e), exp(a.v)};
+      case 16: return Modeled{log(a.e), log(a.v)};
+      case 17: return Modeled{exp2(a.e), exp2(a.v)};
+      case 18: return Modeled{log2(a.e), log2(a.v)};
+      case 19: return Modeled{sign(a.e), sign(a.v)};
+      default: return Modeled{trunc(a.e), trunc(a.v)};
+      }
+    }
+    // A quarter of the operations have the same operand twice: a node that two nodes share
+    const Modeled b = (rng() % 4 == 0) ? a : random_tree(rng, depth - 1);
+    switch (kind) {
+    case 21: return Modeled{a.e + b.e, a.v + b.v};
+    case 22: return Modeled{a.e - b.e, a.v - b.v};
+    case 23: return Modeled{a.e * b.e, a.v * b.v};
+    case 24: return Modeled{a.e / b.e, a.v / b.v};
+    case 25: return Modeled{pow(a.e, b.e), pow(a.v, b.v)};
+    default: return Modeled{atan2(a.e, b.e), atan2(a.v, b.v)};
+    }
+  }
+
+  /* The evaluation of a tree takes the operands of each node in the order of
+     the operations, and gives the bounds of the operations in C++: random
+     trees of every node, with shared nodes, whose value is computed as they
+     are built. */
+  void random_trees()
+  {
+    std::mt19937 rng(20260929);
+    for (int i = 0; i < 3000; ++i) {
+      const Modeled m = random_tree(rng, 2 + i % 5);
+      interval got;
+      const bool evaluated = evaluate_expr(m.e, got);
+      check("random expression: the same bounds as the operations of C++", evaluated && same_bits(got, m.v),
+            [&] {
+              std::ostringstream o;
+              o << m.e << " gave " << hex(got) << " rather than " << hex(m.v);
+              return o.str();
+            });
+    }
+  }
+
+  /* An empty expression, at the bottom or beside other operands, is an error
+     that leaves the operands of the other nodes where they are */
+  void null_operands()
+  {
+    const expression none, one(1.0), two(2.0);
+    interval x;
+    check("null operand: the empty expression cannot be evaluated", !evaluate_expr(none, x));
+    check("null operand: nor as the left operand of +", !evaluate_expr(none + one, x));
+    check("null operand: nor as the right operand of *", !evaluate_expr(one * none, x));
+    check("null operand: nor as the operand of a minus sign", !evaluate_expr(-none, x));
+    check("null operand: nor as an argument of a function", !evaluate_expr(atan2(one, none), x));
+    check("null operand: nor deep in a chain", !evaluate_expr(none + one + two + one * two - one / two, x));
+    expression chain = none;
+    for (int i = 0; i < 2000; ++i) {
+      chain = chain + one;
+    }
+    check("null operand: nor at the bottom of a chain of 2000 nodes", !evaluate_expr(chain, x));
+
+    // The same evaluator, after an error, evaluates the next expression
+    expr_eval ev;
+    none.get_root()->accept(ev);
+    check("null operand: the evaluator sets its error", ev.error_occurred());
+    (void)ev.result();
+    ev.reset();
+    (one + two).get_root()->accept(ev);
+    const interval three = ev.result();
+    check("null operand: and evaluates the next expression once reset",
+          !ev.error_occurred() && same_bits(three, interval(3.0)), [&] { return hex(three); });
+  }
+
+  /* A node of a program whose accept() visits no node, and one that visits two
+     leaves: an evaluation leaves no value, then two (GAOL v5). pop() of the
+     empty stack gave the first element of it, the value of the evaluation
+     before, and nothing set the error: result() of an evaluation of a node
+     with no value was the value of the tree evaluated just before, and the
+     other left a value on the stack for the next tree. */
+  class leaves_values : public expr_node
+  {
+    public:
+      explicit leaves_values(int count) : count_(count), a_(1.0), b_(2.0) {}
+      expr_node* clone() const override { return new leaves_values(count_); }
+      void accept(expr_eval& eval) override
+      {
+        if (count_ > 0) {
+          eval.visit(&a_);
+        }
+        if (count_ > 1) {
+          eval.visit(&b_);
+        }
+      }
+      unsigned int get_precedence() const override { return 0; }
+      std::ostream& display(std::ostream& os) const override { return os; }
+
+    private:
+      int count_;
+      double_node a_, b_;
+  };
+
+  void evaluation_leaves_one_value()
+  {
+    expr_eval ev;
+    const expression five = expression(interval(5.0, 5.0));
+    five.get_root()->accept(ev);
+    const interval known = ev.result();
+    check("expr_eval::result(): the value of a tree that leaves one, and no error",
+          !ev.error_occurred() && same_bits(known, interval(5.0, 5.0)), [&] { return hex(known); });
+
+    // The same evaluator, which holds the value of the tree before in the first element of its stack
+    const expression nothing(*new leaves_values(0));
+    nothing.get_root()->accept(ev);
+    const interval none = ev.result();
+    check("expr_eval::result(): a tree that leaves no value is an error, and not the value of the tree before",
+          ev.error_occurred() && !same_bits(none, interval(5.0, 5.0)), [&] { return hex(none); });
+    ev.reset();
+    five.get_root()->accept(ev);
+    const interval again = ev.result();
+    check("expr_eval::result(): after an error and a reset, the evaluator gives the value of the next tree",
+          !ev.error_occurred() && same_bits(again, interval(5.0, 5.0)), [&] { return hex(again); });
+
+    expr_eval two;
+    const expression twice(*new leaves_values(2));
+    twice.get_root()->accept(two);
+    const interval last = two.result();
+    check("expr_eval::result(): a tree that leaves two values is an error", two.error_occurred(),
+          [&] { return hex(last); });
+    two.reset();
+    five.get_root()->accept(two);
+    const interval next = two.result();
+    check("expr_eval::result(): the values left over do not count in the next tree",
+          !two.error_occurred() && same_bits(next, interval(5.0, 5.0)), [&] { return hex(next); });
+
+    // Seen by the functions that evaluate an expression
+    interval x;
+    check("evaluate_expr: a tree that leaves no value is an error", !evaluate_expr(nothing, x));
+    check("evaluate_expr: nor a tree that leaves two", !evaluate_expr(twice, x));
+    check("evaluate_expr: nor one of them in a sum", !evaluate_expr(five + nothing, x));
+    check("evaluate_expr: a tree that leaves one is right", evaluate_expr(five, x) && same_bits(x, interval(5.0, 5.0)),
+          [&] { return hex(x); });
+    interval l;
+    check("evaluate_left_right: a tree that leaves no value is an error", !evaluate_left_right(nothing, &l));
+    check("evaluate_left_right: nor one of the two", !evaluate_left_right(five, nothing, &l));
+    check("evaluate_left_right: the bounds of two trees that leave one",
+          evaluate_left_right(five, five, &l) && same_bits(l, interval(5.0, 5.0)), [&] { return hex(l); });
+  }
+
+  /* The stack of values of an evaluation is a stack that grows: 10000 values
+     pushed on one that holds 4 come out in reverse */
+  void eval_stack_growth()
+  {
+    gaol_core::eval_stack<int, 4> stack;
+    for (int i = 0; i < 10000; ++i) {
+      stack.push(i);
+    }
+    bool in_reverse = true;
+    for (int i = 9999; i >= 0; --i) {
+      in_reverse = (stack.pop() == i) && in_reverse;
+    }
+    check("eval_stack: 10000 values pushed on a stack of 4 come out in reverse", in_reverse);
+    // pop() of an empty stack is T(), not the first element of the stack, the
+    // value the stack held before (GAOL v5)
+    gaol_core::eval_stack<int, 4> emptied;
+    emptied.push(7);
+    const int seven = emptied.pop(), none = emptied.pop();
+    check("eval_stack: pop() of an empty stack is 0, not the first element it held", seven == 7 && none == 0,
+          [&] { return std::to_string(seven) + ", " + std::to_string(none); });
+  }
+
+  // A string with its NUL characters written \0, for the messages
+  std::string shown(const std::string& s)
+  {
+    std::string out;
+    for (const char c : s) {
+      out += (c == '\0') ? std::string("\\0") : std::string(1, c);
+    }
+    return out;
+  }
+
+  /* A NUL character in a std::string is no character of any token, and the
+     string is no expression, whatever comes before or after it (GAOL v5).
+     The readers of a std::string gave the parser its c_str(), which the lexer
+     read up to the NUL: "1\0junk" was read as 1, and "[1,2]\0" as [1, 2]. */
+  void nul_characters()
+  {
+    const std::string texts[] = {
+      std::string("1\0junk", 6), std::string("[1,2]\0", 6), std::string("\0", 1),
+      std::string("1+\0" "2", 4), std::string("[1,\0" "2]", 6),
+    };
+    for (const std::string& t : texts) {
+      const interval x = gaol_ieee1788::textToInterval(t);
+      check("NUL character: gaol_ieee1788::textToInterval gives the empty set", x.is_empty(),
+            [&] { return shown(t) + ": " + hex(x); });
+#if GAOL_EXCEPTIONS_ENABLED
+      const auto refused_by = [&](const char* name, const std::function<interval()>& read) {
+        bool threw = false;
+        try {
+          const interval y = read();
+          (void)y;
+        } catch (const std::invalid_argument&) {
+          threw = true;
+        }
+        check(std::string("NUL character: ") + name + " throws std::invalid_argument", threw,
+              [&] { return shown(t); });
+      };
+      refused_by("textToInterval(s)", [&] { return textToInterval(t); });
+      // The message writes the whole string, its NUL characters as \0
+      std::string message;
+      try {
+        const interval y = textToInterval(t);
+        (void)y;
+      } catch (const std::invalid_argument& e) {
+        message = gaol_tests::explanation(e);
+      }
+      check("NUL character: the message of textToInterval(s) writes the string, the NUL as \\0",
+            message == "Syntax error in interval initialization: " + shown(t),
+            [&] { return shown(t) + ": " + message; });
+      refused_by("textToInterval(s, \"2\") with the NUL on the left",
+                 [&] { return textToInterval(t, "2"); });
+      refused_by("textToInterval(\"0\", s) with the NUL on the right",
+                 [&] { return textToInterval("0", t); });
+      std::istringstream in(t + "\n");
+      interval y(1.0);
+      bool threw = false;
+      try {
+        in >> y;
+      } catch (const std::invalid_argument&) {
+        threw = true;
+      }
+      check("NUL character: operator>> fails, gives the empty set and throws std::invalid_argument",
+            threw && in.fail() && y.is_empty(), [&] { return shown(t) + ": " + hex(y); });
+#endif
+    }
+  }
+
+  /* The allocations of a reading and of an evaluation that fail (GAOL v5):
+     each in turn, and the operation throws std::bad_alloc, or gives its result
+     where the allocation was not needed, and frees all it allocated. Before:
+     - flex wrote "out of dynamic memory" and called exit(2) where it could
+       not allocate its buffer, which ended the program;
+     - std::bad_alloc thrown by the lexer, or by an action of the parser,
+       went through the parser and left the nodes on its stack;
+     - the parser read a stack that could not grow as a string nested too
+       deep, and threw std::invalid_argument;
+     - gaol_ieee1788::textToInterval() turned std::bad_alloc into the empty
+       set.
+     The count of the allocations live is the same before and after, and the
+     sanitizers of the continuous integration check that too. The strings
+     have a call, a literal of each form, a number of 20000 digits, longer than
+     the 16 KiB buffer of flex, which has to grow, read while the node of 1 is
+     on the stack of the parser, 300 nested parentheses,
+     beyond the 200 entries of the stack of the parser kept in the stack of
+     the program, and 300 minus signs, a chain of nodes deeper than the
+     evaluation goes by recursion (expr_eval::max_depth). */
+  void allocation_failures()
+  {
+    // The allocations of GAOL have to be those of this program
+    const std::size_t before = allocations_made;
+    const interval warm = textToInterval("sin([1,2])+<1,1>");
+    (void)warm;
+    if (allocations_made == before) {
+      std::printf("allocation failures: the allocations of GAOL are not those of this program "
+                  "(a DLL on Windows): skipped\n");
+      return;
+    }
+    /* A long sum is read with no more memory than a short one: each
+       operation is computed when it is read, and the parser holds no node of
+       it. It built one, and a sum of 10000 terms held 20000 nodes before it
+       was evaluated. */
+    {
+      const std::string sum = repeated(10000, "+", "1", "2");
+      const std::size_t base = allocations_live;
+      allocations_peak = base;
+      const interval x = textToInterval(sum);
+      const std::size_t peak = allocations_peak - base;
+      check("long expression: a sum of 10000 terms is read with no more than 64 allocations live at once",
+            peak <= 64 && x.set_eq(interval(15000.0)),
+            [&] { return std::to_string(peak) + " live at once, " + hex(x); });
+    }
+
+    /* The library of C++ has to allocate nothing where nothing may throw.
+       That of Visual C++ which checks its iterators (Debug) allocates in the
+       moves of its containers, which are noexcept: an allocation made to fail
+       there ends the program by std::terminate(), as the test did with Visual
+       Studio Debug for x86, x64 and arm64. Checked on a std::vector and a
+       std::string, which GAOL's reader moves. */
+    {
+      std::vector<int> numbers(1, 0);
+      std::string text(100, 'x');
+      const std::size_t made = allocations_made;
+      std::vector<int> moved_numbers(std::move(numbers));
+      std::string moved_text(std::move(text));
+      if (allocations_made != made) {
+        std::printf("allocation failures: the library of C++ allocates in the moves of its containers, "
+                    "which may not throw (Visual C++ Debug): skipped\n");
+        return;
+      }
+    }
+
+    const std::string digits(20000, '3');
+    const std::string texts[] = {
+      "1+2*sin([1,2])-pi/3", "[1, 2]", "[0.1, ]", "[, -inf]", "<0x1p-3, 0.125>", "3.56?1*2",
+      "nth_root(8, 3)+[empty]", "1+0." + digits, std::string(300, '(') + "1" + std::string(300, ')'),
+      std::string(300, '-') + "[1, 2]", "[" + std::string(299, '-') + "inf, 1]",
+      // [l, u] of numbers between the same two doubles, compared by their texts, kept by the reading
+      "[0.3, 0.30000000000000001]", "[0.30000000000000001, 0.3]",
+      "[0." + std::string(300, '3') + ", 0." + std::string(300, '3') + "1]",
+    };
+    for (const std::string& t : texts) {
+      for (int standard = 0; standard < 2; ++standard) {
+        const auto read = [&] { return standard ? gaol_ieee1788::textToInterval(t) : textToInterval(t); };
+        const interval expected = read();
+        const std::string what = std::string(standard ? "gaol_ieee1788::" : "gaol::") + "textToInterval(\""
+                                 + t.substr(0, 40) + (t.size() > 40 ? "...\")" : "\")");
+        bool right = true, freed = true;
+        std::size_t failing = 1, wrong = 0;
+        for (;; ++failing) {
+          const std::size_t live = allocations_live;
+          failing_allocation = allocations_made + failing;
+          bool ran_out = false;
+          interval got;
+          try {
+            got = read();
+          } catch (const std::bad_alloc&) {
+            ran_out = true;
+          } catch (...) {
+            right = false;
+          }
+          const bool failed = allocations_made >= failing_allocation;
+          failing_allocation = 0;
+          if (allocations_live != live) {
+            freed = false;
+            wrong = failing;
+          }
+          if (ran_out != failed || (!ran_out && !got.set_eq(expected)) || !right) {
+            right = false;
+            wrong = failing;
+          }
+          if (!failed || !right || !freed || failing > 5000) {
+            break;
+          }
+        }
+        check("allocation failure: a reading throws std::bad_alloc, or gives the interval", right,
+              [&] { return what + ": allocation " + std::to_string(wrong); });
+        check("allocation failure: a reading frees all it allocated", freed,
+              [&] { return what + ": allocation " + std::to_string(wrong); });
+      }
+    }
+
+    /* The evaluation of a chain of 300 sums, 1 + (1 + (...)), whose values
+       and nodes left to combine fill the stacks of the evaluator, and then
+       its deletion, whose list of the nodes left to delete, as long as the
+       chain, cannot grow: the deletion deletes the node where it is */
+    for (std::size_t failing = 1; failing < 5000; ++failing) {
+      const std::size_t live = allocations_live;
+      bool ran_out = false, right = true, failed = false;
+      {
+        expression e(interval(1.0));
+        for (int i = 0; i < 299; ++i) {
+          e = expression(interval(1.0)) + e;
+        }
+        failing_allocation = allocations_made + failing;
+        interval got;
+        try {
+          right = evaluate_expr(e, got) && got.set_eq(interval(300.0));
+        } catch (const std::bad_alloc&) {
+          ran_out = true;
+        }
+        failed = allocations_made >= failing_allocation;
+        failing_allocation = failed ? 0 : allocations_made + 1;
+      }
+      failing_allocation = 0;
+      // Compared before check(), which allocates the first time it is called with a name
+      const bool freed = (allocations_live == live);
+      check("allocation failure: an evaluation throws std::bad_alloc, or gives the interval",
+            ran_out == failed && (ran_out || right), [&] { return "allocation " + std::to_string(failing); });
+      check("allocation failure: an evaluation and a deletion free all they allocated", freed,
+            [&] { return "allocation " + std::to_string(failing); });
+      if (!failed) {
+        break;
+      }
+    }
+  }
+
+// Commented out: the tests run no thread (GAOL v5)
+// #if GAOL_TESTS_THREADS
+//   /* Strings read by four threads at once, with the names of GAOL and with
+//      those of IEEE 1788-2015 (GAOL v5). The lexer of flex, the parser of bison
+//      and the state of GAOL's reader were globals: reading two strings at once
+//      crashed, "fatal flex scanner internal error" or a segmentation fault,
+//      before the lexer became reentrant and the parser pure. */
+//   void reading_in_threads()
+//   {
+//     struct Reading { const char *text; bool standard; };
+//     const Reading readings[] = {
+//       {"[1,2]+sin([0,1])*3", false}, {"pow([-4,-1],2)", false},
+//       {"pow([-4,-1],2)", true}, {"[0.1, rootn(27,3)]*hypot(3,4)", true},
+//     };
+//     const auto read = [](const Reading& r) {
+//       return r.standard ? gaol_ieee1788::textToInterval(r.text) : gaol::textToInterval(r.text);
+//     };
+//     interval expected[4];
+//     for (int t = 0; t < 4; ++t) {
+//       expected[t] = read(readings[t]);
+//     }
+//     std::atomic<long> wrong(0);
+//     std::vector<std::thread> threads;
+//     for (int t = 0; t < 4; ++t) {
+//       threads.emplace_back([&, t] {
+//         for (int i = 0; i < 5000; ++i) {
+//           try {
+//             if (!read(readings[t]).set_eq(expected[t])) {
+//               ++wrong;
+//             }
+//           } catch (...) {
+//             ++wrong;
+//           }
+//         }
+//       });
+//     }
+//     for (std::thread& t : threads) {
+//       t.join();
+//     }
+//     check("expression: strings read by four threads at once", wrong == 0,
+//           [&] { return std::to_string(wrong.load()) + " wrong of 20000"; });
+//     check("expression: pow([-4,-1],2) is [1, 16] with the names of GAOL, empty with those of the standard",
+//           expected[1].set_eq(interval(1.0, 16.0)) && expected[2].is_empty());
+//   }
+// #endif
+}
+
+int main()
+{
+  gaol::init();
+  step("numbers");           numbers();
+  step("operators");         operators();
+  step("functions");         functions();
+  step("names_under_turkish_locale"); names_under_turkish_locale();
+  step("wrong_strings");     wrong_strings();
+  step("null_pointer");      null_pointer();
+  step("null_text");         null_text();
+  step("null_diagnostics");  null_pointers_in_diagnostics();
+  step("powers_of_the_names"); powers_of_the_names();
+  step("reversed_bounds");   reversed_bounds();
+  step("degenerate_bounds"); degenerate_bounds();
+  step("integer_exponents"); integer_exponents();
+#if GAOL_EXCEPTIONS_ENABLED
+  step("exception_messages"); exception_messages();
+#endif
+  step("long_numbers_beyond_the_doubles"); long_numbers_beyond_the_doubles();
+  step("decimals");          decimals();
+  step("built_expressions"); built_expressions();
+  step("null_node_not_counted"); null_node_not_counted();
+  step("display_keeps_counts"); display_keeps_counts();
+  step("eval_stack");        eval_stack_growth();
+  step("null_operands");     null_operands();
+  step("evaluation_leaves_one_value"); evaluation_leaves_one_value();
+  step("random_trees");      random_trees();
+  step("deep_strings");      deep_strings();
+  // The graceful checks of the stack come before the chains of 200000 nodes,
+  // which crash the program when the stack is used as deep as they are
+  step("stack_use");         stack_use();
+  step("long_strings");      long_strings();
+  step("long_built");        long_built();
+  step("nul_characters");    nul_characters();
+  step("allocation_failures"); allocation_failures();
+// Commented out: the tests run no thread (GAOL v5)
+// #if GAOL_TESTS_THREADS
+//   step("reading_in_threads"); reading_in_threads();
+// #endif
+  {
+    std::ostringstream text;
+    text << static_expression;
+    check("a static empty expression", static_expression.get_root() == gaol_core::the_null_expr && text.str() == ":null:",
+          [&] { return text.str(); });
+  }
+  step("summary");
+  const int status = summary();
+  gaol::cleanup();
+  return status;
+}

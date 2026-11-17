@@ -1,13 +1,59 @@
-# Builds GAOL with CMake on Ubuntu, runs its tests, installs it, and builds the
-# tests again with the installed GAOL. Also with the sanitizers, with the
-# minimum version of CMake GAOL declares, and as a part of another project,
-# brought in by FetchContent (tests/fetch_content).
+# Builds GAOL with CMake on Ubuntu, runs its tests (make test), installs it, and
+# builds the tests again with the installed GAOL, also as a shared library
+# (BUILD_SHARED_LIBS). Also with the sanitizers, with -Wall -Wextra -Werror,
+# checking the headers it installs too (GAOL v5), with the minimum version of
+# CMake GAOL declares, and as a part of another project, brought in by
+# FetchContent (tests/fetch_content), which builds GAOL as in Release where it
+# gives no build type (tests/release_flags.py, GAOL v5). The test
+# cpack_stale_configure also runs with ccache in CC and Ninja outside PATH, and
+# the tests with the FE_* values of Cygwin given to CORE-MATH (GAOL v5).
+#
+# The runners have no locale writing a decimal comma, which tests/numbers.cpp
+# reads and writes numbers under where there is one, and where there is none it
+# says so and passes: each job generates fr_FR.UTF-8 before its tests, and
+# checks after them that numbers used it (.github/scripts/comma-locale.sh)
+# (GAOL v5).
+#
+# The self-test of the check of the order of the computations and of the writes
+# of the control register in the assembly of the library
+# (tests/tools/asm-order/check_order.py --selftest) runs in a job of Python
+# alone (GAOL v5). The check itself is a configuration of its own, on the assembly
+# that GCC 13.3 and Clang 18 make of the library, with and without
+# GAOL_PRESERVE_ROUNDING: an instruction that rounds on the wrong side of a
+# write of the control register, and the conversion of a subnormal constant by
+# the x87 unit, which the processors of Intel do in 100 ns or more and the
+# runners (AMD) do not show (std::numeric_limits<double>::denorm_min() with GCC
+# and -frounding-math: sqrt() was 16 times slower, #224) (GAOL v5).
+#
+# The job Ubuntu 24.04 x86_64 GCC also compiles the examples of the manual of
+# GAOL v5 that show what they print with the GAOL it installs, and checks that
+# they print it (manual/check_examples.py) (GAOL v5).
+#
+# A job is a group of configurations that run one after the other on the
+# same image of runner, each one an action of .github/actions/ called
+# with the row of the matrix it had when it was a job of its own: the
+# configurations, their options and their checks are those of the jobs
+# they replace (GAOL v5). Below, a job is one of these configurations.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 name: Linux
 
 on:
   push:
-    branches: ['**']
+    branches: [master, dev]
+    paths-ignore:
+      # The notes of the work on GAOL v5, which dev holds, and master once a
+      # version is merged into it: a push of them changes no code and starts
+      # no check (GAOL v5)
+      - 'TODO*.md'
+      - 'process.md'
+      - 'STEP.md'
   pull_request:
   workflow_dispatch:
 
@@ -18,158 +64,816 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# make test (the target test of CMake, RUN_TESTS with Visual Studio) runs
+# ctest, which reads these: four tests at a time, and the output of those that
+# fail (GAOL v5)
+env:
+  # actions/checkout runs git init, whose hint about the name of the initial
+  # branch was in the log of every job
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
+  CTEST_PARALLEL_LEVEL: 4
+  CTEST_OUTPUT_ON_FAILURE: 1
+
 jobs:
-  cmake:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: ubuntu-26.04,     cc: gcc,   cxx: g++,     desc: 'Ubuntu 26.04 x86_64 GCC' }
-          - { os: ubuntu-26.04,     cc: clang, cxx: clang++, desc: 'Ubuntu 26.04 x86_64 Clang' }
-          - { os: ubuntu-26.04-arm, cc: gcc,   cxx: g++,     desc: 'Ubuntu 26.04 arm64 GCC' }
-          - { os: ubuntu-26.04-arm, cc: clang, cxx: clang++, desc: 'Ubuntu 26.04 arm64 Clang' }
-          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     desc: 'Ubuntu 24.04 x86_64 GCC' }
-          - { os: ubuntu-24.04,     cc: clang, cxx: clang++, desc: 'Ubuntu 24.04 x86_64 Clang' }
-          - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     desc: 'Ubuntu 24.04 arm64 GCC' }
-          - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, desc: 'Ubuntu 24.04 arm64 Clang' }
-          - { os: ubuntu-22.04,     cc: gcc,   cxx: g++,     desc: 'Ubuntu 22.04 x86_64 GCC' }
-          - { os: ubuntu-22.04,     cc: clang, cxx: clang++, desc: 'Ubuntu 22.04 x86_64 Clang' }
-          - { os: ubuntu-22.04-arm, cc: gcc,   cxx: g++,     desc: 'Ubuntu 22.04 arm64 GCC' }
-          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved' }
-          - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 arm64 Clang, rounding direction preserved' }
+
+  l1:
+    name: 'Ubuntu 24.04 x86_64, GCC (5 configurations)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
-      - name: Tools
+      - id: c1
+        name: 'Ubuntu 24.04 x86_64 GCC'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC'
+          cc: 'gcc'
+          cxx: 'g++'
+          manual: 'true'
+      # The compilers of Ubuntu 22.04, whose images GitHub retires by
+      # April 2027, on Ubuntu 24.04, which has them too (GAOL v5)
+      - id: c2
+        name: 'Ubuntu 24.04 x86_64 GCC 11'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC 11'
+          cc: 'gcc-11'
+          cxx: 'g++-11'
+          packages: 'gcc-11 g++-11'
+      - id: c3
+        name: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      # libgaol.so.5.0.0, as configure and meson build it: the tests link
+      # with it, the expressions included, which it did not export (GAOL v5)
+      - id: c4
+        name: 'Ubuntu 24.04 x86_64 GCC, shared library'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, shared library'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DBUILD_SHARED_LIBS=ON'
+      # The interprocedural optimization (-flto), which GAOL neither offers
+      # nor refuses, with GCC (13.3 here) and the rounding direction
+      # preserved: on 20 September 2026, with the code of then, GCC moved
+      # operations across the changes of direction with it, and
+      # rounding_direction failed; GCC 13.3 and 15.2 pass the tests with it
+      # (GAOL v5, doc/three-builds.md). The step after Configure checks
+      # that the target gaol takes -flto
+      - id: c5
+        name: 'Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DGAOL_PRESERVE_ROUNDING=ON'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q g++ clang cmake make
-          ${{ matrix.cfg.cxx }} --version
-          cmake --version
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
-      - name: Build
-        run: cmake --build build -j 4
-      - name: Tests
-        run: cd build && ctest -j 4 --output-on-failure
-      - name: Performance
-        run: build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Install
-        run: cmake --install build
-      - name: Tests built with the installed GAOL
-        run: |
-          # With the flags and libraries of gaol.pc alone, then with find_package()
-          export PKG_CONFIG_PATH="$PWD/gaol-install/lib/pkgconfig"
-          pkg-config --cflags --libs gaol
-          ${{ matrix.cfg.cxx }} -std=c++17 -O2 $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) -o rounding_direction_pc
-          ./rounding_direction_pc | tail -1
-          cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
-          cmake --build build-find-package -j 4
-          cd build-find-package && ctest -j 4 --output-on-failure
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 x86_64, GCC' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Ubuntu 24.04 x86_64 GCC' ;;
+              c2) name='Ubuntu 24.04 x86_64 GCC 11' ;;
+              c3) name='Ubuntu 24.04 x86_64 GCC, rounding direction preserved' ;;
+              c4) name='Ubuntu 24.04 x86_64 GCC, shared library' ;;
+              c5) name='Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
 
-  clang-14-arm64:
-    name: Ubuntu 22.04 arm64 Clang 14, refused
-    runs-on: ubuntu-22.04-arm
-    timeout-minutes: 30
+  l2:
+    name: 'Ubuntu 24.04 x86_64, GCC, other intervals and AVX-512 (5 configurations)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
-      - name: Configure with Clang 14, which does not honour the rounding direction on 64-bit ARM and has to be refused
+      - id: c1
+        name: 'Ubuntu 24.04 x86_64 GCC, FPU intervals'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_SIMD=OFF'
+      - id: c2
+        name: 'Ubuntu 24.04 x86_64 GCC, FPU intervals, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals, rounding direction preserved'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON'
+      # The FPU intervals on x86-64 too, with GCC and Clang (the first
+      # job without the direction preserved, as a default build takes
+      # them where SIMD is off), and on arm64 with GCC, with the
+      # direction preserved: the compound assignments *=, /= and %= of
+      # the FPU intervals write their bounds into *this before the
+      # direction is set back, without GAOL_RND_KEEP(), and the checks of
+      # tests/rounding_direction.cpp that run each operation after the
+      # program changed the direction fail if a compiler computes a
+      # product after it, which only the jobs that preserve the direction
+      # can show (GAOL v5)
+      # The SSE2 intervals of Visual C++ and clang-cl on 32-bit Windows keep
+      # their two bounds as two doubles of alignment 8, loaded and stored
+      # with movupd (GAOL_SSE2_UNALIGNED_STORAGE, gaol/gaol_config.h; GAOL
+      # v5): these jobs give that form to the SSE2 intervals of Linux
+      # (-DGAOL_SSE2_UNALIGNED_STORAGE=ON, written in the configuration, so
+      # that the code using the installed GAOL has it too), where
+      # the suite runs it with every compiler of the continuous
+      # integration, and tests/misc.cpp runs the intervals at an address of
+      # 8 modulo 16
+      - id: c3
+        name: 'Ubuntu 24.04 x86_64 GCC, SSE2 intervals of two doubles'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, SSE2 intervals of two doubles'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_SSE2_UNALIGNED_STORAGE=ON'
+      # The AVX-512 path of the arithmetic (GAOL_PREFER_AVX512): on
+      # a runner with the instructions, which the step after Configure
+      # tells, the whole suite of tests takes that path, its bounds
+      # being those of the SSE2 path, bit for bit (GAOL v5)
+      - id: c4
+        name: 'Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_PREFER_AVX512=ON'
+      # The same, with the rounding direction of the program preserved:
+      # the AVX-512 path then spares the store of MXCSR that the SSE2
+      # one pays in every operation, which GAOL_PRESERVE_ROUNDING takes
+      # by default. "Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic" takes the
+      # path, this one refuses it (-DGAOL_PREFER_AVX512=OFF), the SSE2
+      # operations of the preserved direction staying covered (GAOL v5)
+      - id: c5
+        name: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved, AVX-512 arithmetic not taken'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved, AVX-512 arithmetic not taken'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q clang cmake make
-          clang++ --version
-          if cmake -S . -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ > configure.log 2>&1; then
-            cat configure.log
-            echo "Clang 14 was not refused"
-            exit 1
-          fi
-          cat configure.log
-          grep -q "GAOL cannot be built with" configure.log
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 x86_64, GCC, other intervals and AVX-512' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Ubuntu 24.04 x86_64 GCC, FPU intervals' ;;
+              c2) name='Ubuntu 24.04 x86_64 GCC, FPU intervals, rounding direction preserved' ;;
+              c3) name='Ubuntu 24.04 x86_64 GCC, SSE2 intervals of two doubles' ;;
+              c4) name='Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic' ;;
+              c5) name='Ubuntu 24.04 x86_64 GCC, rounding direction preserved, AVX-512 arithmetic not taken' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
 
-  sanitizers:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: ubuntu-26.04,     cc: gcc,   cxx: g++,     desc: 'Ubuntu 26.04 x86_64 GCC Debug ASan+UBSan' }
-          - { os: ubuntu-26.04,     cc: clang, cxx: clang++, desc: 'Ubuntu 26.04 x86_64 Clang Debug ASan+UBSan' }
-          - { os: ubuntu-26.04-arm, cc: gcc,   cxx: g++,     desc: 'Ubuntu 26.04 arm64 GCC Debug ASan+UBSan' }
-          - { os: ubuntu-26.04-arm, cc: clang, cxx: clang++, desc: 'Ubuntu 26.04 arm64 Clang Debug ASan+UBSan' }
-    env:
-      ASAN_OPTIONS: detect_leaks=1
-      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+  l3:
+    name: 'Ubuntu 24.04 x86_64, Clang (5 configurations)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
-      - name: Tools
+      - id: c1
+        name: 'Ubuntu 24.04 x86_64 Clang'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 Clang'
+          cc: 'clang'
+          cxx: 'clang++'
+      - id: c2
+        name: 'Ubuntu 24.04 x86_64 Clang 14'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 Clang 14'
+          cc: 'clang-14'
+          cxx: 'clang++-14'
+          packages: 'clang-14'
+      # With Clang on x86_64, which takes the AVX-512 path by default
+      # there: Clang 18 computed the difference of that path after its
+      # guard had set flush-to-zero back, and [3e-308] - [2.9e-308] was
+      # [0, 0], which the GCC jobs did not show (GAOL v5)
+      - id: c3
+        name: 'Ubuntu 24.04 x86_64 Clang, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 Clang, rounding direction preserved'
+          cc: 'clang'
+          cxx: 'clang++'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - id: c4
+        name: 'Ubuntu 24.04 x86_64 Clang, FPU intervals, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 Clang, FPU intervals, rounding direction preserved'
+          cc: 'clang'
+          cxx: 'clang++'
+          opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON'
+      - id: c5
+        name: 'Ubuntu 24.04 x86_64 Clang, SSE2 intervals of two doubles, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 Clang, SSE2 intervals of two doubles, rounding direction preserved'
+          cc: 'clang'
+          cxx: 'clang++'
+          opts: '-DGAOL_SSE2_UNALIGNED_STORAGE=ON -DGAOL_PRESERVE_ROUNDING=ON'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q g++ clang cmake make
-          ${{ matrix.cfg.cxx }} --version
-      - name: Configure
-        run: |
-          # halt_on_error (UBSAN_OPTIONS) stops a test on its first undefined
-          # behaviour; none is suppressed, mathlib's being fixed in 3rd/mathlib
-          flags="-fsanitize=address,undefined -fno-omit-frame-pointer"
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DGAOL_BUILD_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} \
-            "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags"
-      - name: Build
-        run: cmake --build build -j 4
-      - name: Tests
-        run: cd build && ctest -j 4 --output-on-failure
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 x86_64, Clang' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Ubuntu 24.04 x86_64 Clang' ;;
+              c2) name='Ubuntu 24.04 x86_64 Clang 14' ;;
+              c3) name='Ubuntu 24.04 x86_64 Clang, rounding direction preserved' ;;
+              c4) name='Ubuntu 24.04 x86_64 Clang, FPU intervals, rounding direction preserved' ;;
+              c5) name='Ubuntu 24.04 x86_64 Clang, SSE2 intervals of two doubles, rounding direction preserved' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
 
-  cmake-3-14:
-    name: Ubuntu 22.04 x86_64 GCC, CMake 3.14.7
-    runs-on: ubuntu-22.04
-    timeout-minutes: 60
+  l4:
+    name: 'Ubuntu 24.04 x86_64, tools and checks of the build (11 configurations)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
-      - name: CMake 3.14.7, from Kitware's releases
+      - id: c1
+        name: 'Self-test of the check of the assembly (Python)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-asm-order-selftest
+        timeout-minutes: 10
+        with:
+          desc: 'Self-test of the check of the assembly (Python)'
+      - id: c2
+        name: 'Check of the assembly of the library'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-asm-order-library
+        timeout-minutes: 30
+        with:
+          desc: 'Check of the assembly of the library'
+      - id: c3
+        name: 'Coverage, Ubuntu 24.04 x86_64 GCC'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-coverage
+        timeout-minutes: 60
+        with:
+          desc: 'Coverage, Ubuntu 24.04 x86_64 GCC'
+      - id: c4
+        name: 'The 128-bit integer emulated, Ubuntu 24.04 x86_64 gcc'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-u128-emulation
+        timeout-minutes: 30
+        with:
+          desc: 'The 128-bit integer emulated, Ubuntu 24.04 x86_64 gcc'
+          cc: 'gcc'
+          cxx: 'g++'
+      - id: c5
+        name: 'The 128-bit integer emulated, Ubuntu 24.04 x86_64 clang'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-u128-emulation
+        timeout-minutes: 30
+        with:
+          desc: 'The 128-bit integer emulated, Ubuntu 24.04 x86_64 clang'
+          cc: 'clang'
+          cxx: 'clang++'
+      - id: c6
+        name: 'Ubuntu 24.04 x86_64 GCC 9, without __builtin_roundeven'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-gcc-9
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC 9, without __builtin_roundeven'
+      - id: c7
+        name: 'Ubuntu 24.04 x86_64 GCC, GAOL built by FetchContent'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-fetch-content
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, GAOL built by FetchContent'
+      - id: c8
+        name: 'Ubuntu 24.04 x86_64 GCC, the FE_* values of Cygwin for CORE-MATH'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cygwin-fe-values
+        timeout-minutes: 30
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, the FE_* values of Cygwin for CORE-MATH'
+      - id: c9
+        name: 'Ubuntu 24.04 x86_64 GCC, GAOL_DEBUG and Ninja Multi-Config'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-build-types
+        timeout-minutes: 30
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, GAOL_DEBUG and Ninja Multi-Config'
+      - id: c10
+        name: 'Ubuntu 24.04 x86_64 GCC, CMake 3.14.7'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake-3-14
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, CMake 3.14.7'
+      - id: c11
+        name: 'Ubuntu 24.04 x86_64 GCC, cpack_stale_configure with ccache in CC and Ninja outside PATH'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-launcher-ninja
+        timeout-minutes: 15
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, cpack_stale_configure with ccache in CC and Ninja outside PATH'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }} c7=${{ steps.c7.outcome }} c8=${{ steps.c8.outcome }} c9=${{ steps.c9.outcome }} c10=${{ steps.c10.outcome }} c11=${{ steps.c11.outcome }}
         run: |
-          curl -sSL https://github.com/Kitware/CMake/releases/download/v3.14.7/cmake-3.14.7-Linux-x86_64.tar.gz | tar xz -C "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin" >> "$GITHUB_PATH"
-      - name: Configure
-        run: |
-          cmake --version
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
-      - name: Build
-        run: cmake --build build -j 4
-      - name: Tests
-        run: cd build && ctest -j 4 --output-on-failure
-      - name: Install
-        run: cmake --build build --target install
-      - name: Tests built with the installed GAOL
-        run: |
-          cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
-          cmake --build build-find-package -j 4
-          cd build-find-package && ctest -j 4 --output-on-failure
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 x86_64, tools and checks of the build' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Self-test of the check of the assembly (Python)' ;;
+              c2) name='Check of the assembly of the library' ;;
+              c3) name='Coverage, Ubuntu 24.04 x86_64 GCC' ;;
+              c4) name='The 128-bit integer emulated, Ubuntu 24.04 x86_64 gcc' ;;
+              c5) name='The 128-bit integer emulated, Ubuntu 24.04 x86_64 clang' ;;
+              c6) name='Ubuntu 24.04 x86_64 GCC 9, without __builtin_roundeven' ;;
+              c7) name='Ubuntu 24.04 x86_64 GCC, GAOL built by FetchContent' ;;
+              c8) name='Ubuntu 24.04 x86_64 GCC, the FE_* values of Cygwin for CORE-MATH' ;;
+              c9) name='Ubuntu 24.04 x86_64 GCC, GAOL_DEBUG and Ninja Multi-Config' ;;
+              c10) name='Ubuntu 24.04 x86_64 GCC, CMake 3.14.7' ;;
+              c11) name='Ubuntu 24.04 x86_64 GCC, cpack_stale_configure with ccache in CC and Ninja outside PATH' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
 
-  fetch-content:
-    name: Ubuntu 24.04 x86_64 GCC, GAOL built by FetchContent
+  l5:
+    name: 'Ubuntu 24.04 arm64, GCC (5 configurations)'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Ubuntu 24.04 arm64 GCC'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 arm64 GCC'
+          cc: 'gcc'
+          cxx: 'g++'
+      - id: c2
+        name: 'Ubuntu 24.04 arm64 GCC 11'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 arm64 GCC 11'
+          cc: 'gcc-11'
+          cxx: 'g++-11'
+          packages: 'gcc-11 g++-11'
+      # With GCC too on 64-bit ARM, which does not model the rounding
+      # direction the NEON operations change with msr on FPCR (bug 34678;
+      # GAOL v5)
+      - id: c3
+        name: 'Ubuntu 24.04 arm64 GCC, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 arm64 GCC, rounding direction preserved'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      # The FPU intervals, which the NEON ones replace on 64-bit ARM
+      # (GAOL_SIMD, on by default): their code stays covered there, the
+      # preserved direction included (GAOL v5)
+      - id: c4
+        name: 'Ubuntu 24.04 arm64 GCC, FPU intervals'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_SIMD=OFF'
+      - id: c5
+        name: 'Ubuntu 24.04 arm64 GCC, FPU intervals, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals, rounding direction preserved'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 arm64, GCC' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Ubuntu 24.04 arm64 GCC' ;;
+              c2) name='Ubuntu 24.04 arm64 GCC 11' ;;
+              c3) name='Ubuntu 24.04 arm64 GCC, rounding direction preserved' ;;
+              c4) name='Ubuntu 24.04 arm64 GCC, FPU intervals' ;;
+              c5) name='Ubuntu 24.04 arm64 GCC, FPU intervals, rounding direction preserved' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  l6:
+    name: 'Ubuntu 24.04 arm64, Clang (5 configurations)'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 270
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Ubuntu 24.04 arm64 Clang'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 arm64 Clang'
+          cc: 'clang'
+          cxx: 'clang++'
+      - id: c2
+        name: 'Ubuntu 24.04 arm64 Clang, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 arm64 Clang, rounding direction preserved'
+          cc: 'clang'
+          cxx: 'clang++'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - id: c3
+        name: 'Ubuntu 24.04 arm64 Clang, FPU intervals'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 arm64 Clang, FPU intervals'
+          cc: 'clang'
+          cxx: 'clang++'
+          opts: '-DGAOL_SIMD=OFF'
+      - id: c4
+        name: 'Ubuntu 24.04 arm64 Clang, FPU intervals, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 arm64 Clang, FPU intervals, rounding direction preserved'
+          cc: 'clang'
+          cxx: 'clang++'
+          opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON'
+      - id: c5
+        name: 'Ubuntu 24.04 arm64 Clang 14, refused'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-clang-14-arm64
+        timeout-minutes: 30
+        with:
+          desc: 'Ubuntu 24.04 arm64 Clang 14, refused'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 arm64, Clang' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Ubuntu 24.04 arm64 Clang' ;;
+              c2) name='Ubuntu 24.04 arm64 Clang, rounding direction preserved' ;;
+              c3) name='Ubuntu 24.04 arm64 Clang, FPU intervals' ;;
+              c4) name='Ubuntu 24.04 arm64 Clang, FPU intervals, rounding direction preserved' ;;
+              c5) name='Ubuntu 24.04 arm64 Clang 14, refused' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  l7:
+    name: 'Ubuntu 26.04 x86_64, GCC (4 configurations)'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 270
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Ubuntu 26.04 x86_64 GCC'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 26.04 x86_64 GCC'
+          cc: 'gcc'
+          cxx: 'g++'
+      - id: c2
+        name: 'Ubuntu 26.04 x86_64 GCC, -Wall -Wextra -Werror'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 26.04 x86_64 GCC, -Wall -Wextra -Werror'
+          cc: 'gcc'
+          cxx: 'g++'
+      - id: c3
+        name: 'Ubuntu 26.04 x86_64 GCC, SSE2 intervals of two doubles, -Wall -Wextra -Werror'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 26.04 x86_64 GCC, SSE2 intervals of two doubles, -Wall -Wextra -Werror'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_SSE2_UNALIGNED_STORAGE=ON'
+      - id: c4
+        name: 'Ubuntu 26.04 x86_64 GCC Debug ASan+UBSan'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-sanitizers
+        timeout-minutes: 90
+        with:
+          desc: 'Ubuntu 26.04 x86_64 GCC Debug ASan+UBSan'
+          cc: 'gcc'
+          cxx: 'g++'
+        env:
+          ASAN_OPTIONS: 'detect_leaks=1'
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 26.04 x86_64, GCC' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Ubuntu 26.04 x86_64 GCC' ;;
+              c2) name='Ubuntu 26.04 x86_64 GCC, -Wall -Wextra -Werror' ;;
+              c3) name='Ubuntu 26.04 x86_64 GCC, SSE2 intervals of two doubles, -Wall -Wextra -Werror' ;;
+              c4) name='Ubuntu 26.04 x86_64 GCC Debug ASan+UBSan' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  l8:
+    name: 'Ubuntu 26.04 x86_64, Clang (4 configurations)'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 270
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Ubuntu 26.04 x86_64 Clang'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 26.04 x86_64 Clang'
+          cc: 'clang'
+          cxx: 'clang++'
+      - id: c2
+        name: 'Ubuntu 26.04 x86_64 Clang, -Wall -Wextra -Werror'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 26.04 x86_64 Clang, -Wall -Wextra -Werror'
+          cc: 'clang'
+          cxx: 'clang++'
+      - id: c3
+        name: 'Ubuntu 26.04 x86_64 Clang, SSE2 intervals of two doubles, -Wall -Wextra -Werror'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 26.04 x86_64 Clang, SSE2 intervals of two doubles, -Wall -Wextra -Werror'
+          cc: 'clang'
+          cxx: 'clang++'
+          opts: '-DGAOL_SSE2_UNALIGNED_STORAGE=ON'
+      - id: c4
+        name: 'Ubuntu 26.04 x86_64 Clang Debug ASan+UBSan'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-sanitizers
+        timeout-minutes: 90
+        with:
+          desc: 'Ubuntu 26.04 x86_64 Clang Debug ASan+UBSan'
+          cc: 'clang'
+          cxx: 'clang++'
+        env:
+          ASAN_OPTIONS: 'detect_leaks=1'
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 26.04 x86_64, Clang' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Ubuntu 26.04 x86_64 Clang' ;;
+              c2) name='Ubuntu 26.04 x86_64 Clang, -Wall -Wextra -Werror' ;;
+              c3) name='Ubuntu 26.04 x86_64 Clang, SSE2 intervals of two doubles, -Wall -Wextra -Werror' ;;
+              c4) name='Ubuntu 26.04 x86_64 Clang Debug ASan+UBSan' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  l9:
+    name: 'Ubuntu 26.04 arm64, GCC and Clang (6 configurations)'
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Ubuntu 26.04 arm64 GCC'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 26.04 arm64 GCC'
+          cc: 'gcc'
+          cxx: 'g++'
+      # The check of the installed headers compiles the header of the NEON
+      # intervals too, with the warnings of the headers (-Wold-style-cast,
+      # -Wundef) that the intrinsics of <arm_neon.h> have to stay clear of
+      # (GAOL v5)
+      - id: c2
+        name: 'Ubuntu 26.04 arm64 GCC, -Wall -Wextra -Werror'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 26.04 arm64 GCC, -Wall -Wextra -Werror'
+          cc: 'gcc'
+          cxx: 'g++'
+      - id: c3
+        name: 'Ubuntu 26.04 arm64 GCC Debug ASan+UBSan'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-sanitizers
+        timeout-minutes: 90
+        with:
+          desc: 'Ubuntu 26.04 arm64 GCC Debug ASan+UBSan'
+          cc: 'gcc'
+          cxx: 'g++'
+        env:
+          ASAN_OPTIONS: 'detect_leaks=1'
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+      - id: c4
+        name: 'Ubuntu 26.04 arm64 Clang'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 26.04 arm64 Clang'
+          cc: 'clang'
+          cxx: 'clang++'
+      - id: c5
+        name: 'Ubuntu 26.04 arm64 Clang, -Wall -Wextra -Werror'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 26.04 arm64 Clang, -Wall -Wextra -Werror'
+          cc: 'clang'
+          cxx: 'clang++'
+      - id: c6
+        name: 'Ubuntu 26.04 arm64 Clang Debug ASan+UBSan'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-sanitizers
+        timeout-minutes: 90
+        with:
+          desc: 'Ubuntu 26.04 arm64 Clang Debug ASan+UBSan'
+          cc: 'clang'
+          cxx: 'clang++'
+        env:
+          ASAN_OPTIONS: 'detect_leaks=1'
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 26.04 arm64, GCC and Clang' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Ubuntu 26.04 arm64 GCC' ;;
+              c2) name='Ubuntu 26.04 arm64 GCC, -Wall -Wextra -Werror' ;;
+              c3) name='Ubuntu 26.04 arm64 GCC Debug ASan+UBSan' ;;
+              c4) name='Ubuntu 26.04 arm64 Clang' ;;
+              c5) name='Ubuntu 26.04 arm64 Clang, -Wall -Wextra -Werror' ;;
+              c6) name='Ubuntu 26.04 arm64 Clang Debug ASan+UBSan' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  l10:
+    name: 'Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved, AVX-512 arithmetic not taken'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
-      - name: Configure tests/fetch_content, a project building GAOL for itself with FetchContent, from this checkout
-        run: |
-          cmake -S tests/fetch_content -B build-fetch-content -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_SOURCE_DIR_GAOL="$PWD" -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" | tee configure.log
-          grep -q "mathlib: the one of 3rd/mathlib, built with GAOL" configure.log
-      - name: Build
-        run: cmake --build build-fetch-content -j 4
-      - name: Tests
-        run: cd build-fetch-content && ctest -j 4 --output-on-failure
-      - name: Install, which installs GAOL and mathlib with the project
-        run: |
-          cmake --install build-fetch-content
-          for file in lib/libgaol.a lib/libultim.a include/MathLib.h include/gaol/gaol.h lib/cmake/gaol/gaolConfig.cmake lib/pkgconfig/gaol.pc; do
-            test -f "gaol-install/$file" || { echo "$file is not installed"; exit 1; }
-          done
-      - name: Tests built with the installed GAOL
-        run: |
-          cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
-          cmake --build build-find-package -j 4
-          cd build-find-package && ctest -j 4 --output-on-failure
+      # The same with the arithmetic on the SSE2 path
+      # (-DGAOL_PREFER_AVX512=OFF): the configuration of the same name
+      # without the last words takes the AVX-512 path on a runner that has
+      # the instructions, and the SSE2 path on the others alone (AMD EPYC
+      # 7763), where GCC 12.4, 13.3 and 14.2 computed the sum of an interval
+      # and a double in the direction the caller left, with -flto, and
+      # arithmetic failed. This one takes the SSE2 path whatever the runner
+      # is (GAOL v5)
+      - id: c1
+        name: 'Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved, AVX-512 arithmetic not taken'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved, AVX-512 arithmetic not taken'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF'

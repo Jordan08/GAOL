@@ -1,122 +1,181 @@
-/* gaol/gaol_configuration.h -- written by CMake from cmake/gaol_configuration.h.in.
+/* Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-09-13)
+ *
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information. */
+/* gaol/gaol_configuration.h, written by CMake from
+   cmake/gaol_configuration.h.in.
 
-   The header GAOL's configure script writes, for every compiler: for Visual
-   C++ and MinGW, gaol/gaol_config.h and gaol/gaol_version.h include
-   gaol/gaol_config_msvc.h, gaol/gaol_config_mingw.h and
-   gaol/gaol_version_msvc.h, which include this one.
+   The macros are the same with the three builds, CMake
+   (cmake/gaol_configuration.h.in), configure (gaol/gaol_configuration.h.in)
+   and meson (gaol/gaol_configuration_meson.h.in), and are what the build tells
+   GAOL: doc/building.md lists them, and says which the sources of GAOL do not
+   read. What GAOL needs to know of the processor and the system, and the
+   sizes of the integer types, come from the macros of the compiler
+   (gaol/gaol_config.h). Every compiler includes this header, through
+   gaol/gaol_config.h. (GAOL v5)
 
    Origin: the version of gaol/gaol_configuration.h.in with which IBEX builds
    GAOL with CMake (https://github.com/ibex-team/ibex-lib,
    interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0/, Cyril Bouvier and Gilles
-   Chabert), itself generated from GAOL's configure.ac. Only the macros GAOL's
-   sources read are kept, and those describing the target are set by the
-   preprocessor below rather than by the build system. */
+   Chabert), itself generated from GAOL's configure.ac. */
 
-#ifndef __gaol_configuration_h__
-#define __gaol_configuration_h__
+#ifndef GAOL_CONFIGURATION_H
+#define GAOL_CONFIGURATION_H
 
-/* Version for gaol */
+/* The version of GAOL: 5, 0, 0 and "5.0.0" for GAOL 5.0.0 */
 #define GAOL_MAJOR_VERSION @PROJECT_VERSION_MAJOR@
 #define GAOL_MINOR_VERSION @PROJECT_VERSION_MINOR@
 #define GAOL_MICRO_VERSION @PROJECT_VERSION_PATCH@
 #define GAOL_VERSION "@PROJECT_VERSION@"
 
+/* Defined to 1 by a Debug build (CMAKE_BUILD_TYPE=Debug, configure
+   --enable-debug, meson --buildtype=debug): GAOL writes its debugging
+   messages (GAOL_DEBUG_VERBOSE) */
+#cmakedefine GAOL_DEBUGGING 1
 
-/* ---------------------------------------------------------------------------
-   Options: those IBEX configures GAOL with (--disable-preserve-rounding
-   --enable-optimize --disable-verbose-mode, the defaults otherwise)
-   --------------------------------------------------------------------------- */
+/* Defined to 1 to raise exceptions instead of aborting: by default with the
+   three builds; -DGAOL_EXCEPTIONS_ENABLED=OFF of CMake, --disable-exceptions
+   of configure and -Denable-exception=false of meson abort instead (settings of
+   the developers; GAOL v5) */
+#cmakedefine GAOL_EXCEPTIONS_ENABLED 1
 
-/* Define this to 1 if using the IBM APMathlib library */
-#define GAOL_USING_APMATHLIB 1
-
-/* Define this if relation symbols should stand for "certainly relations" */
-#define GAOL_CERTAINLY_RELATIONS 1
-
-/* Define this to 1 to allow raising exceptions instead of simply aborting */
-#define GAOL_EXCEPTIONS_ENABLED 1
-
-/* define this to 1 if rounding direction should be preserved
-
-   GAOL_PRESERVE_ROUNDING OFF, the default, leaves it undefined: each operation
-   sets the rounding direction upward when it is not, and leaves it upward, so
-   that its bounds are right whatever direction the code using GAOL set.
-   GAOL_PRESERVE_ROUNDING ON defines it: the operations also restore the
-   direction they found, which makes the arithmetic operations several times
-   slower (see gaol/gaol_fpu.h). */
+/* Defined to 1 to restore the rounding direction after each operation,
+   rather than leaving it upward (GAOL_PRESERVE_ROUNDING,
+   --enable-preserve-rounding, -Denable-preserve-rounding=true; see
+   gaol/gaol_fpu.h) */
 #cmakedefine GAOL_PRESERVE_ROUNDING 1
 
-/* define this to 1 if you want to allow ASM support
-
-   GAOL_ASM ON, the default, defines it, as configure and meson do by default.
-   GAOL's assembly (f_negate() in gaol/gaol_fpu_fenv.h) serves 32-bit x86 Linux
-   and macOS only; elsewhere the code is the same with or without it. */
-#cmakedefine GAOL_USING_ASM 1
-
-/* Define this to 1 to compile gaol::intervalf and gaol::interval2f */
-#cmakedefine GAOL_FLOAT_INTERVALS 1
-
-
-/* ---------------------------------------------------------------------------
-   What the compiler provides
-   --------------------------------------------------------------------------- */
-
-/* Define to 1 if you have the <fenv.h> header file. */
-#cmakedefine HAVE_FENV_H 1
-
-/* Define to 1 if you have the <limits> header file. */
-#define HAVE_LIMITS 1
-
-/* Define to 1 if you have the <cassert> header file. */
-#define HAVE_CASSERT 1
-
-/* Define to 1 if you have the `clock' function. */
-#define HAVE_CLOCK 1
-
-/* Define to 1 if you have the `getrusage' function. */
-#cmakedefine HAVE_GETRUSAGE 1
-
-/* Define this to 1 if function getrusage() is declared in sys/resource.h */
-#cmakedefine GETRUSAGE_IN_HEADER 1
-
-/* Define this to 1 if the compiler supports the "-frounding-math" option */
-#cmakedefine HAVE_ROUNDING_MATH_OPTION 1
-
-/* Define this to 1 if SSE2 instructions are to be used */
-#cmakedefine USING_SSE2_INSTRUCTIONS 1
-
-/* Define this to 1 if SSE3 instructions are to be used (gaol::interval2f, as
-   the autotools build on a processor with SSE3) */
-#cmakedefine USING_SSE3_INSTRUCTIONS 1
-
-/* Define this to 1 to enable verbose mode: GAOL then writes a line on the
-   standard error when it initializes and cleans up (GAOL_VERBOSE_MODE, off by
-   default: GAOL is silent, with the three builds) */
+/* Defined to 1 to write a line on the standard error when GAOL initializes
+   and cleans up (-DGAOL_VERBOSE_MODE=ON of CMake, --enable-verbose-mode of
+   configure, -Denable-verbose-mode=true of meson; off by default: a setting of
+   the developers; GAOL v5) */
 #cmakedefine GAOL_VERBOSE_MODE 1
 
-/* Define this to 1 if the compiler supports the "-fvisibility" option, with
-   which the library is compiled: GAOL's public declarations then carry
-   __attribute__ ((visibility("default"))) (gaol/gaol_config.h) */
-#cmakedefine HAVE_VISIBILITY_OPTIONS 1
+/* Defined to 1 where the intervals are computed with SSE2 instructions
+   (x86 processors; on 32-bit Windows with GCC or Clang told to ask for aligned
+   memory, -faligned-new=8, and with Visual C++ and clang-cl, whose bounds are
+   two doubles there; GAOL_SIMD,
+   --enable-simd, -Denable-simd, on by default) */
+#cmakedefine GAOL_USING_SSE2_INSTRUCTIONS 1
 
-/* HAVE_FINITE is left undefined: gaol::is_finite() is std::isfinite() in every
-   build (gaol/gaol_port.h), finite() being neither provided by Visual C++ nor
-   declared by every C library. */
+/* Defined to 1 where they are compiled with -msse3 too */
+#cmakedefine GAOL_USING_SSE3_INSTRUCTIONS 1
 
-/* ---------------------------------------------------------------------------
-   Visual C++, as in the former gaol/gaol_config_msvc.h where it still applies
-   --------------------------------------------------------------------------- */
+/* Defined to 1 to give the SSE2 intervals the form that Visual C++ and
+   clang-cl take on 32-bit Windows, whose two bounds are two doubles loaded
+   with movupd (see GAOL_SSE2_UNALIGNED_STORAGE in gaol/gaol_config.h, which
+   derives it from the target when it is not defined here): a way for a
+   developer to run that form on another system, -DGAOL_SSE2_UNALIGNED_STORAGE=ON
+   of CMake, with no other build (GAOL v5) */
+#cmakedefine GAOL_SSE2_UNALIGNED_STORAGE 1
 
-#if defined(_MSC_VER)
-/* nextafter() and isnan() are standard since Visual Studio 2013 */
-#  define HAVE_NEXTAFTER 1
-#  define HAVE_ISNAN 1
-#  ifdef __cplusplus
-/* mathlib is a static library: GAOL declares its functions without
-   __declspec(dllimport) (see the #ifndef around the definition of
-   _MATHLIB_DLL_ in gaol/gaol_double_op_apmathlib.h). */
-#    define _MATHLIB_DLL_ extern "C"
-#  endif
+/* Defined to 1 where the intervals are computed with NEON instructions
+   (64-bit ARM processors, with every compiler; not with 32-bit ARM;
+   GAOL_SIMD, --enable-simd, -Denable-simd, on by default, as for the SSE2
+   intervals) (GAOL v5: GAOL_ARM64, --enable-arm64 and -Denable-arm64 were
+   options of their own, independent of GAOL_SIMD) */
+#cmakedefine GAOL_USING_NEON_INSTRUCTIONS 1
+
+/* Defined to 1 by a universal build of macOS (several architectures in
+   CMAKE_OSX_ARCHITECTURES of CMake, or -arch several times in the flags of
+   configure and meson; one configuration compiled for each): SSE2 for the
+   x86_64 part, where GAOL_SIMD allows it, and NEON for the arm64 part, where
+   it does too. The macros above are then those of the architecture being
+   compiled (GAOL v5) */
+#cmakedefine GAOL_UNIVERSAL_SSE2 1
+#cmakedefine GAOL_UNIVERSAL_NEON 1
+#if defined(GAOL_UNIVERSAL_SSE2) && defined(__x86_64__)
+#  define GAOL_USING_SSE2_INSTRUCTIONS 1
+#  define GAOL_USING_SSE3_INSTRUCTIONS 1
+#endif
+#if defined(GAOL_UNIVERSAL_NEON) && defined(__aarch64__)
+#  define GAOL_USING_NEON_INSTRUCTIONS 1
 #endif
 
-#endif /* __gaol_configuration_h__ */
+/* Defined to 1 where the compiler accepts the AVX-512 instructions in the
+   functions that carry __attribute__((target("avx512f"))) and
+   __builtin_cpu_supports("avx512f"), which the AVX-512 path of +, -, *, /,
+   sqr, sqrt and, with FMA, the integer powers beyond 1 and -1
+   (gaol/core/gaol_interval_avx512_impl.h) needs; Visual C++ for x64 takes them in any
+   function and tells the processor by cpuid (GAOL v5) */
+#cmakedefine GAOL_HAVE_AVX512_TARGET 1
+
+/* Defined to 1 to ask for that path (GAOL_PREFER_AVX512): the build decides, on
+   where GAOL_PRESERVE_ROUNDING is and off otherwise, which is what the
+   measures of doc/simd.md ask for; -DGAOL_PREFER_AVX512=ON|OFF of CMake,
+   --enable-prefer-avx512 and --disable-prefer-avx512 of configure,
+   -Denable-prefer-avx512=true|false of meson ask otherwise (settings of the
+   developers, and of the users who build a package for any processor), which
+   GAOL_AVX512_ARITHMETIC below takes where it can: +, -, *, /, sqr, sqrt
+   and, with FMA, the integer powers beyond 1 and -1 then set no rounding
+   direction, their instructions carrying theirs and raising no exception
+   flag; they clear the modes that flush the subnormals to zero, with the
+   check of the other operations, which may raise the flags doc/using.md
+   lists, and leave them cleared, or give them back with
+   GAOL_PRESERVE_ROUNDING (GAOL v5) */
+#cmakedefine GAOL_PREFER_AVX512 1
+/* Defined to 1 where +, -, *, /, sqr, sqrt and, with FMA, the integer powers
+   beyond 1 and -1 take the AVX-512 path, which the configuration decides:
+   GAOL_PREFER_AVX512, a compiler that takes the path
+   (GAOL_HAVE_AVX512_TARGET), and a machine building that runs it (when
+   cross-compiling no program can be run, and the path is left out unless
+   GAOL_MACHINE_RUNS_AVX512 of CMake, gaol_cv_machine_runs_avx512=yes of
+   configure or machine-runs-avx512 of meson says that the machine running GAOL
+   runs it). The library then needs a processor with the AVX-512
+   instructions, and the operations test nothing as they run (GAOL v5) */
+#cmakedefine GAOL_AVX512_ARITHMETIC 1
+
+/* Defined to 1 where the library is compiled with -fvisibility=hidden:
+   GAOL's public declarations then carry __attribute__ ((visibility("default")))
+   (gaol/gaol_config.h) */
+#cmakedefine GAOL_HAVE_VISIBILITY_OPTIONS 1
+
+/* Defined to 1 where the compiler has <fenv.h> */
+#cmakedefine GAOL_HAVE_FENV_H 1
+
+/* The macros above that the build leaves undefined are 0 (GAOL v5): GAOL's
+   headers read them with #if, which warned under
+   -Wundef, so that a program could not include GAOL under -Wundef -Werror.
+   A program reads them with #if too: #ifdef is now true of each of them.
+   Keep "#  define" indented: .github/audit/probe_build.py reads the lines
+   "#define" of the header, which the 0 would follow where the build writes
+   the 1. */
+#ifndef GAOL_DEBUGGING
+#  define GAOL_DEBUGGING 0
+#endif
+#ifndef GAOL_EXCEPTIONS_ENABLED
+#  define GAOL_EXCEPTIONS_ENABLED 0
+#endif
+#ifndef GAOL_PRESERVE_ROUNDING
+#  define GAOL_PRESERVE_ROUNDING 0
+#endif
+#ifndef GAOL_VERBOSE_MODE
+#  define GAOL_VERBOSE_MODE 0
+#endif
+#ifndef GAOL_USING_SSE2_INSTRUCTIONS
+#  define GAOL_USING_SSE2_INSTRUCTIONS 0
+#endif
+#ifndef GAOL_USING_SSE3_INSTRUCTIONS
+#  define GAOL_USING_SSE3_INSTRUCTIONS 0
+#endif
+#ifndef GAOL_USING_NEON_INSTRUCTIONS
+#  define GAOL_USING_NEON_INSTRUCTIONS 0
+#endif
+#ifndef GAOL_HAVE_AVX512_TARGET
+#  define GAOL_HAVE_AVX512_TARGET 0
+#endif
+#ifndef GAOL_PREFER_AVX512
+#  define GAOL_PREFER_AVX512 0
+#endif
+#ifndef GAOL_AVX512_ARITHMETIC
+#  define GAOL_AVX512_ARITHMETIC 0
+#endif
+#ifndef GAOL_HAVE_VISIBILITY_OPTIONS
+#  define GAOL_HAVE_VISIBILITY_OPTIONS 0
+#endif
+#ifndef GAOL_HAVE_FENV_H
+#  define GAOL_HAVE_FENV_H 0
+#endif
+#endif /* GAOL_CONFIGURATION_H */

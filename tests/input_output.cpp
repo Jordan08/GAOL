@@ -1,0 +1,225 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+ * Copyright (c) 2002-2006 Laboratoire d'Informatique de
+ *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Frederic Goualard, Jordan NININ
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
+// GAOL 4's unit test check/input_output.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+
+#include <limits>
+#include <sstream>
+#include <string>
+#include "gaol/gaol_config.h"
+#include "unit_tests.h"
+
+using namespace gaol;
+
+
+class input_output_test {
+public:
+  void setUp() {
+  }
+  void tearDown() {
+  }
+
+  // --> Beginning of tests
+	void test_input() {
+		// Test of an ill-formed chain
+		interval I;
+      	std::istringstream instr;
+#if GAOL_EXCEPTIONS_ENABLED
+      	instr.str("[4.5,");
+      	try {
+	  		instr >> I;
+	  		CPPUNIT_FAIL("no exception for [4.5,");
+      	} catch (const std::invalid_argument& e) {
+	  		CPPUNIT_ASSERT(gaol_tests::explanation(e).substr(0,26) == "Syntax error in expression");
+		}
+#endif
+
+#if GAOL_EXCEPTIONS_ENABLED
+      	// At its end, with failbit set by the ill-formed line, the stream
+      	// gives no more line: operator>> would read nothing (GAOL v5; GAOL 4
+      	// read the empty text, and threw)
+      	instr.clear();
+      	instr.str("<3, 4>");
+      	try {
+	  		instr >> I;
+	  		CPPUNIT_FAIL("no exception for <3, 4>");
+      	} catch (const std::invalid_argument& e) {
+	  		// Two different numbers in a degenerate interval, which the reader
+	  		// refuses as it reads them (GAOL v5)
+	  		CPPUNIT_ASSERT(gaol_tests::explanation(e).find("degenerate") != std::string::npos);
+		}
+#endif
+
+			instr.clear();
+			instr.str("<3,3>");
+			instr >> I;
+			TEST_SEQ(I,interval(3.0,3.0));
+			instr.clear();
+			instr.str("[4.5,6]");
+			instr >> I;
+      TEST_SEQ(I,interval(4.5,6));
+	  	instr.clear();
+	  	instr.str("[4, 6 ]");
+	  	instr >> I;
+	  	TEST_SEQ(I,interval(4,6));
+	  	instr.clear();
+	  	instr.str("  [-1.0e5 , 18 ]");
+	  	instr >> I;
+	  	TEST_SEQ(I,interval(-1e5,18));
+	  	instr.clear();
+	  	instr.str("[empty]");
+	  	instr >> I;
+	  	TEST_EMPTY(I);
+	  	instr.clear();
+	  	instr.str("empty");
+	  	instr >> I;
+	  	TEST_EMPTY(I);
+	  	instr.clear();
+	  	instr.str("[(-3.5+1.5)*2/2+(exp(0))]");
+	  	instr >> I;
+		TEST_SEQ(I,interval(-1));
+	  	instr.clear();
+	  	instr.str("exp(0)+log(exp(1))+3*cos(pi)");
+	  	instr >> I;
+		// The value is -1, which the enclosure holds, and the enclosure is the one
+		// of the operations on intervals
+		TEST_CONT(I,interval(-1));
+		TEST_SEQ(I,exp(interval(0))+log(exp(interval(1)))+3*cos(interval::pi()));
+	  	instr.clear();
+	  	instr.str("[4,5]+[4,10]+[2,3]");
+	  	instr >> I;
+	  	TEST_SEQ(I,interval(10,18));
+	  	instr.clear();
+	  	instr.str("[4]+[3]");
+	  	instr >> I;
+	  	TEST_SEQ(I,interval(7,7));
+	  	instr.clear();
+	  	instr.str("[-inf,dmin]");
+	  	instr >> I;
+	  	CPPUNIT_ASSERT(std::isinf(I.left()) && (I.right()==std::numeric_limits<double>::min()));
+	  	instr.clear();
+	  	instr.str("[0,dmax]");
+	  	instr >> I;
+	  	CPPUNIT_ASSERT(I.left()==0.0 && (I.right()==std::numeric_limits<double>::max()));
+      instr.clear();
+      instr.str("-inf");
+      instr >> I;
+      CPPUNIT_ASSERT(I.left()==-GAOL_INFINITY && I.right()==-std::numeric_limits<double>::max());
+#if GAOL_EXCEPTIONS_ENABLED
+      // -inf reads [-oo, -MAX], which is no double: the two bounds of
+      // <-inf, -inf> are not one value, and the reader refuses it, as
+      // <inf, inf> below, where the checks of GAOL 4 expected [-oo, -MAX] and
+      // [MAX, +oo]. The exception went to the try that held these checks,
+      // which printed it and skipped the six after it (GAOL v5)
+      instr.clear();
+      instr.str("<-inf,-inf>");
+      try {
+        instr >> I;
+        CPPUNIT_FAIL("no exception for <-inf,-inf>");
+      } catch (const std::invalid_argument& e) {
+        CPPUNIT_ASSERT(gaol_tests::explanation(e).find("degenerate") != std::string::npos);
+      }
+#endif
+      instr.clear();
+      // A lower bound +oo or an upper bound -oo leaves no interval, as
+      // numsToInterval of IEEE 1788-2015 (10.5.8)
+      instr.str("[-inf, -inf]");
+      instr >> I;
+      TEST_EMPTY(I);
+      instr.clear();
+      instr.str("[-inf]");
+      instr >> I;
+      TEST_EMPTY(I);
+      instr.clear();
+      instr.str("inf");
+      instr >> I;
+      CPPUNIT_ASSERT(I.left()==std::numeric_limits<double>::max() && I.right()==GAOL_INFINITY);
+      instr.clear();
+      instr.str("[inf]");
+      instr >> I;
+      TEST_EMPTY(I);
+      instr.clear();
+      instr.str("[inf,inf]");
+      instr >> I;
+      TEST_EMPTY(I);
+#if GAOL_EXCEPTIONS_ENABLED
+      instr.clear();
+      instr.str("<inf,inf>");
+      try {
+        instr >> I;
+        CPPUNIT_FAIL("no exception for <inf,inf>");
+      } catch (const std::invalid_argument& e) {
+        CPPUNIT_ASSERT(gaol_tests::explanation(e).find("degenerate") != std::string::npos);
+      }
+#endif
+	}
+
+	void test_output() {
+		interval I = textToInterval("[3.452, 3.453]");
+		std::ostringstream os;
+		
+		os << I;
+		interval K = textToInterval(os.str());
+		TEST_CONT(K,I);
+		TEST_CONT(interval(3.45, 3.46),K);
+		os.str("");
+		interval::precision(2);
+		os << I;
+		CPPUNIT_ASSERT(os.str() == std::string("[3.4, 3.5]"));
+
+		os.str("");
+		interval::format(interval_format::width);
+		interval::precision(2);
+		os << I;
+		// The radius is rad(), rounded upward to the digits: 0.0005 rounded
+		// to nearest was below the radius about the midpoint (GAOL v5)
+		CPPUNIT_ASSERT(os.str() == std::string("3.5 (+/- 0.00051)"));
+
+		os.str("");
+		interval::format(interval_format::center);
+		interval::precision(2);
+		os << I;
+		CPPUNIT_ASSERT(os.str() == std::string("3.5"));
+
+		os.str("");
+		interval::format(interval_format::hexa);
+		interval::precision(2);
+		os << I;
+		// the hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which
+		// reads back bit for bit, rather than the digits of each double (GAOL v5)
+		CPPUNIT_ASSERT(os.str() == std::string("[0x1.b9db22d0e5604p+1, 0x1.b9fbe76c8b43ap+1]"));
+		{
+			interval R = textToInterval(os.str());
+			CPPUNIT_ASSERT(R.left() == I.left() && R.right() == I.right());
+		}
+
+		os.str("");
+		interval::format(interval_format::agreeing);
+		interval::precision(4);
+		os << I;
+		CPPUNIT_ASSERT(os.str() == std::string("3.45~[1, 4]"));
+
+      	interval J(3,4);
+		interval::format(interval_format::bounds);
+		std::string s = "test line embedding " + std::string(J) + " as a string";
+      	CPPUNIT_ASSERT(s == "test line embedding [3, 4] as a string");
+  	}
+  // <-- End of tests
+};
+
+
+GAOL_UNIT_MAIN(input_output_test, "input_output",
+               GAOL_UNIT_TEST(test_input),
+               GAOL_UNIT_TEST(test_output))

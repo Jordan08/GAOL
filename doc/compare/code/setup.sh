@@ -5,13 +5,26 @@
 #   - filib++ FILIB_VERSION, unless FILIB_DIR gives an installed one,
 #   - PROFIL/BIAS PROFIL_VERSION, from its site (or the archive PROFIL_TGZ),
 #     built with its x86-64 Linux configuration,
-#   - GAOL, this repository, built with CMake in Release and installed,
+#   - GAOL, this repository, built with CMake in Release and installed, and
+#     again with GAOL_PRESERVE_ROUNDING=ON, in a prefix of its own,
+#   - the last GAOL of Frédéric Goualard, at the commit GAOL_GOUALARD_COMMIT,
+#     with mathlib MATHLIB_VERSION, built with their configure,
+#   - Boost.Interval, of the Boost release BOOST_VERSION, header-only,
 # and checks that Solaris Studio's f90 compiles an interval program.
 # Everything is compiled by $CC and $CXX with -O3 and $FMA_FLAGS (-mfma, see
 # env.sh): GMP, MPFR and PROFIL/BIAS compile with -O2 on their own, and the
 # configure of filib++ without any optimization. Each step is skipped when its
 # result is already there.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 set -euo pipefail
+# shellcheck source=env.sh
 source "$(dirname "$0")/env.sh"
 
 mkdir -p "$WORK/src" "$PREFIX"
@@ -45,8 +58,15 @@ else
   fetch "https://www.mpfr.org/mpfr-$MPFR_VERSION/mpfr-$MPFR_VERSION.tar.xz" \
         "mpfr-$MPFR_VERSION.tar.xz" "$MPFR_SHA256"
   rm -rf "mpfr-$MPFR_VERSION" && tar xf "mpfr-$MPFR_VERSION.tar.xz"
+  # Without the functions of MPFR on __float128, which libieeep1788 does not
+  # call: the configure of MPFR 4.2.1 defines _Float128 as __float128 for a
+  # compiler that does not know the type, which the bits/floatn.h of glibc
+  # 2.43 declares already for Clang, and its test of gmp.h failed on the
+  # conflict ("GMP_NUMB_BITS and sizeof(mp_limb_t) are not consistent", with
+  # Clang 18 on Ubuntu 26.04)
   (cd "mpfr-$MPFR_VERSION" &&
-   ./configure --prefix="$PREFIX" --libdir="$PREFIX/lib" --with-gmp="$PREFIX" --disable-shared --enable-static CC="$CC" CFLAGS="-O3 $FMA_FLAGS" > configure.log &&
+   ./configure --prefix="$PREFIX" --libdir="$PREFIX/lib" --with-gmp="$PREFIX" --disable-shared --enable-static \
+               --disable-float128 CC="$CC" CFLAGS="-O3 $FMA_FLAGS" > configure.log &&
    make -j"$JOBS" > make.log && make install > install.log)
 fi
 
@@ -105,6 +125,8 @@ else
   fi
   fetch "$PROFIL_URL" "Profil-$PROFIL_VERSION.tgz" "$PROFIL_SHA256"
   rm -rf "Profil-$PROFIL_VERSION" && tar xzf "Profil-$PROFIL_VERSION.tgz"
+  # The format of printf holds the $(...) of make, which no shell expands
+  # shellcheck disable=SC2016
   (cd "Profil-$PROFIL_VERSION" &&
    printf '# Written by doc/compare/code/setup.sh, as Configure would\nARCH\t= x86-64-Linux-compat-gcc\ninclude $(BASEDIR)/config/$(ARCH)/Host.cfg\nCC\t= %s\nCCPLUS\t= %s\nCFLAGS\t:= $(patsubst -O2,-O3 %s -ffp-contract=off,$(CFLAGS))\nCPLUSFLAGS\t= $(CFLAGS) -std=c++11\n' "$CC" "$CXX" "$FMA_FLAGS" > Host.cfg &&
    make all > make.log 2>&1 && make install > install.log 2>&1 && make check > check.log 2>&1 &&
@@ -121,10 +143,99 @@ else
   cmake -S "$ROOT_DIR" -B "$WORK/gaol-build" -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" -DCMAKE_INSTALL_LIBDIR=lib \
         -DCMAKE_CXX_COMPILER="$CXX" -DCMAKE_C_COMPILER="$CC" \
-        -DGAOL_FMA="$([ -n "$FMA_FLAGS" ] && echo ON || echo OFF)" \
-        -DGAOL_FIND_MATHLIB=OFF > "$WORK/gaol-configure.log"
+        -DGAOL_FMA="$([ -n "$FMA_FLAGS" ] && echo ON || echo OFF)" > "$WORK/gaol-configure.log"
   cmake --build "$WORK/gaol-build" -j"$JOBS" > "$WORK/gaol-build.log"
   cmake --install "$WORK/gaol-build" > "$WORK/gaol-install.log"
+fi
+
+## GAOL again, with the rounding direction preserved (GAOL_PRESERVE_ROUNDING=ON),
+## in a prefix of its own: the benchmark has a column for it. The AVX-512 path is
+## the configuration's to take, which it does with GAOL_PRESERVE_ROUNDING where the
+## compiler takes the AVX-512 instructions and the machine building runs them:
+## +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 then
+## take them, the rounding direction being in the instruction (the library then
+## needs a processor with them)
+if [ -f "$GAOL_PRESERVE_PREFIX/include/gaol/gaol.h" ] && [ -z "${FORCE_GAOL:-}" ]; then
+  echo "== GAOL, rounding direction preserved: already in $GAOL_PRESERVE_PREFIX (FORCE_GAOL=1 to rebuild)"
+else
+  echo "== GAOL, rounding direction preserved ($(git -C "$ROOT_DIR" describe --always --dirty 2>/dev/null || echo "?"))"
+  # GAOL_PREFER_AVX512 is left to the configuration, which takes the path with
+  # GAOL_PRESERVE_ROUNDING (CMakeLists.txt) and keeps no entry of it unless it
+  # is given on the command line. A directory configured before that holds
+  # one, derived or cached by an option(), which is read as a request (the OFF
+  # of a directory from before #161 refuses the path): it is configured afresh
+  if [ -f "$WORK/gaol-preserve-build/CMakeCache.txt" ] \
+     && grep -q '^GAOL_PREFER_AVX512:' "$WORK/gaol-preserve-build/CMakeCache.txt"; then
+    rm -rf "$WORK/gaol-preserve-build"
+  fi
+  cmake -S "$ROOT_DIR" -B "$WORK/gaol-preserve-build" -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$GAOL_PRESERVE_PREFIX" -DCMAKE_INSTALL_LIBDIR=lib \
+        -DCMAKE_CXX_COMPILER="$CXX" -DCMAKE_C_COMPILER="$CC" -DGAOL_PRESERVE_ROUNDING=ON \
+        -DGAOL_FMA="$([ -n "$FMA_FLAGS" ] && echo ON || echo OFF)" > "$WORK/gaol-preserve-configure.log"
+  cmake --build "$WORK/gaol-preserve-build" -j"$JOBS" > "$WORK/gaol-preserve-build.log"
+  cmake --install "$WORK/gaol-preserve-build" > "$WORK/gaol-preserve-install.log"
+fi
+if grep -q "^#define GAOL_AVX512_ARITHMETIC 1" "$GAOL_PRESERVE_PREFIX/include/gaol/gaol_configuration.h"; then
+  echo "   the AVX-512 path of + - * / sqrt sqr and pown is on"
+else
+  echo "   note: the AVX-512 path is off here (no AVX-512 compiler or processor): the column of the preserved direction is SSE2's"
+fi
+
+## The last GAOL of Frédéric Goualard, which came after the 4.2.2 that GAOL v5
+## continues, with mathlib,
+## both built with their configure, as his README has it for Linux, and static,
+## as GAOL v5's library. Its configure gives -O3 and the SSE flags to g++
+## alone: the flags GAOL v5 is built with in Release are given instead. The
+## rounding direction is not preserved, as in GAOL v5 (his configure preserves
+## it by default). Its verbose mode, on by default, is turned off: its
+## constructor gaol_init() then prints to std::cerr before main(), which only
+## works if another object has constructed std::cerr first; a library compiled
+## with the headers of GCC 13 and linked with the libstdc++ of GCC 10 crashed.
+## mathlib is compiled with -ffp-contract=off: its exact products split the
+## doubles, which fused multiply-adds would break
+if [ -f "$GAOL_GOUALARD_PREFIX/include/gaol/gaol.h" ]; then
+  echo "== GAOL $GAOL_GOUALARD_VERSION of Frédéric Goualard: already in $GAOL_GOUALARD_PREFIX"
+else
+  echo "== mathlib $MATHLIB_VERSION"
+  fetch "$MATHLIB_URL" "mathlib-$MATHLIB_VERSION.tar.gz" "$MATHLIB_SHA256"
+  rm -rf "mathlib-$MATHLIB_VERSION" && tar xzf "mathlib-$MATHLIB_VERSION.tar.gz"
+  (cd "mathlib-$MATHLIB_VERSION" &&
+   ./configure --prefix="$GAOL_GOUALARD_PREFIX" --libdir="$GAOL_GOUALARD_PREFIX/lib" --disable-shared \
+               CC="$CC" CFLAGS="-O3 $FMA_FLAGS -ffp-contract=off" > configure.log &&
+   make -j"$JOBS" > make.log && make install > install.log)
+
+  echo "== GAOL $GAOL_GOUALARD_VERSION of Frédéric Goualard (${GAOL_GOUALARD_COMMIT:0:7})"
+  if [ ! -d gaol-goualard ]; then
+    git clone -q "$GAOL_GOUALARD_REPO" gaol-goualard
+  fi
+  git -C gaol-goualard checkout -q "$GAOL_GOUALARD_COMMIT"
+  (cd gaol-goualard &&
+   ./configure --prefix="$GAOL_GOUALARD_PREFIX" --libdir="$GAOL_GOUALARD_PREFIX/lib" --disable-shared \
+               --disable-preserve-rounding --disable-verbose-mode \
+               --with-mathlib-include="$GAOL_GOUALARD_PREFIX/include" \
+               --with-mathlib-lib="$GAOL_GOUALARD_PREFIX/lib" \
+               CC="$CC" CXX="$CXX" CFLAGS="-O3 $FMA_FLAGS -ffp-contract=off" \
+               CXXFLAGS="-O3 -DNDEBUG -std=c++11 $IA_CXXFLAGS -msse2 -msse3 $FMA_FLAGS -fvisibility-inlines-hidden -fvisibility=hidden -funroll-loops -fomit-frame-pointer" \
+               > configure.log &&
+   make -j"$JOBS" > make.log && make install > install.log)
+fi
+
+## Boost.Interval: header-only. The archives of its module and of the two
+## modules its headers include, Config and Detail, at the tag of the release,
+## from GitHub; their headers are copied into $BOOST_DIR/include, and nothing
+## is installed on the system
+if [ -f "$BOOST_DIR/include/boost/numeric/interval.hpp" ]; then
+  echo "== Boost.Interval: already in $BOOST_DIR"
+else
+  echo "== Boost.Interval $BOOST_VERSION ($BOOST_MODULES)"
+  mkdir -p "$BOOST_DIR/include"
+  for module in $BOOST_MODULES; do
+    sha256="BOOST_SHA256_$module"
+    fetch "https://github.com/boostorg/$module/archive/refs/tags/boost-$BOOST_VERSION.tar.gz" \
+          "boost-$module-$BOOST_VERSION.tar.gz" "${!sha256}"
+    rm -rf "$module-boost-$BOOST_VERSION" && tar xzf "boost-$module-$BOOST_VERSION.tar.gz"
+    cp -R "$module-boost-$BOOST_VERSION/include/." "$BOOST_DIR/include/"
+  done
 fi
 
 ## Solaris Studio f90

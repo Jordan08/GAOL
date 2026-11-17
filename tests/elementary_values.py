@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
-# Tests of this fork of GAOL: generates elementary_values.h, the values of the
+# Tests of GAOL v5: generates elementary_values.h, the values of the
 # elementary functions tests/elementary.cpp compares GAOL's bounds with.
 #
 # For each function f and argument x, a double, the table gives the greatest
@@ -11,10 +8,13 @@
 # computed with 2000 bits of precision by mpmath (https://mpmath.org).
 #
 #     python3 tests/elementary_values.py > tests/elementary_values.h
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import math
 import random
@@ -82,11 +82,11 @@ def exponents(emin, emax, n, signed=True):
 
 
 # The hard-to-round arguments of cos of CORE-MATH
-# (https://gitlab.inria.fr/core-math/core-math, src/binary64/cos/cos.wc) at
-# which mathlib 2.1.1 returned sin(x), before 3rd/mathlib fixed
-# its multiple-precision cosine, mpcos(), as glibc did in 2003
+# (https://gitlab.inria.fr/core-math/core-math, src/binary64/cos/cos.wc) from
+# 0.80 to 0.853, at which the multiple-precision cosine of IBM's code, mpcos(),
+# which computes cos(x) as sin(pi/2 - x) there, returned sin(x), as glibc's
+# copy of it did until 2003
 # (https://sourceware.org/git/?p=glibc.git;a=commit;h=86583139a4d746743ccffcd72e25d96c5fb8d488).
-# Reported to mathlib in https://github.com/dreal-deps/mathlib/issues/2.
 MPCOS_ARGUMENTS = [float.fromhex(x) for x in """
     0x1.9a25c721c7bfep-1 0x1.9a27a4b746fa2p-1 0x1.9a92cdb25a2e1p-1 0x1.9c3503f763063p-1
     0x1.9c445d0ecfbabp-1 0x1.9cd9b3bb42eeep-1 0x1.9e2eb96bbac15p-1 0x1.9efb0f4c665a3p-1
@@ -104,9 +104,10 @@ MPCOS_ARGUMENTS = [float.fromhex(x) for x in """
     0x1.b434e9418d78dp-1 0x1.b4b54238060cbp-1
 """.split()]
 
-# Arguments of atan at which mathlib 2.1.1 returned values far from atan(x)
-# where long has 64 bits, before 3rd/mathlib fixed fastiroot(),
-# which starts its multiple-precision square roots, as glibc did in 2003
+# Arguments of atan at which IBM's code returned values far from atan(x) where
+# long has 64 bits, its fastiroot(), which starts the multiple-precision square
+# roots, reading the halves of a double through longs, as glibc's copy of it
+# did until 2003
 # (https://sourceware.org/git/?p=glibc.git;a=commit;h=bb3f4825c411e676c51479fea59643af540810b5):
 # the three of Debian bug 210613 (https://bugs.debian.org/210613), on Alpha,
 # and 14 of the 12003 hard-to-round arguments of atan of CORE-MATH
@@ -122,9 +123,9 @@ MPSQRT_ARGUMENTS = [0.062510113344606447, 1.016527294692847, 1.9966212994203429]
 
 # The subnormal hard-to-round arguments of log of CORE-MATH
 # (https://gitlab.inria.fr/core-math/core-math, src/binary64/log/log.wc) at
-# which mathlib 2.1.1 returned about 2^54, before 3rd/mathlib
-# gave the last, multiple-precision stage of ulog() the argument it had not
-# scaled by 2^54. glibc had the same code until it removed that stage in 2018
+# which IBM's code returned about 2^54: ulog() scales a subnormal argument by
+# 2^54, and its last, multiple-precision stage took the scaled argument. glibc
+# had the same code until it removed that stage in 2018
 # (https://sourceware.org/git/?p=glibc.git;a=commit;h=b7c83ca30ef8e85b6642151d95600a36535f8d97).
 ULOG_ARGUMENTS = [float.fromhex(x) for x in """
     0x0.8819864d7985dp-1022 0x0.8e26ace5de305p-1022 0x0.a39291c8ef4a7p-1022 0x0.abae673b61d1dp-1022
@@ -136,18 +137,16 @@ ULOG_ARGUMENTS = [float.fromhex(x) for x in """
     0x0.087b50e3c0a7fp-1022 0x0.00b7751dfaafap-1022
 """.split()]
 
-# Arguments of sin and cos at which mathlib 2.1.1 returned values far from
-# sin(x) and cos(x) when compiled with contraction into fused multiply-adds,
-# which GCC does by default (-ffp-contract=fast) wherever the processor has
-# them, 64-bit ARM processors included: branred(), which reduces x modulo pi/2
-# for |x| > 2^48, relies on its operations being computed as written. The CMake
-# build and scripts/install-mathlib.sh compile mathlib with -ffp-contract=off;
-# a mathlib installed otherwise may not have been. Compiled so on x86_64 (-mfma
-# -ffp-contract=fast), mathlib did so at 96 of 20080 random positive arguments
-# from 2^20 to 2^1024 for cos and 11 for sin, all from 2^48 to 2^54, which the
-# random arguments below seldom reach (and at 491 for tan, from 2^26, which
-# they already catch). These are some of them, with the bounds of
-# [2^52 - 1, 2^52 - 1/2], at which acos_rel() failed in
+# Arguments of sin and cos at which IBM's code returned values far from sin(x)
+# and cos(x) when compiled with contraction into fused multiply-adds, which GCC
+# does by default (-ffp-contract=fast) wherever the processor has them, 64-bit
+# ARM processors included: branred(), which reduces x modulo pi/2 for
+# |x| > 2^48, relies on its operations being computed as written. Compiled so
+# on x86_64 (-mfma -ffp-contract=fast), it did so at 96 of 20080 random
+# positive arguments from 2^20 to 2^1024 for cos and 11 for sin, all from 2^48
+# to 2^54, which the random arguments below seldom reach (and at 491 for tan,
+# from 2^26, which they already catch). These are some of them, with the
+# bounds of [2^52 - 1, 2^52 - 1/2], at which acos_rel() failed in
 # check/reverse_mappings.cpp, and 2^52.
 BRANRED_ARGUMENTS = [float.fromhex(x) for x in """
     0x1.3e0d1243f671p+48 0x1.725c21a6d255p+49 0x1.90e0714ad979p+50 0x1.01a738a1847ep+51
@@ -229,6 +228,82 @@ binary = [
      + [(rng.uniform(-100.0, 100.0), rng.uniform(-100.0, 100.0)) for _ in range(40)]
      + [(rng.uniform(-1.0, 1.0) * 10.0 ** rng.randint(-200, 200), rng.uniform(-1.0, 1.0) * 10.0 ** rng.randint(-200, 200))
         for _ in range(20)]),
+]
+
+
+# The error function and its complement (GAOL v5). Their arguments are drawn
+# from a random generator of their own, and their values printed after those
+# of the functions above, so that these keep the values they had. erf(x) is
+# 1 - erfc(|x|) for x > 0, which is closer to 1 than 2000 bits tell once |x|
+# is beyond 35 or so, and taken for 1 itself by neighbours(): where erfc(|x|)
+# is below 2^-60, erf(x) lies between 1 - 2^-53, the double below 1, and 1,
+# which erfc(|x|), computed by mpmath with its full relative precision, tells
+# apart from 1; and so do erfc(x) for x < 0, between 2 - 2^-52 and 2, and
+# erfc(x) next to 1, where erf(x) is below 2^-60.
+erf_rng = random.Random(20261006)
+
+
+def erf_neighbours(x):
+    if x < 0.0:
+        below, above = erf_neighbours(-x)
+        return -above, -below
+    if x > 0.0 and mpmath.erfc(m(x)) < mpmath.ldexp(1, -60):
+        return next_down(1.0), 1.0
+    return neighbours(mpmath.erf(m(x)))
+
+
+def erfc_neighbours(x):
+    if x != 0.0 and abs(mpmath.erf(m(x))) < mpmath.ldexp(1, -60):
+        return (next_down(1.0), 1.0) if x > 0.0 else (1.0, next_up(1.0))
+    if x < 0.0 and mpmath.erfc(m(-x)) < mpmath.ldexp(1, -60):
+        return next_down(2.0), 2.0
+    return neighbours(mpmath.erfc(m(x)))
+
+
+def with_neighbours(xs):
+    return [y for x in xs for y in (next_down(x), x, next_up(x))]
+
+
+# The arguments at which CORE-MATH's erfc.c gives the value from a table, its
+# accurate phase not rounding them (https://gitlab.inria.fr/core-math/core-math,
+# src/binary64/erfc/erfc.c): some of the hardest to round, next to 1, between
+# 1.7 and 27.3, and one of a subnormal value
+ERFC_HARD_ARGUMENTS = [float.fromhex(x) for x in """
+    -0x1.c5bf891b4ef6bp-54 -0x1.fe777a3eb8d58p-51 -0x1.cea935ba73f4cp-32 -0x1.4a943c917ed26p-12
+    -0x1.d4af8adb90116p-4 -0x1.f9a4a209ca0e4p+0 0x1.c5bf891b4ef6bp-55 0x1.fe777a3eb8d58p-52
+    0x1.52b18fe8fbad1p-36 0x1.cf0ed5959b276p-28 0x1.b8940788b825dp+0 0x1.0ca37ce17afa6p+1
+    0x1.76957728f1f31p+1 0x1.16ffd71e2d8c6p+2 0x1.651c78cec84f6p+2 0x1.ef72633933d36p+2
+    0x1.4a42b163f7a7dp+3 0x1.a631d4bc7f56bp+3 0x1.1b2588f5d972ep+4 0x1.391f434b53d18p+4
+    0x1.48de452fb1a15p+4 0x1.a8f7bfbd15495p+4
+""".split()]
+
+# Tiny arguments, where erf(x) is about 2x/sqrt(pi), subnormal ones among them;
+# the powers of two about the binades of the arguments; the arguments past
+# which erf(x) rounds upward to 1 (5.8636), erfc(x) is subnormal (26.5433),
+# below 2^-1074 (27.2133) and below 2^-1075 (27.2260), and those at which
+# CORE-MATH's sources change their method (2^-61, 5.9216, -5.8636...), with
+# their neighbours; and random arguments, uniform and of every magnitude
+ERF_TINY = [TINY, 2 * TINY, 3 * TINY, 100 * TINY, 2.0**-1022, next_down(2.0**-1022), 1e-300, 2.0**-61, 2.0**-54,
+            1e-20, 1e-10]
+ERF_BINADES = [2.0**k for k in range(-8, 6)]
+error_functions = [
+    ("erf", erf_neighbours,
+     [0.0, 0.5, 1.5, 3.0, 6.0, 10.0, 27.0, 1e10, 1e300, MAX]
+     + with_neighbours(ERF_TINY + ERF_BINADES + [float.fromhex("0x1.7744f8f74e94ap+2"),
+                                                 float.fromhex("0x1.7afb48dc96626p+2")])
+     + [-x for x in with_neighbours(ERF_TINY + [1.0, 2.0, float.fromhex("0x1.7744f8f74e94ap+2")]) + [3.0, 6.0, MAX]]
+     + [erf_rng.uniform(-6.0, 6.0) for _ in range(40)] + [erf_rng.uniform(-1.0, 1.0) * 2.0**erf_rng.randint(-60, 2)
+                                                         for _ in range(20)]),
+    ("erfc", erfc_neighbours,
+     [0.0, 0.5, 1.5, 3.0, 6.0, 10.0, 26.5, 27.0, 27.5, 28.0, 30.0, 100.0, 1e10, 1e300, MAX, -1.0, -3.0, -6.0,
+      -10.0, -27.0, -1e300, -MAX]
+     + with_neighbours(ERF_TINY + ERF_BINADES + [float.fromhex(x) for x in (
+         "0x1.c5bf891b4ef6ap-55", "0x1.a8b12fc6e4892p+4", "0x1.b369a6244e684p+4", "0x1.b39dc41e48bfcp+4")])
+     + [-x for x in with_neighbours(ERF_TINY + [1.0, 2.0] + [float.fromhex(x) for x in (
+         "0x1.c5bf891b4ef6ap-54", "0x1.7744f8f74e94bp+2")])]
+     + ERFC_HARD_ARGUMENTS
+     + [erf_rng.uniform(-6.0, 27.3) for _ in range(40)] + [erf_rng.uniform(26.5, 27.3) for _ in range(10)]
+     + [erf_rng.uniform(-1.0, 1.0) * 2.0**erf_rng.randint(-60, 4) for _ in range(20)]),
 ]
 
 
@@ -335,6 +410,45 @@ for x in (2.0 ** 52, 2.0 ** 53, 2.0 ** 54, 2.0 ** 55, 2.0 ** 60, 1e22, 1e300, ne
     trig_intervals.append((-next_up(x), -x))
 
 
+# Intervals of tan whose bounds are doubles next to two consecutive poles,
+# j pi + pi/2 and (j + 1) pi + pi/2, where GAOL tells a pole from the width of
+# the interval, rounded upward, and from the signs of the cosine at its bounds
+# (review #8 of examples/examples.md). The first ones are within two doubles of
+# the double nearest to each pole, from -7 pi/2 to 9 pi/2, and keep those whose
+# width rounded upward is the double below pi, PI_DN, or one of the two doubles
+# on each side of it. GAOL took an interval of width PI_DN for one that may hold
+# two poles, and gave [-oo, +oo] for [-M_PI_2, M_PI_2], whose bounds are 6.1e-17
+# below pi/2 and above -pi/2: it and 4 others hold no pole, all next to the poles
+# from -3 pi/2 to 3 pi/2, the only ones with doubles close enough for it. The
+# others hold one pole, or two, the cosine then having the same sign at both
+# bounds, from the width pi up: they are [-oo, +oo]. Then 64 intervals whose
+# bounds are within 3 doubles of two consecutive poles drawn from -2000 pi to
+# 2000 pi.
+TAN_WIDTHS = [move(PI_DN, n) for n in range(-2, 3)]
+tan_pole_intervals = []
+for j in range(-4, 4):
+    c0, c1 = float((j + m(0.5)) * mpmath.pi), float((j + m(1.5)) * mpmath.pi)
+    for a in (move(c0, i) for i in range(-2, 3)):
+        for b in (move(c1, i) for i in range(-2, 3)):
+            if neighbours(m(b) - m(a))[1] in TAN_WIDTHS:
+                tan_pole_intervals.append((a, b))
+tan_rng = random.Random(20260929)
+for _ in range(64):
+    j = tan_rng.randint(-2000, 2000)
+    c0, c1 = float((j + m(0.5)) * mpmath.pi), float((j + m(1.5)) * mpmath.pi)
+    tan_pole_intervals.append((move(c0, tan_rng.randint(-3, 3)), move(c1, tan_rng.randint(-3, 3))))
+
+
+def holds_no_pole(a, b):
+    return trig_hull("tan", a, b)[1] != mpmath.inf
+
+
+# The intervals GAOL gave [-oo, +oo] for, though their tangent is finite
+assert (-PI / 2, PI / 2) in tan_pole_intervals
+assert sum(1 for a, b in tan_pole_intervals
+           if neighbours(m(b) - m(a))[1] == PI_DN and holds_no_pole(a, b)) == 5
+
+
 def literal(x):
     if x == math.inf:
         return "gaol_tests::inf"
@@ -344,6 +458,13 @@ def literal(x):
 
 
 print("// Generated by tests/elementary_values.py, which says what it is: do not edit")
+print("//")
+print("// Copyright (c) 2026 ENSTA, France")
+print("//")
+print("// By: Jordan NININ (created 2026-09-20)")
+print("//")
+print("// GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated")
+print("// COPYING.LIB file for information.")
 print()
 print("struct UnaryValue { const char *function; double x, below, above; };")
 print()
@@ -351,6 +472,10 @@ print("const UnaryValue unary_values[] = {")
 for name, f, xs in unary:
     for x in sorted(set(xs)):
         below, above = neighbours(f(m(x)))
+        print('  { "%s", %s, %s, %s },' % (name, literal(x), literal(below), literal(above)))
+for name, f, xs in error_functions:
+    for x in sorted(set(xs)):
+        below, above = f(x)
         print('  { "%s", %s, %s, %s },' % (name, literal(x), literal(below), literal(above)))
 print("};")
 print()
@@ -392,4 +517,12 @@ for name in ("sin", "cos", "tan"):
     for a, b in trig_intervals:
         least, greatest = trig_hull(name, a, b)
         print('  { "%s", %s },' % (name, ", ".join(literal(v) for v in (a, b) + neighbours(least) + neighbours(greatest))))
+print("};")
+print()
+print("// The hull of tan over [a, b], the bounds of which are next to two consecutive poles: as")
+print("// trig_intervals, with the function \"tan\" only")
+print("const TrigInterval tan_pole_intervals[] = {")
+for a, b in tan_pole_intervals:
+    least, greatest = trig_hull("tan", a, b)
+    print('  { "tan", %s },' % ", ".join(literal(v) for v in (a, b) + neighbours(least) + neighbours(greatest)))
 print("};")

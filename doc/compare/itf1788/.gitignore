@@ -1,0 +1,4 @@
+# the working tree of run.sh: ITF1788, which fetch.sh clones, the builds of
+# GAOL v5, the programs and their results, none of which is committed
+work/
+__pycache__/

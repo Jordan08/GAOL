@@ -1,21 +1,15 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. Gaol was primarily 
- * developed at the Swiss Federal Institute of Technology, Lausanne, 
- * Switzerland, and is now developed at the Laboratoire d'Informatique de 
- * Nantes-Atlantique, France.
- *
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
- * Copyright (c) 2002-2006 Laboratoire d'Informatique de 
+ * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Frederic Goualard, Jordan NININ
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
- * COPYING file for information.
- *--------------------------------------------------------------------------
- * CVS: $Id: gaol_port.cpp 191 2012-03-06 17:08:58Z goualard $
- * Last modified: 
- * By: 
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -24,14 +18,14 @@
 
   <long description>
 
-  \author Frederic Goualard
+  \author Frederic Goualard, Jordan NININ
   \date   2001-10-03
 */
 
 #include <iostream>
 #include "gaol/gaol_port.h"
 
-namespace gaol {
+namespace gaol_core {
 
   int gaol_signbit(double d)
   {
@@ -40,8 +34,8 @@ namespace gaol {
 	//std::cout <<  d << std::endl;
 	uintdouble v;
 	v.d = d;
-	return (HI_UINTDOUBLE(v) & 0x80000000)!=0;
-    //return ((unsigned int)(__HI(d)) & 0x80000000)!=0;
+	return (GAOL_HI_UINTDOUBLE(v) & 0x80000000)!=0;
+    //return ((unsigned int)(GAOL_HI(d)) & 0x80000000)!=0;
   }
 
-} // namespace gaol
+} // namespace gaol_core

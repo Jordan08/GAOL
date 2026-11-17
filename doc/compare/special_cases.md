@@ -1,10 +1,18 @@
-# Special cases: GAOL, libieeep1788, filib++, PROFIL/BIAS and Solaris Studio
+<!-- Copyright (c) 2026 ENSTA, France
+
+     By: Jordan NININ (created 2026-09-20)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
+# Special cases: GAOL, libieeep1788, filib++, PROFIL/BIAS, Solaris Studio and Boost.Interval
 
 Part of the [comparison](README.md) of GAOL with libieeep1788, filib++,
-PROFIL/BIAS and Solaris Studio.
+PROFIL/BIAS, Solaris Studio and Boost.Interval.
 
-The special cases of GAOL's tests (`tests/*.cpp`, and `check/*.cpp` for the
-integer powers) are computed by the five libraries: zeros, infinities and NaN
+The special cases of GAOL's tests (`tests/*.cpp`) are computed by the six libraries, GAOL v5 twice, under its
+own names (the namespace `gaol`) and under those of IEEE 1788-2015
+(`gaol_ieee1788`, see
+[Using GAOL](../using.md#the-powers-in-the-two-namespaces)): zeros, infinities and NaN
 as bounds or operands, empty sets, divisions by intervals containing zero,
 arguments at the edges of the domains, the powers `pow` and `pown`, the
 operators `+=`, `-=`, `*=`, `/=` with special doubles, the reading of
@@ -18,7 +26,7 @@ tightest interval of doubles, computed with mpmath:
 - ✗ another result: a set not enclosing it, a set where IEEE 1788 has the empty
   set, another boolean, or an exception;
 - n/a: the library has no such operation;
-- no mark: IEEE 1788 defines no result (five cases).
+- no mark: IEEE 1788 defines no result (two cases).
 
 Signed zeros are not told apart. The bounds are written with the shortest
 decimal that reads back as the same double, MAX being the largest double and
@@ -26,11 +34,12 @@ pred(MAX) the one below it.
 
 | Library | Version | Intervals |
 |---|---|---|
-| GAOL | this fork | `gaol::interval`, CMake Release build, SSE2 intervals, mathlib 2.1.1 |
+| GAOL | v5 | `interval`, CMake Release build, SSE2 intervals, CORE-MATH, under the names of `gaol` and under those of `gaol_ieee1788` (`pown`, `recip`, `mulRev`, `convexHull`, `rootn`, `precedes`...) |
 | libieeep1788 | last commit, 30 March 2015 | `interval<double, mpfr_bin_ieee754_flavor>`: the set-based flavor of the preliminary IEEE P1788, on doubles, computed with MPFR |
 | filib++ | 3.0.2.2, as IBEX distributes it | `interval<double, native_switched, i_mode_extended_flag>`, the intervals of IBEX built with filib++: the extended mode, where the infinities and the empty set are intervals |
 | PROFIL/BIAS | 2.0.8 (2009), configuration `x86-64-Linux-compat-gcc` | `INTERVAL` of PROFIL, on the BIAS routines, which set the rounding direction for each operation; no empty set |
 | Solaris Studio | Sun Fortran 95 8.7 (Solaris Studio 12.4), Linux x86-64 | `interval(8)` of `f90 -xia`, computed by `libsunimath` |
+| Boost.Interval | Boost 1.92.0 (2026), with the elementary functions of glibc 2.43 | `interval<double>` with its default policies, the rounding `save_state<rounded_arith_opp<double> >` and the checking `checking_strict<double>`, the first replaced by `save_state<rounded_transc_opp<double> >`, which adds the elementary functions of the C library to the same arithmetic (see [Enclosure](enclosure.md#the-policies-of-boostinterval)) |
 
 Each case is written once, in [code/cases.py](code/cases.py), and translated
 for each library: libieeep1788 has no operators of an interval and a double
@@ -38,43 +47,52 @@ nor compound assignments, which are computed with `II(d, d)` there; Solaris
 Studio's are written `x = x + d`; filib++ reads intervals from text with its
 `operator>>`; PROFIL/BIAS reads two numbers with the `>>` of doubles, and the
 literals are given to it without their brackets and comma; its errors, which
-abort the program, are caught. [code/README.md](code/README.md) says how to
-run the comparison again.
+abort the program, are caught. Boost.Interval reads no interval from text, and
+its default checking throws an exception wherever the empty set would appear,
+the empty set given as an argument included, which the program catches, as it
+catches the failed `assert()` of `nth_root(x, 0)`.
+[code/README.md](code/README.md) says how to run the comparison again.
 
 ## What the cases show
 
-**libieeep1788** gives the result of IEEE 1788 in each of the 279 cases
+**libieeep1788** gives the result of IEEE 1788 in each of the 281 cases
 where IEEE 1788 defines one and libieeep1788 has the operation: it computes
 every bound with MPFR, correctly rounded. It has no n-th root (`rootn`), no
 operators with doubles and no compound assignments.
 
-**GAOL** gives the result of IEEE 1788, or an interval enclosing it, in 280
-cases out of 286, and something else in 6, all from the hybrid `pow(x, y)` of
-this fork, which takes the integer power `pown` for a degenerate integer
-exponent, where IEEE 1788's `pow` only takes the part of x in [0, +∞] (see
-[What differs from GAOL](../differences.md)): `pow([−2], 2.0)` is [4],
-`pow([0], [0])` is [1], `pow([−1], [2^31−1])` is [−1] and
-`pow([−2, 0], [−1])` is [−∞, −0.5], where IEEE 1788 has ∅ (cases 158, 178 to
-180, 183); `pow([−2, −1], [1e10])`, an integer beyond the ints, is [−∞, +∞]
-(173). Five more cases enclose IEEE 1788's result for the same reason (157,
-161, 174 to 176). GAOL reads a bare number, `interval("0.1")`, as the interval
-enclosing it, an extension of the literals IEEE 1788 allows (19).
+**GAOL** under the names of IEEE 1788-2015, `gaol_ieee1788`, gives the result
+of IEEE 1788 in each of the 288 cases where IEEE 1788 defines one (GAOL v5).
+Under its own names, `gaol`, it gives it in 280 cases, an interval enclosing
+it in 2, and something else in 6, all from the hybrid `pow(x, y)` of `gaol`,
+which takes the integer power `pown` for an integer exponent, where IEEE
+1788's `pow` only takes the part of x in [0, +∞] (see
+[the powers in the two namespaces](../using.md#the-powers-in-the-two-namespaces)):
+`pow([−2], 2.0)` is [4], `pow([0], [0])` is [1], `pow([−1], [2^31−1])` is
+[−1], `pow([−2, −1], [1e10])`, an integer beyond the ints, is [1, +∞], and
+`pow([−2, 0], [−1])` is [−∞, −0.5], where IEEE 1788 has ∅ (cases 160, 175,
+180 to 182, 185); `pow([−2, 3], 3)` is [−8, 27], wider than [0, 27] (159,
+163). The integer powers beyond the ints were [−∞, +∞] in `gaol` before
+(GAOL v5), three cases wider more (176 to 178). GAOL reads a bare number,
+`textToInterval("0.1")`, as the interval enclosing it, an extension of the
+literals IEEE 1788 allows (19).
 
-Its wider results are one double off: sin, cos, tan and `pow(x, y)`, the
-value of mathlib moved one double outward ([accuracy](../accuracy.md) gives
-the tightness of each operation). acos, acosh, the integer powers and the
-n-th roots are the tightest: `acos([1, 3])` and `acosh([0, 1])` are [0],
-`pow([10], −400)` is [0, 2^-1074], `pow([−15], 17)` is exact and
-`nth_root([−8, 27], 3)` is [−2, 3] (the powers are computed from exact
-products, and the roots proved with integer powers, since issue #7; the
-products were rounded one by one, and the roots computed with a rounded
-exponent, [−2.0000000000000004, 3.000000000000001]). `atan2` is
-within one double of the tightest bounds, and the tightest where a bound is 0,
-±π/4, ±π/2 or ±π: across the half-line y = 0, x < 0, where the angle jumps
-from π to −π, it is [−π, π], as in libieeep1788 (263 to 291).
+`pow(x, y)` takes CORE-MATH's value at the corners of the box, correctly
+rounded upward, as the upper bound, and the double below it as the lower one,
+unless the power there is a double, which is then the lower bound itself:
+`pow([4], 0.5)` is [2] and `pow([3, 4], [2, 3])` is [9, 64] (151 to 154, 165;
+[accuracy](../accuracy.md) gives the tightness of each operation). sin, cos,
+tan, acos, acosh, `atan2`, the integer powers and the n-th roots are the
+tightest: `sin([1, 2])` and `cos([2^52−1])` are the tightest intervals (84,
+91), `acos([1, 3])` and `acosh([0, 1])` are [0], `pow([10], −400)` is
+[0, 2^-1074], `pow([−15], 17)` is exact and `nth_root([−8, 27], 3)` is
+[−2, 3] (the powers are computed from exact products, x<sup>−n</sup> included,
+and the roots proved with integer powers, since
+issue #7).
+Across the half-line y = 0, x < 0, where the angle jumps from π to −π,
+`atan2` is [−π, π], as in libieeep1788 (262 to 290).
 
 **filib++** gives the result of IEEE 1788, or an interval enclosing it, in
-176 cases out of 243, and something else in 67. Its extended mode takes the
+176 cases out of 245, and something else in 69. Its extended mode takes the
 infinities much as Solaris Studio does:
 
 - The intervals built from an infinity are not empty: `interval(+∞)`,
@@ -88,24 +106,26 @@ infinities much as Solaris Studio does:
 - `log([−4, 0])` and `log([0])` are [−∞, −MAX] (97, 98). `pow(x, y)`, which is
   exp(y log x), follows: `pow([0], [0])` is [0, +∞], `pow([0], [−1])` is
   [MAX, +∞], `pow([0], [0.5])` is [0, 2.2e−308], and `pow([4], [+∞])` is
-  [MAX, +∞] (166, 167, 169, 170, 179 to 193). The integer power
-  `power([0], −1)` is [MAX, +∞] (138), and `power([−3, 2], −2)` is [0, +∞]
-  rather than [1/9, +∞] (134, 141).
-- `mid([−∞, 1])` is −∞ and `mid([1, +∞])` is +∞, as in Solaris Studio (207,
-  208), and `imax([1, 2], ∅)` is [1, 2] rather than ∅ (225).
+  [MAX, +∞] (168, 169, 171, 172, 181 to 195). The integer power
+  `power([0], −1)` is [MAX, +∞] (140), and `power([−3, 2], −2)` is [0, +∞]
+  rather than [1/9, +∞] (136, 143).
+- `atanh([1])` is [MAX, +∞] and `atanh([−1])` is [−∞, −MAX], where IEEE 1788
+  has ∅ (126, 127): the limits of atanh at the ends of its domain are taken
+  for values, as the limit of `log` at 0 is above.
+- `mid([−∞, 1])` is −∞ and `mid([1, +∞])` is +∞, as in Solaris Studio (209,
+  210), and `imax([1, 2], ∅)` is [1, 2] rather than ∅ (227).
 - Its `operator>>` reads only the form `[l, u]`, with finite or infinite
   bounds, and rounds the bounds to nearest: `[0.1, 0.3]` gives the doubles
   nearest 0.1 and 0.3, which do not enclose [0.1, 0.3] (21); `[0.1]`,
   `[1e309]`, `[ ]`, `[empty]`, `[entire]`, the hexadecimal numbers, the
   uncertain form and the others throw `interval_io_exception` (20, 22, 24,
-  25, 27 to 29, 233, 234, 237 to 242), `[,]` is [0] and `[1,]` ∅ (235, 236),
-  and `[inf, inf]` is [MAX, +∞] (243). It reads `[ EMPTY ]`. Its constructor
+  25, 27 to 29, 235, 236, 239 to 244), `[,]` is [0] and `[1,]` ∅ (237, 238),
+  and `[inf, inf]` is [MAX, +∞] (245). It reads `[ EMPTY ]`. Its constructor
   from two strings, `interval("0.1", "0.1")`, rounds them outward, one double
   wider than the tightest.
 - Its certainly-less comparisons `cle` and `clt` are false when an interval is
-  empty, where `precedes` and `strictPrecedes` are true (245, 246, 248);
-  `interior` is false for the same infinite bound (251, 252); `ceq` is false
-  for two empty intervals (262).
+  empty, where `precedes` and `strictPrecedes` are true (247, 248, 250);
+  `interior` is false for the same infinite bound (253, 254).
 - It has no n-th root, no relational division and no `atan2`.
 
 Its elementary functions are wider than the tightest by up to 25 doubles (6 to
@@ -114,7 +134,7 @@ powers by up to 36, `cos([2^52 − 1])` is [−1, 1], `exp([−800])` is
 [0, 2.2e−308] and `sqrt([−4, 4])` has −2^-1074 for lower bound.
 
 **PROFIL/BIAS** gives the result of IEEE 1788, or an interval enclosing it, in
-78 cases out of 221, and something else in 143. It is a library of 1993 to
+78 cases out of 223, and something else in 145. It is a library of 1993 to
 2009, of the interval arithmetic before IEEE 1788, whose intervals are pairs
 of doubles with no empty set:
 
@@ -123,12 +143,12 @@ of doubles with no empty set:
   error and calls `abort()`. So do the divisions by intervals containing 0
   and their inverses (30 to 43, 68 to 70, 83), `log`, `sqrt`, `asin`, `acos`,
   `acosh`, `atanh` outside their domains (95 to 99, 106 to 108, 111 to 116,
-  122 to 125), `sinh`, `cosh` and `tanh` of [−∞, +∞] (118 to 120), the
-  negative integer powers of intervals containing 0 (133 to 135, 138 to 142),
+  122 to 127), `sinh`, `cosh` and `tanh` of [−∞, +∞] (118 to 120), the
+  negative integer powers of intervals containing 0 (135 to 137, 140 to 144),
   the powers of intervals with a negative bound, `pow([−2, 3], 3)` included,
-  and of [0] with an exponent that is not positive (154 to 158, 161, 162, 164,
-  165, 173, 176, 178 to 183, 186 to 193), and the roots of intervals with a
-  negative bound (198 to 201, 203). The programs of the comparison catch the
+  and of [0] with an exponent that is not positive (156 to 160, 163, 164, 166,
+  167, 175, 178, 180 to 185, 188 to 195), and the roots of intervals with a
+  negative bound (200 to 203, 205). The programs of the comparison catch the
   abort and go on.
 - The intervals built from an infinity, NaN, or bounds in the wrong order are
   not empty: `interval(+∞)` is [+∞], `interval(2, 1)` is [1, 2],
@@ -136,32 +156,32 @@ of doubles with no empty set:
   61 to 67, 79, 80); a product of a zero and an infinite bound has a NaN
   bound, `[0] * [1, +∞]` being [0, NaN] and `[0] * [−∞, +∞]` [NaN, NaN] (51
   to 53, 57, 60, 65, 66, 74, 75, 81, 82), and so has `asinh([−∞, +∞])` (121).
-  `exp([740])` and the large powers are [+∞] rather than [MAX, +∞] (102, 174,
-  175), and `pow([4], −∞)` is [0, 2^-1074] (167, 170).
-- `pow([1], [−∞, +∞])` is [0, +∞] and `pow([0, 1], [1, +∞])` [0, +∞] (195,
-  196).
+  `exp([740])` and the large powers are [+∞] rather than [MAX, +∞] (102, 176,
+  177), and `pow([4], −∞)` is [0, 2^-1074] (169, 172).
+- `pow([1], [−∞, +∞])` is [0, +∞] and `pow([0, 1], [1, +∞])` [0, +∞] (197,
+  198).
 - `mid([−∞, +∞])` and `mid([−∞, 1])` are NaN, `mid([1, +∞])` is +∞, and the
-  midpoint of [0, 2^-1074] is 2^-1074 (206 to 208, 211).
+  midpoint of [0, 2^-1074] is 2^-1074 (208 to 210, 213).
 - Its `>>` reads two numbers, rounded to nearest, and has no literal: `[0.1]`
   gives the double nearest 0.1, which does not enclose it, `[0.3, 0.1]` gives
   [0.1, 0.3], `[1e309]` [+∞], `[1e-400]` [0], and the other forms are not read
-  (20 to 29, 233 to 243).
-- `x < y`, the interior, is false for the same infinite bound (251, 252).
+  (20 to 29, 235 to 245).
+- `x < y`, the interior, is false for the same infinite bound (253, 254).
 - It has no empty set, no relational division, no `atan2`, no `min` and `max`
   of intervals, no radius, and no operators with an infinity or NaN as
-  exceptions (18, 44 to 49, 59, 71, 78, 105, 129, 171, 172, 177, 209, 215 to
-  232, 245 to 262 in part, 263 to 291).
+  exceptions (18, 44 to 49, 59, 71, 78, 105, 131, 173, 174, 179, 211, 217, 219,
+  222, 223, 226, 227, 229 to 234, 247, 248, 250, 255 to 258, 260, 262 to 290).
 
 Its elementary functions are the tightest where the result is a whole range
 ([−1, 1], [0, +∞]) or a special value, and wider otherwise: sin and cos by 4
 to 14 doubles, tan by up to 34 (84, 85, 88, 89, 93), `atan([−∞, +∞])` by 2,
 `exp([−∞, 0])` and `log([1, +∞])` by 1 or 2 (100, 101, 117). `cos([2^52 − 1])`
-is [−0.757, 1] (91). Its integer powers of intervals without a negative bound
-are the tightest or within a double (136, 137, 146), but `pow([2, 3], 4)` is
-15 to 17 doubles wide and `pow([−2, 3], 3)` is [−18, 27] (132, 159); its real
+is [−0.757, 1] (91). Its integer powers of intervals without 0
+are the tightest or within a double (138, 139, 148), but `pow([2, 3], 4)` is
+15 to 17 doubles wide and `pow([−2, 3], 3)` is [−18, 27] (134, 161); its real
 powers, exp(y log x), are wider by 3 to 14 doubles, `pow([4], 0)` included,
-which is [0.9999999999999996, 1.0000000000000004] (149 to 153, 160, 163);
-`pow([10], −400)` is [0, 5.6e−309] (148). The benchmark measures its
+which is [0.9999999999999996, 1.0000000000000004] (151 to 155, 162, 165);
+`pow([10], −400)` is [0, 5.6e−309] (150). The benchmark measures its
 tightness on ordinary intervals ([performance](performance.md)).
 
 **Solaris Studio** gives the result of IEEE 1788, or an interval enclosing it,
@@ -173,34 +193,34 @@ So:
 - The intervals built from an infinity are not empty: `interval(+∞)` is
   [MAX, +∞], `x + ∞` and `x = +∞` give [MAX, +∞], and `[1, 2] / ∞` gives
   [0, 1.1e−308] (1 to 4, 11, 12, 61 to 64, 79, 80); `[inf]` and `[inf, inf]`
-  are read as [MAX, +∞] (242, 243).
+  are read as [MAX, +∞] (244, 245).
 - The arguments that are not an interval give [−∞, +∞] rather than ∅:
   `interval(2, 1)`, NaN bounds, `x + NaN` (5 to 10, 67).
 - A division by an interval containing zero is [−∞, +∞], a division by [0]
   too (30 to 43, 68 to 70, 83), and so is a product of a zero and an infinite
   bound (50 to 53, 57, 60, 65, 66, 74, 75, 81, 82).
 - `pow` includes the limits: `pow([0], [0])` is [0, +∞], `pow([0], [−1])` is
-  [+∞] and `pow([4], [+∞])` is [MAX, +∞] (166 to 170, 179 to 181, 183, 187 to
-  193), and `x**(−n)` is [−∞, +∞] when x contains 0 (138 to 140). The powers
-  are often one double wider than the tightest, `x**n` included (132, 134,
-  136, 137, 141, 146, 150, 152, 157, 159, 161, 163).
+  [+∞] and `pow([4], [+∞])` is [MAX, +∞] (168 to 172, 181 to 183, 185, 189 to
+  195), and `x**(−n)` is [−∞, +∞] when x contains 0 (140 to 142). The powers
+  are often one double wider than the tightest, `x**n` included (134, 136,
+  138, 139, 143, 148, 152, 154, 159, 161, 163, 165).
 - `mid([−∞, 1])` is −∞ and `mid([1, +∞])` is +∞, rather than −MAX and MAX
-  (207, 208).
+  (209, 210).
 - Reading `0.1` gives [0, 0.2]: a single number read as an interval carries an
   uncertainty of one unit of its last digit, as the uncertain form `0.1?1` of
   IEEE 1788 would. Bounds in the wrong order are a read error rather than ∅,
   and neither a rational bound (`1/3`), `[entire]`, `[ ]`, bounds left out,
   hexadecimal numbers nor the uncertain form are read (19, 22, 23, 28, 29,
-  233, 235 to 241).
+  235, 237 to 243).
 - Its certainly-less operators `.cle.` and `.clt.` are false when an interval
-  is empty (245, 246, 248), `.int.` is false for the same infinite bound (251,
-  252), and `.ceq.` false for two empty intervals (262).
+  is empty (247, 248, 250), and `.int.` is false for the same infinite bound
+  (253, 254).
 - `atan2` is continued across the half-line y = 0, x < 0 rather than given
   the hull of its values: `atan2([−1, 1], [−2, −1])` is [3π/4, 5π/4], beyond
   π, `atan2([−1, 0], [−2, −1])` is [−π, −3π/4], without the angle π of its
-  points on the half-line, and `atan2([0], [0])` is [−π, π] (263, 282, 283).
-  Where a box touches an axis at (0, 0), it gives [−π, π] (275, 276, 279,
-  280).
+  points on the half-line, and `atan2([0], [0])` is [−π, π] (262, 281, 282).
+  Where a box touches an axis at (0, 0), it gives [−π, π] (274, 275, 278,
+  279).
 - It has no `asinh`, `acosh`, `atanh`, n-th root, relational division
   (`mul_rev`), radius (`rad`), nor `sqr`, computed as `x**2`.
 
@@ -208,407 +228,452 @@ Its elementary functions are the tightest intervals, or one double wider, and
 give IEEE 1788's results at the edges of their domains, `log([−4, 0])` and
 `log([0])` aside, which are [−∞, −MAX] (97, 98).
 
+**Boost.Interval** gives the result of IEEE 1788, or an interval enclosing it,
+in 102 cases out of 168, and something else in 66; it has no operation for
+121: it reads no interval from text (22 cases), and has no real power (49),
+no `atan2` (29), no relational division (7), no radius, `mig` nor interior
+(14). Its intervals, with its default checking (`checking_strict`), are those
+of the interval arithmetic before IEEE 1788, without empty set:
+
+- An operation that would create the empty set throws `std::runtime_error`
+  ("boost::interval: empty interval created"): `interval(2, 1)`, and the
+  bounds in the wrong order or a NaN bound beside a number (5 to 7, 9, 10),
+  the empty set itself (18), the divisions by [0] (39, 40, 42, 68 to 70, 83),
+  `log`, `sqrt`, `asin`, `acos`, `acosh` and `atanh` outside their domains
+  (97 to 99, 107, 112, 116, 123, 125), `pow([0], −1)`,
+  `nth_root([−4, −1], 2)` and an empty intersection (140, 202, 224). So do the cases that take the empty set as an argument,
+  when it is made (59, 78, 105, 131, 211, 217, 219, 223, 227, 247, 248, 250,
+  256 to 258, 260), and `pow([0], 0)`, which Boost.Interval takes for the
+  empty set where IEEE 1788's `pown` is 1 (130).
+- An infinity is a point: `interval(+∞)` is [+∞], and so are `x = +∞` and
+  `x + ∞`, while `x / ∞` is [0] (1 to 4, 11, 12, 61 to 64, 79, 80).
+  `interval(NaN)` is [NaN, NaN], `checking_strict` taking no number for NaN
+  (8), and a product of a zero and an infinity has a NaN bound:
+  `[0, 1] * +∞` is [NaN, +∞] and `x = [0]; x *= +∞` gives [NaN, NaN] (60, 65,
+  66, 81), as `x += NaN` does (67).
+- `[−2, 0] / [0, 1]` is [−∞, +∞] rather than [−∞, 0] (37).
+- `atanh([1])` is [+∞] and `atanh([−1])` is [−∞], where IEEE 1788 has ∅ (126,
+  127): the atanh of the C library at ±1 is ±∞, which Boost.Interval takes
+  for the value.
+- `median`, its midpoint, computes (l + u)/2: NaN for [−∞, +∞], −∞ and +∞ for
+  the half-bounded intervals, and +∞ for [MAX/2, MAX], whose sum overflows
+  (208 to 210, 212).
+- `nth_root(x, 0)` fails an `assert()` and aborts the program (206).
+- **`atan([−∞, +∞])` is [−1.5707963267948966, 1.5707963267948966]**, which
+  does not hold the values of atan near ±π/2: π/2 is above 1.5707963267948966
+  (117). Boost.Interval asks the C library for atan(+∞) rounded upward, and
+  glibc's atan rounds it to nearest, below π/2, whatever the rounding
+  direction. It is the only result of an elementary function, among the
+  special cases, that misses values of the function; at random points, the
+  test of [enclosure](enclosure.md) finds 20 to 34 % of its results missing
+  the value, according to the policy.
+
+Its sin, cos and tan are wider than the tightest: sin and cos by 1 to 7
+doubles (84, 85, 88, 89; Boost.Interval computes sin(x) as cos(x − π/2), π/2
+being an interval), tan by 7 and 13 (93), and `cos([2^52 − 1])` is
+[0.0707, 0.878] (91). Its integer powers are the tightest or one double wider
+(148), `pow([10], −400)` being [0, 5.6e−309] (150).
+
 ## The cases
 
 <!-- BEGIN GENERATED TABLES (doc/compare/code/cases.py) -->
 
-291 cases. Each result is marked against the result IEEE 1788-2015 defines (the tightest interval of doubles, computed with mpmath):
+290 cases. Each result is marked against the result IEEE 1788-2015 defines (the tightest interval of doubles, computed with mpmath):
 
-| | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS |
-|---|---|---|---|---|---|
-| ✓ the result of IEEE 1788 | 279 | 258 | 126 | 150 | 56 |
-| ⊃ encloses it, wider | 0 | 22 | 50 | 41 | 22 |
-| ✗ differs | 0 | 6 | 67 | 70 | 143 |
-| n/a no such operation | 11 | 0 | 44 | 26 | 66 |
+| | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval |
+|---|---|---|---|---|---|---|---|
+| ✓ the result of IEEE 1788 | 281 | 280 | 288 | 126 | 150 | 56 | 93 |
+| ⊃ encloses it, wider | 0 | 2 | 0 | 50 | 41 | 22 | 9 |
+| ✗ differs | 0 | 6 | 0 | 69 | 70 | 145 | 66 |
+| n/a no such operation | 8 | 0 | 0 | 44 | 28 | 65 | 121 |
 
 ### 1. Constructors and assignment
 
 From tests/numbers.cpp (constructors).
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 001 | `interval(+∞)` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | numsToInterval(+∞, +∞) fails (12.12.7) |
-| 002 | `interval(−∞)` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | [−∞] ✗ |  |
-| 003 | `interval(+∞, +∞)` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ |  |
-| 004 | `interval(−∞, −∞)` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | [−∞] ✗ |  |
-| 005 | `interval(+∞, 1)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [1, +∞] ✗ |  |
-| 006 | `interval(1, −∞)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, 1] ✗ |  |
-| 007 | `interval(2, 1)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [1, 2] ✗ | l > u: the constructor fails |
-| 008 | `interval(NaN)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [NaN, NaN] ✗ |  |
-| 009 | `interval(NaN, 1)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [1, NaN] ✗ |  |
-| 010 | `interval(1, NaN)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [NaN, 1] ✗ |  |
-| 011 | `x = [1, 2]; x = +∞` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | libieeep1788 has no assignment of a double: II(d, d) |
-| 012 | `x = [1, 2]; x = −∞` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | [−∞] ✗ |  |
-| 013 | `[−∞, 1]` | [−∞, 1] | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ |  |
-| 014 | `[1, +∞]` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ |  |
-| 015 | `[−∞, +∞]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
-| 016 | `[−0]` | [0] | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−0] ✓ | [0] ✓ |  |
-| 017 | `[−MAX, MAX]` | [−MAX, MAX] | [−MAX, MAX] ✓ | [−MAX, MAX] ✓ | [−MAX, MAX] ✓ | [−MAX, MAX] ✓ | [−MAX, MAX] ✓ |  |
-| 018 | `empty set` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | Solaris Studio has no empty constant: [1, 2] .ix. [3, 4] |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 001 | `interval(+∞)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | [+∞] ✗ | numsToInterval(+∞, +∞) fails (12.12.7) |
+| 002 | `interval(−∞)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | [−∞] ✗ | [−∞] ✗ |  |
+| 003 | `interval(+∞, +∞)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | [+∞] ✗ |  |
+| 004 | `interval(−∞, −∞)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | [−∞] ✗ | [−∞] ✗ |  |
+| 005 | `interval(+∞, 1)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [1, +∞] ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 006 | `interval(1, −∞)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, 1] ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 007 | `interval(2, 1)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [1, 2] ✗ | exception: boost::interval: empty interval created ✗ | l > u: the constructor fails |
+| 008 | `interval(NaN)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [NaN, NaN] ✗ | [NaN, NaN] ✗ |  |
+| 009 | `interval(NaN, 1)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [1, NaN] ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 010 | `interval(1, NaN)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [NaN, 1] ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 011 | `x = [1, 2]; x = +∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | [+∞] ✗ | libieeep1788 has no assignment of a double: II(d, d) |
+| 012 | `x = [1, 2]; x = −∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | [−∞] ✗ | [−∞] ✗ |  |
+| 013 | `[−∞, 1]` | [−∞, 1] | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ |  |
+| 014 | `[1, +∞]` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ |  |
+| 015 | `[−∞, +∞]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
+| 016 | `[−0]` | [0] | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−0] ✓ | [0] ✓ | [−0] ✓ |  |
+| 017 | `[−MAX, MAX]` | [−MAX, MAX] | [−MAX, MAX] ✓ | [−MAX, MAX] ✓ | [−MAX, MAX] ✓ | [−MAX, MAX] ✓ | [−MAX, MAX] ✓ | [−MAX, MAX] ✓ | [−MAX, MAX] ✓ |  |
+| 018 | `empty set` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | exception: boost::interval: empty interval created ✗ | Solaris Studio has no empty constant: [1, 2] .ix. [3, 4] |
 
 ### 2. Reading intervals from text
 
 From tests/numbers.cpp (numbers).
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 019 | `interval("0.1")` | — | ∅ | [0.09999999999999999, 0.1] | exception interval_io_exception | [0, 0.2] | [0.1] | not an interval literal (9.7.4): ∅, unless the implementation extends the literals (9.7.1), as GAOL does; Solaris Studio reads 0.1 ± 0.1 |
-| 020 | `interval("[0.1]")` | [0.09999999999999999, 0.1] | [0.09999999999999999, 0.1] ✓ | [0.09999999999999999, 0.1] ✓ | exception interval_io_exception ✗ | [0.09999999999999999, 0.1] ✓ | [0.1] ✗ | filib++: operator>>, which reads [l, u] only, and rounds the bounds to nearest |
-| 021 | `interval("[0.1, 0.3]")` | [0.09999999999999999, 0.30000000000000004] | [0.09999999999999999, 0.30000000000000004] ✓ | [0.09999999999999999, 0.30000000000000004] ✓ | [0.1, 0.3] ✗ | [0.09999999999999999, 0.30000000000000004] ✓ | [0.1, 0.3] ✗ |  |
-| 022 | `interval("[1/3, 0.3]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | rational literal, l > u |
-| 023 | `interval("[0.3, 0.1]")` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | read error, iostat 1211 ✗ | [0.1, 0.3] ✗ | l > u |
-| 024 | `interval("[1e309]")` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | exception interval_io_exception ✗ | [MAX, +∞] ✓ | [+∞] ✗ | the real number 1e309, beyond the doubles |
-| 025 | `interval("[1e-400]")` | [0, 2^-1074] | [−0, 2^-1074] ✓ | [0, 2^-1074] ✓ | exception interval_io_exception ✗ | [0, 2^-1074] ✓ | [0] ✗ |  |
-| 026 | `interval("[1, inf]")` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | a literal of the set-based flavor (10.5.1) |
-| 027 | `interval("[empty]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | ∅ ✓ | not read ✗ | a literal of the set-based flavor (10.5.1); filib++ reads [ EMPTY ] |
-| 028 | `interval("[entire]")` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ |  |
-| 029 | `interval("3.56?1")` | [3.55, 3.5700000000000003] | [3.55, 3.5700000000000003] ✓ | [3.55, 3.5700000000000003] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | uncertain form (9.7.4) |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 019 | `textToInterval("0.1")` | — | ∅ | [0.09999999999999999, 0.1] | [0.09999999999999999, 0.1] | exception interval_io_exception | [0, 0.2] | [0.1] | n/a | not an interval literal (9.7.4): ∅, unless the implementation extends the literals (9.7.1), as GAOL does; Solaris Studio reads 0.1 ± 0.1 |
+| 020 | `textToInterval("[0.1]")` | [0.09999999999999999, 0.1] | [0.09999999999999999, 0.1] ✓ | [0.09999999999999999, 0.1] ✓ | [0.09999999999999999, 0.1] ✓ | exception interval_io_exception ✗ | [0.09999999999999999, 0.1] ✓ | [0.1] ✗ | n/a | filib++: operator>>, which reads [l, u] only, and rounds the bounds to nearest |
+| 021 | `textToInterval("[0.1, 0.3]")` | [0.09999999999999999, 0.30000000000000004] | [0.09999999999999999, 0.30000000000000004] ✓ | [0.09999999999999999, 0.30000000000000004] ✓ | [0.09999999999999999, 0.30000000000000004] ✓ | [0.1, 0.3] ✗ | [0.09999999999999999, 0.30000000000000004] ✓ | [0.1, 0.3] ✗ | n/a |  |
+| 022 | `textToInterval("[1/3, 0.3]")` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | n/a | rational literal, l > u |
+| 023 | `textToInterval("[0.3, 0.1]")` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | read error, iostat 1211 ✗ | [0.1, 0.3] ✗ | n/a | l > u |
+| 024 | `textToInterval("[1e309]")` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | exception interval_io_exception ✗ | [MAX, +∞] ✓ | [+∞] ✗ | n/a | the real number 1e309, beyond the doubles |
+| 025 | `textToInterval("[1e-400]")` | [0, 2^-1074] | [−0, 2^-1074] ✓ | [0, 2^-1074] ✓ | [0, 2^-1074] ✓ | exception interval_io_exception ✗ | [0, 2^-1074] ✓ | [0] ✗ | n/a |  |
+| 026 | `textToInterval("[1, inf]")` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | n/a | a literal of the set-based flavor (10.5.1) |
+| 027 | `textToInterval("[empty]")` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | ∅ ✓ | not read ✗ | n/a | a literal of the set-based flavor (10.5.1); filib++ reads [ EMPTY ] |
+| 028 | `textToInterval("[entire]")` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | n/a |  |
+| 029 | `textToInterval("3.56?1")` | [3.55, 3.5700000000000003] | [3.55, 3.5700000000000003] ✓ | [3.55, 3.5700000000000003] ✓ | [3.55, 3.5700000000000003] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | n/a | uncertain form (9.7.4) |
 
 ### 3. Division by an interval containing zero
 
 From tests/arithmetic.cpp (divisions_by_zero).
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 030 | `[1, 2] / [0, 1]` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 031 | `[1, 2] / [−1, 0]` | [−∞, −1] | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 032 | `[−2, −1] / [0, 1]` | [−∞, −1] | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 033 | `[−2, −1] / [−1, 0]` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 034 | `[1, 2] / [−1, 1]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ |  |
-| 035 | `[−1, 2] / [0, 1]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ |  |
-| 036 | `[0, 2] / [0, 1]` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 037 | `[−2, 0] / [0, 1]` | [−∞, 0] | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 038 | `[0] / [−1, 1]` | [0] | [−0] ✓ | [−0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 039 | `[1, 2] / [0]` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ |  |
-| 040 | `[0] / [0]` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ |  |
-| 041 | `inverse([0, 1])` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ | recip in IEEE 1788, 1/x in filib++ and Solaris Studio |
-| 042 | `inverse([0])` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ |  |
-| 043 | `inverse([−1, 1])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ |  |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 030 | `[1, 2] / [0, 1]` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ | [1, +∞] ✓ |  |
+| 031 | `[1, 2] / [−1, 0]` | [−∞, −1] | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ | [−∞, −1] ✓ |  |
+| 032 | `[−2, −1] / [0, 1]` | [−∞, −1] | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ | [−∞, −1] ✓ |  |
+| 033 | `[−2, −1] / [−1, 0]` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ | [1, +∞] ✓ |  |
+| 034 | `[1, 2] / [−1, 1]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ | [−∞, +∞] ✓ |  |
+| 035 | `[−1, 2] / [0, 1]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ | [−∞, +∞] ✓ |  |
+| 036 | `[0, 2] / [0, 1]` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | BIAS error, abort ✗ | [0, +∞] ✓ |  |
+| 037 | `[−2, 0] / [0, 1]` | [−∞, 0] | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | BIAS error, abort ✗ | [−∞, +∞] ⊃ |  |
+| 038 | `[0] / [−1, 1]` | [0] | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | BIAS error, abort ✗ | [0] ✓ |  |
+| 039 | `[1, 2] / [0]` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 040 | `[0] / [0]` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 041 | `inverse([0, 1])` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ | [1, +∞] ✓ | recip in IEEE 1788, 1/x in filib++ and Solaris Studio |
+| 042 | `inverse([0])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 043 | `inverse([−1, 1])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ | [−∞, +∞] ✓ |  |
 
 ### 4. Relational division (GAOL's %, mulRev of IEEE 1788)
 
 From tests/arithmetic.cpp (divisions_by_zero).
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 044 | `[1, 2] % [0, 1]` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | n/a | n/a | n/a | mul_rev(y, x) in libieeep1788 |
-| 045 | `[1, 2] % [−1, 0]` | [−∞, −1] | [−∞, −1] ✓ | [−∞, −1] ✓ | n/a | n/a | n/a |  |
-| 046 | `[1, 2] % [−1, 1]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | n/a | n/a |  |
-| 047 | `[0] % [−1, 1]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | n/a | n/a |  |
-| 048 | `[−1, 2] % [0]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | n/a | n/a |  |
-| 049 | `[1, 2] % [0]` | ∅ | ∅ ✓ | ∅ ✓ | n/a | n/a | n/a |  |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 044 | `[1, 2] % [0, 1]` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | n/a | n/a | n/a | n/a | mul_rev(y, x) in libieeep1788 |
+| 045 | `[1, 2] % [−1, 0]` | [−∞, −1] | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | n/a | n/a | n/a | n/a |  |
+| 046 | `[1, 2] % [−1, 1]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | n/a | n/a | n/a |  |
+| 047 | `[0] % [−1, 1]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | n/a | n/a | n/a |  |
+| 048 | `[−1, 2] % [0]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | n/a | n/a | n/a |  |
+| 049 | `[1, 2] % [0]` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | n/a | n/a | n/a |  |
 
 ### 5. Products with zero and infinite bounds
 
 From tests/arithmetic.cpp (products_with_infinite_bounds).
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 050 | `[0, 1] * [1, +∞]` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [0, +∞] ✓ |  |
-| 051 | `[−1, 0] * [1, +∞]` | [−∞, 0] | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [−∞, NaN] ✗ |  |
-| 052 | `[0] * [1, +∞]` | [0] | [−0] ✓ | [0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [0, NaN] ✗ |  |
-| 053 | `[0] * [−∞, +∞]` | [0] | [−0] ✓ | [−0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [NaN, NaN] ✗ |  |
-| 054 | `[0, 1] * [−∞, +∞]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
-| 055 | `[1, +∞] * [1, +∞]` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ |  |
-| 056 | `[−∞, −1] * [1, +∞]` | [−∞, −1] | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ |  |
-| 057 | `[−∞, 0] * [−∞, 0]` | [0, +∞] | [−0, +∞] ✓ | [−0, +∞] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [NaN, +∞] ✗ |  |
-| 058 | `[−∞, +∞] * [−∞, +∞]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
-| 059 | `[1, 2] * ∅` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a |  |
-| 060 | `[0, 1] * interval(+∞)` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | [NaN, +∞] ✗ | interval(+∞) is empty |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 050 | `[0, 1] * [1, +∞]` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [0, +∞] ✓ | [0, +∞] ✓ |  |
+| 051 | `[−1, 0] * [1, +∞]` | [−∞, 0] | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [−∞, NaN] ✗ | [−∞, 0] ✓ |  |
+| 052 | `[0] * [1, +∞]` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [0, NaN] ✗ | [0] ✓ |  |
+| 053 | `[0] * [−∞, +∞]` | [0] | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [NaN, NaN] ✗ | [0] ✓ |  |
+| 054 | `[0, 1] * [−∞, +∞]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
+| 055 | `[1, +∞] * [1, +∞]` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ |  |
+| 056 | `[−∞, −1] * [1, +∞]` | [−∞, −1] | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ | [−∞, −1] ✓ |  |
+| 057 | `[−∞, 0] * [−∞, 0]` | [0, +∞] | [−0, +∞] ✓ | [−0, +∞] ✓ | [−0, +∞] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [NaN, +∞] ✗ | [0, +∞] ✓ |  |
+| 058 | `[−∞, +∞] * [−∞, +∞]` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
+| 059 | `[1, 2] * ∅` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 060 | `[0, 1] * interval(+∞)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | [NaN, +∞] ✗ | [NaN, +∞] ✗ | interval(+∞) is empty |
 
 ### 6. Operators of an interval and a double (+=, -=, *=, /=)
 
 From tests/arithmetic.cpp (operations_with_special_doubles).
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 061 | `x = [1, 2]; x += +∞` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | libieeep1788 has neither mixed operators nor op=: x op II(d, d); Solaris Studio: x = x op d |
-| 062 | `x = [1, 2]; x -= +∞` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, −pred(MAX)] ✗ | [−∞, −pred(MAX)] ✗ | [−∞] ✗ |  |
-| 063 | `x = [1, 2]; x *= +∞` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ |  |
-| 064 | `x = [1, 2]; x /= +∞` | ∅ | ∅ ✓ | ∅ ✓ | [0, 1.112536929253601e−308] ✗ | [0, 1.112536929253601e−308] ✗ | [0] ✗ |  |
-| 065 | `x = [0]; x *= +∞` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | [NaN, NaN] ✗ |  |
-| 066 | `x = [0, 1]; x *= −∞` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | [−∞, NaN] ✗ |  |
-| 067 | `x = [1, 2]; x += NaN` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [NaN, NaN] ✗ |  |
-| 068 | `x = [1, 2]; x /= 0` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ |  |
-| 069 | `x = [1, 2]; x /= −0` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ |  |
-| 070 | `x = [−1, 2]; x /= 0` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ |  |
-| 071 | `x = [1, 2]; x %= 0` | ∅ | ∅ ✓ | ∅ ✓ | n/a | n/a | n/a | GAOL's %=, mul_rev in libieeep1788 |
-| 072 | `x = [1, 2]; x += −0` | [1, 2] | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ |  |
-| 073 | `x = [1, 2]; x *= −0` | [0] | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−0] ✓ |  |
-| 074 | `x = [1, +∞]; x *= 0` | [0] | [−0] ✓ | [−0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [0, NaN] ✗ |  |
-| 075 | `x = [−∞, +∞]; x *= 0` | [0] | [−0] ✓ | [−0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [NaN, NaN] ✗ |  |
-| 076 | `x = [1, +∞]; x -= MAX` | [−MAX, +∞] | [−MAX, +∞] ✓ | [−MAX, +∞] ✓ | [−MAX, +∞] ✓ | [−MAX, +∞] ✓ | [−MAX, +∞] ✓ |  |
-| 077 | `x = [MAX]; x += MAX` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
-| 078 | `x = ∅; x += 1` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a |  |
-| 079 | `x = [1, 2]; x += interval(+∞)` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ |  |
-| 080 | `[1, 2] + +∞` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ |  |
-| 081 | `[0, 1] * +∞` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | [NaN, +∞] ✗ |  |
-| 082 | `0 * [1, +∞]` | [0] | [−0] ✓ | [0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [0, NaN] ✗ |  |
-| 083 | `[1, 2] / 0` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ |  |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 061 | `x = [1, 2]; x += +∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | [+∞] ✗ | libieeep1788 has neither mixed operators nor op=: x op II(d, d); Solaris Studio: x = x op d |
+| 062 | `x = [1, 2]; x -= +∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, −pred(MAX)] ✗ | [−∞, −pred(MAX)] ✗ | [−∞] ✗ | [−∞] ✗ |  |
+| 063 | `x = [1, 2]; x *= +∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | [+∞] ✗ |  |
+| 064 | `x = [1, 2]; x /= +∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [0, 1.112536929253601e−308] ✗ | [0, 1.112536929253601e−308] ✗ | [0] ✗ | [0] ✗ |  |
+| 065 | `x = [0]; x *= +∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | [NaN, NaN] ✗ | [NaN, NaN] ✗ |  |
+| 066 | `x = [0, 1]; x *= −∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | [−∞, NaN] ✗ | [−∞, NaN] ✗ |  |
+| 067 | `x = [1, 2]; x += NaN` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [NaN, NaN] ✗ | [NaN, NaN] ✗ |  |
+| 068 | `x = [1, 2]; x /= 0` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 069 | `x = [1, 2]; x /= −0` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 070 | `x = [−1, 2]; x /= 0` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 071 | `x = [1, 2]; x %= 0` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | n/a | n/a | n/a | GAOL's %=, mul_rev in libieeep1788 |
+| 072 | `x = [1, 2]; x += −0` | [1, 2] | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ |  |
+| 073 | `x = [1, 2]; x *= −0` | [0] | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−0] ✓ | [0] ✓ |  |
+| 074 | `x = [1, +∞]; x *= 0` | [0] | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [0, NaN] ✗ | [0] ✓ |  |
+| 075 | `x = [−∞, +∞]; x *= 0` | [0] | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [NaN, NaN] ✗ | [0] ✓ |  |
+| 076 | `x = [1, +∞]; x -= MAX` | [−MAX, +∞] | [−MAX, +∞] ✓ | [−MAX, +∞] ✓ | [−MAX, +∞] ✓ | [−MAX, +∞] ✓ | [−MAX, +∞] ✓ | [−MAX, +∞] ✓ | [−MAX, +∞] ✓ |  |
+| 077 | `x = [MAX]; x += MAX` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
+| 078 | `x = ∅; x += 1` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 079 | `x = [1, 2]; x += interval(+∞)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | [+∞] ✗ |  |
+| 080 | `[1, 2] + +∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | [+∞] ✗ |  |
+| 081 | `[0, 1] * +∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | [NaN, +∞] ✗ | [NaN, +∞] ✗ |  |
+| 082 | `0 * [1, +∞]` | [0] | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [0, NaN] ✗ | [0] ✓ |  |
+| 083 | `[1, 2] / 0` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
 
 ### 7. Elementary functions at the edges of their domains
 
-From tests/elementary.cpp (at_known_intervals), check/.
+From tests/elementary.cpp (at_known_intervals).
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 084 | `sin([1, 2])` | [0.8414709848078965, 1] | [0.8414709848078965, 1] ✓ | [0.8414709848078964, 1] ⊃ | [0.8414709848078953, 1] ⊃ | [0.8414709848078964, 1] ⊃ | [0.8414709848078961, 1] ⊃ |  |
-| 085 | `sin([4, 5])` | [−1, −0.7568024953079282] | [−1, −0.7568024953079282] ✓ | [−1, −0.7568024953079281] ⊃ | [−1, −0.7568024953079271] ⊃ | [−1, −0.7568024953079282] ✓ | [−1, −0.7568024953079276] ⊃ |  |
-| 086 | `sin([0, 7])` | [−1, 1] | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ |  |
-| 087 | `sin([−∞, +∞])` | [−1, 1] | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ |  |
-| 088 | `cos([3, 4])` | [−1, −0.6536436208636118] | [−1, −0.6536436208636118] ✓ | [−1, −0.6536436208636118] ✓ | [−1, −0.653643620863611] ⊃ | [−1, −0.6536436208636118] ✓ | [−1, −0.6536436208636103] ⊃ |  |
-| 089 | `cos([−1, 1])` | [0.5403023058681397, 1] | [0.5403023058681397, 1] ✓ | [0.5403023058681397, 1] ✓ | [0.540302305868139, 1] ⊃ | [0.5403023058681397, 1] ✓ | [0.5403023058681388, 1] ⊃ |  |
-| 090 | `cos([0, 7])` | [−1, 1] | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ |  |
-| 091 | `cos([2^52−1])` | [0.473292885954309, 0.4732928859543091] | [0.473292885954309, 0.4732928859543091] ✓ | [0.473292885954309, 0.47329288595430913] ⊃ | [−1, 1] ⊃ | [0.473292885954309, 0.4732928859543091] ✓ | [−0.7568024953079292, 1] ⊃ | a wrong mathlib gives −0.4855 (see manual) |
-| 092 | `tan([1, 2])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
-| 093 | `tan([−1, 1])` | [−1.5574077246549023, 1.5574077246549023] | [−1.5574077246549023, 1.5574077246549023] ✓ | [−1.5574077246549025, 1.5574077246549025] ⊃ | [−1.5574077246549078, 1.5574077246549078] ⊃ | [−1.5574077246549023, 1.5574077246549023] ✓ | [−1.5574077246549098, 1.5574077246549036] ⊃ |  |
-| 094 | `tan([−∞, +∞])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
-| 095 | `log([−1, 1])` | [−∞, 0] | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | BIAS error, abort ✗ |  |
-| 096 | `log([0, 1])` | [−∞, 0] | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | BIAS error, abort ✗ |  |
-| 097 | `log([−4, 0])` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | BIAS error, abort ✗ | no x > 0 in [−4, 0]: Solaris Studio takes log(0) = −∞ |
-| 098 | `log([0])` | ∅ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | BIAS error, abort ✗ |  |
-| 099 | `log([−2, −1])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ |  |
-| 100 | `log([1, +∞])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | [−2^-1074, +∞] ⊃ |  |
-| 101 | `exp([−∞, 0])` | [0, 1] | [−0, 1] ✓ | [0, 1] ✓ | [0, 1] ✓ | [0, 1] ✓ | [0, 1.0000000000000004] ⊃ |  |
-| 102 | `exp([740])` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [+∞] ✗ |  |
-| 103 | `exp([−800])` | [0, 2^-1074] | [−0, 2^-1074] ✓ | [0, 2^-1074] ✓ | [0, 2.2250738585072014e−308] ⊃ | [0, 2^-1074] ✓ | [0, 2^-1074] ✓ |  |
-| 104 | `exp([−∞, +∞])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ |  |
-| 105 | `exp(∅)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a |  |
-| 106 | `sqrt([−4, 4])` | [0, 2] | [−0, 2] ✓ | [0, 2] ✓ | [−2^-1074, 2.0000000000000004] ⊃ | [−0, 2] ✓ | BIAS error, abort ✗ |  |
-| 107 | `sqrt([−4, −1])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ |  |
-| 108 | `sqrt([−∞, +∞])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [−2^-1074, +∞] ⊃ | [−0, +∞] ✓ | BIAS error, abort ✗ |  |
-| 109 | `sqr([−∞, +∞])` | [0, +∞] | [−0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ | x**2 in Solaris Studio |
-| 110 | `sqr([−∞, −MAX])` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
-| 111 | `asin([−2, 2])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.570796326794901, 1.570796326794901] ⊃ | [−1.5707963267948968, 1.5707963267948968] ✓ | BIAS error, abort ✗ |  |
-| 112 | `asin([2, 3])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ |  |
-| 113 | `acos([−2, 2])` | [0, 3.1415926535897936] | [−0, 3.1415926535897936] ✓ | [0, 3.1415926535897936] ✓ | [0, 3.141592653589802] ⊃ | [−0, 3.1415926535897936] ✓ | BIAS error, abort ✗ |  |
-| 114 | `acos([1, 3])` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | [−0] ✓ | BIAS error, abort ✗ |  |
-| 115 | `acos([−3, −1])` | [3.141592653589793, 3.1415926535897936] | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589785, 3.141592653589802] ⊃ | [3.141592653589793, 3.1415926535897936] ✓ | BIAS error, abort ✗ |  |
-| 116 | `acos([−3, −2])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ |  |
-| 117 | `atan([−∞, +∞])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267949, 1.5707963267949] ⊃ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948972, 1.5707963267948972] ⊃ |  |
-| 118 | `sinh([−∞, +∞])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ |  |
-| 119 | `cosh([−∞, +∞])` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | BIAS error, abort ✗ |  |
-| 120 | `tanh([−∞, +∞])` | [−1, 1] | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | BIAS error, abort ✗ |  |
-| 121 | `asinh([−∞, +∞])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | [NaN, +∞] ✗ | Solaris Studio has no asinh, acosh, atanh |
-| 122 | `acosh([0, 1])` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | n/a | BIAS error, abort ✗ |  |
-| 123 | `acosh([−1, 0.5])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | BIAS error, abort ✗ |  |
-| 124 | `atanh([−1, 1])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | BIAS error, abort ✗ |  |
-| 125 | `atanh([2, 3])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | BIAS error, abort ✗ |  |
-| 126 | `abs([−∞, −1])` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ |  |
-| 127 | `abs([−∞, 1])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ |  |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 084 | `sin([1, 2])` | [0.8414709848078965, 1] | [0.8414709848078965, 1] ✓ | [0.8414709848078965, 1] ✓ | [0.8414709848078965, 1] ✓ | [0.8414709848078953, 1] ⊃ | [0.8414709848078964, 1] ⊃ | [0.8414709848078961, 1] ⊃ | [0.8414709848078957, 1] ⊃ |  |
+| 085 | `sin([4, 5])` | [−1, −0.7568024953079282] | [−1, −0.7568024953079282] ✓ | [−1, −0.7568024953079282] ✓ | [−1, −0.7568024953079282] ✓ | [−1, −0.7568024953079271] ⊃ | [−1, −0.7568024953079282] ✓ | [−1, −0.7568024953079276] ⊃ | [−1, −0.756802495307928] ⊃ |  |
+| 086 | `sin([0, 7])` | [−1, 1] | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ |  |
+| 087 | `sin([−∞, +∞])` | [−1, 1] | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ |  |
+| 088 | `cos([3, 4])` | [−1, −0.6536436208636118] | [−1, −0.6536436208636118] ✓ | [−1, −0.6536436208636118] ✓ | [−1, −0.6536436208636118] ✓ | [−1, −0.653643620863611] ⊃ | [−1, −0.6536436208636118] ✓ | [−1, −0.6536436208636103] ⊃ | [−1, −0.6536436208636117] ⊃ |  |
+| 089 | `cos([−1, 1])` | [0.5403023058681397, 1] | [0.5403023058681397, 1] ✓ | [0.5403023058681397, 1] ✓ | [0.5403023058681397, 1] ✓ | [0.540302305868139, 1] ⊃ | [0.5403023058681397, 1] ✓ | [0.5403023058681388, 1] ⊃ | [0.5403023058681389, 1] ⊃ |  |
+| 090 | `cos([0, 7])` | [−1, 1] | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ |  |
+| 091 | `cos([2^52−1])` | [0.473292885954309, 0.4732928859543091] | [0.473292885954309, 0.4732928859543091] ✓ | [0.473292885954309, 0.4732928859543091] ✓ | [0.473292885954309, 0.4732928859543091] ✓ | [−1, 1] ⊃ | [0.473292885954309, 0.4732928859543091] ✓ | [−0.7568024953079292, 1] ⊃ | [0.0707372016677029, 0.8775825618903728] ⊃ |  |
+| 092 | `tan([1, 2])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
+| 093 | `tan([−1, 1])` | [−1.5574077246549023, 1.5574077246549023] | [−1.5574077246549023, 1.5574077246549023] ✓ | [−1.5574077246549023, 1.5574077246549023] ✓ | [−1.5574077246549023, 1.5574077246549023] ✓ | [−1.5574077246549078, 1.5574077246549078] ⊃ | [−1.5574077246549023, 1.5574077246549023] ✓ | [−1.5574077246549098, 1.5574077246549036] ⊃ | [−1.5574077246549038, 1.5574077246549052] ⊃ |  |
+| 094 | `tan([−∞, +∞])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ |  |
+| 095 | `log([−1, 1])` | [−∞, 0] | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | BIAS error, abort ✗ | [−∞, 0] ✓ |  |
+| 096 | `log([0, 1])` | [−∞, 0] | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | [−∞, 0] ✓ | BIAS error, abort ✗ | [−∞, 0] ✓ |  |
+| 097 | `log([−4, 0])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ | no x > 0 in [−4, 0]: Solaris Studio takes log(0) = −∞ |
+| 098 | `log([0])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | [−∞, −MAX] ✗ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 099 | `log([−2, −1])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 100 | `log([1, +∞])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | [−2^-1074, +∞] ⊃ | [0, +∞] ✓ |  |
+| 101 | `exp([−∞, 0])` | [0, 1] | [−0, 1] ✓ | [0, 1] ✓ | [0, 1] ✓ | [0, 1] ✓ | [0, 1] ✓ | [0, 1.0000000000000004] ⊃ | [0, 1] ✓ |  |
+| 102 | `exp([740])` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [+∞] ✗ | [MAX, +∞] ✓ |  |
+| 103 | `exp([−800])` | [0, 2^-1074] | [−0, 2^-1074] ✓ | [0, 2^-1074] ✓ | [0, 2^-1074] ✓ | [0, 2.2250738585072014e−308] ⊃ | [0, 2^-1074] ✓ | [0, 2^-1074] ✓ | [0, 2^-1074] ✓ |  |
+| 104 | `exp([−∞, +∞])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ |  |
+| 105 | `exp(∅)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 106 | `sqrt([−4, 4])` | [0, 2] | [−0, 2] ✓ | [0, 2] ✓ | [0, 2] ✓ | [−2^-1074, 2.0000000000000004] ⊃ | [−0, 2] ✓ | BIAS error, abort ✗ | [0, 2] ✓ |  |
+| 107 | `sqrt([−4, −1])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 108 | `sqrt([−∞, +∞])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−2^-1074, +∞] ⊃ | [−0, +∞] ✓ | BIAS error, abort ✗ | [0, +∞] ✓ |  |
+| 109 | `sqr([−∞, +∞])` | [0, +∞] | [−0, +∞] ✓ | [−0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | x**2 in Solaris Studio |
+| 110 | `sqr([−∞, −MAX])` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
+| 111 | `asin([−2, 2])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.570796326794901, 1.570796326794901] ⊃ | [−1.5707963267948968, 1.5707963267948968] ✓ | BIAS error, abort ✗ | [−1.5707963267948968, 1.5707963267948968] ✓ |  |
+| 112 | `asin([2, 3])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 113 | `acos([−2, 2])` | [0, 3.1415926535897936] | [−0, 3.1415926535897936] ✓ | [0, 3.1415926535897936] ✓ | [0, 3.1415926535897936] ✓ | [0, 3.141592653589802] ⊃ | [−0, 3.1415926535897936] ✓ | BIAS error, abort ✗ | [0, 3.1415926535897936] ✓ |  |
+| 114 | `acos([1, 3])` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | [0] ✓ | [−0] ✓ | BIAS error, abort ✗ | [0] ✓ |  |
+| 115 | `acos([−3, −1])` | [3.141592653589793, 3.1415926535897936] | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589785, 3.141592653589802] ⊃ | [3.141592653589793, 3.1415926535897936] ✓ | BIAS error, abort ✗ | [3.141592653589793, 3.1415926535897936] ✓ |  |
+| 116 | `acos([−3, −2])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 117 | `atan([−∞, +∞])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267949, 1.5707963267949] ⊃ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948972, 1.5707963267948972] ⊃ | [−1.5707963267948966, 1.5707963267948966] ✗ |  |
+| 118 | `sinh([−∞, +∞])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ | [−∞, +∞] ✓ |  |
+| 119 | `cosh([−∞, +∞])` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | BIAS error, abort ✗ | [1, +∞] ✓ |  |
+| 120 | `tanh([−∞, +∞])` | [−1, 1] | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | [−1, 1] ✓ | BIAS error, abort ✗ | [−1, 1] ✓ |  |
+| 121 | `asinh([−∞, +∞])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | [NaN, +∞] ✗ | [−∞, +∞] ✓ | Solaris Studio has no asinh, acosh, atanh |
+| 122 | `acosh([0, 1])` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | [0] ✓ | n/a | BIAS error, abort ✗ | [0] ✓ |  |
+| 123 | `acosh([−1, 0.5])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 124 | `atanh([−1, 1])` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | BIAS error, abort ✗ | [−∞, +∞] ✓ |  |
+| 125 | `atanh([2, 3])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 126 | `atanh([1])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | n/a | BIAS error, abort ✗ | [+∞] ✗ | atanh is defined on (−1, 1) only (Table 9.1): its limits at ±1 are no values |
+| 127 | `atanh([−1])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, −MAX] ✗ | n/a | BIAS error, abort ✗ | [−∞] ✗ |  |
+| 128 | `abs([−∞, −1])` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ |  |
+| 129 | `abs([−∞, 1])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ |  |
 
 ### 8. Integer powers (GAOL's pow(x, n), pown of IEEE 1788, filib++'s power(x, n), x**n of Fortran)
 
-From check/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp.
+From tests/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp.
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 128 | `pow([0], 0)` | [1] | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | pown(x, 0) = 1 for every x (Table 9.1, b) |
-| 129 | `pow(∅, 0)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a |  |
-| 130 | `pow([−∞, +∞], 0)` | [1] | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ |  |
-| 131 | `pow([−3, 5], 2)` | [0, 25] | [−0, 25] ✓ | [−0, 25] ✓ | [0, 25] ✓ | [−0, 25] ✓ | [0, 25] ✓ |  |
-| 132 | `pow([−2, 3], 3)` | [−8, 27] | [−8, 27] ✓ | [−8, 27] ✓ | [−8, 27] ✓ | [−8.000000000000002, 27.000000000000004] ⊃ | [−18, 27] ⊃ |  |
-| 133 | `pow([−3, 2], −1)` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ |  |
-| 134 | `pow([−3, 2], −2)` | [0.1111111111111111, +∞] | [0.1111111111111111, +∞] ✓ | [0.1111111111111111, +∞] ✓ | [0, +∞] ⊃ | [0.11111111111111109, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 135 | `pow([−3, 2], −3)` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ |  |
-| 136 | `pow([−3, −2], −3)` | [−0.125, −0.037037037037037035] | [−0.125, −0.037037037037037035] ✓ | [−0.125, −0.037037037037037035] ✓ | [−0.125, −0.037037037037037035] ✓ | [−0.12500000000000003, −0.03703703703703703] ⊃ | [−0.125, −0.037037037037037035] ✓ |  |
-| 137 | `pow([2, 3], −4)` | [0.012345679012345678, 0.0625] | [0.012345679012345678, 0.0625] ✓ | [0.012345679012345678, 0.0625] ✓ | [0.012345679012345678, 0.0625] ✓ | [0.012345679012345677, 0.06250000000000001] ⊃ | [0.012345679012345678, 0.0625] ✓ |  |
-| 138 | `pow([0], −1)` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ | pown(0, p) has no value for p < 0 |
-| 139 | `pow([0, 2], −1)` | [0.5, +∞] | [0.5, +∞] ✓ | [0.5, +∞] ✓ | [0.5, +∞] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 140 | `pow([−2, 0], −1)` | [−∞, −0.5] | [−∞, −0.5] ✓ | [−∞, −0.5] ✓ | [−∞, −0.5] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 141 | `pow([−2, 0], −2)` | [0.25, +∞] | [0.25, +∞] ✓ | [0.25, +∞] ✓ | [0, +∞] ⊃ | [0.24999999999999997, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 142 | `pow([0, +∞], −2)` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | BIAS error, abort ✗ |  |
-| 143 | `pow([−∞, −MAX], 3)` | [−∞, −MAX] | [−∞, −MAX] ✓ | [−∞, −MAX] ✓ | [−∞, −MAX] ✓ | [−∞, −MAX] ✓ | [−∞, −MAX] ✓ |  |
-| 144 | `pow([−∞, −MAX], 4)` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
-| 145 | `pow([MAX, +∞], 3)` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
-| 146 | `pow([−15], 17)` | [−9.852612533569336e+19, −9.852612533569334e+19] | [−9.852612533569336e+19, −9.852612533569334e+19] ✓ | [−9.852612533569336e+19, −9.852612533569334e+19] ✓ | [−9.852612533569338e+19, −9.852612533569334e+19] ⊃ | [−9.852612533569338e+19, −9.852612533569334e+19] ⊃ | [−9.852612533569338e+19, −9.852612533569334e+19] ⊃ |  |
-| 147 | `pow([10], 400)` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
-| 148 | `pow([10], −400)` | [0, 2^-1074] | [−0, 2^-1074] ✓ | [0, 2^-1074] ✓ | [0, 5.56268464626801e−309] ⊃ | [−0, 2^-1074] ✓ | [0, 5.56268464626801e−309] ⊃ |  |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 130 | `pow([0], 0)` | [1] | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | exception: boost::interval: empty interval created ✗ | pown(x, 0) = 1 for every x (Table 9.1, b) |
+| 131 | `pow(∅, 0)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 132 | `pow([−∞, +∞], 0)` | [1] | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ |  |
+| 133 | `pow([−3, 5], 2)` | [0, 25] | [−0, 25] ✓ | [−0, 25] ✓ | [−0, 25] ✓ | [0, 25] ✓ | [−0, 25] ✓ | [0, 25] ✓ | [0, 25] ✓ |  |
+| 134 | `pow([−2, 3], 3)` | [−8, 27] | [−8, 27] ✓ | [−8, 27] ✓ | [−8, 27] ✓ | [−8, 27] ✓ | [−8.000000000000002, 27.000000000000004] ⊃ | [−18, 27] ⊃ | [−8, 27] ✓ |  |
+| 135 | `pow([−3, 2], −1)` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ | [−∞, +∞] ✓ |  |
+| 136 | `pow([−3, 2], −2)` | [0.1111111111111111, +∞] | [0.1111111111111111, +∞] ✓ | [0.1111111111111111, +∞] ✓ | [0.1111111111111111, +∞] ✓ | [0, +∞] ⊃ | [0.11111111111111109, +∞] ⊃ | BIAS error, abort ✗ | [0.1111111111111111, +∞] ✓ |  |
+| 137 | `pow([−3, 2], −3)` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | BIAS error, abort ✗ | [−∞, +∞] ✓ |  |
+| 138 | `pow([−3, −2], −3)` | [−0.125, −0.037037037037037035] | [−0.125, −0.037037037037037035] ✓ | [−0.125, −0.037037037037037035] ✓ | [−0.125, −0.037037037037037035] ✓ | [−0.125, −0.037037037037037035] ✓ | [−0.12500000000000003, −0.03703703703703703] ⊃ | [−0.125, −0.037037037037037035] ✓ | [−0.125, −0.037037037037037035] ✓ |  |
+| 139 | `pow([2, 3], −4)` | [0.012345679012345678, 0.0625] | [0.012345679012345678, 0.0625] ✓ | [0.012345679012345678, 0.0625] ✓ | [0.012345679012345678, 0.0625] ✓ | [0.012345679012345678, 0.0625] ✓ | [0.012345679012345677, 0.06250000000000001] ⊃ | [0.012345679012345678, 0.0625] ✓ | [0.012345679012345678, 0.0625] ✓ |  |
+| 140 | `pow([0], −1)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ | pown(0, p) has no value for p < 0 |
+| 141 | `pow([0, 2], −1)` | [0.5, +∞] | [0.5, +∞] ✓ | [0.5, +∞] ✓ | [0.5, +∞] ✓ | [0.5, +∞] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ | [0.5, +∞] ✓ |  |
+| 142 | `pow([−2, 0], −1)` | [−∞, −0.5] | [−∞, −0.5] ✓ | [−∞, −0.5] ✓ | [−∞, −0.5] ✓ | [−∞, −0.5] ✓ | [−∞, +∞] ⊃ | BIAS error, abort ✗ | [−∞, −0.5] ✓ |  |
+| 143 | `pow([−2, 0], −2)` | [0.25, +∞] | [0.25, +∞] ✓ | [0.25, +∞] ✓ | [0.25, +∞] ✓ | [0, +∞] ⊃ | [0.24999999999999997, +∞] ⊃ | BIAS error, abort ✗ | [0.25, +∞] ✓ |  |
+| 144 | `pow([0, +∞], −2)` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | BIAS error, abort ✗ | [0, +∞] ✓ |  |
+| 145 | `pow([−∞, −MAX], 3)` | [−∞, −MAX] | [−∞, −MAX] ✓ | [−∞, −MAX] ✓ | [−∞, −MAX] ✓ | [−∞, −MAX] ✓ | [−∞, −MAX] ✓ | [−∞, −MAX] ✓ | [−∞, −MAX] ✓ |  |
+| 146 | `pow([−∞, −MAX], 4)` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
+| 147 | `pow([MAX, +∞], 3)` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
+| 148 | `pow([−15], 17)` | [−9.852612533569336e+19, −9.852612533569334e+19] | [−9.852612533569336e+19, −9.852612533569334e+19] ✓ | [−9.852612533569336e+19, −9.852612533569334e+19] ✓ | [−9.852612533569336e+19, −9.852612533569334e+19] ✓ | [−9.852612533569338e+19, −9.852612533569334e+19] ⊃ | [−9.852612533569338e+19, −9.852612533569334e+19] ⊃ | [−9.852612533569338e+19, −9.852612533569334e+19] ⊃ | [−9.852612533569338e+19, −9.852612533569334e+19] ⊃ |  |
+| 149 | `pow([10], 400)` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ |  |
+| 150 | `pow([10], −400)` | [0, 2^-1074] | [−0, 2^-1074] ✓ | [0, 2^-1074] ✓ | [0, 2^-1074] ✓ | [0, 5.56268464626801e−309] ⊃ | [−0, 2^-1074] ✓ | [0, 5.56268464626801e−309] ⊃ | [0, 5.56268464626801e−309] ⊃ |  |
 
 ### 9. Real powers (GAOL's pow(x, d) and pow(x, y), pow of IEEE 1788 and of filib++, x**y of Fortran)
 
 From tests/elementary.cpp (powers).
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 149 | `pow([4], 0.5)` | [2] | [2] ✓ | [1.9999999999999998, 2.0000000000000004] ⊃ | [1.9999999999999978, 2.0000000000000036] ⊃ | [2] ✓ | [1.9999999999999984, 2.0000000000000013] ⊃ | libieeep1788 and filib++: pow(x, [d]) |
-| 150 | `pow([4], 1.5)` | [8] | [8] ✓ | [7.999999999999999, 8.000000000000002] ⊃ | [7.999999999999982, 8.000000000000028] ⊃ | [7.999999999999999, 8.000000000000002] ⊃ | [7.999999999999988, 8.000000000000012] ⊃ |  |
-| 151 | `pow([4, 9], 0.5)` | [2, 3] | [2, 3] ✓ | [1.9999999999999998, 3.0000000000000004] ⊃ | [1.9999999999999978, 3.000000000000007] ⊃ | [2, 3] ✓ | [1.9999999999999984, 3.000000000000003] ⊃ |  |
-| 152 | `pow([4], −0.5)` | [0.5] | [0.5] ✓ | [0.49999999999999994, 0.5000000000000001] ⊃ | [0.4999999999999993, 0.5000000000000008] ⊃ | [0.49999999999999994, 0.5000000000000001] ⊃ | [0.4999999999999996, 0.5000000000000004] ⊃ |  |
-| 153 | `pow([0, 4], 0.5)` | [0, 2] | [−0, 2] ✓ | [0, 2.0000000000000004] ⊃ | [0, 2.0000000000000036] ⊃ | [−0, 2] ✓ | [0, 2.0000000000000013] ⊃ |  |
-| 154 | `pow([−4, 9], 0.5)` | [0, 3] | [−0, 3] ✓ | [0, 3.0000000000000004] ⊃ | [0, 3.000000000000007] ⊃ | [−0, 3] ✓ | BIAS error, abort ✗ |  |
-| 155 | `pow([−2, 3], [1, 2])` | [0, 9] | [−0, 9] ✓ | [0, 9.000000000000002] ⊃ | [0, 9.000000000000032] ⊃ | [−0, 9] ✓ | BIAS error, abort ✗ |  |
-| 156 | `pow([−10, 10], −2)` | [0.009999999999999998, +∞] | [0.009999999999999998, +∞] ✓ | [0.009999999999999998, +∞] ✓ | [0.009999999999999936, +∞] ⊃ | [0.009999999999999998, +∞] ✓ | BIAS error, abort ✗ |  |
-| 157 | `pow([−2, 3], 3)` | [0, 27] | [−0, 27] ✓ | [−8, 27] ⊃ | [0, 27.000000000000124] ⊃ | [−0, 27.000000000000004] ⊃ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only |
-| 158 | `pow([−2], 2)` | ∅ | ∅ ✓ | [4] ✗ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only |
-| 159 | `pow([2, 3], 4)` | [16, 81] | [16, 81] ✓ | [16, 81] ✓ | [15.99999999999996, 81.00000000000047] ⊃ | [15.999999999999998, 81.00000000000001] ⊃ | [15.99999999999997, 81.00000000000021] ⊃ |  |
-| 160 | `pow([4], 0)` | [1] | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [0.9999999999999996, 1.0000000000000004] ⊃ |  |
-| 161 | `pow([−2, 3], [3])` | [0, 27] | [−0, 27] ✓ | [−8, 27] ⊃ | [0, 27.000000000000124] ⊃ | [−0, 27.000000000000004] ⊃ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only |
-| 162 | `pow([−2, 3], [2])` | [0, 9] | [−0, 9] ✓ | [−0, 9] ✓ | [0, 9.000000000000032] ⊃ | [−0, 9] ✓ | BIAS error, abort ✗ |  |
-| 163 | `pow([3, 4], [2, 3])` | [9, 64] | [9, 64] ✓ | [8.999999999999998, 64.00000000000001] ⊃ | [8.999999999999984, 64.00000000000038] ⊃ | [9, 64.00000000000001] ⊃ | [8.99999999999999, 64.00000000000017] ⊃ |  |
-| 164 | `pow([−4, −1], 0.5)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ |  |
-| 165 | `pow([−4, −1], [0.5])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ |  |
-| 166 | `pow([4], +∞)` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | the exponent interval(+∞) is empty |
-| 167 | `pow([4], −∞)` | ∅ | ∅ ✓ | ∅ ✓ | [0, 2.2250738585072014e−308] ✗ | [−0, 2^-1074] ✗ | [0, 2^-1074] ✗ |  |
-| 168 | `pow([4], NaN)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−0, +∞] ✗ | [NaN, NaN] ✗ |  |
-| 169 | `pow([4], interval(+∞))` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ |  |
-| 170 | `pow([4], interval(−∞))` | ∅ | ∅ ✓ | ∅ ✓ | [0, 2.2250738585072014e−308] ✗ | [−0, 2^-1074] ✗ | [0, 2^-1074] ✗ |  |
-| 171 | `pow(∅, 1.5)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a |  |
-| 172 | `pow([4], ∅)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a |  |
-| 173 | `pow([−2, −1], [1e10])` | ∅ | ∅ ✓ | [−∞, +∞] ✗ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | GAOL: pown, [−∞, +∞] for an integer beyond the ints |
-| 174 | `pow([2, 3], [2^31])` | [MAX, +∞] | [MAX, +∞] ✓ | [−∞, +∞] ⊃ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [+∞] ✗ | GAOL: [−∞, +∞] for an integer beyond the ints |
-| 175 | `pow([0.25, 0.5], [−(2^31+1)])` | [MAX, +∞] | [MAX, +∞] ✓ | [−∞, +∞] ⊃ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [+∞] ✗ |  |
-| 176 | `pow([−2, 3], 1e10)` | [0, +∞] | [−0, +∞] ✓ | [−∞, +∞] ⊃ | [0, +∞] ✓ | [−0, +∞] ✓ | BIAS error, abort ✗ |  |
-| 177 | `pow(∅, [1e10])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a |  |
-| 178 | `pow([−1], [2^31−1])` | ∅ | ∅ ✓ | [−1] ✗ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only |
-| 179 | `pow([0], [0])` | ∅ | ∅ ✓ | [1] ✗ | [0, +∞] ✗ | [−0, +∞] ✗ | BIAS error, abort ✗ | pow(0, y) has no value for y ≤ 0 (Table 9.1, c); GAOL: pown(0, 0) = 1 |
-| 180 | `pow([0], 0)` | ∅ | ∅ ✓ | [1] ✗ | [0, +∞] ✗ | [−0, +∞] ✗ | BIAS error, abort ✗ |  |
-| 181 | `pow([−∞, +∞], [0])` | [1] | [1] ✓ | [1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 182 | `pow([0, 2], [−1])` | [0.5, +∞] | [0.5, +∞] ✓ | [0.5, +∞] ✓ | [0.4999999999999993, +∞] ⊃ | [0.5, +∞] ✓ | BIAS error, abort ✗ |  |
-| 183 | `pow([−2, 0], [−1])` | ∅ | ∅ ✓ | [−∞, −0.5] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | BIAS error, abort ✗ | GAOL: pown for an integer exponent (choice of the fork), IEEE 1788's pow: x > 0 only |
-| 184 | `pow([0], [0.5])` | [0] | [−0] ✓ | [−0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | [0] ✓ | pow(0, y) = 0 for y > 0 |
-| 185 | `pow([0], 0.5)` | [0] | [−0] ✓ | [−0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | [0] ✓ |  |
-| 186 | `pow([−2, 0], [2.5])` | [0] | [−0] ✓ | [−0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | BIAS error, abort ✗ |  |
-| 187 | `pow([0], [0, 1])` | [0] | [−0] ✓ | [−0] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 188 | `pow([0], [−1, 1])` | [0] | [−0] ✓ | [−0] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ |  |
-| 189 | `pow([0], [−1])` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [+∞] ✗ | BIAS error, abort ✗ |  |
-| 190 | `pow([0], [−0.5])` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | BIAS error, abort ✗ |  |
-| 191 | `pow([0], −0.5)` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | BIAS error, abort ✗ |  |
-| 192 | `pow([−2, 0], [−0.5])` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | BIAS error, abort ✗ |  |
-| 193 | `pow([0], [−1, 0])` | ∅ | ∅ ✓ | ∅ ✓ | [0, +∞] ✗ | [−0, +∞] ✗ | BIAS error, abort ✗ |  |
-| 194 | `pow([0.5], [−∞, +∞])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ |  |
-| 195 | `pow([1], [−∞, +∞])` | [1] | [1] ✓ | [1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | [0, +∞] ⊃ |  |
-| 196 | `pow([0, 1], [1, +∞])` | [0, 1] | [−0, 1] ✓ | [0, 1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | [0, +∞] ⊃ |  |
-| 197 | `pow([2, +∞], [−1, 1])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ |  |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 151 | `pow([4], 0.5)` | [2] | [2] ✓ | [2] ✓ | [2] ✓ | [1.9999999999999978, 2.0000000000000036] ⊃ | [2] ✓ | [1.9999999999999984, 2.0000000000000013] ⊃ | n/a | libieeep1788 and filib++: pow(x, [d]) |
+| 152 | `pow([4], 1.5)` | [8] | [8] ✓ | [8] ✓ | [8] ✓ | [7.999999999999982, 8.000000000000028] ⊃ | [7.999999999999999, 8.000000000000002] ⊃ | [7.999999999999988, 8.000000000000012] ⊃ | n/a |  |
+| 153 | `pow([4, 9], 0.5)` | [2, 3] | [2, 3] ✓ | [2, 3] ✓ | [2, 3] ✓ | [1.9999999999999978, 3.000000000000007] ⊃ | [2, 3] ✓ | [1.9999999999999984, 3.000000000000003] ⊃ | n/a |  |
+| 154 | `pow([4], −0.5)` | [0.5] | [0.5] ✓ | [0.5] ✓ | [0.5] ✓ | [0.4999999999999993, 0.5000000000000008] ⊃ | [0.49999999999999994, 0.5000000000000001] ⊃ | [0.4999999999999996, 0.5000000000000004] ⊃ | n/a |  |
+| 155 | `pow([0, 4], 0.5)` | [0, 2] | [−0, 2] ✓ | [0, 2] ✓ | [0, 2] ✓ | [0, 2.0000000000000036] ⊃ | [−0, 2] ✓ | [0, 2.0000000000000013] ⊃ | n/a |  |
+| 156 | `pow([−4, 9], 0.5)` | [0, 3] | [−0, 3] ✓ | [0, 3] ✓ | [0, 3] ✓ | [0, 3.000000000000007] ⊃ | [−0, 3] ✓ | BIAS error, abort ✗ | n/a |  |
+| 157 | `pow([−2, 3], [1, 2])` | [0, 9] | [−0, 9] ✓ | [0, 9] ✓ | [0, 9] ✓ | [0, 9.000000000000032] ⊃ | [−0, 9] ✓ | BIAS error, abort ✗ | n/a |  |
+| 158 | `pow([−10, 10], −2)` | [0.009999999999999998, +∞] | [0.009999999999999998, +∞] ✓ | [0.009999999999999998, +∞] ✓ | [0.009999999999999998, +∞] ✓ | [0.009999999999999936, +∞] ⊃ | [0.009999999999999998, +∞] ✓ | BIAS error, abort ✗ | n/a |  |
+| 159 | `pow([−2, 3], 3)` | [0, 27] | [−0, 27] ✓ | [−8, 27] ⊃ | [−0, 27] ✓ | [0, 27.000000000000124] ⊃ | [−0, 27.000000000000004] ⊃ | BIAS error, abort ✗ | n/a | `gaol`: pown for an integer exponent (GAOL's choice), the pow of IEEE 1788 in `gaol_ieee1788`: x > 0 only |
+| 160 | `pow([−2], 2)` | ∅ | ∅ ✓ | [4] ✗ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | n/a | `gaol`: pown for an integer exponent (GAOL's choice), the pow of IEEE 1788 in `gaol_ieee1788`: x > 0 only |
+| 161 | `pow([2, 3], 4)` | [16, 81] | [16, 81] ✓ | [16, 81] ✓ | [16, 81] ✓ | [15.99999999999996, 81.00000000000047] ⊃ | [15.999999999999998, 81.00000000000001] ⊃ | [15.99999999999997, 81.00000000000021] ⊃ | n/a |  |
+| 162 | `pow([4], 0)` | [1] | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [1] ✓ | [0.9999999999999996, 1.0000000000000004] ⊃ | n/a |  |
+| 163 | `pow([−2, 3], [3])` | [0, 27] | [−0, 27] ✓ | [−8, 27] ⊃ | [−0, 27] ✓ | [0, 27.000000000000124] ⊃ | [−0, 27.000000000000004] ⊃ | BIAS error, abort ✗ | n/a | `gaol`: pown for an integer exponent (GAOL's choice), the pow of IEEE 1788 in `gaol_ieee1788`: x > 0 only |
+| 164 | `pow([−2, 3], [2])` | [0, 9] | [−0, 9] ✓ | [−0, 9] ✓ | [0, 9] ✓ | [0, 9.000000000000032] ⊃ | [−0, 9] ✓ | BIAS error, abort ✗ | n/a |  |
+| 165 | `pow([3, 4], [2, 3])` | [9, 64] | [9, 64] ✓ | [9, 64] ✓ | [9, 64] ✓ | [8.999999999999984, 64.00000000000038] ⊃ | [9, 64.00000000000001] ⊃ | [8.99999999999999, 64.00000000000017] ⊃ | n/a |  |
+| 166 | `pow([−4, −1], 0.5)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | n/a |  |
+| 167 | `pow([−4, −1], [0.5])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | n/a |  |
+| 168 | `pow([4], +∞)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | n/a | the exponent interval(+∞) is empty |
+| 169 | `pow([4], −∞)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [0, 2.2250738585072014e−308] ✗ | [−0, 2^-1074] ✗ | [0, 2^-1074] ✗ | n/a |  |
+| 170 | `pow([4], NaN)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−0, +∞] ✗ | [NaN, NaN] ✗ | n/a |  |
+| 171 | `pow([4], interval(+∞))` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | n/a |  |
+| 172 | `pow([4], interval(−∞))` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [0, 2.2250738585072014e−308] ✗ | [−0, 2^-1074] ✗ | [0, 2^-1074] ✗ | n/a |  |
+| 173 | `pow(∅, 1.5)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | n/a |  |
+| 174 | `pow([4], ∅)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | n/a |  |
+| 175 | `pow([−2, −1], [1e10])` | ∅ | ∅ ✓ | [1, +∞] ✗ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | n/a | `gaol`: pown, beyond the ints too (GAOL v5: [−∞, +∞] there) |
+| 176 | `pow([2, 3], [2^31])` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [+∞] ✗ | n/a |  |
+| 177 | `pow([0.25, 0.5], [−(2^31+1)])` | [MAX, +∞] | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [MAX, +∞] ✓ | [+∞] ✗ | n/a |  |
+| 178 | `pow([−2, 3], 1e10)` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | BIAS error, abort ✗ | n/a |  |
+| 179 | `pow(∅, [1e10])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | n/a |  |
+| 180 | `pow([−1], [2^31−1])` | ∅ | ∅ ✓ | [−1] ✗ | ∅ ✓ | ∅ ✓ | ∅ ✓ | BIAS error, abort ✗ | n/a | `gaol`: pown for an integer exponent (GAOL's choice), the pow of IEEE 1788 in `gaol_ieee1788`: x > 0 only |
+| 181 | `pow([0], [0])` | ∅ | ∅ ✓ | [1] ✗ | ∅ ✓ | [0, +∞] ✗ | [−0, +∞] ✗ | BIAS error, abort ✗ | n/a | pow(0, y) has no value for y ≤ 0 (Table 9.1, c); `gaol`: pown(0, 0) = 1 |
+| 182 | `pow([0], 0)` | ∅ | ∅ ✓ | [1] ✗ | ∅ ✓ | [0, +∞] ✗ | [−0, +∞] ✗ | BIAS error, abort ✗ | n/a |  |
+| 183 | `pow([−∞, +∞], [0])` | [1] | [1] ✓ | [1] ✓ | [1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ | n/a |  |
+| 184 | `pow([0, 2], [−1])` | [0.5, +∞] | [0.5, +∞] ✓ | [0.5, +∞] ✓ | [0.5, +∞] ✓ | [0.4999999999999993, +∞] ⊃ | [0.5, +∞] ✓ | BIAS error, abort ✗ | n/a |  |
+| 185 | `pow([−2, 0], [−1])` | ∅ | ∅ ✓ | [−∞, −0.5] ✗ | ∅ ✓ | [MAX, +∞] ✗ | [+∞] ✗ | BIAS error, abort ✗ | n/a | `gaol`: pown for an integer exponent (GAOL's choice), the pow of IEEE 1788 in `gaol_ieee1788`: x > 0 only |
+| 186 | `pow([0], [0.5])` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | [0] ✓ | n/a | pow(0, y) = 0 for y > 0 |
+| 187 | `pow([0], 0.5)` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | [0] ✓ | n/a |  |
+| 188 | `pow([−2, 0], [2.5])` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | [0, 2.2250738585072014e−308] ⊃ | [−0] ✓ | BIAS error, abort ✗ | n/a |  |
+| 189 | `pow([0], [0, 1])` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ | n/a |  |
+| 190 | `pow([0], [−1, 1])` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | BIAS error, abort ✗ | n/a |  |
+| 191 | `pow([0], [−1])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [+∞] ✗ | BIAS error, abort ✗ | n/a |  |
+| 192 | `pow([0], [−0.5])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | BIAS error, abort ✗ | n/a |  |
+| 193 | `pow([0], −0.5)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | BIAS error, abort ✗ | n/a |  |
+| 194 | `pow([−2, 0], [−0.5])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | BIAS error, abort ✗ | n/a |  |
+| 195 | `pow([0], [−1, 0])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [0, +∞] ✗ | [−0, +∞] ✗ | BIAS error, abort ✗ | n/a |  |
+| 196 | `pow([0.5], [−∞, +∞])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ | n/a |  |
+| 197 | `pow([1], [−∞, +∞])` | [1] | [1] ✓ | [1] ✓ | [1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | [0, +∞] ⊃ | n/a |  |
+| 198 | `pow([0, 1], [1, +∞])` | [0, 1] | [−0, 1] ✓ | [0, 1] ✓ | [0, 1] ✓ | [0, +∞] ⊃ | [−0, +∞] ⊃ | [0, +∞] ⊃ | n/a |  |
+| 199 | `pow([2, +∞], [−1, 1])` | [0, +∞] | [−0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [0, +∞] ✓ | [−0, +∞] ✓ | [0, +∞] ✓ | n/a |  |
 
 ### 10. n-th roots (GAOL's nth_root, rootn of IEEE 1788)
 
-From check/non_arithmetic.cpp, tests/arithmetic.cpp.
+From tests/non_arithmetic.cpp, tests/arithmetic.cpp.
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 198 | `nth_root([−8, 27], 3)` | [−2, 3] | n/a | [−2, 3] ✓ | n/a | n/a | BIAS error, abort ✗ | libieeep1788, filib++ and Solaris Studio have no rootn; pown_rev([−8, 27], 3) of libieeep1788 is [−2, 3] |
-| 199 | `nth_root([−4, 9], 2)` | [0, 3] | n/a | [0, 3] ✓ | n/a | n/a | BIAS error, abort ✗ |  |
-| 200 | `nth_root([−4, −1], 2)` | ∅ | n/a | ∅ ✓ | n/a | n/a | BIAS error, abort ✗ |  |
-| 201 | `nth_root([−8, −1], 3)` | [−2, −1] | n/a | [−2, −1] ✓ | n/a | n/a | BIAS error, abort ✗ |  |
-| 202 | `nth_root([0], 5)` | [0] | n/a | [0] ✓ | n/a | n/a | [0] ✓ |  |
-| 203 | `nth_root([−∞, +∞], 3)` | [−∞, +∞] | n/a | [−∞, +∞] ✓ | n/a | n/a | BIAS error, abort ✗ |  |
-| 204 | `nth_root([−∞, +∞], 0)` | — | n/a | ∅ | n/a | n/a | BIAS error, abort | rootn(x, q) is for q ≠ 0 only (Table 10.5) |
-| 205 | `nth_root([0, +∞], 2)` | [0, +∞] | n/a | [0, +∞] ✓ | n/a | n/a | [0, +∞] ✓ |  |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 200 | `nth_root([−8, 27], 3)` | [−2, 3] | n/a | [−2, 3] ✓ | [−2, 3] ✓ | n/a | n/a | BIAS error, abort ✗ | [−2, 3] ✓ | libieeep1788, filib++ and Solaris Studio have no rootn; pown_rev([−8, 27], 3) of libieeep1788 is [−2, 3] |
+| 201 | `nth_root([−4, 9], 2)` | [0, 3] | n/a | [0, 3] ✓ | [0, 3] ✓ | n/a | n/a | BIAS error, abort ✗ | [0, 3] ✓ |  |
+| 202 | `nth_root([−4, −1], 2)` | ∅ | n/a | ∅ ✓ | ∅ ✓ | n/a | n/a | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
+| 203 | `nth_root([−8, −1], 3)` | [−2, −1] | n/a | [−2, −1] ✓ | [−2, −1] ✓ | n/a | n/a | BIAS error, abort ✗ | [−2, −1] ✓ |  |
+| 204 | `nth_root([0], 5)` | [0] | n/a | [0] ✓ | [0] ✓ | n/a | n/a | [0] ✓ | [0] ✓ |  |
+| 205 | `nth_root([−∞, +∞], 3)` | [−∞, +∞] | n/a | [−∞, +∞] ✓ | [−∞, +∞] ✓ | n/a | n/a | BIAS error, abort ✗ | [−∞, +∞] ✓ |  |
+| 206 | `nth_root([−∞, +∞], 0)` | — | n/a | ∅ | ∅ | n/a | n/a | BIAS error, abort | assertion failed, abort | rootn(x, q) is for q ≠ 0 only (Table 10.5) |
+| 207 | `nth_root([0, +∞], 2)` | [0, +∞] | n/a | [0, +∞] ✓ | [0, +∞] ✓ | n/a | n/a | [0, +∞] ✓ | [0, +∞] ✓ |  |
 
 ### 11. Numeric and set functions
 
 From tests/other_functions.cpp, tests/numbers.cpp.
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 206 | `[−∞, +∞].midpoint()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | NaN ✗ | mid (12.12.8) |
-| 207 | `[−∞, 1].midpoint()` | −MAX | −MAX ✓ | −MAX ✓ | −∞ ✗ | −∞ ✗ | NaN ✗ |  |
-| 208 | `[1, +∞].midpoint()` | MAX | MAX ✓ | MAX ✓ | +∞ ✗ | +∞ ✗ | +∞ ✗ |  |
-| 209 | `∅.midpoint()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | n/a |  |
-| 210 | `[MAX/2, MAX].midpoint()` | 1.3482698511467367e+308 | 1.3482698511467367e+308 ✓ | 1.3482698511467367e+308 ✓ | 1.3482698511467367e+308 ✓ | 1.3482698511467367e+308 ✓ | 1.348269851146737e+308 ✗ |  |
-| 211 | `[0, 2^-1074].midpoint()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 2^-1074 ✗ | the tie rounded to even |
-| 212 | `[−2^-1074, 4·2^-1074].midpoint()` | 2·2^-1074 | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 1.5·2^-1074, to even |
-| 213 | `[−∞, 1].width()` | +∞ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ | wid (12.12.8), diam in filib++ |
-| 214 | `[−MAX, MAX].width()` | +∞ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ |  |
-| 215 | `∅.width()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | n/a |  |
-| 216 | `[−3, 2].mag()` | 3 | 3 ✓ | 3 ✓ | 3 ✓ | 3 ✓ | 3 ✓ |  |
-| 217 | `∅.mag()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | n/a |  |
-| 218 | `[−3, 2].mig()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ |  |
-| 219 | `[−3, −2].mig()` | 2 | 2 ✓ | 2 ✓ | 2 ✓ | 2 ✓ | 2 ✓ |  |
-| 220 | `∅.mig()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | n/a |  |
-| 221 | `[1, 2] \| ∅` | [1, 2] | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | n/a | convex_hull in libieeep1788, hull in filib++, .ih. in Solaris Studio |
-| 222 | `[1, 2] & [3, 4]` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | intersection in libieeep1788, intersect in filib++, .ix. in Solaris Studio |
-| 223 | `[1, 2] & [2, 3]` | [2] | [2] ✓ | [2] ✓ | [2] ✓ | [2] ✓ | [2] ✓ |  |
-| 224 | `min([−∞, 1], [0, 2])` | [−∞, 1] | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | n/a | imin and imax in filib++ |
-| 225 | `max([1, 2], ∅)` | ∅ | ∅ ✓ | ∅ ✓ | [1, 2] ✗ | ∅ ✓ | n/a |  |
-| 226 | `−[−∞, 1]` | [−1, +∞] | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ |  |
-| 227 | `[1, 2].rad()` | 0.5 | 0.5 ✓ | 0.5 ✓ | 0.5 ✓ | n/a | n/a | rad (12.12.8): the smallest r with x in [m − r, m + r]; Solaris Studio has none |
-| 228 | `[1, 1.0000000000000007].rad()` | 4.440892098500626e−16 | 4.440892098500626e−16 ✓ | 4.440892098500626e−16 ✓ | 3.3306690738754696e−16 ✗ | n/a | n/a | m = 1 + 2^-51, the tie rounded to even |
-| 229 | `[0, 2^-1074].rad()` | 2^-1074 | 2^-1074 ✓ | 2^-1074 ✓ | 0 ✗ | n/a | n/a |  |
-| 230 | `[−MAX, MAX].rad()` | MAX | MAX ✓ | MAX ✓ | MAX ✓ | n/a | n/a |  |
-| 231 | `[−∞, 1].rad()` | +∞ | +∞ ✓ | +∞ ✓ | +∞ ✓ | n/a | n/a |  |
-| 232 | `∅.rad()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ | n/a | n/a |  |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 208 | `[−∞, +∞].midpoint()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | NaN ✗ | NaN ✗ | mid (12.12.8) |
+| 209 | `[−∞, 1].midpoint()` | −MAX | −MAX ✓ | −MAX ✓ | −MAX ✓ | −∞ ✗ | −∞ ✗ | NaN ✗ | −∞ ✗ |  |
+| 210 | `[1, +∞].midpoint()` | MAX | MAX ✓ | MAX ✓ | MAX ✓ | +∞ ✗ | +∞ ✗ | +∞ ✗ | +∞ ✗ |  |
+| 211 | `∅.midpoint()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 212 | `[MAX/2, MAX].midpoint()` | 1.3482698511467367e+308 | 1.3482698511467367e+308 ✓ | 1.3482698511467367e+308 ✓ | 1.3482698511467367e+308 ✓ | 1.3482698511467367e+308 ✓ | 1.3482698511467367e+308 ✓ | 1.348269851146737e+308 ✗ | +∞ ✗ |  |
+| 213 | `[0, 2^-1074].midpoint()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 2^-1074 ✗ | 0 ✓ | the tie rounded to even |
+| 214 | `[−2^-1074, 4·2^-1074].midpoint()` | 2·2^-1074 | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 2·2^-1074 ✓ | 1.5·2^-1074, to even |
+| 215 | `[−∞, 1].width()` | +∞ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ | wid (12.12.8), diam in filib++ |
+| 216 | `[−MAX, MAX].width()` | +∞ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ |  |
+| 217 | `∅.width()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 218 | `[−3, 2].mag()` | 3 | 3 ✓ | 3 ✓ | 3 ✓ | 3 ✓ | 3 ✓ | 3 ✓ | 3 ✓ |  |
+| 219 | `∅.mag()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 220 | `[−3, 2].mig()` | 0 | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | n/a |  |
+| 221 | `[−3, −2].mig()` | 2 | 2 ✓ | 2 ✓ | 2 ✓ | 2 ✓ | 2 ✓ | 2 ✓ | n/a |  |
+| 222 | `∅.mig()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | n/a | n/a |  |
+| 223 | `[1, 2] \| ∅` | [1, 2] | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | [1, 2] ✓ | n/a | exception: boost::interval: empty interval created ✗ | convex_hull in libieeep1788, hull in filib++, .ih. in Solaris Studio |
+| 224 | `[1, 2] & [3, 4]` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | ∅ ✓ | exception: boost::interval: empty interval created ✗ | intersection in libieeep1788, intersect in filib++, .ix. in Solaris Studio |
+| 225 | `[1, 2] & [2, 3]` | [2] | [2] ✓ | [2] ✓ | [2] ✓ | [2] ✓ | [2] ✓ | [2] ✓ | [2] ✓ |  |
+| 226 | `min([−∞, 1], [0, 2])` | [−∞, 1] | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | [−∞, 1] ✓ | n/a | [−∞, 1] ✓ | imin and imax in filib++ |
+| 227 | `max([1, 2], ∅)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [1, 2] ✗ | ∅ ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 228 | `−[−∞, 1]` | [−1, +∞] | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ | [−1, +∞] ✓ |  |
+| 229 | `[1, 2].rad()` | 0.5 | 0.5 ✓ | 0.5 ✓ | 0.5 ✓ | 0.5 ✓ | n/a | n/a | n/a | rad (12.12.8): the smallest r with x in [m − r, m + r]; Solaris Studio has none |
+| 230 | `[1, 1.0000000000000007].rad()` | 4.440892098500626e−16 | 4.440892098500626e−16 ✓ | 4.440892098500626e−16 ✓ | 4.440892098500626e−16 ✓ | 3.3306690738754696e−16 ✗ | n/a | n/a | n/a | m = 1 + 2^-51, the tie rounded to even |
+| 231 | `[0, 2^-1074].rad()` | 2^-1074 | 2^-1074 ✓ | 2^-1074 ✓ | 2^-1074 ✓ | 0 ✗ | n/a | n/a | n/a |  |
+| 232 | `[−MAX, MAX].rad()` | MAX | MAX ✓ | MAX ✓ | MAX ✓ | MAX ✓ | n/a | n/a | n/a |  |
+| 233 | `[−∞, 1].rad()` | +∞ | +∞ ✓ | +∞ ✓ | +∞ ✓ | +∞ ✓ | n/a | n/a | n/a |  |
+| 234 | `∅.rad()` | NaN | NaN ✓ | NaN ✓ | NaN ✓ | NaN ✓ | n/a | n/a | n/a |  |
 
 ### 12. Interval literals of the set-based flavor
 
 From tests/numbers.cpp (ieee_literals).
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 233 | `interval("[ ]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | read error, iostat -1 ✗ | not read ✗ | 12.11.3 |
-| 234 | `interval("[Empty]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | ∅ ✓ | not read ✗ | the case of the letters is ignored (9.7.1) |
-| 235 | `interval("[,]")` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [0] ✗ | read error, iostat 1210 ✗ | not read ✗ | bounds left out are infinite |
-| 236 | `interval("[1,]")` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | ∅ ✗ | read error, iostat 1210 ✗ | [1] ✗ |  |
-| 237 | `interval("[-Inf, 2/3]")` | [−∞, 0.6666666666666667] | [−∞, 0.6666666666666667] ✓ | [−∞, 0.6666666666666667] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ |  |
-| 238 | `interval("[0x1.3p-1, 2/3]")` | [0.59375, 0.6666666666666667] | [0.59375, 0.6666666666666667] ✓ | [0.59375, 0.6666666666666667] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | hexadecimal number (9.7.2) |
-| 239 | `interval("[0x1.00000000000001p0]")` | [1, 1.0000000000000002] | [1, 1.0000000000000002] ✓ | [1, 1.0000000000000002] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | [1] ✗ |  |
-| 240 | `interval("-10??u")` | [−10, +∞] | [−10, +∞] ✓ | [−10, +∞] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | uncertain form with an infinite radius |
-| 241 | `interval("-10?12")` | [−22, 2] | [−22, 2] ✓ | [−22, 2] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ |  |
-| 242 | `interval("[inf]")` | ∅ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | [MAX, +∞] ✗ | [+∞] ✗ | not a literal: numsToInterval(+∞, +∞) has no value |
-| 243 | `interval("[inf, inf]")` | ∅ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ |  |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 235 | `textToInterval("[ ]")` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | read error, iostat -1 ✗ | not read ✗ | n/a | 12.11.3 |
+| 236 | `textToInterval("[Empty]")` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | ∅ ✓ | not read ✗ | n/a | the case of the letters is ignored (9.7.1) |
+| 237 | `textToInterval("[,]")` | [−∞, +∞] | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [−∞, +∞] ✓ | [0] ✗ | read error, iostat 1210 ✗ | not read ✗ | n/a | bounds left out are infinite |
+| 238 | `textToInterval("[1,]")` | [1, +∞] | [1, +∞] ✓ | [1, +∞] ✓ | [1, +∞] ✓ | ∅ ✗ | read error, iostat 1210 ✗ | [1] ✗ | n/a |  |
+| 239 | `textToInterval("[-Inf, 2/3]")` | [−∞, 0.6666666666666667] | [−∞, 0.6666666666666667] ✓ | [−∞, 0.6666666666666667] ✓ | [−∞, 0.6666666666666667] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | n/a |  |
+| 240 | `textToInterval("[0x1.3p-1, 2/3]")` | [0.59375, 0.6666666666666667] | [0.59375, 0.6666666666666667] ✓ | [0.59375, 0.6666666666666667] ✓ | [0.59375, 0.6666666666666667] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | n/a | hexadecimal number (9.7.2) |
+| 241 | `textToInterval("[0x1.00000000000001p0]")` | [1, 1.0000000000000002] | [1, 1.0000000000000002] ✓ | [1, 1.0000000000000002] ✓ | [1, 1.0000000000000002] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | [1] ✗ | n/a |  |
+| 242 | `textToInterval("-10??u")` | [−10, +∞] | [−10, +∞] ✓ | [−10, +∞] ✓ | [−10, +∞] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | n/a | uncertain form with an infinite radius |
+| 243 | `textToInterval("-10?12")` | [−22, 2] | [−22, 2] ✓ | [−22, 2] ✓ | [−22, 2] ✓ | exception interval_io_exception ✗ | read error, iostat 1210 ✗ | not read ✗ | n/a |  |
+| 244 | `textToInterval("[inf]")` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | exception interval_io_exception ✗ | [MAX, +∞] ✗ | [+∞] ✗ | n/a | not a literal: numsToInterval(+∞, +∞) has no value |
+| 245 | `textToInterval("[inf, inf]")` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | n/a |  |
 
 ### 13. Comparisons (Tables 10.3 and 10.4)
 
 From tests/other_functions.cpp (comparisons).
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 244 | `precedes([1, 2], [2, 3])` | true | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | GAOL: certainly_leq, certainly_le, set_strictly_contains, set_contains, set_eq, set_disjoint; filib++: cle, clt, interior, subset, seq, disjoint; Solaris Studio: .cle., .clt., .int., .sb., .seq., .dj. |
-| 245 | `precedes([1, 2], ∅)` | true | true ✓ | true ✓ | false ✗ | false ✗ | n/a | true when either interval is empty (Table 10.4) |
-| 246 | `precedes(∅, [1, 2])` | true | true ✓ | true ✓ | false ✗ | false ✗ | n/a |  |
-| 247 | `strictPrecedes([1, 2], [2, 3])` | false | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ |  |
-| 248 | `strictPrecedes([1, 2], ∅)` | true | true ✓ | true ✓ | false ✗ | false ✗ | n/a |  |
-| 249 | `interior([1.5], [1, 2])` | true | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ |  |
-| 250 | `interior([1, 2], [1, 3])` | false | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ |  |
-| 251 | `interior([−∞, +∞], [−∞, +∞])` | true | true ✓ | true ✓ | false ✗ | false ✗ | false ✗ | −∞ <0 −∞ and +∞ <0 +∞ (Table 10.3) |
-| 252 | `interior([2, +∞], [1, +∞])` | true | true ✓ | true ✓ | false ✗ | false ✗ | false ✗ |  |
-| 253 | `interior(∅, ∅)` | true | true ✓ | true ✓ | true ✓ | true ✓ | n/a |  |
-| 254 | `subset(∅, [1, 2])` | true | true ✓ | true ✓ | true ✓ | true ✓ | n/a |  |
-| 255 | `subset([1, 2], ∅)` | false | false ✓ | false ✓ | false ✓ | false ✓ | n/a |  |
-| 256 | `equal(∅, ∅)` | true | true ✓ | true ✓ | true ✓ | true ✓ | n/a |  |
-| 257 | `equal([1, +∞], [1, +∞])` | true | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ |  |
-| 258 | `disjoint([1, 2], ∅)` | true | true ✓ | true ✓ | true ✓ | true ✓ | n/a |  |
-| 259 | `disjoint([1, 2], [2, 3])` | false | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ |  |
-| 260 | `certainly_eq([2], [1, 2])` | — | n/a | false | false | false | false | not in IEEE 1788: for all x, y, x = y (false); filib++: ceq, Solaris Studio: .ceq. |
-| 261 | `certainly_eq([2], [2])` | — | n/a | true | true | true | true |  |
-| 262 | `certainly_eq(∅, ∅)` | — | n/a | true | false | false | n/a |  |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 246 | `precedes([1, 2], [2, 3])` | true | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | GAOL: certainly_leq, certainly_le, set_strictly_contains, set_contains, set_eq, set_disjoint; filib++: cle, clt, interior, subset, seq, disjoint; Solaris Studio: .cle., .clt., .int., .sb., .seq., .dj. |
+| 247 | `precedes([1, 2], ∅)` | true | true ✓ | true ✓ | true ✓ | false ✗ | false ✗ | n/a | exception: boost::interval: empty interval created ✗ | true when either interval is empty (Table 10.4) |
+| 248 | `precedes(∅, [1, 2])` | true | true ✓ | true ✓ | true ✓ | false ✗ | false ✗ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 249 | `strictPrecedes([1, 2], [2, 3])` | false | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ |  |
+| 250 | `strictPrecedes([1, 2], ∅)` | true | true ✓ | true ✓ | true ✓ | false ✗ | false ✗ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 251 | `interior([1.5], [1, 2])` | true | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | n/a |  |
+| 252 | `interior([1, 2], [1, 3])` | false | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ | n/a |  |
+| 253 | `interior([−∞, +∞], [−∞, +∞])` | true | true ✓ | true ✓ | true ✓ | false ✗ | false ✗ | false ✗ | n/a | −∞ <0 −∞ and +∞ <0 +∞ (Table 10.3) |
+| 254 | `interior([2, +∞], [1, +∞])` | true | true ✓ | true ✓ | true ✓ | false ✗ | false ✗ | false ✗ | n/a |  |
+| 255 | `interior(∅, ∅)` | true | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | n/a | n/a |  |
+| 256 | `subset(∅, [1, 2])` | true | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 257 | `subset([1, 2], ∅)` | false | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 258 | `equal(∅, ∅)` | true | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 259 | `equal([1, +∞], [1, +∞])` | true | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ |  |
+| 260 | `disjoint([1, 2], ∅)` | true | true ✓ | true ✓ | true ✓ | true ✓ | true ✓ | n/a | exception: boost::interval: empty interval created ✗ |  |
+| 261 | `disjoint([1, 2], [2, 3])` | false | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ | false ✓ |  |
 
 ### 14. atan2(y, x), defined on the plane but (0, 0), with values in (−π, π] (Table 9.1)
 
 From tests/elementary.cpp (atan2_of_boxes).
 
-| # | Operation | IEEE 1788 | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 263 | `atan2([0], [0])` | ∅ | ∅ ✓ | ∅ ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ✗ | n/a | atan2(0, 0) has no value; filib++ has no atan2 |
-| 264 | `atan2(∅, [1])` | ∅ | ∅ ✓ | ∅ ✓ | n/a | ∅ ✓ | n/a |  |
-| 265 | `atan2([1], ∅)` | ∅ | ∅ ✓ | ∅ ✓ | n/a | ∅ ✓ | n/a |  |
-| 266 | `atan2([1], [1])` | [0.7853981633974483, 0.7853981633974484] | [0.7853981633974483, 0.7853981633974484] ✓ | [0.7853981633974483, 0.7853981633974484] ✓ | n/a | [0.7853981633974483, 0.7853981633974484] ✓ | n/a |  |
-| 267 | `atan2([1, 2], [1, 2])` | [0.4636476090008061, 1.1071487177940906] | [0.4636476090008061, 1.1071487177940906] ✓ | [0.46364760900080604, 1.1071487177940906] ⊃ | n/a | [0.4636476090008061, 1.1071487177940906] ✓ | n/a |  |
-| 268 | `atan2([1, 2], [−2, −1])` | [2.0344439357957027, 2.6779450445889874] | [2.0344439357957027, 2.6779450445889874] ✓ | [2.0344439357957023, 2.6779450445889874] ⊃ | n/a | [2.0344439357957027, 2.6779450445889874] ✓ | n/a |  |
-| 269 | `atan2([−2, −1], [−2, −1])` | [−2.6779450445889874, −2.0344439357957027] | [−2.6779450445889874, −2.0344439357957027] ✓ | [−2.6779450445889874, −2.0344439357957023] ⊃ | n/a | [−2.6779450445889874, −2.0344439357957027] ✓ | n/a |  |
-| 270 | `atan2([−2, −1], [1, 2])` | [−1.1071487177940906, −0.4636476090008061] | [−1.1071487177940906, −0.4636476090008061] ✓ | [−1.1071487177940906, −0.46364760900080604] ⊃ | n/a | [−1.1071487177940906, −0.4636476090008061] ✓ | n/a |  |
-| 271 | `atan2([1, 2], [−1, 1])` | [0.7853981633974483, 2.3561944901923453] | [0.7853981633974483, 2.3561944901923453] ✓ | [0.7853981633974483, 2.3561944901923453] ✓ | n/a | [0.7853981633974483, 2.3561944901923453] ✓ | n/a |  |
-| 272 | `atan2([−1, 1], [1, 2])` | [−0.7853981633974484, 0.7853981633974484] | [−0.7853981633974484, 0.7853981633974484] ✓ | [−0.7853981633974484, 0.7853981633974484] ✓ | n/a | [−0.7853981633974484, 0.7853981633974484] ✓ | n/a |  |
-| 273 | `atan2([0], [1, 2])` | [0] | [−0] ✓ | [0] ✓ | n/a | [−0] ✓ | n/a |  |
-| 274 | `atan2([0], [−2, −1])` | [3.141592653589793, 3.1415926535897936] | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | n/a | [3.141592653589793, 3.1415926535897936] ✓ | n/a |  |
-| 275 | `atan2([0], [−1, 1])` | [0, 3.1415926535897936] | [−0, 3.1415926535897936] ✓ | [0, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ | n/a |  |
-| 276 | `atan2([0], [−1, 0])` | [3.141592653589793, 3.1415926535897936] | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ | n/a |  |
-| 277 | `atan2([1, 2], [0])` | [1.5707963267948966, 1.5707963267948968] | [1.5707963267948966, 1.5707963267948968] ✓ | [1.5707963267948966, 1.5707963267948968] ✓ | n/a | [1.5707963267948966, 1.5707963267948968] ✓ | n/a |  |
-| 278 | `atan2([−2, −1], [0])` | [−1.5707963267948968, −1.5707963267948966] | [−1.5707963267948968, −1.5707963267948966] ✓ | [−1.5707963267948968, −1.5707963267948966] ✓ | n/a | [−1.5707963267948968, −1.5707963267948966] ✓ | n/a |  |
-| 279 | `atan2([−1, 1], [0])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ | n/a |  |
-| 280 | `atan2([0, 1], [0])` | [1.5707963267948966, 1.5707963267948968] | [1.5707963267948966, 1.5707963267948968] ✓ | [1.5707963267948966, 1.5707963267948968] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ | n/a |  |
-| 281 | `atan2([0, 1], [−2, −1])` | [2.356194490192345, 3.1415926535897936] | [2.356194490192345, 3.1415926535897936] ✓ | [2.3561944901923444, 3.1415926535897936] ⊃ | n/a | [2.356194490192345, 3.141592653589794] ⊃ | n/a |  |
-| 282 | `atan2([−1, 0], [−2, −1])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [−3.141592653589794, −2.356194490192345] ✗ | n/a | points on the half-line y = 0, x < 0, where atan2 is π, and points below it, where it is next to −π |
-| 283 | `atan2([−1, 1], [−2, −1])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [2.356194490192345, 3.9269908169872423] ✗ | n/a | points on the half-line y = 0, x < 0, where atan2 is π, and points below it, where it is next to −π |
-| 284 | `atan2([−1, 0], [1, 2])` | [−0.7853981633974484, 0] | [−0.7853981633974484, 0] ✓ | [−0.7853981633974484, 0] ✓ | n/a | [−0.7853981633974484, 0] ✓ | n/a |  |
-| 285 | `atan2([−1, 1], [−1, 1])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a |  |
-| 286 | `atan2([−∞, +∞], [−∞, +∞])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a |  |
-| 287 | `atan2([1, +∞], [1, +∞])` | [0, 1.5707963267948968] | [−0, 1.5707963267948968] ✓ | [0, 1.5707963267948968] ✓ | n/a | [−0, 1.5707963267948968] ✓ | n/a |  |
-| 288 | `atan2([1, +∞], [−∞, −1])` | [1.5707963267948966, 3.1415926535897936] | [1.5707963267948966, 3.1415926535897936] ✓ | [1.5707963267948966, 3.1415926535897936] ✓ | n/a | [1.5707963267948966, 3.1415926535897936] ✓ | n/a |  |
-| 289 | `atan2([−∞, −1], [−∞, −1])` | [−3.1415926535897936, −1.5707963267948966] | [−3.1415926535897936, −1.5707963267948966] ✓ | [−3.1415926535897936, −1.5707963267948966] ✓ | n/a | [−3.1415926535897936, −1.5707963267948966] ✓ | n/a |  |
-| 290 | `atan2([−∞, +∞], [1, 2])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | n/a | [−1.5707963267948968, 1.5707963267948968] ✓ | n/a |  |
-| 291 | `atan2([1, 2], [−∞, +∞])` | [0, 3.1415926535897936] | [−0, 3.1415926535897936] ✓ | [0, 3.1415926535897936] ✓ | n/a | [−0, 3.1415926535897936] ✓ | n/a |  |
+| # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 262 | `atan2([0], [0])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ✗ | n/a | n/a | atan2(0, 0) has no value; filib++ has no atan2 |
+| 263 | `atan2(∅, [1])` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | ∅ ✓ | n/a | n/a |  |
+| 264 | `atan2([1], ∅)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | n/a | ∅ ✓ | n/a | n/a |  |
+| 265 | `atan2([1], [1])` | [0.7853981633974483, 0.7853981633974484] | [0.7853981633974483, 0.7853981633974484] ✓ | [0.7853981633974483, 0.7853981633974484] ✓ | [0.7853981633974483, 0.7853981633974484] ✓ | n/a | [0.7853981633974483, 0.7853981633974484] ✓ | n/a | n/a |  |
+| 266 | `atan2([1, 2], [1, 2])` | [0.4636476090008061, 1.1071487177940906] | [0.4636476090008061, 1.1071487177940906] ✓ | [0.4636476090008061, 1.1071487177940906] ✓ | [0.4636476090008061, 1.1071487177940906] ✓ | n/a | [0.4636476090008061, 1.1071487177940906] ✓ | n/a | n/a |  |
+| 267 | `atan2([1, 2], [−2, −1])` | [2.0344439357957027, 2.6779450445889874] | [2.0344439357957027, 2.6779450445889874] ✓ | [2.0344439357957027, 2.6779450445889874] ✓ | [2.0344439357957027, 2.6779450445889874] ✓ | n/a | [2.0344439357957027, 2.6779450445889874] ✓ | n/a | n/a |  |
+| 268 | `atan2([−2, −1], [−2, −1])` | [−2.6779450445889874, −2.0344439357957027] | [−2.6779450445889874, −2.0344439357957027] ✓ | [−2.6779450445889874, −2.0344439357957027] ✓ | [−2.6779450445889874, −2.0344439357957027] ✓ | n/a | [−2.6779450445889874, −2.0344439357957027] ✓ | n/a | n/a |  |
+| 269 | `atan2([−2, −1], [1, 2])` | [−1.1071487177940906, −0.4636476090008061] | [−1.1071487177940906, −0.4636476090008061] ✓ | [−1.1071487177940906, −0.4636476090008061] ✓ | [−1.1071487177940906, −0.4636476090008061] ✓ | n/a | [−1.1071487177940906, −0.4636476090008061] ✓ | n/a | n/a |  |
+| 270 | `atan2([1, 2], [−1, 1])` | [0.7853981633974483, 2.3561944901923453] | [0.7853981633974483, 2.3561944901923453] ✓ | [0.7853981633974483, 2.3561944901923453] ✓ | [0.7853981633974483, 2.3561944901923453] ✓ | n/a | [0.7853981633974483, 2.3561944901923453] ✓ | n/a | n/a |  |
+| 271 | `atan2([−1, 1], [1, 2])` | [−0.7853981633974484, 0.7853981633974484] | [−0.7853981633974484, 0.7853981633974484] ✓ | [−0.7853981633974484, 0.7853981633974484] ✓ | [−0.7853981633974484, 0.7853981633974484] ✓ | n/a | [−0.7853981633974484, 0.7853981633974484] ✓ | n/a | n/a |  |
+| 272 | `atan2([0], [1, 2])` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | n/a | [−0] ✓ | n/a | n/a |  |
+| 273 | `atan2([0], [−2, −1])` | [3.141592653589793, 3.1415926535897936] | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | n/a | [3.141592653589793, 3.1415926535897936] ✓ | n/a | n/a |  |
+| 274 | `atan2([0], [−1, 1])` | [0, 3.1415926535897936] | [−0, 3.1415926535897936] ✓ | [0, 3.1415926535897936] ✓ | [0, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ | n/a | n/a |  |
+| 275 | `atan2([0], [−1, 0])` | [3.141592653589793, 3.1415926535897936] | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | [3.141592653589793, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ | n/a | n/a |  |
+| 276 | `atan2([1, 2], [0])` | [1.5707963267948966, 1.5707963267948968] | [1.5707963267948966, 1.5707963267948968] ✓ | [1.5707963267948966, 1.5707963267948968] ✓ | [1.5707963267948966, 1.5707963267948968] ✓ | n/a | [1.5707963267948966, 1.5707963267948968] ✓ | n/a | n/a |  |
+| 277 | `atan2([−2, −1], [0])` | [−1.5707963267948968, −1.5707963267948966] | [−1.5707963267948968, −1.5707963267948966] ✓ | [−1.5707963267948968, −1.5707963267948966] ✓ | [−1.5707963267948968, −1.5707963267948966] ✓ | n/a | [−1.5707963267948968, −1.5707963267948966] ✓ | n/a | n/a |  |
+| 278 | `atan2([−1, 1], [0])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ | n/a | n/a |  |
+| 279 | `atan2([0, 1], [0])` | [1.5707963267948966, 1.5707963267948968] | [1.5707963267948966, 1.5707963267948968] ✓ | [1.5707963267948966, 1.5707963267948968] ✓ | [1.5707963267948966, 1.5707963267948968] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ⊃ | n/a | n/a |  |
+| 280 | `atan2([0, 1], [−2, −1])` | [2.356194490192345, 3.1415926535897936] | [2.356194490192345, 3.1415926535897936] ✓ | [2.356194490192345, 3.1415926535897936] ✓ | [2.356194490192345, 3.1415926535897936] ✓ | n/a | [2.356194490192345, 3.141592653589794] ⊃ | n/a | n/a |  |
+| 281 | `atan2([−1, 0], [−2, −1])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [−3.141592653589794, −2.356194490192345] ✗ | n/a | n/a | points on the half-line y = 0, x < 0, where atan2 is π, and points below it, where it is next to −π |
+| 282 | `atan2([−1, 1], [−2, −1])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [2.356194490192345, 3.9269908169872423] ✗ | n/a | n/a | points on the half-line y = 0, x < 0, where atan2 is π, and points below it, where it is next to −π |
+| 283 | `atan2([−1, 0], [1, 2])` | [−0.7853981633974484, 0] | [−0.7853981633974484, 0] ✓ | [−0.7853981633974484, 0] ✓ | [−0.7853981633974484, 0] ✓ | n/a | [−0.7853981633974484, 0] ✓ | n/a | n/a |  |
+| 284 | `atan2([−1, 1], [−1, 1])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | n/a |  |
+| 285 | `atan2([−∞, +∞], [−∞, +∞])` | [−3.1415926535897936, 3.1415926535897936] | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | [−3.1415926535897936, 3.1415926535897936] ✓ | n/a | n/a |  |
+| 286 | `atan2([1, +∞], [1, +∞])` | [0, 1.5707963267948968] | [−0, 1.5707963267948968] ✓ | [0, 1.5707963267948968] ✓ | [0, 1.5707963267948968] ✓ | n/a | [−0, 1.5707963267948968] ✓ | n/a | n/a |  |
+| 287 | `atan2([1, +∞], [−∞, −1])` | [1.5707963267948966, 3.1415926535897936] | [1.5707963267948966, 3.1415926535897936] ✓ | [1.5707963267948966, 3.1415926535897936] ✓ | [1.5707963267948966, 3.1415926535897936] ✓ | n/a | [1.5707963267948966, 3.1415926535897936] ✓ | n/a | n/a |  |
+| 288 | `atan2([−∞, −1], [−∞, −1])` | [−3.1415926535897936, −1.5707963267948966] | [−3.1415926535897936, −1.5707963267948966] ✓ | [−3.1415926535897936, −1.5707963267948966] ✓ | [−3.1415926535897936, −1.5707963267948966] ✓ | n/a | [−3.1415926535897936, −1.5707963267948966] ✓ | n/a | n/a |  |
+| 289 | `atan2([−∞, +∞], [1, 2])` | [−1.5707963267948968, 1.5707963267948968] | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | [−1.5707963267948968, 1.5707963267948968] ✓ | n/a | [−1.5707963267948968, 1.5707963267948968] ✓ | n/a | n/a |  |
+| 290 | `atan2([1, 2], [−∞, +∞])` | [0, 3.1415926535897936] | [−0, 3.1415926535897936] ✓ | [0, 3.1415926535897936] ✓ | [0, 3.1415926535897936] ✓ | n/a | [−0, 3.1415926535897936] ✓ | n/a | n/a |  |
 
 <!-- END GENERATED TABLES -->
 ```plaintext

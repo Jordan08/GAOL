@@ -1,142 +1,627 @@
+<!-- Copyright (c) 2026 ENSTA, France
+
+     By: Jordan NININ (created 2026-09-20)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # Building GAOL
 
-Part of the documentation of [this fork of GAOL](../README.md#documentation).
+Part of the documentation of [GAOL v5](../README.md#documentation).
 
-GAOL computes its elementary functions with mathlib, the IBM Accurate Portable
-Mathematical Library (libultim), whose sources are in `3rd/mathlib`:
-[mathlib-2.1.1.tar.gz](https://frederic.goualard.net/software/mathlib-2.1.1.tar.gz)
-of Frédéric Goualard's site, with the fixes of this fork (see
-[3rd/README.md](../3rd/README.md) and [What differs from GAOL](differences.md):
-as it is, `cos()`, `atan()` and `log()` of mathlib are wrong at some
-arguments). Each build compiles it with the flags of interval arithmetic and
-installs it along with GAOL, unless told to use a mathlib installed already.
+GAOL computes its elementary functions with
+[CORE-MATH](https://core-math.gitlabpages.inria.fr/), whose sources are in
+`3rd/math-core` and are compiled into `libgaol` itself: **there is no
+mathematical library to install, to find or to link along with GAOL**, and no
+choice to make. See [3rd/README.md](../3rd/README.md) for the version taken and
+what differs from it.
+
+The bounds GAOL computes are the same on every architecture and with every
+compiler, and they are the tightest ones (see
+[Accuracy of the operations](accuracy.md)).
+
 The CMake build is the one to use; the autotools and meson builds of GAOL are
-kept for those who use them. The math library of the system (`-lm`) needs no
-installation. The autotools and meson builds can also build GAOL with
-[CRlibm](https://github.com/taschini/crlibm) instead (`crlibm`), which
-`sh scripts/install-crlibm.sh <prefix>` builds and installs; GAOL's headers
-then include `crlibm.h`, whose directory `gaol.pc` carries when
-`with-mathlib-include` gives it.
+kept for those who use them.
+
+## The version of GAOL
+
+The file `VERSION.txt` holds the version of GAOL, three numbers without
+leading zeros such as `5.0.0`, and nothing else: the three builds read it, and
+it is the only file to change for a new version (GAOL v5). It is not named
+`VERSION`: the root of the sources is on the include path of the three builds,
+and on file systems that ignore case (macOS, Windows), `#include <version>`,
+which the headers of libc++ write, would find it instead of the standard
+header.
+
+- CMake reads it before `project()`, which gives it to `PROJECT_VERSION`, with
+  `gaol_read_version()` of `cmake/gaol_version.cmake`; a change of
+  `VERSION.txt` configures again. Where GAOL is the project built,
+  it reads the line `PACKAGE_VERSION=` of `configure` too, and warns when it
+  configures that `configure` was generated for another version than
+  `VERSION.txt` holds: the archive of the sources that CPack makes holds
+  `configure` as it is committed (see
+  [below](#the-archive-of-the-sources-and-the-packages)). It says nothing for
+  a tree without `configure`, or with a `configure` that has no such line.
+- meson reads it in `project()`, with Python (see [With meson](#with-meson)
+  for the Python it takes), which works with meson 0.53 as with later ones
+  (`version: files()` needs meson 0.57); a change of `VERSION.txt` configures
+  again.
+- `configure` reads it when it runs, whence all that follows, and make runs it
+  again when `VERSION.txt` changes (`CONFIG_STATUS_DEPENDENCIES` of
+  `Makefile.am`). Only what `AC_INIT` writes when autoconf generates
+  `configure` (`configure --version`, `configure --help`,
+  `config.status --version` and the head of `config.log`) keeps the version of
+  the last generation: `configure` is committed, and is to be generated again
+  before a new `VERSION.txt` is committed, with the versions of autoconf,
+  automake and libtool given [below](#with-autotools) and
+  `AUTOHEADER=true autoreconf` (without `--force --install`, the other files
+  stay as they are committed; `configure.ac` includes `VERSION.txt` with
+  `m4_include`, so that autoconf sees its change despite its cache,
+  `autom4te.cache`). Until then, `configure` configures GAOL with the version
+  of `VERSION.txt` and warns, twice, that it was generated for another one, and
+  the continuous integration fails (`.github/workflows/build-systems.yml`
+  compares `configure --version` with `VERSION.txt`). With
+  `--enable-maintainer-mode`, `make` generates `configure` again itself, and
+  runs no autoheader over `gaol/gaol_configuration.h.in`, which is written by
+  hand.
+
+From `VERSION.txt` come the macros `GAOL_MAJOR_VERSION`, `GAOL_MINOR_VERSION`,
+`GAOL_MICRO_VERSION` and `GAOL_VERSION` of `gaol/gaol_configuration.h`
+(`gaol_core::version_major`... of `gaol/gaol_version.h`), the shared library
+`libgaol.so.<major>.<minor>.<micro>` and its soname `libgaol.so.<major>`,
+the `Version` of `gaol.pc`, `gaolConfigVersion.cmake` (`find_package(gaol
+<version>)` takes a version of the same major number, not older than the one
+asked for), the names of the archive and of the packages of CPack, and the
+`\version` of the manuals (configure, meson). Each build refuses a
+`VERSION.txt` that does not hold three numbers without leading zeros, which
+the macros write as C integers, and the three read it by the same rules, as
+autoconf does for `configure --version`. The blanks and empty lines around
+the version are ignored, the blanks being the six of ASCII (space, tab, line
+feed, vertical tab, form feed and carriage return, the CR of the line ends of
+Windows), not those of Unicode such as a no-break space; so is a UTF-8 byte
+order mark (the bytes EF BB BF) at the start of the file, which some editors
+of Windows write. The message of a build that refuses the file quotes
+what it read and gives the first bytes of the file in hexadecimal,
+`VERSION.txt holds "5.0.x" (bytes in hexadecimal: 35 2e 30 2e 78 0a), where it
+should hold the version of GAOL...`, which show what the quotation may hide:
+CMake and configure quote a second byte order mark, or a zero-width space, as
+it is, and it cannot be seen (meson writes it `\ufeff`, `\u200b`). A file of
+UTF-16 characters, which Windows PowerShell 5 writes for a redirection
+(`"5.0.0" > VERSION.txt`), is not decoded but refused, whether it starts with
+its byte order mark (FF FE, FE FF) or not (it then holds NUL bytes, which a
+text file does not hold): the message gives its bytes
+(`ff fe 35 00 2e 00`...) and ends with
+`the file is UTF-16: save it as UTF-8 or ASCII`, or, without the mark,
+`the file holds a NUL byte as UTF-16 does: save it as UTF-8 or ASCII`. The
+test `version_file` (`ctest -R version_file`) checks the reading of CMake,
+and `.github/scripts/version-file.sh configure|meson|autoconf`, which the
+continuous integration runs on a copy of the sources, those of configure,
+meson and autoconf.
+
+The edition of the manual of GAOL v5 (`GAOL_V5_EDITION`) is its own, set in
+`configure.ac`, `manual/meson.build` and `CMakeLists.txt`.
+
+## The options
+
+The three builds have the same options (GAOL v5; each had options of its own,
+and those of the fused multiply-add instructions, of the AVX-512 path, of the
+128-bit integer, of the debugging and of the NEON intervals are gone as options:
+the configuration decides them, see [below](#what-the-configuration-decides)).
+The standard options of each tool do the rest:
+
+| CMake | configure | meson | Default | |
+|---|---|---|---|---|
+| `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `-Denable-preserve-rounding=true` | off | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](using.md#the-rounding-direction)) |
+| `GAOL_SIMD` | `--enable-simd` | `-Denable-simd=true` | on | Compute the intervals with the vector instructions of the processor, as soon as it has them: SSE2 on x86 (`-msse2 -msse3`, no flag with Visual C++ and clang-cl for x64; on 32-bit Windows with GCC and Clang, with `-faligned-new=8`, which `gaol::gaol` gives to the code using GAOL too, and with Visual C++ and clang-cl, whose intervals keep their two bounds as two doubles, which need no aligned memory), NEON on 64-bit ARM with every compiler (GCC, Clang and AppleClang under Linux and macOS, clang-cl, Visual C++, the Clang of MinGW-w64 and MSYS2; no flag; GAOL v5: `GAOL_ARM64`, `--enable-arm64` and `enable-arm64` were an option of their own, independent of `GAOL_SIMD`). Off, or on any other processor (32-bit ARM, POWER, s390x, RISC-V...), the FPU computes them (see [The three builds](three-builds.md)) |
+| `GAOL_COVERAGE` | `--enable-coverage` | `-Denable-coverage=true` | off | Compile GAOL and its tests with the counters of gcov, and add the target that runs the tests and writes `coverage/coverage.html` and the page of conclusions [coverage/README.md](../coverage/README.md): `cmake --build <build> --target coverage`, `make coverage`, `ninja -C <build> gaol-coverage` (meson keeps `coverage` for its own report). GCC and Clang, with the Debug build, `gcovr` and Python 3; the tests have to be built (`WITH_TESTS`, `--with-tests`, `with-tests`) |
+| `WITH_TESTS` | `--with-tests` | `-Dwith-tests=true` | off | Build the unit tests of `tests/`, which `make test` and `make check` run (see [below](#tests-examples-performance-and-the-parser)) |
+| `WITH_EXAMPLES` | `--with-examples` | `-Dwith-examples=true` | off | Build the examples of `examples/`, which `make check` runs |
+| `WITH_DOC` | `make -C manual pdf` (no option) | `-Dwith-doc=true` | off | Add the target `pdf`, which builds the manual of GAOL v5 with pdflatex, bibtex and makeindex, in `manual/Manual_GAOLv5.pdf` (see [below](#tests-examples-performance-and-the-parser)) |
+| `BUILD_SHARED_LIBS` | `--enable-shared` | `-Ddefault_library=shared` | off | A static library `libgaol.a`; on, the shared library `libgaol.so.5.0.0` (soname `libgaol.so.5`). With configure the static library is built too unless `--disable-static` (as with `-Ddefault_library=both` of meson); always static with Visual C++ (GAOL v5: configure and meson built both by default) |
+| `CMAKE_BUILD_TYPE` | `--enable-debug` | `--buildtype=debug` | `Release` | `Debug` builds GAOL without optimization, with debugging information, and without `NDEBUG`, so that `assert()` stays active; the Release build is `-O3` and `NDEBUG`, and for the library alone `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `-falign-functions=64` (not for the tests, the examples and the benchmarks, which are compiled as the code using GAOL; GAOL v5: configure and meson gave them to everything). With configure, `--enable-debug` brought into another project with `AC_CONFIG_SUBDIRS` is the `--enable-debug` of its configure, which passes on its options (and which that configure may read too), for the tests of GAOL as well. Brought in as a subproject by a project that leaves the build type to its default, GAOL is built in release (see [Using GAOL](using.md#from-pkg-config)) |
+| `CMAKE_POSITION_INDEPENDENT_CODE` | `--enable-pic` (`--disable-pic`; `--with-pic` too) | `-Db_staticpic=true` | on | Compile GAOL as position-independent code (`-fPIC`), which linking it into a shared library needs; a project building GAOL with FetchContent that sets it is followed (GAOL v5: configure compiled the static library without it) |
+| `CMAKE_OSX_ARCHITECTURES` | `-arch` several times in `CFLAGS`, `CXXFLAGS` and `LDFLAGS` | `-arch` several times in `-Dc_args`, `-Dcpp_args`, `-Dc_link_args` and `-Dcpp_link_args` | the machine's | A universal build of macOS, one configuration compiled for each architecture: SSE2 for x86_64 and NEON for arm64, where `GAOL_SIMD` allows them, and no fused multiply-add instructions nor AVX-512 path (GAOL v5: CMake only; configure and meson are not checked on a Mac of ours, only by the continuous integration). The generator of Xcode, which builds arm64 and x86_64 by itself when no list is given, is given the architecture of the machine, as the other generators build for it; the list `arm64;x86_64` asks for the universal build |
+| `CMAKE_INSTALL_PREFIX` | `--prefix` | `--prefix` | the system's | Where GAOL is installed |
+
+### What the configuration decides
+
+The rest of the configuration is decided by checks of the compiler and of the
+machine, the same with the three builds, each told in the messages of `cmake`,
+`configure` and `meson setup`. They assume that the compiler, the architecture
+and the system that configure and compile GAOL are those of the code using it
+(GAOL v5): a program compiled and run by the configuration tells what the
+machine does, and the headers and `gaol.pc` carry the flags of the code using
+GAOL.
+
+- **The fused multiply-add instructions** (was `GAOL_FMA`, `--enable-fma`,
+  `enable-fma`): GAOL and CORE-MATH are compiled with them whenever the C++ and
+  the C compiler take their flag and the machine building runs a program
+  compiled with them (a program that runs the
+  instruction itself: `__builtin_fma()`, and the intrinsic `_mm_fmadd_sd()` with
+  Visual C++ and clang-cl for x64, which a processor without FMA3 stops on). `-mfma` on x86 (with
+  `-mprefer-vector-width=128` with GCC for Windows, on x86-64 and on 32-bit
+  x86), `/arch:AVX2` with Visual C++ for x64, `-mfpu=neon-vfpv4
+  -mfloat-abi=hard` on 32-bit ARM; 64-bit ARM, POWER, s390x and RISC-V have
+  them without a flag. The library then needs a processor with them (on x86,
+  Intel Haswell and AMD Piledriver, 2012-2013, and later). The code using GAOL
+  is given the flag too, in `gaol::gaol` and `gaol.pc`, and `-ffp-contract=off`
+  stays (see [The three builds](three-builds.md)). Where no program can be run,
+  in a cross-compilation, they are left out, with a message. A universal build
+  of macOS leaves the flag out, its arm64 part refusing `-mfma` while it has the
+  instructions without a flag: the x86_64 part is then built without them, runs
+  on any x86_64 processor, Rosetta 2 included, but CORE-MATH and GAOL's exact
+  products call the `fma()` of the system library, and the integer powers beyond
+  1 and -1 do not take the packed kernel that uses the instruction; a build for
+  x86_64 alone (`CMAKE_OSX_ARCHITECTURES=x86_64`) takes `-mfma` where the
+  machine building runs a program compiled with it.
+- **The AVX-512 path** (was `GAOL_PREFER_AVX512`, `--enable-prefer-avx512`,
+  `enable-prefer-avx512`): +, -, *, /, sqr, sqrt and, with FMA, the integer
+  powers beyond 1 and -1 take the AVX-512 instructions and the rounding
+  direction they carry in themselves, which sets no rounding direction, where
+  `GAOL_PRESERVE_ROUNDING` is on, the compiler takes the instructions (a
+  program that uses them, linked) and the machine building runs them; otherwise
+  the SSE2 intervals compute them. The
+  rule comes from the measures of [SIMD, FMA and the rounding
+  direction](simd.md#when-the-build-takes-the-avx-512-path): the path spares the
+  store of the rounding direction that every operation pays with
+  `GAOL_PRESERVE_ROUNDING`, where it gains 1.3 to 6.1 times at the median of 2.9
+  on an Intel i7-1185G7, whose AVX-512 units are halved, and takes 20 % longer
+  at the median without it. On an Intel Xeon of a virtual machine, whose units
+  are presumably full width, it gains 3.9 and 4.2 times at the median with the
+  option and takes 37 and 45 % longer without it (Clang 18 and GCC 13.3): the
+  rule stands on both processors. The library then needs a
+  processor with the instructions, as with the fused multiply-add instructions,
+  and `gaol::init()` stops a program run on another one with a message (see
+  [The AVX-512 path](using.md#the-avx-512-path)). In a cross-compilation, where
+  no program can be run, the path is left out, with a message.
+- **The 128-bit integer** (was `GAOL_U128_EMULATION`): the type of the compiler
+  where it has one, else two 64-bit halves (Visual C++, and GCC for a 32-bit
+  target), which `gaol/math/gaol_u128.h` takes by itself and the configuration says.
+- **Clang with the target of Visual C++** (`clang++` for
+  `x86_64-pc-windows-msvc` or `i686-pc-windows-msvc`, with the driver of GCC,
+  not clang-cl; GAOL v5): it defines `_MSC_VER`, which the three builds read
+  (`CMAKE_CXX_SIMULATE_ID` of CMake) to compile GAOL in C++14, the standard
+  library of Visual C++ needing it, with the `unistd.h` of `cmake/msvc` for the
+  lexer and without the warnings of the C runtime, and to build the static
+  library alone, as with Visual C++ (a DLL would export nothing).
+- **The debugging** (was `GAOL_DEBUG`, `GAOL_DEBUGGING`): GAOL and CORE-MATH are
+  built for debugging, without optimization nor `NDEBUG`, with debugging
+  information and `GAOL_DEBUGGING`, for the Debug build type (`CMAKE_BUILD_TYPE`,
+  `--enable-debug`, `--buildtype=debug`); there is no target `perf` in the Debug
+  build of CMake nor with `-DGAOL_DEBUG=ON`, nor with `-Denable-debug=true` of meson (`--enable-debug` of
+  configure and `--buildtype=debug` of meson keep it). Each
+  configuration keeps its other flags (the C runtime of Visual C++,
+  sanitizers...); the tests and the examples, and the code of a project bringing
+  GAOL in, keep their build type.
+- **The memory and the flags of the intervals**: the aligned memory the SSE2
+  intervals need on 32-bit Windows, the flags of interval arithmetic, the link
+  option `-mno-daz-ftz`, `<fenv.h>`, the visibility, the type of the intervals
+  of a universal build.
+
+### The settings of the developers
+
+The checks above decide by themselves. A developer who wants to run a path the
+machine would not take, or a package for any processor, gives one of these. They
+are not options of the user: `configure --help` does not list them, and
+`meson configure` lists them with the mark \[developers\] since meson cannot
+leave them out. CMake reads them where they apply, without having them in the
+cache unless they were given.
+
+| CMake | configure | meson | |
+|---|---|---|---|
+| `-DGAOL_FMA=OFF` | `--disable-fma` | `-Denable-fma=false` | No fused multiply-add instructions: a library for any processor of the architecture |
+| `-DGAOL_PREFER_AVX512=ON`, `=OFF` | `--enable-prefer-avx512`, `--disable-prefer-avx512` | `-Denable-prefer-avx512=true`, `=false` | The AVX-512 path asked for without `GAOL_PRESERVE_ROUNDING`, or refused with it (a package for any processor); asked for where the compiler cannot take it, an error |
+| `-DGAOL_U128_EMULATION=ON` | `CPPFLAGS=-DGAOL_U128_FORCE_EMULATION=1` | `-Dc_args=-DGAOL_U128_FORCE_EMULATION=1 -Dcpp_args=-DGAOL_U128_FORCE_EMULATION=1` | The two 64-bit halves where the compiler has a 128-bit type: the code of Visual C++ and of the 32-bit targets on an ordinary machine |
+| `-DGAOL_DEBUG=ON` | `--enable-debug` | `-Denable-debug=true` | GAOL and CORE-MATH built for debugging whatever the build type, a project bringing GAOL in included (`-Dgaol:enable-debug=true` for a subproject of meson); the tests and the examples keep the build type |
+| `-DGAOL_EXCEPTIONS_ENABLED=OFF` | `--disable-exceptions` | `-Denable-exception=false` | GAOL aborts to signal an error instead of raising an exception |
+| `-DGAOL_VERBOSE_MODE=ON` | `--enable-verbose-mode` | `-Denable-verbose-mode=true` | A line on the standard error when GAOL initializes and cleans up; GAOL is silent by default |
+| `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` | `CXXFLAGS=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | `-Dcpp_args=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | The SSE2 intervals with their two bounds as two doubles, as on 32-bit Windows with Visual C++ and clang-cl: that layout on another system. CMake alone writes the macro into the installed `gaol/gaol_configuration.h`: given to configure or meson by the flags, it reaches what the build compiles, not a program compiled later with the installed GAOL, which then has to be compiled with the same flag, or its layout differs from the library's; with CMake, a program must not define the macro |
+| `-DCMAKE_CXX_FLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `CXXFLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `-Dcpp_args=-DGAOL_RELATION_BOUNDS_FIRST=0` | The relations between intervals (`<`, `<=`, `>`, `>=`) test the empty sets before they compare the bounds, as they do on RISC-V; `=1`, the default elsewhere, compares the bounds first. The answers are the same; the order of the tests changes, which a processor may run faster or slower, and which decided whether GCC 14 raised the invalid-operation flag for an empty operand on RISC-V (the reason for its default there). It is to be defined the same in every file that includes GAOL (`gaol/gaol_port.h`) |
+| `-DGAOL_MACHINE_RUNS_FMA=1`, `-DGAOL_MACHINE_RUNS_AVX512=1` | `gaol_cv_machine_runs_fma=yes`, `gaol_cv_machine_runs_avx512=yes` | `-Dmachine-runs-fma=true`, `-Dmachine-runs-avx512=true` | In a cross-compilation, or under an emulator, where no program can be run: the machine running GAOL has the fused multiply-add instructions or runs the AVX-512 ones |
+
+An option that GAOL had and no longer has is refused or warned of: meson refuses
+`-Denable-arm64`, CMake and configure warn that `GAOL_ARM64=OFF` and
+`--disable-arm64` are no longer read, and say `GAOL_SIMD=OFF` and
+`--disable-simd`. A build directory of CMake configured before this holds the
+entries of the options that are gone (`GAOL_FMA`, `GAOL_DEBUG`...), which stay
+harmless, and `GAOL_PREFER_AVX512`, which the older CMake kept with the value it
+had derived: the record `GAOL_PREFER_AVX512_DERIVED` tells it, and both entries
+go.
 
 ## With CMake
 
 ```bash
-cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DGAOL_BUILD_TESTS=ON
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DWITH_TESTS=ON
 cmake --build build --config Release
-ctest --test-dir build -C Release
+cmake --build build --target test      # make test with the Makefiles of CMake
 cmake --install build --config Release
 ```
 
-CMake 3.14 or later. The build compiles the mathlib of `3rd/mathlib`
-(`3rd/mathlib/CMakeLists.txt`) and installs it along with GAOL, unless
-`GAOL_FIND_MATHLIB` is `ON`, which giving `MATHLIB_DIR` makes it by default:
-it then looks for an installed mathlib, under `MATHLIB_DIR` and in the usual
-paths, refuses one whose cosine is wrong (see
-[Compilers and options refused](three-builds.md#compilers-and-options-refused)),
-and compiles the one of `3rd/mathlib` when none is found. Both libraries are
-static. The build type is Release unless another is given; brought in by a
-project that gives none (`add_subdirectory`, FetchContent), GAOL, CORE-MATH
-and mathlib are compiled with `-O3` all the same (`/O2` with Visual C++).
+CMake 3.14 or later (`cmake --install` is CMake 3.15: with 3.14,
+`cmake --build build --config Release --target install` installs, as the job
+`cmake-3-14` of the continuous integration does). The build compiles the
+thirty-eight sources of CORE-MATH
+into `libgaol`, which is static unless `BUILD_SHARED_LIBS` is `ON`: there is
+nothing else to build and nothing else to install. The build type is Release
+unless another is given; brought in by a project that gives none
+(`add_subdirectory`, FetchContent), GAOL and CORE-MATH are compiled as in
+Release all the same: `-O3` (`/O2` with Visual C++), `NDEBUG` and the
+optimizations of configure (the earlier versions of GAOL v5 had `-O3` alone,
+and CORE-MATH no optimization). With a generator of several configurations (Visual Studio,
+Xcode, Ninja Multi-Config), GAOL built alone puts Release first among them,
+which Ninja Multi-Config builds by default, unless `CMAKE_CONFIGURATION_TYPES`
+is given; `cmake --build` with Visual Studio builds Debug all the same without
+`--config` (GAOL v5). The Debug build type builds GAOL for debugging (see
+[What the configuration decides](#what-the-configuration-decides)).
 
-| Option | Default | |
-|---|---|---|
-| `CMAKE_BUILD_TYPE` | `Release` | `Debug` builds GAOL without optimization, with debugging information |
-| `CMAKE_INSTALL_PREFIX` | the system's | Where `cmake --install` puts GAOL |
-| `CMAKE_POSITION_INDEPENDENT_CODE` | `ON` | Compile GAOL and mathlib as position-independent code (`-fPIC`), which linking them into a shared library needs; a project building GAOL with FetchContent that sets it is followed |
-| `MATHLIB_DIR` | | Installation prefix of an installed mathlib, which turns `GAOL_FIND_MATHLIB` on by default |
-| `GAOL_FIND_MATHLIB` | `OFF`; `ON` with `MATHLIB_DIR` | Use an installed mathlib, under `MATHLIB_DIR` or in the usual paths, rather than the one of `3rd/mathlib` |
-| `GAOL_BUILD_MATHLIB` | `ON` | Build the mathlib of `3rd/mathlib` when no installed mathlib is used; `OFF`, with `GAOL_FIND_MATHLIB` `OFF`, leaves mathlib to the code linking GAOL |
-| `GAOL_BUILD_TESTS` | `OFF` | Build the tests of `tests/`, which `ctest` runs; no build compiles tests by default |
-| `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors (`-msse2 -msse3`); not with Visual C++ nor on 32-bit Windows |
-| `GAOL_FLOAT_INTERVALS` | `OFF` | Compile the intervals of floats, `gaol::intervalf`, and `gaol::interval2f` where `GAOL_SIMD` gives SSE3: both are unfinished, and neither IBEX nor Codac uses them |
-| `GAOL_FMA` | `ON` | Compile GAOL, CORE-MATH and mathlib with the fused multiply-add instructions of the processor, where the compiler has a flag for them and the machine building runs a program compiled with it (not checked when cross-compiling): `-mfma` on x86 (not with GCC for Windows), `/arch:AVX2` with Visual C++ for x64, `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM; 64-bit ARM, POWER, s390x and RISC-V have them without a flag. The library then needs a processor with them (on x86, Intel Haswell and AMD Piledriver, 2012-2013, and later); `OFF` builds it for any processor of the architecture. The code using GAOL is given the flag too, in `gaol::gaol` and `gaol.pc`, and `-ffp-contract=off` stays (see [The three builds](three-builds.md)) |
-| `GAOL_ASM` | `ON` | Use GAOL's assembly code where it has some (`GAOL_USING_ASM`) |
-| `GAOL_VERBOSE_MODE` | `OFF` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`); GAOL is silent by default |
-| `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](using.md#the-rounding-direction)) |
+The options are those of [The options](#the-options), with the variables of
+CMake that are not GAOL's: `CMAKE_BUILD_TYPE`, `CMAKE_INSTALL_PREFIX`,
+`BUILD_SHARED_LIBS`, `CMAKE_POSITION_INDEPENDENT_CODE` and
+`CMAKE_OSX_ARCHITECTURES`. The settings of the developers are given with
+`-D`, as the table above says.
+
+### The archive of the sources and the packages
+
+The three builds make the archive of the sources, `gaol-<version>.tar.gz`,
+with the same files: those of the repository but the notes of the work on
+GAOL v5 that the development branch `dev` holds, and `master` once a version of
+`dev` is merged into it (GAOL v5):
+
+```bash
+git clone https://github.com/Jordan08/GAOL.git gaol && cd gaol
+# CMake: dist, or package_source (make dist with the Makefile generators)
+cmake -S . -B build && cmake --build build --target dist
+# autotools: make dist, and make distcheck to build and test the archive
+./configure && make dist
+# meson: the commit, built and tested (--no-tests leaves that out)
+meson setup build-meson && meson dist -C build-meson --formats gztar
+```
+
+Each takes its files its own way. CPack takes the source tree less what git
+ignores and the notes (`CPACK_SOURCE_IGNORE_FILES` of `CMakeLists.txt`):
+made from a clean checkout, it holds the files of the commit. `make dist`
+takes the sources and the headers that the variables of the `Makefile.am`
+name, and the files their `EXTRA_DIST` list: a file added to the repository
+goes into the `EXTRA_DIST` of the `Makefile.am` of its directory, or of the
+top one for a directory without its own. `meson dist` archives the commit with
+`git archive`, which reads `export-ignore`, and refuses a tree with changes not
+committed (`--allow-dirty`), with a recent meson: the 0.53.2 of Ubuntu 20.04
+copies the files of git itself, without the ones whose name starts with a dot
+(`.github/`, `.gitignore`) and with the notes of the branch `dev`, so that its
+archive is not the one of the other two; without `--formats gztar` it makes
+`gaol-<version>.tar.xz`, as `ninja dist` of meson does. The job *Archives of
+the sources* of the continuous integration makes the three and checks that
+they hold the same files. The archives are not the same bytes: the order and
+the dates of the entries are those of each tool, and `make dist` writes
+`README`, a symbolic link to `README.md` in the repository, as a copy of the
+file, where the other two keep the link.
+
+The packages are CPack's, from the CMake build:
+
+```bash
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF
+cmake --build build --config Release
+cmake --build build --target package
+```
+
+| File | What it holds |
+|---|---|
+| `gaol-<version>.tar.gz` (`dist`, `package_source`, `make dist`, `meson dist --formats gztar`) | The sources, in `gaol-<version>/`, with `configure` and the `Makefile.in`: the three builds build them. The files of the commit less the notes of the work on GAOL v5 of the branch `dev`, `configure` as it was generated among them: if that was for another version than `VERSION.txt` holds, `configure --version` in the archive gives the old one, and CMake warns of it when it configures (see [The version of GAOL](#the-version-of-gaol)). |
+| `gaol-<version>-<system>.tar.gz` (`package`) | What `cmake --install` installs, in `gaol-<version>-<system>/`: the headers, `libgaol.a` (or `libgaol.so*` with `BUILD_SHARED_LIBS`), the CMake package of GAOL and `gaol.pc`, to extract anywhere, `gaol.pc` finding its directories from where it is. |
+| `libgaol-dev_<version>_<arch>.deb` (`package`, on Linux) | The same files in `/usr`, for `apt install ./libgaol-dev_<version>_<arch>.deb`: by default a static library and its headers, hence the name and the section `libdevel` of the development packages of Debian. |
+| `gaol-<version>-macos-arm64.pkg` (`cpack -G productbuild -D CPACK_PACKAGING_INSTALL_PREFIX=/usr/local`, without which the files go in `/Applications`) | The same files in `/usr/local`, for the Installer of macOS, or `sudo installer -pkg gaol-<version>-macos-arm64.pkg -target /`. Not signed: Gatekeeper asks to open it with a right click. No uninstaller: `pkgutil --only-files --files fr.ensta.gaol.Development` lists the files it installed, relative to `/`, and `sudo pkgutil --forget fr.ensta.gaol.Development` forgets the package once they are removed. |
+| `gaol-<version>-windows-x64.exe` (`cpack -G NSIS`) | The same files in `C:\Program Files\gaol`, where `find_package(gaol)` finds them, with an uninstaller; `/S` installs it without a window. Built with `/MD`: a program built in Debug, with `/MDd`, does not link with it. |
+
+The workflow Release (`.github/workflows/release.yml`) makes three packages
+for each tag of a commit of `master`, the tag being the version of
+`VERSION.txt` (`5.0.0` or `v5.0.0`), and attaches them to the GitHub Release of
+the tag, which it makes if there is none, with the notes GitHub generates
+(GAOL v5): `libgaol-dev_<version>_amd64.deb` (Ubuntu 26.04 x86_64, the GCC of
+the system), `gaol-<version>-macos-arm64.pkg` (macOS 26 arm64, AppleClang) and
+`gaol-<version>-windows-x64.exe` (Windows Server 2025, Visual C++ 2026 x64,
+`/MD`), in Release, with `-DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF` on x86-64.
+Each job runs the unit tests, makes the package, installs it on the runner,
+and builds and runs the unit tests again with the installed GAOL
+(`tests/find_package`). A pull request that changes the workflow,
+`CMakeLists.txt` or `cmake/` builds the three and keeps them as artifacts of
+the run.
+
+The archive takes its name from the version CMake read when it configured, and
+CMake warns of a `configure` generated for another version at that moment.
+On Cygwin `package_source` did not work in the job of the continuous
+integration (23 October 2026, CMake 4.4.4): CPack, with TGZ, TBZ2 and ZIP
+alike, failed to add `README` to the archive, a symbolic link to `README.md` in
+the repository, with "Couldn't list extended attributes" (libarchive). The
+cause was not found: `cmake -E tar` and `tar` make an archive of the
+checked-out tree, and `listxattr()` finds nothing wrong with its link. `git
+archive` makes the archive from the repository (GAOL v5).
+
+After a change of `VERSION.txt`, `package_source` configures the build
+directory again first, whatever the generator: Ninja does before it runs CPack,
+and CPack does when `VERSION.txt` holds another version than the build
+directory was configured for (`cmake/gaol_package_source.cmake`, GAOL v5),
+where the Makefile generators ran CPack at once.
+
+The packages hold `libgaol` as the build compiled it: where the machine
+building has the fused multiply-add instructions, only the processors that have
+them run it, and the code using it is compiled with `-mfma`;
+`-DGAOL_FMA=OFF` makes packages for any processor of the architecture. So
+does `-DGAOL_PREFER_AVX512=OFF` where `GAOL_PRESERVE_ROUNDING` is `ON`,
+whose AVX-512 path makes a library that only the processors with the AVX-512
+instructions run, when the machine building has them (GAOL v5; Visual C++ and
+clang-cl for x64 too). See [The settings of the
+developers](#the-settings-of-the-developers).
+`-DCMAKE_INSTALL_PREFIX=/usr` gives the library directory of Debian and Ubuntu
+(`lib/x86_64-linux-gnu`); with another prefix, the `.deb` puts the files in
+`/usr/lib`.
 
 ## With autotools
 
 ```bash
-./configure --prefix=<prefix>
+./configure --prefix=<prefix> --with-tests
 make
+make test
 make install
 ```
 
-configure builds the mathlib of `3rd/mathlib` (`3rd/Makefile.am`) with the
-flags it gives GAOL's C code and installs it along with GAOL, unless
-`--with-mathlib-include` or `--with-mathlib-lib` says where an installed
-mathlib is: `./configure --with-mathlib-include=<mathlib>/include
---with-mathlib-lib=<mathlib>/lib` uses that one (a GAOL installed by any of
-the builds provides it so, under its own prefix), and refuses one whose cosine
-is wrong. `sh scripts/install-mathlib.sh <mathlib>` installs the mathlib of
-`3rd/mathlib` alone, under `<mathlib>`, with cmake and a C compiler.
+configure compiles the thirty-eight sources of CORE-MATH into `libgaol`
+(`gaol/Makefile.am`), with the flags it gives GAOL's C code: there is nothing
+else to build, nothing else to install and nothing else to link.
 
-See also `INSTALL`. `configure` is committed, generated by autoconf 2.69 from
-`configure.ac`; `make` does not regenerate it as long as the files keep the
-dates of the checkout. The options, with their defaults:
+`make clean` erases what `make` built, and keeps what configure made, so that
+`make` builds again without configure: the `Makefile`, `config.status`,
+`config.log`, `libtool`, `gaol.pc`, `gaol/gaol_configuration.h`, the
+`manual/v*/gaol_version.tex`, the `.deps` directories of the dependencies and
+the `.dirstamp` of the directories of CORE-MATH. `make distclean` erases them
+too, the `.deps` directories included, which it left empty (GAOL v5), and
+gives the source tree back as git has it, configure to be run again; the
+continuous integration checks it (`build-systems.yml`).
+
+See also `INSTALL`. `configure`, `aclocal.m4`, the `Makefile.in`, `ltmain.sh`,
+`m4/*.m4` and the scripts `compile`, `config.guess`, `config.sub`, `depcomp`,
+`install-sh`, `missing` and `test-driver` are committed, so that a checkout
+builds without the autotools, and `make` never regenerates them
+(`AM_MAINTAINER_MODE([disable])`). They are generated by autoconf 2.72,
+automake 1.18.1 and libtool 2.5.4, with `AUTOHEADER=true autoreconf --force
+--install` followed by `git checkout INSTALL`, which `--install` replaces by
+the text of automake; `AUTOHEADER=true` keeps `gaol/gaol_configuration.h.in`,
+written by hand, which autoheader 2.72 overwrites (2.73 leaves it). `config.guess`
+and `config.sub` are those of 2026-05-17 from
+[GNU config](https://git.savannah.gnu.org/cgit/config.git), newer than the ones
+libtool installs. The versions matter: the files of GAOL 4.2.2 came from
+libtool 2.4.2, which linked `libgaol` with `-flat_namespace -undefined
+suppress` on macOS 11 and later, taking them for Mac OS X 10.0, and from a
+`config.sub` of 2016, which refused `loongarch64`. `make dist` makes the
+archive of the sources, and `make distcheck` builds it in a directory of its
+own with the unit tests and the examples, runs them, installs and uninstalls
+it (see [above](#the-archive-of-the-sources-and-the-packages); GAOL v5: there
+was neither, `no-dist` in `configure.ac`). The options, with their defaults:
 
 | Option | Default | |
 |---|---|---|
-| `--with-mathlib=apmathlib\|crlibm\|m` | `apmathlib` | The mathematical library: mathlib (`ultim`) or CRlibm, whose bounds are certified, or `m`, the math library of the system, whose bounds are not (below) |
-| `--with-mathlib-include=DIR`, `--with-mathlib-lib=DIR` | | Where the header and the library of an installed mathlib are, given to use it rather than the one of `3rd/mathlib`; for CRlibm, when not in the usual paths |
-| `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`, for the C++ and C sources alike (GAOL, CORE-MATH, mathlib); `--disable-optimize` compiles with `-O` |
-| `--enable-debug` | `no` | `-g` and GAOL's assertions (`GAOL_DEBUGGING`) |
-| `--enable-simd` | `yes` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
-| `--enable-float-intervals` | `no` | `gaol::intervalf` and `gaol::interval2f`, as `GAOL_FLOAT_INTERVALS` |
-| `--enable-fma` | `yes` | The fused multiply-add instructions of the processor, as `GAOL_FMA` |
-| `--enable-asm` | `yes` | GAOL's assembly code, as `GAOL_ASM` |
-| `--enable-verbose-mode` | `no` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
+| `--enable-simd` | `yes` | The vector intervals, SSE2 or NEON, as `GAOL_SIMD` |
 | `--enable-preserve-rounding` | `no` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
-| `--enable-relations=set\|certainly\|possibly` | `certainly` | What the relation symbols (`<`, `==`...) mean on intervals |
-| `--enable-exceptions` | `yes` | Raise exceptions to signal errors, rather than abort |
-| `--with-cppunit-include=DIR`, `--with-cppunit-lib=DIR` | | CppUnit, for GAOL's own check programs (`make check`) |
+| `--enable-coverage` | `no` | The counters of gcov and the target `make coverage`, as `GAOL_COVERAGE` |
+| `--enable-debug` | `no` | The Debug build of CMake |
+| `--enable-shared`, `--enable-static` | `no`, `yes` | The shared library `libgaol.so.5.0.0` too; the static library alone by default, as CMake (libtool's options) |
+| `--enable-pic` | `yes` | Position-independent code, as `CMAKE_POSITION_INDEPENDENT_CODE` |
+| `--with-tests` | `no` | Build the unit tests of `tests/`, which `make test` and `make check` run, as `WITH_TESTS` |
+| `--with-examples` | `no` | Build the examples of `examples/`, which `make check` runs, as `WITH_EXAMPLES` |
 
-With `--with-mathlib=m` (`-Dwith-mathlib=default` for meson), GAOL computes its
-elementary functions with the math library of the system, whose results it
-widens slightly, and configure and meson warn that the bounds are not
-certified: they are valid only where the math library is within about one
-double of the exact value. Built so with glibc 2.31 on x86-64, every bound the
-tests check encloses the exact value, but 2754 of the 8673 checks of
-`elementary` fail, their bounds being further from the tightest than the tests
-allow, `sin`, `cos`, `pow(x, y)` and `atan2` being up to 4 doubles away where
-the tests want one; 4634 of the 488374 checks of `other_functions` fail,
-`acos_rel`, `asin_rel` and `atan_rel` keeping the values they had to but being
-further than 2^-49 from them; and 40 of the 4089 checks of `reverse` fail,
-`acosh_rel`, `acos_rel` and `atan_rel` being valid but not accurate. The
-checks of `arithmetic`, `numbers` and `rounding_direction` pass, and the
-continuous integration checks that no other check than those fails. mathlib,
-the default of every build, and CRlibm give certified bounds, and the six
-tests pass with both.
+These are [the options](#the-options) of the three builds, and
+`configure --help` lists them (with the options of libtool and automake).
+`--enable-optimize` (the Release build, which is the default, and `-O` with
+`--disable-optimize`) and `--enable-arm64` (GAOL v5: the NEON intervals follow
+`--enable-simd`) are no longer options; `--enable-verbose-mode` and `--enable-exceptions` of GAOL 4 are [settings of the
+developers](#the-settings-of-the-developers), as `--enable-fma` and
+`--enable-prefer-avx512` of its earlier days, which `--help` does not list; the
+other options of GAOL 4 (`--with-mathlib`, `--with-mathlib-include`,
+`--with-mathlib-lib`, `--with-cppunit-include`, `--with-cppunit-lib`,
+`--enable-fast-math`, `--enable-asm`, `--enable-relations`) are gone, and
+configure warns that it does not know them (as CMake does for a variable that
+the project does not use, whereas meson refuses an option it does not know). A
+universal build of macOS is configured with `-arch` several times in the flags
+of the compilers (GAOL v5): `./configure CFLAGS="-arch arm64 -arch x86_64"
+CXXFLAGS="-arch arm64 -arch x86_64" LDFLAGS="-arch arm64 -arch x86_64"`; the
+dependency tracking of automake, which the compilers do not take with several
+`-arch`, is turned off then.
+
+`make` builds `libgaol.a`, and with `--enable-shared` the shared library
+`libgaol.so.5.0.0` too, whose soname is `libgaol.so.5`, as CMake
+(`BUILD_SHARED_LIBS`) and meson name them; it was `libgaol-5.0.so.0`. It built
+the shared library by default before GAOL v5. `configure --help` ends with the address for the bug
+reports, jordan.ninin@ensta.fr, and the page of GAOL v5,
+https://github.com/Jordan08/GAOL.
 
 ## With meson
 
 ```bash
-meson setup build --prefix=<prefix>
+meson setup build --prefix=<prefix> -Dwith-tests=true
 meson compile -C build
+meson test -C build
 meson install -C build
 ```
 
-meson builds the mathlib of `3rd/mathlib` (`3rd/mathlib/meson.build`) and
-installs it along with GAOL, unless `with-mathlib-include` or
-`with-mathlib-lib` says where an installed mathlib is, as for autotools above.
+meson compiles the thirty-eight sources of CORE-MATH into `libgaol`
+(`gaol/meson.build`), as CMake and configure do, and the lexer and the parser
+committed (`gaol/parser/gaol_interval_lexer.cpp`,
+`gaol/parser/gaol_interval_parser.cpp`): neither flex nor bison is needed.
 `meson compile` needs meson 0.54; with an older one, as the meson 0.53 of
 Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 (`-D<option>=<value>`), with their defaults:
 
 | Option | Default | |
 |---|---|---|
-| `buildtype` | `release` | `-O3` and `NDEBUG`; `debug` builds GAOL without optimization, with debugging information |
-| `with-mathlib` | `apmathlib` | `apmathlib` (mathlib, `ultim`), `crlibm`, or `default`, the math library of the system, whose bounds are not certified (see `--with-mathlib=m` above) |
-| `with-mathlib-include`, `with-mathlib-lib` | | Where the header and the library of an installed mathlib are, as with configure |
-| `enable-optimize` | `true` | `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as configure |
-| `enable-debug` | `false` | GAOL's assertions (`GAOL_DEBUGGING`) |
-| `enable-simd` | `true` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
-| `enable-float-intervals` | `false` | `gaol::intervalf` and `gaol::interval2f`, as `GAOL_FLOAT_INTERVALS` |
-| `enable-fma` | `true` | The fused multiply-add instructions of the processor, as `GAOL_FMA` |
-| `enable-asm` | `true` | GAOL's assembly code, as `GAOL_ASM` |
-| `enable-verbose-mode` | `false` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
+| `enable-simd` | `true` | The vector intervals, SSE2 or NEON, as `GAOL_SIMD` |
 | `enable-preserve-rounding` | `false` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
-| `enable-relations` | `certainly` | `set`, `certainly` or `possibly`, as configure |
-| `enable-exception` | `true` | Raise exceptions to signal errors, rather than abort |
-| `with-test` | `false` | Build GAOL's own check programs, which need CppUnit |
-| `check-perf`, `with-doc` | `false` | GAOL's performance programs; the documentation: the target `pdf` builds the manual, `manual/gaol.pdf`, with pdflatex, bibtex and makeindex (`make -C manual pdf` with autotools) |
+| `enable-coverage` | `false` | The counters of gcov and the target `ninja gaol-coverage`, as `GAOL_COVERAGE` |
+| `buildtype` | `release` | `-O3` and `NDEBUG`, and for the library alone `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `-falign-functions=64` (GAOL v5: the first three went to the tests, the examples and the benchmarks too), as the Release build of CMake and configure; `debug` builds GAOL without optimization, with debugging information, and without `NDEBUG`, so that `assert()` stays active, as the Debug build of CMake and `configure --enable-debug`. The option `enable-optimize` is gone. Brought in as a subproject, GAOL is built in `release` too where the project leaves the build type to its default (GAOL v5, see [Using GAOL](using.md#from-pkg-config)) |
+| `default_library` | `static` | `shared` builds the shared library `libgaol.so.5.0.0`, `both` the two, as `BUILD_SHARED_LIBS` (it was `both`; GAOL v5) |
+| `b_staticpic` | `true` | Position-independent code, as `CMAKE_POSITION_INDEPENDENT_CODE` |
+| `with-tests` | `false` | Build the unit tests of `tests/`, which `meson test` and `ninja check` run, as `WITH_TESTS` (it was `with-test`) |
+| `with-examples` | `false` | Build the examples of `examples/`, which `ninja check` runs, as `WITH_EXAMPLES` |
+| `with-doc` | `false` | The target `pdf`, which builds the manual of GAOL v5, `manual/Manual_GAOLv5.pdf`, with pdflatex, bibtex and makeindex (`make -C manual pdf` with autotools, the target `pdf` of `WITH_DOC` with CMake) |
+
+These are [the options](#the-options) of the three builds. `enable-fma`,
+`enable-prefer-avx512`, `enable-debug`, `enable-exception`,
+`enable-verbose-mode`, `machine-runs-fma` and `machine-runs-avx512` are
+[settings of the developers](#the-settings-of-the-developers), which
+`meson configure` lists with the mark [developers]; `enable-arm64` (GAOL v5:
+the NEON intervals follow `enable-simd`) is gone. A universal build of macOS is
+configured with `-arch` several times in `c_args`, `cpp_args`, `c_link_args`
+and `cpp_link_args` (GAOL v5).
+
+meson builds `libgaol.a`, and with `-Ddefault_library=shared` the shared
+library `libgaol.so.5.0.0` (`both` the two), whose soname is `libgaol.so.5`, as
+configure and CMake name them; with Visual C++, the static library alone, as
+CMake does, and `gaol_dep` and `gaol.pc` no
+longer give the code using it `__GAOL_PUBLIC__` defined empty (GAOL v5, see
+[Using GAOL](using.md#from-cmake)). The summary of `meson setup` gives the
+address for the bug reports, jordan.ninin@ensta.fr, and the page of GAOL v5,
+https://github.com/Jordan08/GAOL.
+The option `check-perf` and the options `enable-relations`, `with-test` and
+`enable-arm64`, gone, are refused.
+
+`meson setup` runs Python once, in `project()`, to read `VERSION.txt` (see
+[The version of GAOL](#the-version-of-gaol)), and twice more for the message
+of a file it refuses: the first of `python3` and `python` that it finds in
+`PATH` or, when it finds neither, the Python that runs meson (the case of the
+`meson.exe` of the Windows installer when no Python is installed).
+`meson.build` names `python3` first because meson falls back on its own
+Python for that name alone; the continuous integration checks it on Linux
+with a `meson setup` whose `PATH` holds no Python.
+
+On Windows, none of what follows was checked, but read in the sources of
+meson. The directory `%USERPROFILE%\AppData\Local\Microsoft\WindowsApps` can
+hold aliases of Python, `python3.exe` and perhaps `python.exe` too, which only
+open the Microsoft Store when Python was not installed from it. meson 0.53.1
+and later (the 0.53.2 of Ubuntu 20.04 and the meson of pip among them) leave
+that directory out of their search for programs, as long as `PATH` names it
+by that path (not for a profile whose directory differs from `USERPROFILE`).
+meson 0.53.0 and earlier may take such an alias, and `meson setup` then stops
+on the failure of the command that reads `VERSION.txt`: use a later meson
+(`pip install meson`), or turn off the aliases of Python in the Windows
+settings ("Manage app execution aliases").
+
+## Tests, examples, performance and the parser
+
+The three builds have the same targets:
+
+| | CMake | configure | meson |
+|---|---|---|---|
+| The unit tests of `tests/` | `make test` (`cmake --build <build> --target test`; `RUN_TESTS` with Visual Studio), with `WITH_TESTS` | `make test`, with `--with-tests` | `meson test` or `ninja test`, with `with-tests` |
+| The unit tests and the examples of `examples/` | `make check` (`--target check`), with `WITH_TESTS` and `WITH_EXAMPLES` | `make check`, with `--with-tests` and `--with-examples` | `ninja check` (`meson test --setup check`), with `with-tests` and `with-examples` |
+| GAOL v5 measured on the benchmark of [performance.md](compare/performance.md) | `make perf` | `make perf` | `ninja perf` |
+| The lexer and the parser regenerated with flex and bison | `make parser` | `make parser` | `ninja parser` |
+| The manual of GAOL v5 | `make pdf` (`--target pdf`), with `WITH_DOC` | `make -C manual pdf` | `ninja pdf`, with `with-doc` |
+
+- **The tests** are the unit tests of GAOL v5, which compare its bounds with the
+  exact results, and those of GAOL 4, which were in `check/` and needed
+  CppUnit: they are in `tests/` now, and need nothing (see
+  [The tests](tests.md)). `ctest` runs the tests and the examples of a CMake
+  build; `make test` leaves the examples out (label `example`, CMake 3.17 and
+  later), and runs the compile tests `refused_*` and `nodiscard_*` too. With
+  meson before 0.57, `meson test` runs the examples too, and
+  `meson test --suite unit` the tests alone.
+- **The examples** check what they print and fail otherwise (see
+  [examples/examples.md](../examples/examples.md)).
+- **`make perf`** compiles `doc/compare/code/bench_gaol.cpp` with the flags and
+  the library of the build, runs it on the intervals of the benchmark, and
+  writes its times into the tables of `doc/compare/performance.md`, with the
+  times of the other libraries measured by the last whole run, which
+  `doc/compare/code/results.csv` keeps: GAOL 4.2.3, filib++, libieeep1788,
+  PROFIL/BIAS, Solaris Studio and Boost.Interval are not run (see
+  [doc/compare/code/README.md](compare/code/README.md)); it runs the ten long
+  lines of `doc/compare/code/run_lines.sh` too (GAOL v5). Bash, and Python 3 with
+  numpy; with CMake and meson, Linux and macOS (GAOL v5: Linux only before),
+  and with configure wherever bash is.
+- **`make parser`** regenerates `gaol/parser/gaol_interval_lexer.cpp`,
+  `gaol/parser/gaol_interval_parser.cpp` and
+  `gaol/parser/gaol_interval_parser.h` from
+  `gaol/parser/gaol_interval_lexer.lpp` and
+  `gaol/parser/gaol_interval_parser.ypp` with the flex and the bison of the
+  system, where the CMake build finds them (`find_program`, not required).
+  The three files are committed and no build needs flex nor bison otherwise;
+  flex 2.6.4 and bison 3.8.2 give them again byte for byte.
+  `sh gaol/parser/regenerate_parser.sh` runs the same commands without a
+  build (`FLEX` and `BISON` give other programs).
+- **`make pdf`** builds the manual of GAOL v5 with pdflatex, bibtex and
+  makeindex, by `manual/build-pdf.sh`, which the three builds run: with CMake,
+  after `cmake -S . -B build -DWITH_DOC=ON`, by `cmake --build build --target
+  pdf` (GAOL v5; CMake had no such target before). The PDF is written in
+  `manual/` of the sources, `manual/Manual_GAOLv5.pdf`, and not in the build
+  directory, which keeps the files of LaTeX. The manual of GAOL 4 is not built:
+  its PDF, `manual/v4/Manual_GAOLv4.pdf`, was built once. The target is not
+  part of `all`. It needs `sh` and the LaTeX packages that
+  `manual/build-pdf.sh` names. The manual of GAOL v5 can also be compiled by
+  hand in `manual/v5`: `pdflatex --file-line-error --synctex=1
+  manual_gaolv5.tex`, then `bibtex manual_gaolv5`, `makeindex manual_gaolv5.idx
+  -o manual_gaolv5.ind` and `pdflatex` twice. Without `gaol_version.tex`, which
+  the builds write, the title page takes the version of `VERSION.txt`, the
+  edition 5.0 and today's date; git ignores the files LaTeX writes there.
+
+## The configuration of GAOL
+
+Each build writes `gaol/gaol_configuration.h`, which `gaol/gaol_config.h`
+includes with every compiler: CMake from `cmake/gaol_configuration.h.in`,
+configure from `gaol/gaol_configuration.h.in` (written by hand, not by
+autoheader), meson from `gaol/gaol_configuration_meson.h.in`. The three define
+the same macros, and nothing else, but for the switch of a developer that CMake
+alone writes, `GAOL_SSE2_UNALIGNED_STORAGE` (`-DGAOL_SSE2_UNALIGNED_STORAGE=ON`:
+the SSE2 intervals keep their two bounds as two doubles, as they do on 32-bit
+Windows with Visual C++ and clang-cl, whose target decides it by itself; a
+program must not define that macro, a mismatch with the library being a
+mismatch of the layout of the intervals; GAOL v5); the continuous integration
+checks that they
+write the same header on each kind of machine (`.github/audit`). The sources of
+GAOL read all of them but `GAOL_HAVE_AVX512_TARGET` and `GAOL_PREFER_AVX512`,
+which the three builds use to decide `GAOL_AVX512_ARITHMETIC` and the
+continuous integration prints, and `GAOL_UNIVERSAL_SSE2` and
+`GAOL_UNIVERSAL_NEON`, which only the configuration header reads, to define the
+macros of the architecture being compiled; and `GAOL_USING_SSE3_INSTRUCTIONS`
+is read only by the code of the intervals of floats, which a developer of GAOL
+compiles.
+Each macro of the table but the version is 1 where the table says, and 0
+otherwise (GAOL v5): it was left undefined, so that a header reading it with
+`#if` warned under `-Wundef`, and a program could not include GAOL under
+`-Wundef -Werror`. A program tests these macros with `#if` as well: `#ifdef` is
+now true of each of them.
+
+| Macro | 1 when | CMake | configure | meson |
+|---|---|---|---|---|
+| `GAOL_MAJOR_VERSION`, `GAOL_MINOR_VERSION`, `GAOL_MICRO_VERSION`, `GAOL_VERSION` | Always, from `VERSION.txt` (see [above](#the-version-of-gaol)): `5`, `0`, `0` and `"5.0.0"` for GAOL 5.0.0 | `project()` | `VERSION.txt`, read when configure runs | `project()` |
+| `GAOL_DEBUGGING` | In a Debug build: `GAOL_DEBUG_VERBOSE(level, command)` runs its commands | `CMAKE_BUILD_TYPE=Debug` (`GAOL_DEBUG=ON`, a setting of the developers) | `--enable-debug` | `--buildtype=debug` (`enable-debug`) |
+| `GAOL_EXCEPTIONS_ENABLED` | GAOL raises exceptions rather than abort | by default (`GAOL_EXCEPTIONS_ENABLED=OFF`, a setting of the developers) | by default (`--disable-exceptions`) | by default (`enable-exception=false`) |
+| `GAOL_PRESERVE_ROUNDING` | The operations restore the rounding direction they found | `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `enable-preserve-rounding` |
+| `GAOL_PREFER_AVX512` | +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 are to take the AVX-512 instructions | with `GAOL_PRESERVE_ROUNDING` (`GAOL_PREFER_AVX512=ON` or `OFF`, a setting of the developers) | with `--enable-preserve-rounding` (`--enable-prefer-avx512`, `--disable-prefer-avx512`) | with `enable-preserve-rounding` (`enable-prefer-avx512`) |
+| `GAOL_AVX512_ARITHMETIC` | +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512 instructions: `GAOL_PREFER_AVX512`, `GAOL_HAVE_AVX512_TARGET`, and a machine building that runs them, not when cross-compiling; the library then needs a processor with them (GAOL v5) | checked | checked | checked |
+| `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE=ON`, a setting of the developers | `--enable-verbose-mode` | `enable-verbose-mode` |
+| `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86; on 32-bit Windows with GCC and Clang told to ask for aligned memory, `-faligned-new=8`, and with Visual C++ and clang-cl, whose bounds are two doubles there) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
+| `GAOL_USING_NEON_INSTRUCTIONS` | The intervals computed with NEON (64-bit ARM, with every compiler; not 32-bit ARM) (GAOL v5; `GAOL_ARM64`, `--enable-arm64` and `enable-arm64` were options of their own) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
+| `GAOL_USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |
+| `GAOL_UNIVERSAL_SSE2`, `GAOL_UNIVERSAL_NEON` | A universal build of macOS (several architectures in `CMAKE_OSX_ARCHITECTURES`, or `-arch` several times in the flags of configure and meson): the three macros above are then those of the architecture being compiled, `GAOL_USING_SSE2_INSTRUCTIONS` and `GAOL_USING_SSE3_INSTRUCTIONS` for x86_64 and `GAOL_USING_NEON_INSTRUCTIONS` for arm64, where `GAOL_SIMD` allows them; the fused multiply-add and the AVX-512 path stay off, their tests failing for one of the architectures (GAOL v5) | `CMAKE_OSX_ARCHITECTURES` | `-arch` several times | `-arch` several times |
+| `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 needs; never GCC for Windows (MinGW-w64, Cygwin), which does not align the stack for the AVX-512 registers (GCC bug 54412); Visual C++ for x64 takes the instructions in any function and tells the processor by `cpuid` and `xgetbv`, clang-cl has the attribute and does the same (GAOL v5) | checked | checked | checked |
+| `GAOL_HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
+| `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |
+
+What GAOL needs to know of the processor and the system comes from the
+compiler, in `gaol/gaol_config.h`: `GAOL_IX86_MACOSX` and `GAOL_ARM_MACOSX`,
+the sizes of the integer types (`GAOL_SIZEOF_INT`,
+`GAOL_SIZEOF_LONG_LONG_INT`, from `<limits.h>`) and the order of the bytes
+(`GAOL_WORDS_BIGENDIAN`), the names of the systems and the order of the bytes
+being 1 or 0 (GAOL v5). `GAOL_IX86_LINUX` and `GAOL_AARCH64_LINUX` are defined
+as well, though no code of GAOL reads them. These macros, and the
+`GAOL_USING_SSE*` and `GAOL_HAVE_*` of the table, were named without `GAOL_`
+before GAOL v5.
+
+The configure and meson builds defined some fifty other macros, of GAOL 4 or
+of autoconf, which nothing read, and they are gone (GAOL v5): the checks of
+C headers (`HAVE_STDLIB_H`, `HAVE_UNISTD_H`, `STDC_HEADERS`...), of functions
+(`HAVE_FLOOR`, `HAVE_POW`, `HAVE_MALLOC`, `HAVE_REALLOC`, `HAVE_FINITE`...), of
+types and sizes (`HAVE__BOOL`, `SIZEOF_LONG`...), `const`, `inline`, `size_t`,
+`malloc` and `realloc` (`rpl_malloc()` and `rpl_realloc()` of
+`AC_FUNC_MALLOC` and `AC_FUNC_REALLOC` in a cross-compilation), `CLOCK_IN_HEADER`,
+`LT_OBJDIR`, `PACKAGE`, `VERSION` and `PACKAGE_*`, which `gaol/gaol_config.h`
+undefined, undefining those of the code including GAOL. `HAVE_LIMITS`,
+`HAVE_CASSERT`, `HAVE_CLOCK` and `GETRUSAGE_IN_HEADER` were read, but are true
+with every compiler of C++11, and `HAVE_NEXTAFTER` and `HAVE_ISNAN` were read
+for Visual C++, which has both: the code that read them no longer does.

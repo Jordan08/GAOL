@@ -1,0 +1,141 @@
+#!/bin/sh
+# Checks the headers of an installed GAOL as the code using it sees them
+# (GAOL v5), in the continuous integration:
+#
+#   sh .github/scripts/headers.sh <prefix of GAOL>
+#
+# - each header of include/gaol, included alone, compiles with -std=c++11,
+#   the oldest standard GAOL takes, and -Wall -Wextra -Wold-style-cast
+#   -Wundef -Werror (no cast of C in GAOL's headers, GAOL v5, and no #if on a
+#   macro left undefined), but those that other headers
+#   include in the middle of their own code (core/gaol_interval_fpu.h,
+#   core/gaol_interval_neon.h and core/gaol_interval_sse.h, the inline
+#   functions of gaol_interval.h);
+# - including gaol/gaol defines no macro whose name does not start
+#   with GAOL_ or gaol_ (__GAOL, __gaol for the include guards): the macros
+#   that header defines are those
+#   the preprocessor has after them and not after the headers of the system
+#   they include, which an earlier file includes alone (with __has_include, for
+#   those of other systems, and only for Windows those of Windows, the intrin.h
+#   of Clang including the one of the system, and only on x86 those of SSE,
+#   which stop on an #error elsewhere, as on macOS arm64, and only on 64-bit ARM
+#   those of NEON, which Clang has for every target and which stop on an #error
+#   on x86, as on macOS x86_64: GAOL v5);
+# - GAOL_ERROR(std::domain_error, ...) compiles and GAOL_ERROR(int, ...) is
+#   refused by its static_assert, as gaol_ERROR, its name in GAOL 4, with the
+#   exceptions of the installed GAOL
+#   or without (the check of the macro cannot be compiled in the tests of
+#   tests/, which test its predicate only: GAOL v5).
+#
+# The flags are those of pkg-config --cflags gaol, where the prefix has
+# gaol.pc, as the code using GAOL is compiled; TEST_FLAGS (see tests.sh)
+# otherwise. CXX is the compiler (c++ by default).
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-10-04)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
+set -e
+# sort and comm in one collation, the C one: in fr_FR.UTF-8, the sort and the
+# comm of uutils coreutils (Ubuntu 26.04) did not order the names alike, and
+# comm stopped on "file 1 is not in sorted order" (GAOL v5)
+export LC_ALL=C
+prefix=${1:?the prefix of an installed GAOL}
+cxx=${CXX:-c++}
+pc=$(find "$prefix"/lib*/pkgconfig "$prefix"/lib/*/pkgconfig -name gaol.pc 2> /dev/null | sort | head -n 1)
+if [ -n "$pc" ] && command -v pkg-config > /dev/null; then
+  flags=$(PKG_CONFIG_PATH=$(dirname "$pc") pkg-config --cflags gaol)
+else
+  flags="-I$prefix/include ${TEST_FLAGS:--O2 -frounding-math -fno-fast-math -ffp-contract=off}"
+  case "$($cxx -dumpmachine 2> /dev/null)" in
+    i?86-*mingw*|i?86-*windows*) flags="$flags -msse2 -mfpmath=sse -faligned-new=8" ;;
+    i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
+  esac
+fi
+flags="-std=c++11 $flags -Wall -Wextra -Wold-style-cast -Wundef -Werror"
+echo "$cxx $flags"
+work=$(mktemp -d "${TMPDIR:-/tmp}/gaol-headers.XXXXXX")
+trap 'rm -rf "$work"' EXIT INT TERM
+status=0
+
+for f in "$prefix"/include/gaol/* "$prefix"/include/gaol/core/* "$prefix"/include/gaol/parser/*; do
+  [ -f "$f" ] || continue
+  h=${f#"$prefix"/include/gaol/}
+  case "$h" in
+    core/gaol_interval_fpu.h|core/gaol_interval_neon.h|core/gaol_interval_sse.h) continue ;;
+  esac
+  printf '#include <gaol/%s>\n' "$h" > "$work/alone.cpp"
+  # shellcheck disable=SC2086
+  if $cxx $flags -fsyntax-only "$work/alone.cpp" > "$work/alone.log" 2>&1; then
+    echo "gaol/$h alone: ok"
+  else
+    echo "gaol/$h alone: FAILED"
+    cat "$work/alone.log"
+    status=1
+  fi
+done
+
+# The headers of the system the headers of GAOL include
+printf '#include <gaol/gaol>\n' > "$work/gaol.cpp"
+sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]*<\([^>]*\)>.*/\1/p' "$prefix"/include/gaol/*.h "$prefix"/include/gaol/gaol "$prefix"/include/gaol/core/*.h "$prefix"/include/gaol/parser/*.h |
+  grep -v '^gaol/' | sort -u |
+  while read -r s; do
+    case "$s" in
+      intrin.h|sal.h) printf '#if defined(_WIN32) && __has_include(<%s>)\n' "$s" ;;
+      *mmintrin.h) printf '#if (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)) && __has_include(<%s>)\n' "$s" ;;
+      arm_neon.h|arm_acle.h) printf '#if defined(__aarch64__) && __has_include(<%s>)\n' "$s" ;;
+      *) printf '#if __has_include(<%s>)\n' "$s" ;;
+    esac
+    printf '#  include <%s>\n#endif\n' "$s"
+  done > "$work/system.cpp"
+cat "$work/system.cpp" "$work/gaol.cpp" > "$work/both.cpp"
+# The macros defined after each file, the output of the preprocessor written
+# to a file first: in a pipe, its failure would go unseen
+for f in system both; do
+  # shellcheck disable=SC2086
+  if ! $cxx $flags -E -dM "$work/$f.cpp" > "$work/$f.dM" 2> "$work/$f.log"; then
+    echo "The preprocessor failed on the headers of GAOL and of the system:"
+    cat "$work/$f.cpp" "$work/$f.log"
+    exit 1
+  fi
+  sed -n 's/^#define \([A-Za-z_][A-Za-z0-9_]*\).*/\1/p' "$work/$f.dM" | sort -u > "$work/$f.txt"
+done
+leaked=$(comm -13 "$work/system.txt" "$work/both.txt" | grep -v -E '^(GAOL_|gaol_|__GAOL|__gaol)' || true)
+if [ -n "$leaked" ]; then
+  echo "Macros of GAOL's headers whose name does not start with GAOL_ or gaol_:"
+  echo "$leaked"
+  status=1
+else
+  echo "The macros of GAOL's headers start with GAOL_ or gaol_: $(comm -13 "$work/system.txt" "$work/both.txt" | wc -l) macros"
+fi
+
+# GAOL_ERROR, and gaol_ERROR, its name in GAOL 4, take a class derived from
+# std::exception, and refuse any other type when it is compiled, in a build
+# that throws as in one that aborts
+for macro in GAOL_ERROR gaol_ERROR; do
+  printf '#include <gaol/gaol_common.h>\ninline void raise() { %s(std::domain_error, "refused"); }\n' "$macro" > "$work/error_ok.cpp"
+  printf '#include <gaol/gaol_common.h>\ninline void raise() { %s(int, "refused"); }\n' "$macro" > "$work/error_bad.cpp"
+  # shellcheck disable=SC2086
+  if $cxx $flags -fsyntax-only "$work/error_ok.cpp" > "$work/error.log" 2>&1; then
+    echo "$macro(std::domain_error, ...): ok"
+  else
+    echo "$macro(std::domain_error, ...): FAILED"
+    cat "$work/error.log"
+    status=1
+  fi
+  # shellcheck disable=SC2086
+  if $cxx $flags -fsyntax-only "$work/error_bad.cpp" > "$work/error.log" 2>&1; then
+    echo "$macro(int, ...): FAILED, it compiles"
+    status=1
+  elif grep -q "excep must be derived from std::exception" "$work/error.log"; then
+    echo "$macro(int, ...): refused by its static_assert, as it has to be"
+  else
+    echo "$macro(int, ...): refused, but not by its static_assert:"
+    cat "$work/error.log"
+    status=1
+  fi
+done
+exit $status

@@ -1,14 +1,39 @@
-"""Writes a C++ file which, preprocessed with the flags of a build, shows the configuration GAOL sees."""
-config = ['AARCH64_LINUX', 'ARM_MACOSX', 'IX86_LINUX', 'IX86_MACOSX', 'GAOL_CERTAINLY_RELATIONS', 'GAOL_POSSIBLY_RELATIONS',
-          'GAOL_SET_RELATIONS', 'GAOL_DEBUGGING', 'GAOL_EXCEPTIONS_ENABLED', 'GAOL_FLOAT_INTERVALS', 'GAOL_PRESERVE_ROUNDING', 'GAOL_USING_APMATHLIB',
-          'GAOL_USING_CRLIBM', 'GAOL_USING_ASM', 'GAOL_VERBOSE_MODE', 'GETRUSAGE_IN_HEADER', 'HAVE_CASSERT', 'HAVE_CLOCK',
-          'HAVE_FENV_H', 'HAVE_FINITE', 'HAVE_GETRUSAGE', 'HAVE_ISNAN', 'HAVE_LIMITS', 'HAVE_NEXTAFTER',
-          'HAVE_ROUNDING_MATH_OPTION', 'HAVE_VISIBILITY_OPTIONS', 'SIZEOF_INT', 'SIZEOF_LONG_INT', 'SIZEOF_LONG_LONG_INT',
-          'USING_SSE2_INSTRUCTIONS', 'USING_SSE3_INSTRUCTIONS', 'WORDS_BIGENDIAN', 'GAOL_RND_PROBE', 'GAOL_RND_SSE_REGISTER']
-text = ['_MATHLIB_DLL_', 'INLINE', '__GAOL_PUBLIC__']
-compiler = ['__cplusplus', '__STRICT_ANSI__', '__OPTIMIZE__', 'NDEBUG', '_GLIBCXX_ASSERTIONS', '__FAST_MATH__', 'FLT_EVAL_METHOD',
+"""Writes a C++ file which, preprocessed with the flags of a build, shows the configuration GAOL sees;
+with the argument c, a C file for the flags of the C sources, those of CORE-MATH (GAOL v5)."""
+
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+#
+# The macros of the configuration of GAOL: those of gaol/gaol_configuration.h,
+# the same with the three builds (see doc/building.md), and those
+# gaol/gaol_config.h and gaol/gaol_fpu.h derive from the compiler (GAOL v5)
+config = ['GAOL_AARCH64_LINUX', 'GAOL_ARM_MACOSX', 'GAOL_IX86_LINUX', 'GAOL_IX86_MACOSX', 'GAOL_DEBUGGING', 'GAOL_EXCEPTIONS_ENABLED', 'GAOL_FLOAT_INTERVALS', 'GAOL_PRESERVE_ROUNDING', 'GAOL_VERBOSE_MODE',
+          'GAOL_HAVE_FENV_H',
+          'GAOL_HAVE_VISIBILITY_OPTIONS', 'GAOL_SIZEOF_INT', 'GAOL_SIZEOF_LONG_LONG_INT',
+          'GAOL_USING_SSE2_INSTRUCTIONS', 'GAOL_SSE2_UNALIGNED_STORAGE', 'GAOL_USING_SSE3_INSTRUCTIONS', 'GAOL_USING_NEON_INSTRUCTIONS', 'GAOL_WORDS_BIGENDIAN', 'GAOL_RND_PROBE', 'GAOL_RND_SSE_REGISTER',
+          'GAOL_HAVE_AVX512_TARGET', 'GAOL_PREFER_AVX512', 'GAOL_AVX512_ARITHMETIC']
+# Compared by value only (GAOL_VERSION is a string, which #if cannot read)
+text = ['GAOL_INLINE', 'GAOL_PUBLIC', 'GAOL_MAJOR_VERSION', 'GAOL_MINOR_VERSION', 'GAOL_MICRO_VERSION', 'GAOL_VERSION']
+compiler = ['__cplusplus', '__STRICT_ANSI__', '__OPTIMIZE__', 'NDEBUG', '_GLIBCXX_ASSERTIONS', '__FAST_MATH__', '__FINITE_MATH_ONLY__', 'FLT_EVAL_METHOD',
             '__SSE2__', '__SSE3__', '__SSE2_MATH__', '__PIC__', '__x86_64__', '__i386__', '__aarch64__', '__arm__', '__APPLE__',
-            '__linux__', '_WIN32', '__MINGW64_VERSION_MAJOR']
+            '__linux__', '_WIN32', '__MINGW64_VERSION_MAJOR', '__cpp_aligned_new', '__STDCPP_DEFAULT_NEW_ALIGNMENT__']
+import sys
+if len(sys.argv) > 1 and sys.argv[1] == 'c':
+    # The C sources of CORE-MATH, which the three builds are to compile alike
+    c_macros = ['__STDC_VERSION__', '__STRICT_ANSI__', '__OPTIMIZE__', 'NDEBUG', '__FAST_MATH__', '__FINITE_MATH_ONLY__',
+                'FLT_EVAL_METHOD', '__SSE2__', '__SSE3__', '__FMA__', '__ARM_FEATURE_FMA', '__SSE2_MATH__', '__PIC__',
+                '__x86_64__', '__i386__', '__aarch64__', '__arm__', '__APPLE__', '__linux__', '_WIN32', '__MINGW64_VERSION_MAJOR']
+    lines = ['#include <float.h>']
+    for n in c_macros:
+        lines += ['#ifdef %s' % n, 'GAOLPROBE_%s = %s' % (n, n), '#else', 'GAOLPROBE_%s undefined' % n, '#endif']
+    for n in c_macros:
+        lines += ['#if defined(%s) && (%s + 0)' % (n, n), 'GAOLPROBEIF_%s true' % n, '#else', 'GAOLPROBEIF_%s false' % n, '#endif']
+    print('\n'.join(lines))
+    sys.exit(0)
 lines = ['#include <cfloat>', '#include "gaol/gaol.h"']
 for n in config + text + compiler:
     lines += ['#ifdef %s' % n, 'GAOLPROBE_%s = %s' % (n, n), '#else', 'GAOLPROBE_%s undefined' % n, '#endif']

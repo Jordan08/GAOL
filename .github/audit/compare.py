@@ -3,30 +3,50 @@
 For each machine and compiler audited (audit.sh, probe_build.py), prints the
 flags of each build and the configuration that differs between the builds.
 With --check, exits with 1 when a build did not configure, or when the builds
-differ on a macro GAOL reads or on a flag that bears on the results or the
-speed (see MACROS and FLAGS).
+differ on a macro of the configuration or on a flag that bears on the results
+or the speed (see MACROS and FLAGS).
 """
+
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 import json
 import re
 import sys
 
 BUILDS = ('cmake', 'autotools', 'meson')
 
-# The macros GAOL reads, compared by whether they are defined and true
-MACROS = ('AARCH64_LINUX', 'ARM_MACOSX', 'IX86_LINUX', 'IX86_MACOSX', 'GAOL_CERTAINLY_RELATIONS',
-          'GAOL_POSSIBLY_RELATIONS', 'GAOL_SET_RELATIONS', 'GAOL_DEBUGGING', 'GAOL_EXCEPTIONS_ENABLED', 'GAOL_FLOAT_INTERVALS',
-          'GAOL_PRESERVE_ROUNDING', 'GAOL_USING_APMATHLIB', 'GAOL_USING_CRLIBM', 'GAOL_USING_ASM',
-          'GAOL_VERBOSE_MODE', 'GETRUSAGE_IN_HEADER', 'HAVE_CASSERT', 'HAVE_CLOCK', 'HAVE_FENV_H',
-          'HAVE_GETRUSAGE', 'HAVE_LIMITS', 'HAVE_ROUNDING_MATH_OPTION', 'HAVE_VISIBILITY_OPTIONS',
-          'USING_SSE2_INSTRUCTIONS', 'USING_SSE3_INSTRUCTIONS', 'WORDS_BIGENDIAN', 'GAOL_RND_PROBE',
-          'NDEBUG', '_GLIBCXX_ASSERTIONS', '__FAST_MATH__', '__OPTIMIZE__', '__SSE2_MATH__', '__STRICT_ANSI__')
+# The macros of the configuration, compared by whether they are defined and true
+MACROS = ('GAOL_AARCH64_LINUX', 'GAOL_ARM_MACOSX', 'GAOL_IX86_LINUX', 'GAOL_IX86_MACOSX', 'GAOL_DEBUGGING', 'GAOL_EXCEPTIONS_ENABLED', 'GAOL_FLOAT_INTERVALS',
+          'GAOL_PRESERVE_ROUNDING',
+          'GAOL_VERBOSE_MODE', 'GAOL_HAVE_FENV_H',
+          'GAOL_HAVE_VISIBILITY_OPTIONS',
+          'GAOL_USING_SSE2_INSTRUCTIONS', 'GAOL_SSE2_UNALIGNED_STORAGE', 'GAOL_USING_SSE3_INSTRUCTIONS', 'GAOL_USING_NEON_INSTRUCTIONS', 'GAOL_WORDS_BIGENDIAN', 'GAOL_RND_PROBE', 'GAOL_RND_SSE_REGISTER',
+          'GAOL_HAVE_AVX512_TARGET', 'GAOL_PREFER_AVX512', 'GAOL_AVX512_ARITHMETIC',
+          'NDEBUG', '_GLIBCXX_ASSERTIONS', '__FAST_MATH__', '__FINITE_MATH_ONLY__', '__OPTIMIZE__', '__SSE2_MATH__', '__STRICT_ANSI__',
+          '__cpp_aligned_new')
 # The macros compared by value
-VALUES = ('SIZEOF_INT', 'SIZEOF_LONG_LONG_INT', 'FLT_EVAL_METHOD', '__cplusplus')
+VALUES = ('GAOL_SIZEOF_INT', 'GAOL_SIZEOF_LONG_LONG_INT', 'FLT_EVAL_METHOD', '__cplusplus', '__STDCPP_DEFAULT_NEW_ALIGNMENT__',
+          'GAOL_MAJOR_VERSION', 'GAOL_MINOR_VERSION', 'GAOL_MICRO_VERSION', 'GAOL_VERSION')
 # The flags compared by presence
 FLAGS = ('-frounding-math', '-ffp-contract=off', '-fno-fast-math', '-ffloat-store', '-mfpmath=sse', '-msse2',
          '-msse3', '-fvisibility=hidden', '-fvisibility-inlines-hidden', '-funroll-loops',
-         '-fomit-frame-pointer', '-fexpensive-optimizations', '-Wall', '-Wconversion', '-mfma', '/arch:AVX2',
-         '-mfpu=neon-vfpv4', '-mfloat-abi=hard')
+         '-fomit-frame-pointer', '-fexpensive-optimizations', '-falign-functions=64', '-Wall', '-Wconversion', '-mfma', '/arch:AVX2',
+         '-mfpu=neon-vfpv4', '-mfloat-abi=hard', '-faligned-new=8', '-mprefer-vector-width=128')
+
+
+# The flags and macros of the C sources, those of CORE-MATH, which the three builds compile alike (GAOL v5)
+C_FLAGS = ('-frounding-math', '-ffp-contract=off', '-fno-fast-math', '-ffloat-store', '-mfpmath=sse', '-msse2',
+           '-msse3', '-fvisibility=hidden', '-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations',
+           '-falign-functions=64', '-Wall', '-Wconversion', '-mfma', '/arch:AVX2', '-mfpu=neon-vfpv4', '-mfloat-abi=hard',
+           '-fexcess-precision=standard')
+C_MACROS = ('NDEBUG', '__FAST_MATH__', '__FINITE_MATH_ONLY__', '__OPTIMIZE__', '__SSE2_MATH__', '__STRICT_ANSI__',
+            '__SSE2__', '__SSE3__', '__FMA__', '__ARM_FEATURE_FMA')
+C_VALUES = ('FLT_EVAL_METHOD', '__STDC_VERSION__')
 
 
 def truth(entry, name):
@@ -52,15 +72,42 @@ def main():
         r = json.load(open(path))
         print('######## %s' % r['label'])
         ok = []
+        broken = False
         for b in BUILDS:
             e = r[b]
             if e.get('error') or 'macros' not in e:
                 print('  %-9s NOT CONFIGURED: %s' % (b, e.get('error', '?')))
-                failed = True
+                failed = broken = True
             else:
                 print('  %-9s %s: %s' % (b, e.get('version', ''), ' '.join(e['flags'])))
                 ok.append(b)
         rows = []
+        cs = [r[b].get('c', {}) for b in ok]
+        # A probe that failed (probe_build.py) leaves no macros and an error; the
+        # error is tested too, for a file written by another version
+        cok = [b for b, c in zip(ok, cs) if 'macros' in c and not c.get('error')]
+        for b, c in zip(ok, cs):
+            if 'macros' not in c or c.get('error'):
+                print('  %-9s C sources: %s' % (b, c.get('error', 'not probed')))
+                failed = broken = True
+            else:
+                print('  %-9s C sources: %s' % (b, ' '.join(c['flags'])))
+        for n in C_MACROS:
+            vals = [truth(r[b]['c'], n) for b in cok]
+            if len(set(vals)) > 1:
+                rows.append(('C: ' + n, vals))
+        for n in C_VALUES:
+            vals = [str(r[b]['c']['macros'].get(n)) for b in cok]
+            if len(set(vals)) > 1:
+                rows.append(('C: ' + n, vals))
+        for f in C_FLAGS:
+            vals = ['yes' if f in r[b]['c']['flags'] else 'no' for b in cok]
+            if len(set(vals)) > 1:
+                rows.append(('C: ' + f, vals))
+        for name, fn in (('C: optimization', optimization), ('C: standard', standard)):
+            vals = [fn(r[b]['c']['flags']) for b in cok]
+            if len(set(vals)) > 1:
+                rows.append((name, vals))
         for n in MACROS:
             vals = [truth(r[b], n) for b in ok]
             if len(set(vals)) > 1:
@@ -73,6 +120,14 @@ def main():
             vals = ['yes' if f in r[b]['flags'] else 'no' for b in ok]
             if len(set(vals)) > 1:
                 rows.append((f, vals))
+        # The macros each build wrote into gaol/gaol_configuration.h, and their
+        # values: the same with the three builds (GAOL v5)
+        headers = [r[b].get('configuration') for b in ok]
+        if all(h is not None for h in headers):
+            for n in sorted(set().union(*[set(h) for h in headers])):
+                vals = [str(h.get(n, 'undefined')) for h in headers]
+                if len(set(vals)) > 1:
+                    rows.append(('configuration: ' + n, vals))
         for name, fn in (('optimization', optimization), ('standard', standard)):
             vals = [fn(r[b]['flags']) for b in ok]
             if len(set(vals)) > 1:
@@ -82,7 +137,7 @@ def main():
             print('  %-28s ' % 'differs' + ' '.join('%-24s' % b for b in ok))
             for n, vals in rows:
                 print('  %-28s ' % n + ' '.join('%-24s' % v[:24] for v in vals))
-        elif ok:
+        elif ok and not broken:
             print('  the same configuration in: ' + ', '.join(ok))
     if check and failed:
         print('The builds do not agree, or one of them did not configure')

@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
-# Tests of this fork of GAOL: generates reverse_values.h, the cases of the
+# Tests of GAOL v5: generates reverse_values.h, the cases of the
 # reverse functions of IEEE 1788-2015 (10.5.4, Table 10.1) tests/reverse.cpp
 # checks GAOL's relational functions with.
 #
@@ -20,6 +17,10 @@
 #    two intervals bounded by roots (Fractions where they are doubles, which
 #    rational arithmetic checks, irrational otherwise) or acosh, intersected
 #    with x;
+#  - pownRev for p <= 0 (GAOL v5): x where 1 is in c for p = 0; for p < 0, the
+#    x != 0 with x^p in c, from the roots of the reciprocals of the part of c
+#    above 0 and, for an odd p, of the part below 0, each closed piece being
+#    intersected with x and 0 left out of the hull (pown_rev_nonpositive());
 #  - sinRev, cosRev, tanRev: the first and the last point of the preimage in
 #    x, from the pieces asin(c) + 2k pi, pi - asin(c) + 2k pi and the like next
 #    to the bounds of x, with mpmath at 2000 bits;
@@ -35,21 +36,31 @@
 #    the domains, the periods, divisors containing 0, with and without x.
 #    Their results in libieeep1788 are checked to enclose the tightest ones:
 #    all do, and a few are wider (cosRev([-1], [3.14, 3.1406]) is one double
-#    wider than [pi] on each side). Left out: the decorated and mixed types,
-#    the invalid arguments, and pownRev for p <= 0, which GAOL does not
-#    provide;
+#    wider than [pi] on each side). Left out: the decorated and mixed types
+#    and the invalid arguments;
 #  - random cases of each function, whose bounds are of many magnitudes, zero
-#    or infinite, with and without x.
+#    or infinite, with and without x;
+#  - for pownRev with p <= 0, cases written out (c holding 0 inside, 0 a limit
+#    of the roots, p = 0) and random ones, which come after the others in the
+#    table, from a generator of their own so that the others keep their values;
+#  - for sinRev, cosRev and tanRev, a bound of x one or two doubles beside a
+#    point where the function reaches -1 or 1 or has a pole, c being the value
+#    or the limit there (GAOL v5), after those of pownRev, for the same reason
+#    (periodic_boundary_cases()).
 #
 #     python3 tests/reverse_values.py \
 #       <libieeep1788>/test/p1788/flavor/infsup/setbased/test_mpfr_bin_ieee754_flavor_rev_func.cpp \
 #       > tests/reverse_values.h
 #
 # (libieeep1788 at commit 1f10b89, which doc/compare/code/setup.sh clones.)
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 import math
 import random
 import re
@@ -151,18 +162,34 @@ def root(v, p):
 #---------------------------------------------------------------------------
 # The functions whose preimage of c is a list of closed intervals
 #---------------------------------------------------------------------------
-def hull_within(pieces, x):
+# The bounds of the last enclosure that rounded() wrote, before they were rounded
+# to doubles: tests/hull_values.py tells from them which bounds of a result are
+# doubles themselves
+last_hull = None
+
+
+def rounded(lo, hi):
+    """The enclosure of the hull [lo, hi] of reals: its bounds rounded outwards
+    to doubles"""
+    global last_hull
+    last_hull = (lo, hi)
+    return round_down(lo), round_up(hi)
+
+
+def hull_within(pieces, x, no_zero=False):
     """The tightest enclosure of the hull of the pieces, closed intervals of
-    reals, within x, a pair of doubles"""
+    reals, within x, a pair of doubles; with no_zero, 0 is no solution (the
+    pieces are the closures of sets that stop short of it), so that a piece
+    whose part in x is {0} has none"""
     lo, hi = None, None
     for a, b in pieces:
         l = a if less(x[0], a) else x[0]
         u = b if less(b, x[1]) else x[1]
-        if less(u, l):
+        if less(u, l) or (no_zero and l == 0 and u == 0):
             continue
         lo = l if lo is None or less(l, lo) else lo
         hi = u if hi is None or less(hi, u) else hi
-    return EMPTY if lo is None else (round_down(lo), round_up(hi))
+    return EMPTY if lo is None else rounded(lo, hi)
 
 
 def symmetric(lo, hi):
@@ -180,7 +207,56 @@ def abs_rev(c, x):
     return EMPTY if l > u else hull_within(symmetric(Fraction(l), u if u == INF else Fraction(u)), x)
 
 
+def root_of(v, q):
+    """The q-th root, q > 0, of a Fraction v >= 0 or of +inf: a Fraction when it
+    is rational (the root of the numerator and of the denominator, checked by
+    their powers), an mpf otherwise"""
+    if v == INF:
+        return INF
+    if v == 0:
+        return Fraction(0)
+    n, d = v.numerator, v.denominator
+    rn, rd = (int(mpmath.nint(mpmath.root(mpmath.mpf(k), q))) for k in (n, d))
+    if rn ** q == n and rd ** q == d:
+        return Fraction(rn, rd)
+    return mpmath.root(mpmath.mpf(n), q) / mpmath.root(mpmath.mpf(d), q)
+
+
+def reciprocal(v):
+    """1/v for a double v > 0 or +inf (0): a Fraction, or +inf for v = 0"""
+    if v == INF:
+        return Fraction(0)
+    return INF if v == 0 else 1 / Fraction(v)
+
+
+def pown_rev_nonpositive(c, x, p):
+    """pownRev for p <= 0. pown(x, 0) is 1 for every x, 0 included: x where 1
+    is in c, nothing elsewhere. For p < 0, x^p = 1/x^q (q = -p) has no value at
+    0, is positive for an even p and has the sign of x for an odd one, so that
+    the x of the hull are those of c cut at 0: for the part of c in (0, +oo),
+    x^q is in the reciprocals of its elements, [1/u, 1/l] (1/0 is +oo), and x
+    is its q-th root or, for an even q, its opposite; for an odd q, the part in
+    (-oo, 0) gives the negative x, -(-v)^(1/q) for v in its reciprocals. The
+    pieces, closed, reach 0 where c is unbounded: no_zero leaves out 0"""
+    if p == 0:
+        return x if c[0] <= 1.0 <= c[1] else EMPTY
+    q = -p
+    pieces = []
+    if c[1] > 0:
+        pieces.append((root_of(reciprocal(c[1]), q), root_of(reciprocal(max(c[0], 0.0)), q)))
+        if q % 2 == 0:
+            pieces.append((-pieces[0][1], -pieces[0][0]))
+    if q % 2 == 1 and c[0] < 0:
+        m = min(c[1], 0.0)
+        # the negative y of c: 1/y goes from 1/m (-oo for m = 0) to 1/c[0], and x
+        # from -(-1/y)^(1/q)
+        pieces.append((-root_of(reciprocal(-m), q), -root_of(reciprocal(-c[0]), q)))
+    return hull_within(pieces, x, no_zero=True)
+
+
 def pown_rev(c, x, p):
+    if p <= 0:
+        return pown_rev_nonpositive(c, x, p)
     if p % 2 == 1:
         return hull_within([(root(c[0], p), root(c[1], p))], x)
     l, u = max(c[0], 0.0), c[1]
@@ -221,7 +297,7 @@ def periodic_rev(x, in_preimage, starts, ends, period):
         hi = max(v for v in (e + (k + j) * period for e in ends for j in range(-3, 2)) if v < mpmath.mpf(xh))
     if less(xh, lo) or less(hi, xl):
         return EMPTY
-    return (round_down(lo), round_up(hi))
+    return rounded(lo, hi)
 
 
 def sin_rev(c, x):
@@ -293,7 +369,7 @@ def mul_rev(b, c, x):
     c = (frac(c[0]), frac(c[1]))
     xl, xh = frac(x[0]), frac(x[1])
     if bl <= 0 <= bh and c[0] <= 0 <= c[1]:
-        return x  # t*0 = 0 is in c, for every t
+        return rounded(*x)  # t*0 = 0 is in c, for every t
     pieces = []
     if bh > 0:  # the b > 0 of b
         pieces.append(over_positive(c, max(bl, Fraction(0)), bl > 0, bh))
@@ -315,7 +391,7 @@ def mul_rev(b, c, x):
             continue
         lo_all = l if lo_all is None or less(l, lo_all) else lo_all
         hi_all = u if hi_all is None or less(hi_all, u) else hi_all
-    return EMPTY if lo_all is None else (round_down(lo_all), round_up(hi_all))
+    return EMPTY if lo_all is None else rounded(lo_all, hi_all)
 
 
 #---------------------------------------------------------------------------
@@ -491,8 +567,6 @@ def libieeep1788_cases(path):
             p = 0
             if f == "pownRev":
                 p = int(args.pop())
-                if p <= 0:
-                    continue  # pownRev for p <= 0: not provided by GAOL
             if f == "mulRev":
                 b, c = args[0], args[1]
                 x = args[2] if len(args) == 3 else ENTIRE
@@ -549,6 +623,73 @@ def random_cases(n):
     return out
 
 
+def nonpositive_pown_rev_cases(n):
+    """pownRev for p <= 0 (GAOL v5): the cases written out, where c is cut at 0
+    and where 0 is no solution, then n random ones, from a generator of their
+    own so that the random cases above keep their values"""
+    written = [
+        # c holds 0 inside: the hull of the roots of c, the whole line, would keep x in the gap
+        ((-1.0, 2.0), (-0.5, 0.5), -3), ((-1.0, 2.0), (-5.0, 5.0), -3), ((-1.0, 2.0), (-1.0, 1.0), -3),
+        ((-1.0, 2.0), ENTIRE, -3), ((-1.0, 2.0), (0.0, 5.0), -3), ((-1.0, 2.0), (-5.0, 0.0), -3),
+        ((-1.0, 2.0), (-0.5, 0.5), -2), ((-1.0, 2.0), ENTIRE, -2), ((-4.0, -1.0), ENTIRE, -2),
+        # 0 is a limit of the roots where c is unbounded, and no solution
+        ((1.0, INF), (0.0, 0.0), -2), ((1.0, INF), (0.0, 3.0), -2), ((1.0, INF), (-3.0, 0.0), -2),
+        ((1.0, INF), (0.0, 0.0), -3), ((-INF, -1.0), (0.0, 0.0), -3), ((-INF, -1.0), (-3.0, 0.0), -3),
+        ((0.0, INF), (0.0, 0.0), -1), ((0.0, INF), ENTIRE, -1), ((-INF, INF), (0.0, 0.0), -5),
+        ((-INF, INF), ENTIRE, -4), ((0.0, 0.0), ENTIRE, -3), ((0.0, 1.0), ENTIRE, -1),
+        # p = 0: x where 1 is in c
+        ((1.0, 1.0), (-2.0, 3.0), 0), ((-1.0, 5.0), (0.0, 0.0), 0), ((0.0, 0.99), (-2.0, 3.0), 0),
+        ((1.0, 1.0), (0.0, 0.0), 0), ((1.0000000000000002, 3.0), ENTIRE, 0),
+    ]
+    global rng
+    out = [("pownRev", c, ENTIRE, x, p, x != ENTIRE, "written") for c, x, p in written]
+    saved, rng = rng, random.Random(1788 + 2)
+    for _ in range(n):
+        c, x = random_interval(-20, 20), random_interval(-20, 20)
+        p = -rng.randint(0, 9)
+        x_given = rng.random() < 0.7
+        out.append(("pownRev", c, ENTIRE, x if x_given else ENTIRE, p, x_given, "random"))
+    rng = saved
+    return out
+
+
+def periodic_boundary_cases():
+    """sinRev, cosRev and tanRev with a bound of x one or two doubles from a
+    point where the function reaches -1 or 1 (k pi for the cosine, (k + 1/2) pi
+    for the sine) or has a pole ((k + 1/2) pi for the tangent), on the side
+    that leaves the point out of x, and c the value at that point (the limit of
+    the tangent on that side): the solution next to the bound is then a period
+    away, which GAOL v5 missed beside an upper bound, acos_rel([1], [20,
+    31.415926535897928]) being empty though 8 pi is in x and
+    31.415926535897928 two doubles below 10 pi. From 1 to 2^50 pi, of either
+    sign, then random multiples from 2^47 to 2^49, from a generator of their
+    own so that the random cases above keep their values"""
+    global rng
+    out = [("cosRev", (1.0, 1.0), ENTIRE, (20.0, 31.415926535897928), 0, True, "boundary"),
+           ("sinRev", (1.0, 1.0), ENTIRE, (0.0, 7.853981633974482), 0, True, "boundary")]
+    saved, rng = rng, random.Random(1788 + 3)
+    ks = [1, 2, 3, 5, 10, 31, 100, 1001, 12345, 2**20 + 1, 2**26 + 3, 2**31 + 5, 2**36 + 7, 2**40 + 1,
+          2**44 + 9, 2**47 + 11, 2**48 + 13, 2**49 + 15, 2**50 + 17]
+    ks = [s * k for k in ks for s in (1, -1)] + [rng.choice([-1, 1]) * rng.randint(2**47, 2**49) for _ in range(12)]
+    rng = saved
+    for f in ["cosRev", "sinRev", "tanRev"]:
+        width = 4.0 if f == "tanRev" else 7.0
+        for k in ks:
+            point = k * mpmath.pi if f == "cosRev" else (k + mpmath.mpf(1) / 2) * mpmath.pi
+            sign = 1.0 if k % 2 == 0 else -1.0
+            for below in (True, False):
+                if f != "tanRev":
+                    c = (sign, sign)
+                else:
+                    c = (1e300, INF) if below else (-INF, -1e300)
+                bound = round_down(point) if below else round_up(point)
+                for _ in range(2):
+                    x = (bound - width, bound) if below else (bound, bound + width)
+                    out.append((f, c, ENTIRE, x, 0, True, "boundary"))
+                    bound = next_down(bound) if below else next_up(bound)
+    return out
+
+
 #---------------------------------------------------------------------------
 # The header
 #---------------------------------------------------------------------------
@@ -565,7 +706,7 @@ def interval(a):
         return "E"
     if a == ENTIRE:
         return "W"
-    return "I(%s, %s)" % (double(a[0]), double(a[1]))
+    return "i(%s, %s)" % (double(a[0]), double(a[1]))
 
 
 def main():
@@ -583,27 +724,45 @@ def main():
     n_libieeep1788 = len(table)
     for f, c, b, x, p, x_given in random_cases(150):
         table.append((f, c, b, x, p, x_given, tightest(f, c, b, x, p), accurate(f, c, b, x, p), "random"))
+    for f, c, b, x, p, x_given, source in nonpositive_pown_rev_cases(150):
+        table.append((f, c, b, x, p, x_given, tightest(f, c, b, x, p), accurate(f, c, b, x, p), source))
+    for f, c, b, x, p, x_given, source in periodic_boundary_cases():
+        table.append((f, c, b, x, p, x_given, tightest(f, c, b, x, p), accurate(f, c, b, x, p), source))
 
     print("// Generated by tests/reverse_values.py: the reverse functions of IEEE 1788-2015")
     print("// on doubles, in the cases of the minimal tests of libieeep1788 (Apache License")
-    print("// 2.0) and in random ones, with the tightest enclosure of the hull the standard")
-    print("// defines and the bound of the accurate results. Do not edit.")
+    print("// 2.0), in random ones and in cases written out, with the tightest enclosure of")
+    print("// the hull the standard defines and the bound of the accurate results. Do not")
+    print("// edit.")
+    print("//")
+    print("// Copyright (c) 2026 ENSTA, France")
+    print("//")
+    print("// By: Jordan NININ (created 2026-09-20)")
+    print("//")
+    print("// GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated")
+    print("// COPYING.LIB file for information.")
+    print("")
     print("#ifndef GAOL_TESTS_REVERSE_VALUES_H")
     print("#define GAOL_TESTS_REVERSE_VALUES_H")
     print("namespace reverse_values")
     print("{")
-    print("  const double inf = gaol_tests::inf;")
-    print("  // An interval of the table: E the empty set, W the whole line")
-    print("  struct I { double l, u; bool empty; I(double a, double b) : l(a), u(b), empty(false) {} "
-          "I(bool e) : l(0.0), u(0.0), empty(e) {} };")
-    print("  const I E(true), W(-inf, inf);")
+    print("  // Constant expressions, which the compiler writes as data rather than")
+    print("  // initializing the table at run time, at length: with this table and")
+    print("  // atan2_rel_values.h initialized at run time, tests/reverse.cpp took GCC 12")
+    print("  // for 32-bit ARM beyond its 3 GB (Debian 12 armhf)")
+    print("  constexpr double inf = std::numeric_limits<double>::infinity();")
+    print("  // An interval of the table: i(l, u), E the empty set, W the whole line")
+    print("  struct I { double l, u; bool empty; };")
+    print("  constexpr I E = { 0.0, 0.0, true }, W = { -inf, inf, false };")
+    print("  constexpr I i(double l, double u) { return I{ l, u, false }; }")
     print("  // f, the IEEE 1788 function: fRev(c, x), mulRev(b, c, x), pownRev(c, x, p);")
     print("  // b is W for the functions other than mulRev, and x when the case does not")
     print("  // give it (x_given false); tightest, the tightest interval enclosing the hull;")
     print("  // accurate, nextOut(tightest(nextOut(c), nextOut(b), nextOut(x))), which the")
-    print("  // accurate results are within (12.10.1); from, libieeep1788 or random")
+    print("  // accurate results are within (12.10.1); from, libieeep1788, written, random")
+    print("  // or boundary")
     print("  struct Case { const char* f; I c, b, x; int p; bool x_given; I tightest, accurate; const char* from; };")
-    print("  const Case cases[] = {")
+    print("  constexpr Case cases[] = {")
     for f, c, b, x, p, x_given, t, a, source in table:
         print("    { \"%s\", %s, %s, %s, %d, %s, %s, %s, \"%s\" }," % (
             f, interval(c), interval(b), interval(x), p, "true" if x_given else "false", interval(t), interval(a), source))
@@ -614,7 +773,7 @@ def main():
     for row in table:
         counts[row[0]] = counts.get(row[0], 0) + 1
     print("reverse_values.py: %d cases of libieeep1788 (%d of whose results are wider than the tightest), "
-          "%d random; %s" % (n_libieeep1788, wider, len(table) - n_libieeep1788,
+          "%d random or written; %s" % (n_libieeep1788, wider, len(table) - n_libieeep1788,
                              ", ".join("%s %d" % kv for kv in sorted(counts.items()))), file=sys.stderr)
 
 

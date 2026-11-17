@@ -1,0 +1,2749 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+ * Copyright (c) 2002-2006 Laboratoire d'Informatique de
+ *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Frederic Goualard, Jordan NININ
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
+/*!
+  \file   gaol_interval_core.h
+  \brief  The interval class and its operators in gaol_core, installed: the interface of the
+          intervals, which includes the header of the kind of intervals of the build.
+
+  \author Goualard Frederic, NININ Jordan
+  \date   2001-09-28
+*/
+
+
+#ifndef GAOL_INTERVAL_CORE_H
+#define GAOL_INTERVAL_CORE_H
+
+#include <cmath>
+#include <iosfwd>
+#include <ios>
+#include <string>
+#include <limits>
+#include <type_traits>
+#include <utility>
+#include "gaol/gaol_config.h"
+#include "gaol/gaol_port.h"
+#include "gaol/gaol_common.h"
+#include "gaol/gaol_fpu.h"
+#include "gaol/core/gaol_interval_detail.h"
+
+// float64x2_t, the vector of the two bounds of the NEON intervals (GAOL v5)
+#if GAOL_USING_NEON_INSTRUCTIONS
+#  include <arm_neon.h>
+#endif
+
+#if defined (_MSC_VER)
+#  include <float.h>
+#  undef min
+#  undef max
+#endif
+
+namespace gaol_core {
+
+  /*!
+    \brief Format to use for the output of intervals.
+
+    The supported formats so far are the following:
+    - bounds: the interval is output in the form "[l, r]" where l and r
+    are respectively its left and right bounds, rounded outward, and in the
+    form "[a]" of IEEE 1788-2015 (12.11) for a point interval that the digits
+    write exactly, as "[4]", which textToInterval() reads back as that point;
+    a point interval of zero is "[0]", whatever the signs of its bounds. The
+    point interval of a double that the digits do not write exactly is output
+    in the first form, "[0.1, 0.1000000000000001]" for interval(0.1), which is
+    read back as an interval containing it. The bounds are written with a
+    decimal point '.', whatever the locale of the stream, so that
+    textToInterval() reads the text back: under a locale writing a decimal
+    comma, it would read "[-2,5]" as [-2, 5], and refuses "[0,5, 2,5]" (GAOL
+    v5: GAOL wrote "<0.1, 0.1000000000000001>", which it refused to read,
+    and "<4, 4>", which textToInterval() still reads)
+    - width: the interval is output in the form "c (+/- w)" where c is its
+    midpoint() and w its radius rad(), the smallest radius such that
+    [c-w, c+w] contains the interval (IEEE 1788-2015, 12.12.8): c is written
+    rounded to nearest and w rounded upward, so that a radius that is not zero
+    is never written 0. A point interval is output as c alone, and an
+    unbounded interval has an infinite radius. c and w are written with the
+    decimal point of the locale of the stream and its grouping of the digits,
+    w without a sign, even under std::showpos, and a midpoint 0 as 0. It is a
+    format for the eye, not one to read back: c has the digits of the precision, so that the text does
+    not necessarily contain the interval, which the formats bounds, agreeing
+    and hexa do, and its radius shows how narrow the interval is even where
+    the digits of c do not (GAOL v5: GAOL wrote (l+r)/2 and (r-l)/2 rounded to
+    nearest, so that [1, 1+2^-52] was "1 (+/- 1.11e-16)" and [0, 5e-324] had
+    a radius 0; this comment called w the width, which it was not)
+    - center: the interval is output as a single value, its midpoint(), as in
+    the width format.
+    - hexa: the interval is output in the form "[l, r]", each bound in the
+    hexadecimal-significand form of IEEE 1788-2015 (13.4.1), which avoids
+    the round-off error of a binary-to-decimal conversion and which
+    textToInterval() reads back as the same doubles: the exact text
+    representation of 13.4, whatever the precision, the flags and the locale
+    of the stream (GAOL v5). As in the bounds format, a point interval is
+    output "[a]", "[0x1p+2]", and a point interval of zero "[0x0p+0]",
+    whatever the signs of its bounds, which is read back as [+0, +0], the same
+    set, {0} (GAOL v5: it was output with its two bounds, which kept the
+    signs of a zero)
+    - agreeing: the interval is output in the form "d~[l, r]" where d is
+    the digits both bounds start with, and l and r the rest of each, as
+    "1.25~[0, 67]" for [1.25, 1.2567], the bounds being written with the
+    digits of the precision and the flag showpoint in the global locale of
+    the program. See "Factored Notation for Interval I/O", Maarten Herman van
+    Emden, CoRR index=cs.NA/0102023. The digits are shared only between two
+    bounds that are finite, not zero and of the same sign, written with the
+    same number of digits before the point and the same exponent, and that
+    share their first digit that is not 0: the other intervals are output in
+    the bounds format, as "[1, 10]" or "[0]" (GAOL v5: GAOL wrote [1, 10]
+    "1~[., 0.]" and [1, 2] "~[1., 2.]", and every interval with a negative or
+    zero bound in the bounds format). A point interval that the digits write
+    exactly is output as a single number, without the brackets: interval(4.0)
+    is "4.000000000000000", where the bounds format writes "[4]"; any other
+    point interval is output as any interval is, interval(0.1) being
+    "0.100000000000000~[0, 1]". The point zero is output "[0]", as in the
+    bounds format (the formats width and center write it "0", and hexa
+    "[0x0p+0]").
+
+    The empty set is output "[empty]" in every format (GAOL v5: the formats
+    width and center wrote "empty", which is no literal of IEEE 1788-2015,
+    12.11.3). intervalToText() of gaol_ieee1788 writes the bounds whatever the
+    format.
+  */
+  struct GAOL_PUBLIC interval_format {
+    enum format_t {
+      bounds,
+      width,
+      center,
+      hexa,
+      agreeing
+    };
+  };
+
+  /*!
+    \brief The 16 states of two overlapping intervals (GAOL v5)
+
+    The values of overlap(a, b) of IEEE 1788-2015 (10.6.4, Table 10.7), under
+    the names of the standard and in its order: bothEmpty is 0 and after is
+    15. The note of 10.6.4 makes the state s the 16-bit pattern 0x8000 >> s,
+    bothEmpty being the leftmost bit, and the comparisons masks of such
+    patterns: disjointMask = 0xF001 is bothEmpty, firstEmpty, secondEmpty,
+    before and after.
+
+    The first three are for an empty interval. The other 13 are the states of
+    J. F. Allen's temporal logic, for a = [al, au] and b = [bl, bu], both
+    nonempty (the bounds are told as the extended reals, an infinite bound
+    being equal to the same infinite bound):
+    - before: au < bl;                 after: bu < al;
+    - meets: al < au = bl < bu;        metBy: bl < bu = al < au;
+    - overlaps: al < bl < au < bu;     overlappedBy: bl < al < bu < au;
+    - starts: al = bl, au < bu;        startedBy: al = bl, bu < au;
+    - finishes: bl < al, au = bu;      finishedBy: al < bl, au = bu;
+    - containedBy: bl < al, au < bu;   contains: al < bl, bu < au;
+    - equals: al = bl, au = bu.
+    A point interval on a bound of the other one is starts, finishes,
+    finishedBy or startedBy (equals if the other is the same point), never
+    meets or metBy, which need a nonzero width on both sides.
+  */
+  enum class overlapping_state : unsigned char {
+    bothEmpty,
+    firstEmpty,
+    secondEmpty,
+    before,
+    meets,
+    overlaps,
+    starts,
+    containedBy,
+    finishes,
+    equals,
+    finishedBy,
+    contains,
+    startedBy,
+    overlappedBy,
+    metBy,
+    after
+  };
+
+#if !GAOL_VECTOR_INTERVALS
+  class interval;
+  // rnd_keep() of an FPU interval, a friend of it, defined after it (GAOL v5)
+  GAOL_INLINE interval rnd_keep(const interval& x);
+#endif
+
+  class GAOL_PUBLIC interval {
+  public:
+    //! Creates [-oo, +oo]
+    interval(void);
+    /*!
+      \brief Creates [a, b], and the empty set when [a, b] is not an interval
+
+      The empty set is the result for a lower bound of +oo, an upper bound of
+      -oo, bounds in the wrong order and NaN bounds, as in IBEX: IEEE 1788-2015
+      has no interval [+oo, +oo] nor [-oo, -oo] (10.5.8), and its constructor
+      gives the empty set there (12.12.7). A NaN bound raises no
+      floating-point exception (GAOL v5).
+    */
+    interval(double a, double b);
+    /*!
+      \brief Creates [a, a], and the empty set for an infinite a or a NaN,
+      which raises no floating-point exception (GAOL v5)
+
+      Explicit (GAOL v5): a double no longer converts silently to an
+      interval, which made gaol::sin(0.5) the sin of [0.5] and, where
+      gaol/parser/gaol_expression.h was included, ambiguous with the sin of an
+      expression. Assigning a double, &= and |= with one, and the relations
+      between an interval and a double have overloads of their own, which
+      take interval(d).
+    */
+    explicit interval(double a);
+    /*!
+      \brief Creates the tightest interval containing the integer n (GAOL v5)
+
+      [n, n] where n is a double, as every int is; for an integer beyond 2^53
+      that is no double, the two doubles around it: interval(2^53 + 1) is
+      [2^53, 2^53 + 2], where the conversion to a double gave [2^53, 2^53],
+      which does not contain it. Explicit, as interval(double). Any integer
+      type but bool.
+    */
+    template <class T, gaol_detail::if_integer<T> = 0>
+    explicit interval(T n) : interval(integer_interval(n, gaol_detail::integer_type_is_double<T>())) {}
+    /*!
+      \brief Creates [a, b] where a bound is an integer (GAOL v5): the lower
+      bound the largest double at most a, the upper one the smallest double at
+      least b, so that the interval contains the integers given, and the
+      empty set for a > b, compared as the numbers they are
+
+      The other bound is an integer, a double or a float (a long double
+      takes interval(double, double)). interval(1, 2) and interval(0, 0.5)
+      take it; interval(2^53 + 1, 2^53) is empty, though both lie between
+      the doubles 2^53 and 2^53 + 2.
+    */
+    template <class A, class B, gaol_detail::if_integer_bounds<A, B> = 0>
+    interval(A a, B b)
+      : interval(gaol_detail::bounds_in_order(a, b) ? gaol_detail::double_below(a) : GAOL_INFINITY,
+                 gaol_detail::double_above(b)) {}
+  private:
+    // interval(n) for an integer n: interval(double) where every value of
+    // the type is a double, as before (GAOL v5), the two doubles around n
+    // otherwise
+    template <class T>
+    static interval integer_interval(T n, std::true_type) { return interval(static_cast<double>(n)); }
+    template <class T>
+    static interval integer_interval(T n, std::false_type) { return interval(gaol_detail::double_below(n), gaol_detail::double_above(n)); }
+  public:
+    //! Creates a copy of I
+    interval(const interval& I);
+    /*!
+      Copies I: the assignment the compiler declares, written out (GAOL v5).
+      With the copy constructor above, -Wextra warned at each x = y of the
+      code using GAOL that the assignment the compiler declares implicitly
+      is deprecated.
+    */
+    interval& operator=(const interval& I) = default;
+    //! Assigns interval(d): [d, d], and the empty set for an infinite d or a NaN
+    interval& operator=(double d);
+    //! Assigns interval(n), the tightest interval containing the integer n (GAOL v5)
+    template <class T, gaol_detail::if_integer<T> = 0>
+    interval& operator=(T n) { return *this = interval(n); }
+#if GAOL_USING_SSE2_INSTRUCTIONS
+    /*
+      The interval whose stored bounds are the two lanes of xmm, the left
+      bound negated in the first one (GAOL v5). The lanes of [+oo] and [-oo],
+      which hold no real number (IEEE 1788-2015, 10.5.8) and which no other
+      constructor makes, give the empty set (decided on 2026-10-24): the
+      operations took them for intervals, and sqr([+oo]) was [+oo]. Bounds in
+      the wrong order are not checked. explicit, as GAOL v5 adds no implicit
+      conversion
+    */
+    explicit interval(const __m128d& xmm);
+    //! The same without the check of [+oo] and [-oo], for the code of GAOL (see gaol_detail::unchecked_bounds)
+    interval(const __m128d& xmm, gaol_detail::unchecked_bounds_t);
+#elif GAOL_USING_NEON_INSTRUCTIONS
+    /*
+      The interval whose stored bounds are the two lanes of v, the left bound
+      negated in the first one (GAOL v5). The lanes of [+oo] and [-oo], which
+      hold no real number (IEEE 1788-2015, 10.5.8) and which no other
+      constructor makes, give the empty set (decided on 2026-10-24): the
+      operations took them for intervals, and sqr([+oo]) was [+oo]. Bounds in
+      the wrong order are not checked. explicit, as GAOL v5 adds no implicit
+      conversion
+    */
+    explicit interval(const float64x2_t& v);
+    //! The same without the check of [+oo] and [-oo], for the code of GAOL (see gaol_detail::unchecked_bounds)
+    interval(const float64x2_t& v, gaol_detail::unchecked_bounds_t);
+#endif // GAOL_USING_SSE2_INSTRUCTIONS
+
+    /*
+      No constructor from strings (GAOL v5): textToInterval() reads them,
+      textToInterval("0.1") being [0.09999,0.10001], and textToInterval(sl,
+      sr) takes the left bound of sl and the right bound of sr, as the
+      constructor from two strings did. interval(const char*) converted any
+      const char* implicitly: interval(0) was ambiguous, and x + nullptr
+      compiled and crashed; interval(const char*, const char*) made
+      interval(0, 0) ambiguous, 0 being a null pointer too.
+    */
+    interval& operator+=(double d);
+    interval& operator-=(double d);
+    interval& operator*=(double d);
+    interval& operator/=(double d);
+    //! Relational division
+    interval& operator%=(double d);
+    /*
+      With an integer n (GAOL v5): the operation with the double n where n is
+      one for certain (|n| <= 2^53, every int), with interval(n) otherwise,
+      which contains it
+    */
+    template <class T, gaol_detail::if_integer<T> = 0>
+    interval& operator+=(T n) { return gaol_detail::integer_is_double(n) ? (*this += static_cast<double>(n)) : (*this += interval(n)); }
+    template <class T, gaol_detail::if_integer<T> = 0>
+    interval& operator-=(T n) { return gaol_detail::integer_is_double(n) ? (*this -= static_cast<double>(n)) : (*this -= interval(n)); }
+    template <class T, gaol_detail::if_integer<T> = 0>
+    interval& operator*=(T n) { return gaol_detail::integer_is_double(n) ? (*this *= static_cast<double>(n)) : (*this *= interval(n)); }
+    template <class T, gaol_detail::if_integer<T> = 0>
+    interval& operator/=(T n) { return gaol_detail::integer_is_double(n) ? (*this /= static_cast<double>(n)) : (*this /= interval(n)); }
+    template <class T, gaol_detail::if_integer<T> = 0>
+    interval& operator%=(T n) { return gaol_detail::integer_is_double(n) ? (*this %= static_cast<double>(n)) : (*this %= interval(n)); }
+    interval& operator+=(const interval& I);
+    interval& operator-=(const interval& I);
+    interval& operator*=(const interval& I);
+    interval& operator/=(const interval& I);
+    interval& operator%=(const interval& I);
+
+    GAOL_NODISCARD interval operator+(void) const;
+    GAOL_NODISCARD interval operator-(void) const;
+
+    /*!
+      1/(*this), recip of IEEE 1788-2015 (GAOL v5): the tightest interval of
+      the 1/x for the x of *this other than 0. [-oo, +oo] where 0 is inside
+      *this and not an end of it, [1/r, +oo] for [0, r], [-oo, 1/l] for [l, 0],
+      the empty set for [0] and for the empty set. See inverse(const interval&).
+    */
+    GAOL_NODISCARD interval inverse() const;
+
+    //! Intersection of *this and I
+    interval& operator&=(const interval& I);
+    //! Intersection of *this and interval(d)
+    interval& operator&=(double d);
+    /*!
+      Intersection of *this and {n}, for an integer n (GAOL v5): interval(n)
+      where *this contains n, the empty set otherwise. *this & interval(n)
+      would contain a double next to n that *this does: [0, 2^53] &= 2^53 + 1
+      is empty, not [2^53, 2^53]
+    */
+    template <class T, gaol_detail::if_integer<T> = 0>
+    interval& operator&=(T n) { return *this = set_contains(n) ? interval(n) : interval::emptyset(); }
+    //! Union of *this and I
+    interval& operator|=(const interval& I);
+    //! Union of *this and interval(d)
+    interval& operator|=(double d);
+    //! Union of *this and interval(n), for an integer n (GAOL v5)
+    template <class T, gaol_detail::if_integer<T> = 0>
+    interval& operator|=(T n) { return *this |= interval(n); }
+
+    GAOL_NODISCARD double left(void) const;
+    GAOL_NODISCARD double right(void) const;
+    /*!
+     \brief Returns the midpoint of an interval.
+
+     Cases are:
+     - \emptyset  -> Quiet NaN
+     - [-oo, +oo] -> midP = 0.0
+     - [-oo, b]   -> midP = -MAXREAL
+     - [a, +oo]   -> midP = MAXREAL
+     - [a, b]     -> midP = (a+b)/2 rounded to nearest, ties to even, computed
+       as a/2 + b/2 where |a| or |b| is 2^1023 or more, so that a+b does not
+       overflow: midpoint() of [MAXREAL] raises no overflow exception (GAOL v5)
+    */
+    GAOL_NODISCARD double midpoint(void) const;
+    /*!
+      \brief Midpoint enclosing interval.
+
+     Returns the tightest interval enclosing the midpoint of '*this', which is
+     included in '*this'.
+     - mid(\emptyset) = \emptyset
+     - mid([a,b])     = the tightest interval enclosing (a+b)/2
+     - mid([-oo,b])   = [-MAXREAL,-MAXREAL]
+     - mid([a,+oo])   = [MAXREAL,MAXREAL]
+     - mid([-oo,+oo]) = [0,0]
+     As midpoint(), it raises no overflow exception for [MAXREAL] (GAOL v5).
+    */
+    GAOL_NODISCARD interval mid(void) const;
+    /*!
+      \brief Radius of an interval, rad of IEEE 1788-2015 (12.12.8)
+
+      The smallest double r such that '*this' is included in [m-r, m+r], m
+      being midpoint(): NaN for the empty set, +oo for an unbounded interval.
+    */
+    GAOL_NODISCARD double rad(void) const;
+    /*!
+      \brief Midpoint and radius at once, midRad of IEEE 1788-2015 (12.12.8)
+
+      Sets m to midpoint() and r to rad().
+    */
+    void mid_rad(double& m, double& r) const;
+
+
+    GAOL_NODISCARD bool certainly_positive(void) const;
+    GAOL_NODISCARD bool certainly_negative(void) const;
+    GAOL_NODISCARD bool certainly_strictly_positive(void) const;
+    GAOL_NODISCARD bool certainly_strictly_negative(void) const;
+    GAOL_NODISCARD bool certainly_geq(const interval &I) const;
+    GAOL_NODISCARD bool certainly_leq(const interval &I) const;
+    GAOL_NODISCARD bool certainly_ge(const interval &I) const;
+    GAOL_NODISCARD bool certainly_le(const interval &I) const;
+    /*
+      Removed from GAOL v5 (see the relation symbols below, where == and !=
+      are the equality of sets): certainly_neq() was !certainly_eq(), which
+      is "possibly not equal", [3,4] being certainly not equal to [3,4]; IEEE
+      1788-2015 has neither certainly_eq nor the possibly relations, and its
+      "certainly not equal" is disjoint, set_disjoint() here. possibly_eq(I) is
+      !set_disjoint(I). The code is kept in comments.
+    */
+//     GAOL_NODISCARD bool certainly_eq(const interval &I) const;
+//     GAOL_NODISCARD bool certainly_neq(const interval &I) const;
+//
+//     GAOL_NODISCARD bool possibly_geq(const interval &I) const;
+//     GAOL_NODISCARD bool possibly_leq(const interval &I) const;
+//     GAOL_NODISCARD bool possibly_ge(const interval &I) const;
+//     GAOL_NODISCARD bool possibly_le(const interval &I) const;
+//     GAOL_NODISCARD bool possibly_eq(const interval &I) const;
+//     GAOL_NODISCARD bool possibly_neq(const interval &I) const;
+
+    GAOL_NODISCARD bool set_contains(const interval& I) const;
+    //! d shall not be a NaN
+    GAOL_NODISCARD bool set_contains(double d) const;
+    GAOL_NODISCARD bool set_strictly_contains(const interval& I) const;
+    GAOL_NODISCARD bool set_strictly_contains(double d) const;
+    /*!
+      \brief Whether the integer n belongs to *this (GAOL v5), n compared as
+      the integer it is, where it is no double: *this contains
+      interval(n), the two doubles around it
+    */
+    template <class T, gaol_detail::if_integer<T> = 0>
+    GAOL_NODISCARD bool set_contains(T n) const
+    {
+      return gaol_detail::integer_is_double(n) ? set_contains(static_cast<double>(n)) : set_contains(interval(n));
+    }
+    /*!
+      \brief Whether the integer n belongs to the interior of *this (GAOL v5):
+      where n is no double, left() < n < right() if and only if *this
+      contains interval(n), the two doubles around it, no double lying between
+      n and either
+    */
+    template <class T, gaol_detail::if_integer<T> = 0>
+    GAOL_NODISCARD bool set_strictly_contains(T n) const
+    {
+      if (gaol_detail::integer_is_double(n)) {
+        return set_strictly_contains(static_cast<double>(n));
+      }
+      const interval N(n);
+      return N.left() == N.right() ? set_strictly_contains(N.left()) : set_contains(N);
+    }
+    GAOL_NODISCARD bool set_disjoint(const interval &I) const;
+    GAOL_NODISCARD bool set_eq(const interval& I) const;
+    GAOL_NODISCARD bool set_neq(const interval& I) const;
+    GAOL_NODISCARD bool set_leq(const interval& I) const;
+    GAOL_NODISCARD bool set_geq(const interval& I) const;
+    GAOL_NODISCARD bool set_le(const interval& I) const;
+    GAOL_NODISCARD bool set_ge(const interval& I) const;
+    /*!
+      \brief The order of IEEE 1788-2015 on intervals (Table 10.3, GAOL v5)
+
+      less(I) is less, *this <= I: each bound of *this at most that of I;
+      strictly_less(I) is strictLess, each bound below that of I, an infinite
+      bound counting as below itself. Two empty sets are in both relations,
+      and an empty set and a nonempty interval in neither (Table 10.4).
+    */
+    GAOL_NODISCARD bool less(const interval& I) const;
+    GAOL_NODISCARD bool strictly_less(const interval& I) const;
+    /*!
+      \brief The interval overlapping function of IEEE 1788-2015 (10.6.4,
+      GAOL v5)
+
+      overlap(*this, I): the state of overlapping_state that *this (a) and
+      I (b) are in. Told by the bounds as the integers of their bits
+      (gaol_detail::bound_key(), gaol/gaol_port.h), -0 and +0 being the same
+      bound: the bounds of two nonempty intervals are not compared as
+      doubles, so that it raises no floating-point exception, even for an
+      empty operand, and the modes that flush the subnormals to zero do not
+      change it.
+    */
+    GAOL_NODISCARD overlapping_state overlap(const interval& I) const;
+
+    /*!
+      isEmpty of IEEE 1788-2015: *this is the empty set, whose bounds are NaN.
+      It raises no floating-point exception, the invalid-operation one
+      included: a program that enabled it is not stopped by this call, nor by
+      a choice it makes on it, x.is_empty() ? a : b, which GCC compiled with a
+      signaling comparison on 32-bit ARM and POWER9 (GAOL v5, see
+      doc/using.md)
+    */
+    GAOL_NODISCARD bool is_empty(void) const;
+    //! isEntire of IEEE 1788-2015 (10.5.10): *this is [-oo, +oo] (GAOL v5)
+    GAOL_NODISCARD bool is_entire(void) const;
+    //! isCommonInterval of IEEE 1788-2015 (10.6.3): nonempty and bounded (GAOL v5)
+    GAOL_NODISCARD bool is_common_interval(void) const;
+    GAOL_NODISCARD bool is_symmetric(void) const;
+    GAOL_NODISCARD bool is_finite(void) const;
+    /*!
+      An interval is canonical if it is of the form [a, a] or
+      of the form [a,a+] with a+ the smallest floating-point number larger
+      than a
+    */
+    GAOL_NODISCARD bool is_canonical(void) const;
+    GAOL_NODISCARD bool is_zero(void) const;
+    GAOL_NODISCARD bool straddles_zero(void) const;
+    GAOL_NODISCARD bool strictly_straddles_zero(void) const;
+    GAOL_NODISCARD bool is_a_double(void) const;
+    GAOL_NODISCARD bool is_an_int(void) const;
+
+    //! Size of the interval
+    GAOL_NODISCARD double width(void) const;
+
+    /*!
+      \brief An interval enclosing the exact width (GAOL v5).
+
+      The exact width r - l of [l, r] is generally no double, and width() is
+      its upper bound, rounded upward. width_enclosure() is the interval
+      interval(r) - interval(l): its lower bound is r - l rounded downward,
+      its upper bound width(). It is [0] for a point interval and the empty set
+      for the empty set. The width of an interval with an infinite bound is
+      +oo, which is no real number: the result is then [MAX, +oo], MAX the
+      largest double, as textToInterval() reads "inf".
+    */
+    GAOL_NODISCARD interval width_enclosure(void) const;
+
+    /*!
+      \brief The interval widened by the absolute radius r (GAOL v5).
+
+      The interval *this + [-r, r]: its lower bound is moved down by r,
+      rounded downward, and its upper bound up by r, rounded upward, so that
+      it encloses every x + e for x in *this and |e| <= r (+-oo past the
+      largest double). r = 0 gives *this, r = +oo the whole line; the empty
+      set stays empty, and r < 0 or NaN gives the empty set, as interval(-r, r)
+      is then empty.
+    */
+    GAOL_NODISCARD interval inflate(double r) const;
+
+    /*!
+     \brief Mignitude.
+
+     Returns the mignitude of '*this', that is, mig(*this)=
+     - min_  if *this > 0
+     - -max_ if *this < 0
+     - 0 otherwise
+     See "Global Optimization using interval Analysis", chap. 3, Eldon Hansen
+     */
+    GAOL_NODISCARD double mig(void) const;
+       /*!
+      \brief Magnitude
+
+      Returns the magnitude of '*this', that is,
+      mag(*this)=max(|min_|, |max_|)
+    */
+    GAOL_NODISCARD double mag(void) const;
+
+    /*!
+      \brief Signed mignitude.
+
+     Returns:
+     - min_ if *this > 0
+     - max_ if *this < 0
+     - 0 otherwise
+
+     See "interval Methods for Bounding the Range of Polynomials and Solving
+     Systems of Nonlinear Equations", Volker Stahl PhD. thesis, def. 1.3.28.
+    */
+    GAOL_NODISCARD double smig(void) const;
+
+
+    static void format(interval_format::format_t f);
+    GAOL_NODISCARD static interval_format::format_t format(void);
+
+    /* The masks of the SSE2 operations, initialized when compiling
+       (gaol/core/gaol_interval_sse_impl.h), so that the operations computed in the
+       initialization of the static objects of a program are right, before
+       the files of GAOL are initialized (GAOL v5). The constants of intervals
+       (one(), pi()...) are built by the functions giving them, from doubles
+       written in gaol/gaol_port.h, rather than held in static intervals, which
+       only the dynamic initialization of gaol/gaol_interval.cpp, now
+       gaol/core/gaol_interval_core.cpp, computed. */
+#if GAOL_USING_SSE2_INSTRUCTIONS
+     /// Mask for the sign bit of the left operand of an xmm register
+    static const __m128d lbsignmask;
+    /// Mask for the sign bits of both bounds
+    static const __m128d lbrbsignmask;
+    /// <0, 0>
+    static const __m128d m128_zero;
+    ///<-1, -1>
+    static const __m128d m128_minus_one;
+    ///<NaN Nan>
+    static const __m128d m128_nan;
+    /// < +oo +oo>
+    static const __m128d m128_infinf;
+
+#  if !GAOL_SSE2_UNALIGNED_STORAGE
+    // Allocators defined to enforce alignment on a 16 bytes boundary (not for
+    // the bounds kept as two doubles, which need 8: the allocators of the
+    // program and of the containers, and the placement new, serve as they are)
+	void *operator new(size_t sz);
+	void operator delete(void *p);
+
+	void *operator new[](size_t sz);
+	void operator delete[](void *p);
+
+	void *operator new(size_t sz, void *p);
+	void operator delete(void *p, void *place);
+#  endif
+
+#endif // GAOL_USING_SSE2_INSTRUCTIONS
+    GAOL_NODISCARD static interval zero(void);
+    GAOL_NODISCARD static interval universe(void);
+    GAOL_NODISCARD static interval emptyset(void);
+    GAOL_NODISCARD static interval positive(void); // [0, +oo]
+    GAOL_NODISCARD static interval negative(void); // [-oo, 0]
+
+
+    GAOL_NODISCARD static interval one(void);
+    GAOL_NODISCARD static interval minus_one_plus_one(void);
+    GAOL_NODISCARD static interval pi(void);
+    GAOL_NODISCARD static interval two_pi(void);
+    GAOL_NODISCARD static interval half_pi(void);
+    GAOL_NODISCARD static interval one_plus_infinity(void);
+
+    /*!
+      \brief The interval of midpoint m and radius r (GAOL v5).
+
+      interval(m) + [-r, r]: the lower bound m - r rounded downward, the upper
+      bound m + r rounded upward, so that it encloses every real of [m - r,
+      m + r] (+-oo past the largest double); interval(m - r, m + r) with
+      doubles does not, the two bounds being rounded upward. r = 0 gives the
+      point m and r = +oo the whole line; r < 0 or NaN, or m NaN, gives the
+      empty set, and so does an infinite m, as interval(m) does (IBEX's rules).
+    */
+    GAOL_NODISCARD static interval centered_form(double m, double r);
+
+    /*!
+      @name Splitting methods
+    */
+    //@{
+    /*!
+      \brief Splits *this in two using midpoint().
+
+      Returns the left part in I1 and the right one in I2
+    */
+    void split(interval &I1, interval &I2) const;
+
+    /*!
+      \brief *this cut at the given ratio of its width (GAOL v5).
+
+      The pair ([l, c], [c, r]) of the two parts of [l, r] on either side of
+      the cut point c, a double of [l, r] that both parts share, so that they
+      cover *this exactly. For 0 < ratio < 1, c is l + ratio (r - l), computed
+      as l (1 - ratio) + r ratio, which cannot overflow, and kept within
+      [l, r]; when is_bisectable(), c is moreover strictly between l and r, so
+      that both parts are smaller than *this. ratio = 0.5 cuts at midpoint(),
+      as split() does, and so does every ratio for a half-line ([l, +oo] at
+      the largest double, [-oo, r] at its opposite) and for the whole line
+      (at 0). The empty set gives two empty sets, and a point interval itself
+      twice. A ratio outside (0, 1), or NaN, is no ratio: it throws
+      std::domain_error.
+    */
+    GAOL_NODISCARD std::pair<interval, interval> bisect(double ratio) const;
+
+    /*!
+      \brief Whether *this can be cut into two parts smaller than itself (GAOL v5).
+
+      True when a double lies strictly between the bounds: bisect() then
+      gives two non-empty parts, each different from *this. False for the
+      empty set, a point interval and two consecutive doubles [a, b], which
+      can only be cut into [a, a] and [a, b] or [a, b] and [b, b]; and for
+      [MAX, +oo] and [-oo, -MAX], MAX the largest double, the half-lines that
+      split() cuts at their finite bound.
+    */
+    GAOL_NODISCARD bool is_bisectable() const;
+
+    //! Returns the left part (i.e. [left,midpoint()] of the domain.
+    GAOL_NODISCARD interval split_left(void) const;
+    //! Returns the right part (i.e. [midpoint(),right] of the domain.
+    GAOL_NODISCARD interval split_right(void) const;
+    //@} // End of splitting methods
+
+    //! Conversion to std::string
+    operator std::string() const;
+
+    //! Returns the current number of digits used for display
+    GAOL_NODISCARD static std::streamsize precision(void);
+    /*!
+      Sets the number of digits for display to 'n'.
+      \return The number of digits previously used
+    */
+    static std::streamsize precision(std::streamsize n);
+
+
+#if !GAOL_VECTOR_INTERVALS
+    friend GAOL_PUBLIC interval sqr(const interval& I);
+#endif
+
+#if GAOL_USING_SSE2_INSTRUCTIONS
+    typedef GAOL_ALIGN16(double xmm2d[2]);
+    //! What holds the two stored bounds: a __m128d, or two doubles of alignment 8 (GAOL_SSE2_UNALIGNED_STORAGE)
+#  if GAOL_SSE2_UNALIGNED_STORAGE
+    typedef gaol_detail::unaligned_xmm xmm_bounds;
+#  else
+    typedef __m128d xmm_bounds;
+#  endif
+    void get_bounds(xmm2d& b) const;
+    const xmm_bounds& get_xmminterval(void) const;
+    xmm_bounds& get_xmminterval(void);
+#elif GAOL_USING_NEON_INSTRUCTIONS
+    //! The two stored bounds, <-left, right> (GAOL v5)
+    const float64x2_t& get_neoninterval(void) const;
+    float64x2_t& get_neoninterval(void);
+#endif // GAOL_USING_SSE2_INSTRUCTIONS
+
+  private:
+#if GAOL_USING_SSE2_INSTRUCTIONS
+    xmm_bounds xmmbounds; // Lower 64 bits: left bound negated, upper 64 bits: right bound
+#elif GAOL_USING_NEON_INSTRUCTIONS
+    float64x2_t neonbounds; // First lane: left bound negated, second lane: right bound (GAOL v5)
+#else
+    double lb_; // The left bound is stored negated
+    double rb_;
+    // Copies the two stored bounds as they are (GAOL v5)
+    friend interval rnd_keep(const interval& x);
+#endif // GAOL_USING_SSE2_INSTRUCTIONS
+    double left_internal() const;
+    double right_internal() const;
+    /*
+      The inverse and the square of a non-empty interval, the rounding
+      direction being upward already, and the square with its check, inline
+      for the sources of the intervals: the integer powers and the roots of
+      negative order, which check the direction once and take the inverse or
+      the square after it (GAOL v5: inverse_upward() and sqr_upward(), private
+      functions of the library, which these sources called). Defined in
+      gaol/core/gaol_interval_internal.h, which these sources alone include,
+      and in the header of the kernels of each kind of intervals that it
+      includes
+    */
+    friend class upward_access;
+    static interval_format::format_t output;
+    //! Number of digits to display
+    static std::streamsize output_precision;
+  };
+
+  /*
+    rnd_keep() of an interval, for GAOL_RND_KEEP() with
+    GAOL_PRESERVE_ROUNDING (GAOL v5): its two stored bounds through volatile
+    doubles, as they are, the NaN bounds of the empty set included, where the
+    template of gaol/gaol_fpu.h copies an interval to volatile memory a byte
+    at a time, which made nth_root(x, -2), asinh(x) and the cube root 15 to
+    20 ns slower when they kept an interval; and of an __m128d, which the SSE2
+    operations keep (sqr(), inverse()). The FPU bounds are copied as they
+    are stored, through a friend, rather than given to the constructor,
+    which compares them.
+  */
+#if GAOL_USING_SSE2_INSTRUCTIONS
+  GAOL_INLINE __m128d rnd_keep(const __m128d& x)
+  {
+    volatile double low = _mm_cvtsd_f64(x);
+    volatile double high = _mm_cvtsd_f64(_mm_unpackhi_pd(x, x));
+    return _mm_set_pd(high, low);
+  }
+
+  GAOL_INLINE interval rnd_keep(const interval& x)
+  {
+    return interval(rnd_keep(static_cast<__m128d>(x.get_xmminterval())), gaol_detail::unchecked_bounds); // the lower bound stored negated
+  }
+#elif GAOL_USING_NEON_INSTRUCTIONS
+  /*
+    The two lanes stay in their register: an empty asm statement gives x back
+    as it is, so that no compiler computes with it before the direction is
+    restored, at no cost, where the volatile memory of the template of
+    gaol/gaol_fpu.h would copy it a byte at a time (GAOL v5). Visual C++ has
+    no asm statement on ARM64: the two lanes go through volatile doubles, as
+    those of an __m128d do above, and the write of FPCR that restores the
+    direction is preceded by _ReadWriteBarrier() (fpcr_set()), the volatile
+    accesses being ordered with it by that barrier and not by /volatile:iso,
+    the default of Visual C++ for ARM64
+  */
+  GAOL_INLINE float64x2_t rnd_keep(const float64x2_t& x)
+  {
+#  if GAOL_NEON_MSVC
+    volatile double first = vgetq_lane_f64(x, 0);
+    volatile double second = vgetq_lane_f64(x, 1);
+    return vcombine_f64(vdup_n_f64(first), vdup_n_f64(second));
+#  else
+    float64x2_t y = x;
+    __asm__ __volatile__ ("" : "+w" (y));
+    return y;
+#  endif
+  }
+
+  GAOL_INLINE interval rnd_keep(const interval& x)
+  {
+    return interval(rnd_keep(x.get_neoninterval()), gaol_detail::unchecked_bounds); // the lower bound stored negated
+  }
+#else
+  GAOL_INLINE interval rnd_keep(const interval& x)
+  {
+    interval r;
+    volatile double lb = x.lb_, rb = x.rb_;
+    r.lb_ = lb;
+    r.rb_ = rb;
+    return r;
+  }
+#endif
+
+
+#if GAOL_USING_SSE2_INSTRUCTIONS
+#   include "gaol/core/gaol_interval_sse.h"
+#elif GAOL_USING_NEON_INSTRUCTIONS
+#   include "gaol/core/gaol_interval_neon.h"
+#else
+#   include "gaol/core/gaol_interval_fpu.h"
+#endif // GAOL_USING_SSE2_INSTRUCTIONS
+
+
+  //! 1/I: I.inverse(), the recip of IEEE 1788-2015, which is that of 1/x for the x of I other than 0
+  GAOL_NODISCARD GAOL_INLINE interval inverse(const interval& I)
+  {
+    return I.inverse();
+  }
+
+  GAOL_INLINE
+  interval interval::operator+(void) const
+  {
+    return *this;
+  }
+
+
+  /*
+    The empty set has NaN bounds, which a comparison operator answers false
+    to, and !(left() <= right()) is true for it. <= is a signaling comparison,
+    though: on a quiet NaN it raises the invalid-operation exception, which
+    kills with SIGFPE a program that enabled it (feenableexcept() of glibc) at
+    each emptiness test of an empty interval, and sets FE_INVALID for a
+    program reading the flags. std::islessequal() is the same comparison,
+    false for a NaN, that raises nothing: ucomisd rather than comisd on x86,
+    with no more instruction with GCC 9 and Clang 18 (GAOL v5), and with
+    Visual C++ through gaol_detail::quiet_less_equal() (gaol_port.h), as the other
+    quiet comparisons of GAOL.
+  */
+  GAOL_INLINE
+  bool interval::is_empty(void) const
+  {
+#if (defined(__arm__) && !defined(__aarch64__)) || defined(_ARCH_PWR9)
+    /*
+      On 32-bit ARM and on POWER9, std::isunordered() first, then a plain
+      comparison of bounds that are no NaN (GAOL v5). There GCC compiles a
+      quiet comparison into a signaling one where it turns a choice made on it
+      into a conditional move: it reverses the comparison, and compiles the
+      reversed one with the signaling vcmpe on 32-bit ARM (GCC 12 to 14),
+      xscmpgedp on POWER9 (GCC 13 with -mcpu=power9), "unordered or greater"
+      becoming "less or equal": with !std::islessequal(), x.is_empty() ? a : b
+      in the program raised the invalid-operation exception for an empty x
+      (vcmpe; it ls; vmovls with GCC 13.3, #60). std::isunordered() stays
+      quiet when GCC reverses it, "ordered" being vcmp. The bounds go through
+      an empty asm statement, which leaves them in their register at no cost:
+      GCC can then not merge the two tests back into the single "unordered or
+      greater" of the bounds, which it may do with the same operands, and
+      their comparison is made only on bounds that are no NaN, where no
+      instruction raises anything. Elsewhere one quiet comparison, and its
+      bounds through GAOL_FPU_SCALAR() (gaol_interval_detail.h) against the
+      loops GCC vectorizes.
+    */
+    if (gaol_detail::quiet_unordered(left_internal(), right_internal())) {
+      return true;
+    }
+    double l = left(), r = right();
+    gaol_detail::keep_ordered(l, r);
+    return l > r;
+#else
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return !gaol_detail::quiet_less_equal(l, r); // Negation to handle NaNs
+#endif
+  }
+
+  GAOL_INLINE
+  bool interval::is_entire(void) const
+  {
+    return left() == -GAOL_INFINITY && right() == GAOL_INFINITY;
+  }
+
+  /*
+    The empty set is bounded to interval::is_finite(), its bounds being NaN,
+    which is no infinity: a common interval has to be nonempty as well
+  */
+  GAOL_INLINE
+  bool interval::is_common_interval(void) const
+  {
+    return !is_empty() && is_finite();
+  }
+
+  /*
+    The relations below compare the bounds with the quiet comparisons of
+    <cmath> (std::islessequal()...) wherever a bound may be NaN, even after a
+    test of the empty set that the comparison follows (GAOL v5): a compiler
+    that vectorizes or if-converts a loop of them computes the comparison for
+    the empty operands too, where <, <=, >= or > raise the invalid-operation
+    exception on their NaN bounds, as vcmplepd did in a loop of
+    certainly_positive() (GCC 9.4 at -O3 with -mavx2, FPU intervals; GCC for
+    x86 and POWER vectorizes the quiet comparisons into signaling ones too,
+    which GAOL_FPU_SCALAR() (gaol_interval_detail.h) keeps it from doing with
+    the FPU intervals). == and != are quiet comparisons already.
+    The relations make no check of the rounding direction, which clears the
+    modes that flush the subnormals to zero (gaol/gaol_fpu.h), and compare
+    the bounds with the comparisons of gaol_port.h that these modes do not
+    change, quiet ones too (gaol_detail::bound_less()...): under
+    denormals-are-zero, [3*2^-1074] < [5*2^-1074] was false, [2, 5]*2^-1074
+    contained 7*2^-1074, and [2^-1074, 2*2^-1074] was zero (GAOL v5). The test
+    of the empty set is the same under these modes,
+    which keep two bounds in their order and a NaN a NaN.
+  */
+  GAOL_INLINE
+  bool interval::less(const interval& I) const
+  {
+    if (is_empty() || I.is_empty()) {
+      return is_empty() && I.is_empty();
+    }
+    return gaol_detail::bound_less_equal(left(), I.left()) && gaol_detail::bound_less_equal(right(), I.right());
+  }
+
+  /*
+    <' of Table 10.3: < but for -oo <' -oo and +oo <' +oo, which are true, so
+    that [-oo, 1] is strictly less than [-oo, 2]
+  */
+  GAOL_INLINE
+  bool interval::strictly_less(const interval& I) const
+  {
+    if (is_empty() || I.is_empty()) {
+      return is_empty() && I.is_empty();
+    }
+    const bool lower = gaol_detail::bound_less(left(), I.left()) || (left() == I.left() && left() == -GAOL_INFINITY);
+    const bool upper = gaol_detail::bound_less(right(), I.right()) || (right() == I.right() && right() == GAOL_INFINITY);
+    return lower && upper;
+  }
+
+  /*
+    overlap() of IEEE 1788-2015 (10.6.4), from the bounds of the two nonempty
+    intervals told apart by the integers of their bits (bound_key()), which
+    are in the order of the doubles that are no NaN: a bound of a nonempty
+    interval is none. The tests of the empty set are those of is_empty()
+    (quiet comparisons), and the bounds are then compared as these integers
+    only: no comparison of doubles, which a compiler that vectorizes a loop of
+    overlap() could turn into a signaling one for the NaN bounds of an empty
+    operand, and which the modes flushing the subnormals to zero change (see
+    the relations above).
+    The lower bounds al and bl tell the side of the common part of a and b, and
+    the upper bounds au and bu the other side:
+    - al = bl: starts, equals or startedBy by au and bu;
+    - al < bl: finishedBy (au = bu), contains (bu < au), else au < bu and the
+      end of a against the start of b tells before, meets or overlaps;
+    - bl < al: the same, with the roles of a and b exchanged.
+    A point interval on a bound of the other one has al = bl or au = bu, so
+    that it is never meets or metBy, as the standard asks.
+  */
+  GAOL_INLINE
+  overlapping_state interval::overlap(const interval& I) const
+  {
+    const bool a_empty = is_empty();
+    const bool b_empty = I.is_empty();
+    if (a_empty || b_empty) {
+      return a_empty ? (b_empty ? overlapping_state::bothEmpty : overlapping_state::firstEmpty)
+                     : overlapping_state::secondEmpty;
+    }
+    const std::int64_t al = gaol_detail::bound_key(left());
+    const std::int64_t au = gaol_detail::bound_key(right());
+    const std::int64_t bl = gaol_detail::bound_key(I.left());
+    const std::int64_t bu = gaol_detail::bound_key(I.right());
+    if (al == bl) {
+      return au == bu ? overlapping_state::equals
+                      : (au < bu ? overlapping_state::starts : overlapping_state::startedBy);
+    }
+    if (al < bl) {
+      if (au == bu) {
+        return overlapping_state::finishedBy;
+      }
+      if (bu < au) {
+        return overlapping_state::contains;
+      }
+      return au < bl ? overlapping_state::before
+                     : (au == bl ? overlapping_state::meets : overlapping_state::overlaps);
+    }
+    if (au == bu) {
+      return overlapping_state::finishes;
+    }
+    if (au < bu) {
+      return overlapping_state::containedBy;
+    }
+    return bu < al ? overlapping_state::after
+                   : (bu == al ? overlapping_state::metBy : overlapping_state::overlappedBy);
+  }
+
+  GAOL_INLINE
+  bool interval::is_symmetric(void) const
+  {
+    return !is_empty() && gaol_detail::bound_equal(-left(), right());
+  }
+
+  GAOL_INLINE
+  bool interval::certainly_positive(void) const
+  {
+    return is_empty() || gaol_detail::bound_greater_equal(left(), 0.0);
+  }
+
+  GAOL_INLINE
+  bool interval::certainly_negative(void) const
+  {
+    return is_empty() || gaol_detail::bound_less_equal(right(), 0.0);
+  }
+
+  GAOL_INLINE
+  bool interval::certainly_strictly_positive(void) const
+  {
+    return is_empty() || gaol_detail::bound_greater(left(), 0.0);
+
+  }
+
+  GAOL_INLINE
+  bool interval::certainly_strictly_negative(void) const
+  {
+    return is_empty() || gaol_detail::bound_less(right(), 0.0);
+  }
+
+  /*
+    certainly_le() and certainly_leq() are strictPrecedes and precedes of IEEE
+    1788-2015 (Table 10.3): for all x in *this and all y in I, x < y (x <= y),
+    which is true when either interval is empty (Table 10.4), as for
+    certainly_ge() and certainly_geq(). GAOL gave false when only I was empty,
+    respectively only *this (GAOL v5).
+    Each relation is the OR of four tests: the bounds are in order, *this is
+    empty, I is empty and, for bounds the processor finds equal, the integers
+    of their bits are in order (gaol_detail::bound_tied_less() and
+    bound_tied_less_equal()). Each is marked with the answer the compiler is
+    told is the usual one (bounds in order likely, an empty operand and equal
+    bounds rarely), which changes the layout of the code and nothing it
+    computes. With GCC 13.3, x <= y of gaol_performance took 3.9 to 4.6 ns
+    instead of 1.2 to 1.5 ns on an Intel i7-1185G7 for some addresses of the
+    code, the answers "true" and "false" taking the same number of jumps. With
+    the hints "true" is the code that falls through and "false" takes more
+    jumps, in the four relations (GCC 13 and 15 and Clang 18 and 21 for x86-64,
+    GCC 12 and 14 and Clang 18 and 21 for 64-bit ARM).
+    The comparison of the bounds comes first, so that "true" costs it alone,
+    where the tests of the empty set made two comparisons more: x <= y took
+    1.56 ns instead of 1.04 ns with Clang on a Neoverse N2. The price is an
+    empty operand, which takes the longer path: up to 1.6 times the time of the
+    former order, with GCC 15 and Clang 21, in a loop over empty operands only.
+    On RISC-V the tests of the empty set stay first (GAOL_RELATION_BOUNDS_FIRST,
+    gaol_port.h): the comparison of the bounds is then made on the NaN bounds of
+    an empty operand, which GCC 14 for RISC-V compiles into a signaling
+    comparison in some loops (FE_INVALID raised for an empty operand of x <= y,
+    tests/rounding_direction.cpp).
+    The equal bounds are found by quiet_less_equal(r, l), not by r == l. With a
+    constant bound other than zero on either side of <= or >= (x >= 1.5,
+    x <= 2.5...), GCC 14 for x86-64, 64-bit ARM and RISC-V folds
+    quiet_less(r, l) || r == l into the signaling comparison r <= l, which
+    raises FE_INVALID for the NaN bounds of an empty operand wherever the
+    compiler makes it before the tests of the empty set, in a loop for
+    instance: where these come first, as with -DGAOL_RELATION_BOUNDS_FIRST=0,
+    which a job of the continuous integration builds on Debian 13 amd64.
+  */
+  GAOL_INLINE bool interval::certainly_ge(const interval &I) const
+  {
+    const double r = I.right(), l = left();
+#if GAOL_RELATION_BOUNDS_FIRST
+    return GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less(r, l));
+#else
+    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less(r, l));
+#endif
+  }
+
+  GAOL_INLINE bool interval::certainly_geq(const interval &I) const
+  {
+    const double r = I.right(), l = left();
+#if GAOL_RELATION_BOUNDS_FIRST
+    return GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less_equal(r, l));
+#else
+    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less_equal(r, l));
+#endif
+  }
+
+  GAOL_INLINE bool interval::certainly_le(const interval &I) const
+  {
+    const double r = right(), l = I.left();
+#if GAOL_RELATION_BOUNDS_FIRST
+    return GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less(r, l));
+#else
+    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less(r, l));
+#endif
+  }
+
+  GAOL_INLINE bool interval::certainly_leq(const interval &I) const
+  {
+    const double r = right(), l = I.left();
+#if GAOL_RELATION_BOUNDS_FIRST
+    return GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less_equal(r, l));
+#else
+    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less_equal(r, l));
+#endif
+  }
+
+
+  // certainly_eq(), certainly_neq() and the possibly relations, removed from
+  // GAOL v5 (see their declarations above)
+//   /*
+//     For all x in *this and all y in I, x = y: both intervals are the same
+//     double, or both are empty. GAOL did not look at the lower bound of I, and
+//     [2] was certainly equal to [1,2] (GAOL v5).
+//   */
+//   GAOL_INLINE bool interval::certainly_eq(const interval &I) const
+//   {
+//     return (is_empty() && I.is_empty())
+//       || (left() == right() && I.left() == I.right() && left() == I.left());
+//   }
+//
+//   GAOL_INLINE bool interval::certainly_neq(const interval &I) const
+//   {
+//     return !certainly_eq(I);
+//   }
+//
+//
+//   GAOL_INLINE bool interval::possibly_geq(const interval &I) const
+//   {
+//     return right()>= I.left();
+//   }
+//
+//
+//   GAOL_INLINE bool interval::possibly_leq(const interval &I) const
+//   {
+//     return left() <= I.right();
+//   }
+//
+//   GAOL_INLINE bool interval::possibly_ge(const interval &I) const
+//   {
+//     return right() > I.left();
+//   }
+//   GAOL_INLINE bool interval::possibly_le(const interval &I) const
+//   {
+//     return left() < I.right();
+//   }
+//
+//
+//   GAOL_INLINE bool interval::possibly_eq(const interval &I) const
+//   {
+//     return (left() <= I.right()) && (right() >= I.left());
+//   }
+//
+//   GAOL_INLINE bool interval::possibly_neq(const interval &I) const
+//   {
+//     return (!is_empty() && !I.is_empty()) && !((right()<= I.left()) && (left()>=I.right()));
+//   }
+
+  GAOL_INLINE
+  bool interval::is_zero(void) const
+  {
+    return gaol_detail::bound_equal(left(), 0.0) && gaol_detail::bound_equal(right(), 0.0);
+  }
+
+  /*
+    The functions below that compare a bound of an interval that may be empty
+    use the quiet comparisons of <cmath> (std::islessequal()...), as
+    is_empty() does: false for the NaN bounds of the empty set, as <=, <, >=
+    and > are, but raising no invalid-operation exception, which kills with
+    SIGFPE a program that enabled it. On x86 each is one instruction, as the
+    comparison it replaces (ucomisd rather than comisd): Clang 18 compiles
+    these functions to as many instructions, at the same cost, GCC 13 to a
+    few more or a few fewer (GAOL v5)
+  */
+  GAOL_INLINE
+  bool interval::straddles_zero(void) const
+  {
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return gaol_detail::bound_less_equal(l, 0.0) && gaol_detail::bound_greater_equal(r, 0.0);
+  }
+
+  GAOL_INLINE
+  bool interval::strictly_straddles_zero(void) const
+  {
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return gaol_detail::bound_less(l, 0.0) && gaol_detail::bound_greater(r, 0.0);
+  }
+
+  GAOL_INLINE
+  bool interval::is_a_double(void) const
+  {
+    return gaol_detail::bound_equal(left(), right());
+  }
+
+  // The floor of a subnormal l is 0 or -1 (gaol_detail::bound_floor(),
+  // gaol_port.h), which no subnormal equals: compared as bounds, it is not
+  // taken for l under denormals-are-zero (GAOL v5)
+  GAOL_INLINE
+  bool interval::is_an_int(void) const
+  {
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return gaol_detail::bound_equal(l, r) && gaol_detail::bound_equal(gaol_detail::bound_floor(l), l) &&
+      (gaol_detail::quiet_less_equal(l, static_cast<double>((std::numeric_limits<int>::max)())) && // Strange call way needed by msvc++
+       gaol_detail::quiet_greater_equal(l, static_cast<double>((std::numeric_limits<int>::min)())));
+  }
+
+
+
+  GAOL_INLINE bool interval::set_contains(const interval& I) const
+  {
+    return (I.is_empty() || (gaol_detail::bound_less_equal(left(), I.left()) && gaol_detail::bound_greater_equal(right(), I.right())));
+  }
+
+  /**
+    @note d should not be a NaN
+    */
+  GAOL_INLINE bool interval::set_contains(double d) const
+  {
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return gaol_detail::bound_less_equal(l, d) && gaol_detail::bound_greater_equal(r, d);
+  }
+
+  /*
+    I is interior to *this: interior of IEEE 1788-2015 (Table 10.3), where an
+    infinite bound of *this is beyond the same infinite bound of I, and the
+    empty set is interior to any interval, itself included. GAOL gave false for
+    set_strictly_contains(I) when both had the same infinite bound, as
+    interior(Entire, Entire), which is true (GAOL v5).
+  */
+  GAOL_INLINE bool interval::set_strictly_contains(const interval& I) const
+  {
+    return I.is_empty()
+      || (!is_empty()
+          && (gaol_detail::bound_less(left(), I.left()) || left() == -GAOL_INFINITY)
+          && (gaol_detail::bound_greater(right(), I.right()) || right() == GAOL_INFINITY));
+  }
+
+  /**
+    @note d should not be a NaN
+    */
+  GAOL_INLINE bool interval::set_strictly_contains(double d) const
+  {
+    double l = left(), r = right();
+    GAOL_FPU_SCALAR(l);
+    GAOL_FPU_SCALAR(r);
+    return gaol_detail::bound_less(l, d) && gaol_detail::bound_greater(r, d);
+  }
+
+  GAOL_INLINE bool interval::set_disjoint(const interval &I) const
+  {
+      return gaol_detail::bound_less(right(), I.left()) || gaol_detail::bound_greater(left(), I.right())
+	  || (is_empty() || I.is_empty());
+  }
+
+  GAOL_INLINE bool interval::set_eq(const interval& I) const
+  {
+    return (is_empty() && I.is_empty()) || (gaol_detail::bound_equal(left(), I.left()) && gaol_detail::bound_equal(right(), I.right()));
+  }
+
+  GAOL_INLINE bool interval::set_neq(const interval& I) const
+  {
+    return !set_eq(I);
+  }
+
+   // *this is interior to I (see set_strictly_contains()): GAOL gave false
+   // for the empty set in the empty set (GAOL v5)
+   GAOL_INLINE bool interval::set_le(const interval& I) const
+   {
+       return I.set_strictly_contains(*this);
+   }
+
+   GAOL_INLINE bool interval::set_leq(const interval& I) const
+   {
+       return is_empty() || (gaol_detail::bound_greater_equal(left(), I.left()) && gaol_detail::bound_less_equal(right(), I.right()));
+   }
+
+   GAOL_INLINE bool interval::set_ge(const interval& I) const
+  {
+    return set_strictly_contains(I);
+  }
+
+   GAOL_INLINE bool interval::set_geq(const interval& I) const
+  {
+    return set_contains(I);
+  }
+
+  /*
+    The empty set is split into two empty sets, built from its NaN bounds and
+    its midpoint, NaN, which the constructor tells with a quiet comparison
+    (GAOL v5). They were told first by the midpoint, with std::isnan(), when
+    the constructor compared them with <=, which raises the invalid-operation
+    exception on a NaN.
+  */
+  GAOL_INLINE void interval::split(interval &I1, interval &I2) const
+  {
+    const double l = left(), m = midpoint(), r = right();
+    I1 = interval(l,m);
+    I2 = interval(m,r);
+  }
+
+  /*
+    A double strictly between the bounds (GAOL v5): the next double above the
+    lower bound is below the upper bound, -MAX above -oo for [-oo, b], +oo
+    above MAX for [MAX, +oo]. The bounds of a non-empty interval are no NaN.
+    Told by the bits of the bounds, as the integers bound_key() gives, which
+    are in the order of the doubles with -0 and +0 alike: two keys apart by
+    two or more have a double between them. No call of nextafter(), that of
+    Cygwin computing the overflow of nextafter(MAX, +oo) as MAX + MAX, in the
+    direction of the program, so that [MAX, +oo] was bisectable rounding
+    downward or toward zero; and no comparison of doubles, which the modes
+    that flush the subnormals to zero, that the program may have set (they are
+    not cleared here), change: with them, [3 2^-1074, 5 2^-1074] was not
+    bisectable, the comparison reading both bounds as zeros (GAOL v5).
+  */
+  GAOL_INLINE bool interval::is_bisectable() const
+  {
+    return !is_empty() && gaol_detail::bound_key(right()) > gaol_detail::bound_key(left()) + 1;
+  }
+
+  GAOL_INLINE interval interval::split_left(void) const
+  {
+    return interval(left(),midpoint());
+  }
+
+  GAOL_INLINE interval interval::split_right(void) const
+  {
+    return interval(midpoint(),right());
+  }
+
+  //! \brief Prototypes
+  //@{
+  /*!
+    \brief Chi function
+
+    Function given in:
+    Interval Methods. Helmut Ratschek and Jon Rokne. Handbook of Global Optimization,
+    R. Horst and P.M. Pardalos (eds.), p. 751--828, 1995 Kluwer Academic Publishers.
+
+    This function characterizes the degree of symmetry of intervals.
+
+    Definition:
+    chi([a,b]) = -1,   if a==b==0
+               = a/b,  if |a| <= |b|
+               = b/a,  otherwise
+
+    chi([0,0]) is -1, the value of chi([-a,a]) for a > 0: [0,0] is symmetric
+    about 0. For an interval with an infinite bound, chi([-oo,+oo]) is 1 and
+    chi is 0 otherwise. chi is NaN for the empty set, the positive NaN of
+    width(), which cout writes nan (GAOL v5).
+   */
+  GAOL_NODISCARD extern GAOL_PUBLIC double chi(const interval &I);
+  /*!
+    \brief maximum of 2 intervals
+   */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval max(const interval &I, const interval &J);
+  /*!
+    \brief minimum of 2 intervals
+   */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval min(const interval &I, const interval &J);
+  /*!
+    \brief The reverse function of max (GAOL v5): the hull of the x of X such
+    that max(x, y) is in Z for some y of Y
+
+    max_rel(Z, Y, X) = hull{x in X | exists y in Y: max(x, y) in Z}, the
+    arguments in the order of div_rel(K, J, I): the result Z, the other
+    operand Y, then the operand X it contracts; max being symmetric,
+    max_rel(Z, X, Y) contracts Y. max(x, y) is in Z when x and y are at most
+    sup Z and one of them at least inf Z, so that the set is empty when Y lies
+    above Z (inf Y > sup Z), X & [-oo, sup Z] when Y meets Z (a y of Y in Z is
+    the maximum of every x up to it), and X & Z when Y lies below Z
+    (sup Y < inf Z, the maximum being x): max_rel([1, 2], [3, 4], X) is
+    empty, max_rel([1, 2], [0, 1], [-5, 5]) is [-5, 2] and
+    max_rel([1, 2], [-1, 0], [-5, 5]) is [1, 2]. The bounds are those of X
+    and Z, unrounded: the result is the set itself, the tightest enclosure.
+    The empty set for an empty argument. Z is contracted by max itself,
+    max(X, Y) & Z. IEEE 1788-2015 names no reverse of max: it is its natural
+    reverse extension (10.5.4, (6)).
+   */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval max_rel(const interval &Z, const interval &Y,
+                                                     const interval &X);
+  /*!
+    \brief The reverse function of min (GAOL v5): the hull of the x of X such
+    that min(x, y) is in Z for some y of Y
+
+    min_rel(Z, Y, X) = hull{x in X | exists y in Y: min(x, y) in Z},
+    max_rel() turned upside down: empty when Y lies below Z (sup Y < inf Z),
+    X & [inf Z, +oo] when Y meets Z, and X & Z when Y lies above Z
+    (inf Y > sup Z). The tightest enclosure, the bounds being those of X and
+    Z; the empty set for an empty argument.
+   */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval min_rel(const interval &Z, const interval &Y,
+                                                     const interval &X);
+
+  extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os, const interval& I);
+  /*!
+    \brief Writes the name of a state of overlap() (GAOL v5)
+
+    The name Table 10.7 of IEEE 1788-2015 gives the state, as a string:
+    bothEmpty, firstEmpty, secondEmpty, before, meets, overlaps, starts,
+    containedBy, finishes, equals, finishedBy, contains, startedBy,
+    overlappedBy, metBy or after; overlapping_state(k) for a value k that is
+    none of them. The width of os applies to the name as a whole.
+  */
+  extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os, overlapping_state s);
+  /*!
+    \brief Reads an interval, written on a line, from is
+
+    The blanks before the line, line ends included, are skipped as before a
+    number, even under std::noskipws (GAOL v5): an empty line is no line to
+    read. At the end of the
+    input, failbit is set, I is left as it was and nothing is thrown, so that
+    while (is >> I) ends there; a stream that is not good is not read, and
+    loses none of its text. A line that is no interval sets failbit, empties
+    I and throws std::invalid_argument (std::domain_error for a function
+    called with an argument it does not take); where GAOL is built without
+    exceptions, it writes an error message on std::cerr and aborts the
+    program instead.
+  */
+  extern GAOL_PUBLIC std::istream& operator>>(std::istream& is,  interval& I);
+  /*!
+    \brief The exact text of I (GAOL v5)
+
+    What operator<< writes in interval_format::hexa: "[empty]" for the empty
+    set, "[a]" for a point interval ("[0x0p+0]" for a zero of either sign),
+    and otherwise each bound in the hexadecimal-significand form, which
+    textToInterval() reads back as the same doubles (IEEE 1788-2015, 13.4),
+    a zero point as [+0, +0], the same set. It
+    neither reads nor changes the global output format, which
+    interval::format() sets.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC std::string exact_string(const interval& I);
+#if !GAOL_VECTOR_INTERVALS
+  //! I^2
+  GAOL_NODISCARD extern GAOL_PUBLIC   interval sqr(const interval& I);
+#endif
+  /*
+    I^e for an integer e, gaol::pow(I, e), the pown of IEEE 1788-2015: [1]
+    for e = 0, the empty set for an empty I, and for [0] and e < 0. Its bounds
+    are the tightest, or one double beyond where x^e is within twice the
+    bound of the error of the products of a double (2^-98 relatively at
+    e = 3, 2^-62 at most, never for e = 2), and exact where x^e is a double
+    (GAOL v5): from exact products within the ints, from CORE-MATH's pow
+    beyond them, the tightest where e is a double, and within three doubles
+    of them for an e of more than 53 bits that is no double (gaol_pown_ll()).
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_pown(const interval& I, int e);
+  /*
+    I^e for an unsigned e, gaol::pow(I, e): gaol_pown() within the ints, and
+    the pown of CORE-MATH's pow beyond them (GAOL v5). Declared here too, and
+    defined out of line, where it was GAOL_INLINE with the SSE2 intervals
+    (GAOL v5): named uipow() then, it was not found and did not link.
+    uipow_upup() and uipow_dnup(), which only computed parts of it on the
+    stored bounds, are no longer declared.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_uipow(const interval& I, unsigned int e);
+  /*
+    I^e for an e of type long long, gaol::pow(I, e) for an integer type of
+    more than 32 bits (GAOL v5): gaol_pown() within the ints, and beyond them
+    the bounds of CORE-MATH's pow at the corners of I, the tightest where e is
+    a double, |e| <= 2^53 included, and within three doubles of them otherwise,
+    from the powers x^h and x^l, e = h + l, h a double and |l| < 2^11.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_pown_ll(const interval& I, long long e);
+
+  /*!
+    \brief I^J, gaol::pow(I, J) (GAOL v5)
+
+    A degenerate integer exponent J = [n] always takes the integer power
+    gaol_pown(), the pown of IEEE 1788, which is defined for a
+    negative base too, gives x^0 = 1 for any x, 0 included, and has no value
+    at 0 for n < 0, beyond the ints too (GAOL v5: [-oo,+oo] there). Any
+    other exponent takes the pow of IEEE 1788 on the part of I in [0,+oo],
+    where 0^y is 0 for y > 0 and has no value for y <= 0, its tightest
+    bounds: CORE-MATH's pow at the corners of the box, and the limits of x^y,
+    0 or +oo, where the base is 0 or +oo or the exponent infinite (1 for a
+    base 1 or an exponent 0).
+    pow([-4,9],[0.5]) is [0,3], pow([4,+oo],[0.5]) is [2,+oo],
+    pow([0],[0,1]) is [0], and pow([-4,-1],[1.5,2.5]) and pow([0],[-0.5])
+    are empty. An exponent [+oo] or [-oo] contains no real number, and gives
+    the empty set. The result is thus not monotone for the inclusion of J:
+    pow([-4,-1],[2]) is [1,16], and pow([0],[0]) is [1].
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_pow_hybrid(const interval &I, const interval &J);
+
+  /*
+    The pow of IEEE 1788-2015 (Table 9.1), after one check of the rounding
+    direction: gaol_ieee1788::pow() is this function (GAOL v5), the inline
+    function of gaol/gaol_ieee1788.h calling it, so that it is exported
+    (GAOL_PUBLIC). Defined in gaol/core/gaol_interval_pow.cpp, with the other
+    powers.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow_standard(const interval &I, const interval &J);
+
+} // namespace gaol_core
+
+namespace gaol_detail {
+  // n as a long long, for gaol_pown_ll(): beyond the long longs, as
+  // integer_power() below says
+  template <class T>
+  GAOL_INLINE long long integer_as_long_long(T n)
+  {
+    if (integer_fits<long long>(n)) {
+      return static_cast<long long>(n);
+    }
+    const long long beyond = (n % 2 != 0) ? 9223372036854775807LL : 9223372036854775806LL;
+    return integer_is_negative(n) ? -beyond : beyond;
+  }
+
+  /*
+    I^n for an integer n of a type other than int and unsigned int,
+    gaol::pow(I, n) and gaol_ieee1788::pown(x, n) (GAOL v5): pow(x, 5L) and
+    pow(x, 5LL) were ambiguous, a long being as far from an int as from an
+    unsigned int and a double. gaol_pown() for an n within the ints,
+    gaol_uipow() for one within the unsigned ints, as pow(I, int) and
+    pow(I, unsigned int), and gaol_pown_ll() within 64 bits (GAOL v5: [-oo,
+    +oo] beyond the unsigned ints). Beyond the long longs, n is taken as
+    +-(2^63 - 1) for an odd n and +-(2^63 - 2) for an even one, the sign of n:
+    x^n is the same, every power of a double other than 0, +-1 and +-oo
+    being below 2^-1074 or above the largest double for |n| >= 2^63
+    ((1 + 2^-52)^(2^63) is e^2048, and (1 - 2^-53)^(2^63) e^-1024).
+  */
+  template <class T>
+  GAOL_INLINE gaol_core::interval integer_power(const gaol_core::interval& I, T n)
+  {
+    if (integer_fits<int>(n)) {
+      return gaol_core::gaol_pown(I, static_cast<int>(n));
+    }
+    if (integer_fits<unsigned int>(n)) {
+      return gaol_core::gaol_uipow(I, static_cast<unsigned int>(n));
+    }
+    return gaol_core::gaol_pown_ll(I, integer_as_long_long(n));
+  }
+} // namespace gaol_detail
+
+namespace gaol_core {
+
+
+  /*!
+    \brief I^p for a floating-point p, gaol::pow(I, p) (GAOL v5)
+
+    Without it, pow(I,2.5) called pow(const interval&, int), converting a
+    double to an int being a standard conversion and converting it to an
+    interval a user-defined one: the exponent was truncated, and pow([4],0.5)
+    returned [1]. An integer p within the ints is computed by gaol_pown(),
+    which is defined for negative bases too, any other p by
+    gaol_pow_hybrid(), and an infinite or NaN p gives the empty set. Ported
+    from the fix of Codac (commit 74086ccb, Jordan Ninin).
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC  interval gaol_pow_real(const interval& I, double p);
+
+  /*!
+    \brief The reverse functions of pow: the x of I, and the y of I, with an
+    x^y in K (GAOL v5)
+
+    pow_rel(K, J, I) = hull{x in I | exists y in J: x^y in K}, the base, and
+    pow_exponent_rel(K, H, I) = hull{y in I | exists x in H: x^y in K}, the
+    exponent: powRev1(J, K, I) and powRev2(H, K, I) of IEEE 1788-2015
+    (10.5.4, Table 10.1), the arguments in the order of div_rel(K, J, I).
+    x^y is the pow of the standard (Table 9.1), that of gaol_ieee1788::pow:
+    e^(y log x) for x > 0, 0 for x = 0 and y > 0, and no value elsewhere, so
+    that no x < 0 is a solution. gaol::pow takes the integer power for a
+    degenerate integer exponent [n], whose negative bases these functions
+    leave out: the reverse of x^n is nth_root_rel(K, n, I).
+    pow_rel([4, 9], [2], interval::universe()) is [2, 3],
+    pow_rel([2, 3], [1, +oo], [0, 1]) is empty (x^y >= 2 asks x > 1), and
+    pow_exponent_rel([8], [2], interval::universe()) is [3].
+
+    The bounds are the tightest: those of c^(1/y) and log(c)/log(x) proved
+    with CORE-MATH's pow, correctly rounded. A bound of I is kept where the
+    solutions start between it and the next double and its power is within
+    one double of the bound of K, where proving that it is no solution
+    would take knowing whether that power is a double:
+    pow_rel([1 + 2^-52], [0.5], [0, 1 + 2^-51]) is [1 + 2^-51] rather than
+    empty, within the tightest result for I one double wider.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow_rel(const interval& K, const interval& J, const interval& I);
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow_exponent_rel(const interval& K, const interval& H, const interval& I);
+
+  /*!
+    \brief relational square root of J w.r.t. I
+    \f$sqrt_rel(J,I) = Hull{x\in I\mid \exists y\in J\colon y=x^2}\f$
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval sqrt_rel(const interval& J, const interval& I);
+
+  /*!
+    \brief relational division of K by J w.r.t. I
+
+    div_rel(K,J,I) = hull(x\in I\mid\exists z\in K\exists y\in J:z=xy)
+   */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval div_rel(const interval &K,  const interval &J, const interval &I);
+
+  /*!
+    \brief square root of I
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval sqrt(const interval& I);
+  /*!
+    \brief relational nth root of J w.r.t. I, for a positive n
+    \f$nthroot_rel(J,I) = Hull{x\in I\mid \exists y\in J\colon y=x^n}\f$
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J, unsigned int n, const interval& I);
+  /*!
+    \brief The reverse of the integer power x^p, for any integer p: pownRev of
+    IEEE 1788-2015 (10.5.4, Table 10.1) (GAOL v5, where nth_root_rel() took a
+    positive n only)
+
+    nth_root_rel(J, p, I) = hull{x in I | x^p is defined and in J}, x^p being
+    the pown of the standard (Table 9.1):
+    - p >= 1: x is a root of order p of J, which nth_root_rel(J, unsigned
+      p, I) gives;
+    - p = 0: x^0 is 1 for every x, 0 included, so that the hull is I where 1 is
+      in J, and the empty set elsewhere: nth_root_rel([-1, 5], 0, I) is I and
+      nth_root_rel([-1, 0], 0, I) is empty;
+    - p < 0: x^p is 1/x^|p|, which 0 has not, so that x is not 0; x^p has the
+      sign of x for an odd p, and is positive for an even one. J is cut at 0 and
+      each part gives the roots rootn(part, p) of nth_root(part, p), whose
+      parts in I give the hull: the hull of the inverse of J, which spans the
+      gap between its parts, would not do, nth_root_rel([-1, 2], -3, [-0.5, 0.5])
+      being empty where the hull of the roots of [-1, 2] holds all of I. The
+      point 0, which the roots reach where J is unbounded, is no solution:
+      nth_root_rel([1, +oo], -2, [0]) is empty, and nth_root_rel([1, +oo], -2,
+      [0, 3]) is [0, 1].
+
+    The bounds of the roots are those of nth_root(J, p), the root then its
+    inverse: up to 4 doubles beyond the tightest for p < 0 (4 found, for
+    nth_root_rel([2.25], -127, I)), the tightest for p >= 1 where the bound of
+    J is a power of a double. For p = -1, where 1/J reaches beyond the largest
+    double (J below 1/DBL_MAX, about 2^-1024), a bound saturates at the largest double, as
+    div_rel() does: nth_root_rel([2^-1074], -1, [0, DBL_MAX]) is [DBL_MAX]
+    where the hull is empty, the bounds being sound but not within 4 doubles
+    of the tightest. The empty set for an empty argument. An integer p of another type than int and
+    unsigned int (long, long long...) takes the template below, which gives
+    the same result: a long is as far from an int as from an unsigned int,
+    and nth_root_rel(J, 3L, I) would be ambiguous without it.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J, int p, const interval& I);
+  /*!
+    \brief nth_root_rel(J, p, I) with a floating-point p is refused (GAOL v5)
+
+    A double was converted to an unsigned int, cutting 2.5 to 2 and giving a
+    negative p a root of an order beyond 2^31. With the overload of an int
+    next to that of an unsigned int, the call is ambiguous, as nth_root(I,
+    2.0) is: deleted, the error says that the exponent is no integer. A float
+    is promoted to a double.
+  */
+  interval nth_root_rel(const interval& J, double p, const interval& I) = delete;
+  /*!
+    \brief nth root of I for a positive n
+
+    rootn of IEEE 1788-2015: for an odd n, the root of a negative x is
+    -(-x)^(1/n), and nth_root([-8,27],3) encloses [-2,3]; for an even n, the
+    roots of the part of I in [0,+oo]. nth_root(I,0) is the empty set.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, unsigned int n);
+  /*!
+    \brief Returns an enclosure of the q-th roots of the elements of I
+
+    q may be negative (rootn of IEEE 1788-2015, Table 10.5, GAOL v5):
+    rootn(x, q) is then 1/x^(1/|q|), defined on R\{0} for an odd q and on
+    (0, +oo) for an even one.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, int q);
+  /*!
+    \brief nth_root(I, q) for a q of type long long or unsigned long long
+    (GAOL v5)
+
+    nth_root(I, int) for a q within the ints, nth_root(I, unsigned int) for
+    one within the unsigned ints; beyond them, the root of order q computed by
+    GAOL's pow with the exponent 1/q, an interval with no integer in it, on
+    the part of I in [0, +oo], and for an odd q -(-x)^(1/q) on its part in
+    [-oo, 0]; for a negative q, 1/x^(1/|q|), which 0 has not. An enclosure of
+    the roots, x^(1/q) being within 2^-21 of 1 for every double x > 0 there,
+    after one check of the rounding direction.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, long long q);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, unsigned long long q);
+
+  /*!
+    \brief Returns the number of floating-point numbers in [a,b]
+
+    - nb_fp_numbers(a,a+) == 2
+    - nb_fp_numbers(a,a) == 1
+    - -0 and +0 are the same number: nb_fp_numbers(-0.0,0.0) == 1 and
+      nb_fp_numbers(-0.0,1.0) == nb_fp_numbers(0.0,1.0)
+
+    The result is an unsigned long long (GAOL v5), where GAOL 4 named its
+    type with the macro ULONGLONGINT, which GAOL v5 no longer defines.
+
+    \warning Throws std::domain_error if either a or b is a
+    NaN or +/-oo, or if a > b, or calls gaol_error and aborts where the
+    exceptions are disabled: it returns no number then (GAOL v5, where the
+    documentation said numeric_limits<unsigned long long>::max()).
+    \precond a must be smaller or equal to b
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   unsigned long long nb_fp_numbers(double a, double b);
+
+extern GAOL_PUBLIC	  unsigned short int modulo_k_pi(const interval &I, double &k_left, double &k_right);
+
+GAOL_NODISCARD extern GAOL_PUBLIC   interval exp(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval log(const interval& I);
+
+  /*!
+    \brief Returns an enclosure of 2^x for x in I
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval exp2(const interval& I);
+  /*!
+    \brief Returns an enclosure of 10^x for x in I
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval exp10(const interval& I);
+  /*!
+    \brief Returns an enclosure of the base 2 logarithms of the elements of I
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval log2(const interval& I);
+  /*!
+    \brief Returns an enclosure of the base 10 logarithms of the elements of I
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval log10(const interval& I);
+
+  /*!
+    \brief The forward functions IEEE 1788-2015 recommends (Table 10.5)
+    (GAOL v5)
+
+    expm1(x) = e^x - 1, exp2m1(x) = 2^x - 1 and exp10m1(x) = 10^x - 1 on R,
+    within [-1, +oo]; log1p(x) = log(1 + x), log2p1(x) = log2(1 + x) and
+    log10p1(x) = log10(1 + x) on (-1, +oo), -oo the limit at -1;
+    hypot(x, y) = sqrt(x^2 + y^2) on the plane; rsqrt(x) = 1/sqrt(x) on
+    (0, +oo), +oo the limit at 0; sinpi(x) = sin(pi*x), cospi(x) = cos(pi*x)
+    and tanpi(x) = tan(pi*x), the last on R minus the half-integers, where it
+    has no value; atanpi(x) = atan(x)/pi on R, within [-1/2, 1/2],
+    asinpi(x) = asin(x)/pi on [-1, 1], within [-1/2, 1/2],
+    acospi(x) = acos(x)/pi on [-1, 1], within [0, 1], and
+    atan2pi(y, x) = atan2(y, x)/pi on the plane but (0, 0), within [-1, 1];
+    compoundm1(x, y) = (1 + x)^y - 1 for x > -1, and for x = -1 when y > 0
+    (where it is -1), within [-1, +oo].
+    The part of an interval outside the domain is left out, and an interval
+    with no point of it gives the empty set. Each is the tightest enclosure:
+    CORE-MATH is correctly rounded, the value at a bound is taken as the bound
+    where it is a double, and the functions of pi*x find their extrema and
+    poles exactly, at the multiples of 1/2. CORE-MATH has no compoundm1:
+    its bounds are computed with integers (gaol/math/gaol_compoundm1.h), with
+    64 bits in a fast phase that settles 71 to 95 % of the pairs and 128 bits in
+    the others, and are the tightest ones but in a case out of 10^17 or so,
+    in 0.1 microsecond for each of the one or two corners of the box where the
+    fast phase settles it, and 0.6 to 0.9 elsewhere.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval expm1(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval exp2m1(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval exp10m1(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval log1p(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval log2p1(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval log10p1(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval hypot(const interval& X, const interval& Y);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval rsqrt(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval sinpi(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval cospi(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval tanpi(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atanpi(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval asinpi(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval acospi(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2pi(const interval& Y, const interval& X);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval compoundm1(const interval& X, const interval& Y);
+
+  /*!
+    \brief fma(X, Y, Z) of IEEE 1788-2015 (Table 9.1): an enclosure of
+    x*y + z for x in X, y in Y and z in Z, each bound rounded once, the
+    tightest one (GAOL v5)
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval fma(const interval& X, const interval& Y, const interval& Z);
+  /*!
+    \brief cancelMinus and cancelPlus of IEEE 1788-2015 (10.5.6, 12.12.5)
+    (GAOL v5)
+
+    cancel_minus(X, Y) is the tightest interval Z such that Y + Z contains X,
+    [inf X - inf Y, sup X - sup Y], which exists when X and Y are bounded and
+    X is at least as wide as Y; otherwise [-oo, +oo]. It is the empty set for
+    an empty X and a bounded Y. cancel_plus(X, Y) is cancel_minus(X, -Y).
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval cancel_minus(const interval& X, const interval& Y);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval cancel_plus(const interval& X, const interval& Y);
+
+GAOL_NODISCARD extern GAOL_PUBLIC   interval cos(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval sin(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval tan(const interval& I);
+
+GAOL_NODISCARD extern GAOL_PUBLIC   interval acos(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval asin(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan(const interval& I);
+
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2(const interval& Y, const interval& X);
+
+  /*!
+    \brief The relational atan2, atan2Rev1 and atan2Rev2 of IEEE 1788-2015
+    (10.5.4, Table 10.1) (GAOL v5)
+
+    atan2_rel_y(C, X, Y) = hull{y in Y | exists x in X: atan2(y, x) in C}
+    and atan2_rel_x(C, Y, X) = hull{x in X | exists y in Y: atan2(y, x) in C}:
+    the ordinates and the abscissas of the points of the box Y x X whose
+    angle is in C, the point (0, 0), which has no angle, left out. One
+    function per argument, atan2 not being symmetric; as in div_rel(K, J, I),
+    the image comes first, the interval contracted last, the other argument
+    of atan2 between them. The angles are those of atan2, in (-pi, pi]: the
+    half-line y = 0, x < 0 has the angle pi, and a C holding -pi but not pi
+    leaves it out. The slopes tan(c) of the bounds c of C are rounded once,
+    and their products and quotients with the bounds of the box once more:
+    the bounds are within 2 doubles of the tightest ones, accurate in the
+    sense of IEEE 1788, but for a box within such a rounding of the cone of
+    C, whose points may be kept where the tightest result is empty.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2_rel_y(const interval& C, const interval& X, const interval& Y);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan2_rel_x(const interval& C, const interval& Y, const interval& X);
+
+GAOL_NODISCARD extern GAOL_PUBLIC   interval cosh(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval sinh(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval tanh(const interval& I);
+
+GAOL_NODISCARD extern GAOL_PUBLIC   interval acosh(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval asinh(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atanh(const interval& I);
+
+  /*!
+    \brief The error function and its complement (GAOL v5)
+
+    erf(x) = 2/sqrt(pi) int_0^x exp(-t^2) dt, increasing from -1 to 1, and
+    erfc(x) = 1 - erf(x), decreasing from 2 to 0, on R: the erf and erfc of
+    C, which IEEE 1788-2015 does not name, so that gaol_ieee1788 does not
+    either (a call erf(x) on an interval finds them all the same, by
+    argument-dependent lookup). The bounds are the values of CORE-MATH at the
+    bounds of I, correctly rounded: the tightest enclosure, exact at 0 and
+    at the infinities, erf([0]) being [0], erfc([0]) [1], erf([-oo, +oo])
+    [-1, 1] and erfc([-oo, +oo]) [0, 2]. erfc(x) is subnormal from
+    x = 26.5433 on, and below the least subnormal from x = 27.2133 on, where the
+    lower bound is 0.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval erf(const interval& I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval erfc(const interval& I);
+
+GAOL_NODISCARD extern GAOL_PUBLIC   interval acos_rel(const interval& J, const interval &I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval asin_rel(const interval& J, const interval &I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atan_rel(const interval& J, const interval &I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval acosh_rel(const interval& J, const interval &I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval asinh_rel(const interval& J, const interval &I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval atanh_rel(const interval& J, const interval &I);
+
+GAOL_NODISCARD extern GAOL_PUBLIC   interval abs(const interval &I);
+GAOL_NODISCARD extern GAOL_PUBLIC   interval invabs_rel(const interval &J, const interval &I);
+
+  //@}
+
+
+
+
+  // Non-methods
+  //@{
+  /*!
+    \brief
+   */
+
+  /*!
+    \brief Returns the sign of d: -1 below 0, 0 at 0 and at -0, 1 above
+
+    A NaN has no sign and is returned as it is: the comparisons below are both
+    false for it, so without this it would be given the sign 0. They are
+    quiet ones, as in the relations, and compare d as a bound, as the
+    relations do: under denormals-are-zero, the sign of -2^-1074 was 0
+    (GAOL v5).
+  */
+GAOL_NODISCARD GAOL_INLINE double gaol_sign_of(double d)
+  {
+    if (std::isnan(d)) {
+      return d;
+    }
+    return gaol_detail::bound_less(d, 0.0) ? -1.0 : (gaol_detail::bound_greater(d, 0.0) ? 1.0 : 0.0);
+  }
+
+  /*
+    The bounds floor, ceil and integer compute from the NaN bounds of the
+    empty set are NaN, which give the empty set: the constructor tells them
+    with a quiet comparison (GAOL v5). They told them first, with one more
+    comparison, when the constructor compared them with <=, which raises the
+    invalid-operation exception on a NaN. The floor and the ceil of a bound
+    are those of gaol_port.h, which the modes flushing the subnormals to zero
+    do not change: under denormals-are-zero, floor([-1e-310]) was [-0, -0]
+    (GAOL v5).
+  */
+GAOL_NODISCARD GAOL_INLINE interval floor(const interval &I)
+  {
+    return interval(gaol_detail::bound_floor(I.left()), gaol_detail::bound_floor(I.right()));
+  }
+
+  /*!
+    \brief The reverse function of floor (GAOL v5): the hull of the x of X
+    whose floor is in Z
+
+    floor_rel(Z, X) = hull{x in X | floor(x) in Z}. floor(x) is the integer n
+    for x in [n, n + 1): the set is the part of X in
+    [ceil(inf Z), floor(sup Z) + 1), and the empty set when Z holds no
+    integer (floor_rel([0.5, 0.7], X)). That interval is open at its upper end
+    e = floor(sup Z) + 1, which its tightest closed enclosure takes all the
+    same, the reals just below e being in it: floor_rel([0, 2], [-5, 5]) is
+    [0, 3], and floor_rel([0], [1, 2]) is empty, X starting at e. e is
+    rounded upward where it is no double, beyond 2^53, every double being an
+    integer there: floor_rel([2^53], X) ends at 2^53 + 2, the double above
+    2^53 + 1, where X goes on to it, and at +oo for sup Z = DBL_MAX. The other
+    bounds are those of X and ceil(inf Z): the result is the tightest
+    enclosure, in every rounding direction. The empty set for an empty
+    argument. IEEE 1788-2015 names no reverse of floor: it is its natural
+    reverse extension (10.5.4, (5)).
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval floor_rel(const interval &Z, const interval &X);
+
+GAOL_NODISCARD GAOL_INLINE interval ceil(const interval &I)
+  {
+    return interval(gaol_detail::bound_ceil(I.left()), gaol_detail::bound_ceil(I.right()));
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
+  {
+    return interval(gaol_detail::bound_ceil(I.left()), gaol_detail::bound_floor(I.right()));
+  }
+
+/*
+  The integer functions of IEEE 1788-2015 (Table 9.1, GAOL v5)
+
+  sign, trunc, roundTiesToEven and roundTiesToAway, which GAOL did not provide,
+  beside the ceil and floor above. Each of them is non-decreasing, so the
+  bounds of the result are its values at the bounds of the interval, as they
+  are for ceil and floor.
+
+  None of them rounds: each returns a double that is an integer (or an
+  infinity), exactly, so the rounding direction GAOL leaves upward changes
+  nothing -- provided the functions of the C library used here do not read that
+  direction. std::trunc and std::round do not: the standard defines them as
+  rounding toward zero and to the nearest with halfway values away from zero,
+  "regardless of the current rounding direction". std::nearbyint and std::rint
+  are the ones that do read it, and are not used; roundTiesToEven, which no
+  function of C++ gives, is gaol/math/gaol_roundeven.h, which reads the bits.
+  That header is not installed: round_ties_to_even() is defined in
+  gaol/core/gaol_interval_core.cpp.
+  tests/elementary.cpp checks the four in the four rounding directions.
+  std::trunc and std::round are called through gaol_detail::bound_trunc() and
+  bound_round() (gaol_port.h), which round a subnormal from its bits, as
+  floor and ceil do, whatever the modes that flush the subnormals to zero
+  (GAOL v5).
+
+  Each tests the empty set first. GAOL holds the empty interval as the two
+  bounds NaN, in the three of its representations (interval::emptyset() of
+  gaol/core/gaol_interval_sse.h, gaol/core/gaol_interval_fpu.h and
+  gaol/core/gaol_interval_neon.h), and is_empty() tells it from its bounds by
+  a quiet comparison (see is_empty()), which a NaN makes true for the empty
+  set. trunc and the two roundings send a NaN to itself, so they would give
+  the empty set back without the test, but the constructor would compare the
+  NaN bounds, which raises the invalid-operation exception; sign would not, a
+  NaN comparing false both to 0 and above it, so sign(empty) would be the
+  interval [0, 0]. The test is made in the four all the same, rather than
+  relying on how the empty set is held.
+
+  (IEEE 1788-2015 says of the empty set at Level 1 that inf is +oo and sup is
+  -oo, 10.2, which is its convention for the mathematical object, not the way
+  GAOL holds it.)
+*/
+
+  /*!
+    \brief Returns the signs of the elements of I: -1 below 0, 0 at 0, 1 above
+  */
+GAOL_NODISCARD GAOL_INLINE interval sign(const interval &I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    return interval(gaol_sign_of(I.left()),gaol_sign_of(I.right()));
+  }
+
+  /*!
+    \brief The reverse function of sign (GAOL v5): the hull of the x of X
+    whose sign is in Z
+
+    sign_rel(Z, X) = hull{x in X | sign(x) in Z}, the union of the negative x
+    of X where Z holds -1, of 0 where Z and X hold it, and of the positive x of
+    X where Z holds 1; the empty set where Z holds none of -1, 0 and 1
+    (sign_rel([0.5, 0.7], X)). The negative x of X go up to 0, which their
+    tightest closed enclosure takes although sign(0) is 0, the negative
+    doubles next to 0 being in the set: sign_rel([-1], [-2, 3]) is [-2, 0],
+    sign_rel([-1], [0, 3]) is empty, sign_rel([0], [-2, 3]) is [0], and
+    sign_rel([0, 1], [-2, 3]) is [0, 3]. -0 and +0 are the same number, of
+    sign 0. The bounds are those of X and 0: the tightest enclosure. The empty
+    set for an empty argument. IEEE 1788-2015 names no reverse of sign: it
+    is its natural reverse extension (10.5.4, (5)).
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval sign_rel(const interval &Z, const interval &X);
+
+  /*!
+    \brief Returns an enclosure of the elements of I rounded toward zero
+  */
+GAOL_NODISCARD GAOL_INLINE interval trunc(const interval &I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    return interval(gaol_detail::bound_trunc(I.left()),gaol_detail::bound_trunc(I.right()));
+  }
+
+  /*!
+    \brief Returns an enclosure of the elements of I rounded to the nearest
+           integer, halfway values to the even one
+
+    Not inline, unlike the other three (GAOL v5): the function that reads the
+    bits (gaol/math/gaol_roundeven.h) is a header of the sources, which is not
+    installed.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval round_ties_to_even(const interval &I);
+
+  /*!
+    \brief Returns an enclosure of the elements of I rounded to the nearest
+           integer, halfway values away from zero
+  */
+GAOL_NODISCARD GAOL_INLINE interval round_ties_to_away(const interval &I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    return interval(gaol_detail::bound_round(I.left()),gaol_detail::bound_round(I.right()));
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I, double d)
+  {
+    return interval(I)+=d;
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I, double d)
+  {
+    return interval(I)-=d;
+  }
+
+
+GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I, double d)
+  {
+    return interval(I)*=d;
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I, double d)
+  {
+    return interval(I)/=d;
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator%(const interval& I, double d)
+  {
+    return interval(I)%=d;
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator+(double d,const interval& I)
+  {
+    return interval(d)+=I;
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator-(double d, const interval& I)
+  {
+    return interval(d)-=I;
+  }
+
+/*
+  d * I is computed as I * d, by the kernel of the operations with a double:
+  the same bounds, bit for bit, the sign of a zero bound included, with every
+  kind of intervals (GAOL v5, decided on 2026-11-05), and n * I of an integer n
+  as I * n (below). interval(d) *= I, the product of two intervals, gave the
+  same set with other signs of zero: for I = [+0, -0] and a positive d,
+  [-0, +0] where I * d is [+0, -0] with the SSE2 intervals (#171)
+*/
+GAOL_NODISCARD GAOL_INLINE interval operator*(double d, const interval& I)
+  {
+    return interval(I)*=d;
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator/(double d, const interval& I)
+  {
+    return interval(d)/=I;
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator%(double d, const interval& I)
+  {
+    return interval(d)%=I;
+  }
+
+  /*
+    An interval and an integer n, in either order (GAOL v5): with the double
+    n where it is one for certain, with interval(n), the tightest interval
+    containing it, otherwise (see interval::operator+=(T))
+  */
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I, T n)
+  {
+    return interval(I)+=n;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I, T n)
+  {
+    return interval(I)-=n;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I, T n)
+  {
+    return interval(I)*=n;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I, T n)
+  {
+    return interval(I)/=n;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator%(const interval& I, T n)
+  {
+    return interval(I)%=n;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator+(T n, const interval& I)
+  {
+    return interval(n)+=I;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator-(T n, const interval& I)
+  {
+    return interval(n)-=I;
+  }
+
+// n * I as I * n, the same bits, as d * I is I * d (GAOL v5, 2026-11-05)
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator*(T n, const interval& I)
+  {
+    return interval(I)*=n;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator/(T n, const interval& I)
+  {
+    return interval(n)/=I;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE interval operator%(T n, const interval& I)
+  {
+    return interval(n)%=I;
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator%(const interval& I1, const interval& I2)
+  {
+    return interval(I1) %= I2;
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator&(const interval& I1, const interval& I2)
+  {
+    return interval(I1) &= I2;
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator|(const interval& I1, const interval& I2)
+  {
+    return interval(I1) |= I2;
+  }
+
+  /*!
+    \brief The hull of a and b, a | b, as a function (GAOL v5): the smallest
+    interval containing both; hull(emptyset, x) is x.
+  */
+GAOL_NODISCARD GAOL_INLINE interval hull(const interval& a, const interval& b)
+  {
+    return a | b;
+  }
+
+  /*!
+    \brief The intersection of a and b, a & b, as a function (GAOL v5);
+    intersect(emptyset, x) is the empty set.
+  */
+GAOL_NODISCARD GAOL_INLINE interval intersect(const interval& a, const interval& b)
+  {
+    return a & b;
+  }
+
+  //@}
+
+} // namespace gaol_core
+
+namespace gaol_detail {
+  /*
+    The root of order q of I for an integer q beyond 64 bits, which only
+    __int128 gives (GCC and Clang in their GNU modes), nth_root(I, q) for
+    such a q (GAOL v5): I^(1/q) by GAOL's pow, the exponent 1/q being an
+    interval with no integer in it, on the part of I in [0, +oo], and for an
+    odd q -(-x)^(1/q) on its part in [-oo, 0]; for a negative q,
+    1/x^(1/|q|), which 0 has not, as nth_root(I, q) for an int q. 1/|q| and
+    the two powers check the rounding direction once each, where
+    nth_root(I, long long) and nth_root(I, unsigned long long) check it once.
+  */
+  template <class T>
+  GAOL_INLINE gaol_core::interval huge_root(const gaol_core::interval& I, T q)
+  {
+    const gaol_core::interval magnitude = integer_is_negative(q) ? -gaol_core::interval(q) : gaol_core::interval(q);
+    const gaol_core::interval inverse = gaol_core::interval(1.0) / magnitude;
+    const gaol_core::interval exponent = integer_is_negative(q) ? -inverse : inverse;
+    const gaol_core::interval roots = gaol_core::gaol_pow_hybrid(I & gaol_core::interval::positive(), exponent);
+    if (q % 2 == 0) {
+      return roots;
+    }
+    return roots | -gaol_core::gaol_pow_hybrid(-(I & gaol_core::interval::negative()), exponent);
+  }
+
+  /*
+    The part of I in roots, the roots of one sign of J for an integer power of
+    a negative exponent, which 0 has not: nth_root_rel(J, p, I) for p < 0
+    (GAOL v5). roots hold 0 where J is unbounded (the inverse of the roots of
+    [a, +oo] is [0, 1/a^(1/|p|)], 0 being a limit and no value), so that an
+    intersection that is {0} holds no solution, where [0, m] has the same hull
+    with or without it. The test of a NaN bound comes after is_empty(): a
+    comparison of a NaN is signaling on some processors (32-bit ARM, POWER9).
+    The bounds are compared by bound_equal(), which the modes that flush the
+    subnormals to zero do not change: nth_root_rel(J, T, I) calls this after
+    nth_root() restored the modes of the program, where [0, 2^-1074] would be
+    read as {0} under denormals-are-zero
+  */
+  GAOL_NODISCARD GAOL_INLINE gaol_core::interval nonzero_part(const gaol_core::interval& roots,
+                                                              const gaol_core::interval& I)
+  {
+    const gaol_core::interval part = roots & I;
+    if (!part.is_empty() && bound_equal(part.left(), 0.0) && bound_equal(part.right(), 0.0)) {
+      return gaol_core::interval::emptyset();
+    }
+    return part;
+  }
+} // namespace gaol_detail
+
+namespace gaol_core {
+
+  /*!
+    \brief nth_root(I, q) for an integer q of another type than int and
+    unsigned int (GAOL v5)
+
+    nth_root(x, 3L) was ambiguous, a long being as far from an int as from an
+    unsigned int. nth_root(I, int) for a q within the ints, nth_root(I,
+    unsigned int) for one within the unsigned ints, and beyond them the root
+    of order q computed by GAOL's pow with the exponent 1/q, by
+    nth_root(I, long long) and nth_root(I, unsigned long long) within 64
+    bits, and gaol_detail::huge_root() beyond: an enclosure of the roots,
+    x^(1/q) being within 2^-21 of 1 for every double x > 0 there.
+  */
+  template <class T, gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD GAOL_INLINE interval nth_root(const interval& I, T q)
+  {
+    if (gaol_detail::integer_fits<int>(q)) {
+      return nth_root(I, static_cast<int>(q));
+    }
+    if (gaol_detail::integer_fits<unsigned int>(q)) {
+      return nth_root(I, static_cast<unsigned int>(q));
+    }
+    if (gaol_detail::integer_fits<long long>(q)) {
+      return nth_root(I, static_cast<long long>(q));
+    }
+    if (gaol_detail::integer_fits<unsigned long long>(q)) {
+      return nth_root(I, static_cast<unsigned long long>(q));
+    }
+    return gaol_detail::huge_root(I, q);
+  }
+
+  /*!
+    \brief nth_root_rel(J, p, I) for an integer p of another type than int and
+    unsigned int (GAOL v5)
+
+    nth_root_rel(J, int, I) for a p within the ints, nth_root_rel(J, unsigned
+    int, I) for one within the unsigned ints. Beyond them, the roots of
+    nth_root(J, p), as the roots of J of the integers nth_root(I, q) takes: for
+    p > 0 the roots, and for an even p their opposites, which every x with x^p
+    in J is in; for p < 0 those of the part of J at least 0, with their
+    opposites for an even p, and for an odd p those of the part at most 0, J
+    being cut at 0 as nth_root_rel(J, int, I) does.
+  */
+  template <class T, gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD GAOL_INLINE interval nth_root_rel(const interval& J, T p, const interval& I)
+  {
+    if (gaol_detail::integer_fits<int>(p)) {
+      return nth_root_rel(J, static_cast<int>(p), I);
+    }
+    if (gaol_detail::integer_fits<unsigned int>(p)) {
+      return nth_root_rel(J, static_cast<unsigned int>(p), I);
+    }
+    if (!gaol_detail::integer_is_negative(p)) {
+      const interval roots = nth_root(J, p);
+      return p % 2 == 0 ? (I & roots) | (I & -roots) : I & roots;
+    }
+    const interval roots = nth_root(J & interval::positive(), p);
+    if (p % 2 == 0) {
+      return gaol_detail::nonzero_part(roots, I) | gaol_detail::nonzero_part(-roots, I);
+    }
+    return gaol_detail::nonzero_part(roots, I)
+           | gaol_detail::nonzero_part(nth_root(J & interval::negative(), p), I);
+  }
+
+ /*!
+    \brief Diameter of an interval
+    Returns the width of the interval (rounded upward).
+    \note Returns NaN if the interval is empty, as wid of IEEE 1788-2015
+    (12.12.8) does, rather than -1 (GAOL v5)
+   */
+GAOL_INLINE double interval::width(void) const
+{
+    if (is_empty()) {
+        return GAOL_NAN;
+    } else {
+        GAOL_RND_ENTER();
+        // The bounds go through rnd_reread() after the check: built in the code
+        // that calls width(), they are registers, which GCC may subtract before
+        // the check writes the control register, in the program's direction
+        // (see rnd_reread() of gaol/gaol_fpu.h; GAOL v5)
+        const double r = rnd_reread(right());
+        const double l = rnd_reread(left());
+        double res = r - l;
+        // The width of the point zero is +0 (IEEE 1788-2015, 12.12.8: +0 by
+        // every function but inf): r - l is -0 for [+0, -0] (GAOL v5)
+        res = std::fabs(res);
+        GAOL_RND_KEEP(res);
+        GAOL_RND_LEAVE();
+        return res;
+    }
+}
+
+/*
+  The bounds of interval(r) - interval(l) are r - l rounded downward and
+  upward (GAOL v5). interval(+oo) and interval(-oo) are the empty set (IBEX's
+  rules): the width of an unbounded interval, +oo, is given as [MAX, +oo].
+*/
+GAOL_INLINE interval interval::width_enclosure(void) const
+{
+    if (is_empty()) {
+        return *this;
+    }
+    if (std::isinf(left()) || std::isinf(right())) {
+        return interval(std::numeric_limits<double>::max(), GAOL_INFINITY);
+    }
+    return interval(right()) - interval(left());
+}
+
+/*
+  The operations of intervals round each bound in its own direction (GAOL v5):
+  the bounds of l - r and r + r computed in the rounding direction of GAOL,
+  upward, made the lower bound too large, [1, 2] inflated by 1e-20 being
+  [1, 2 + 2^-51]. interval(-r, r) is the empty set for r < 0 and for a NaN r,
+  and so is then the sum.
+*/
+GAOL_INLINE interval interval::inflate(double r) const
+{
+    return *this + interval(-r, r);
+}
+
+/*
+  interval(m) + [-r, r] (GAOL v5): see inflate(). interval(m) is the empty set
+  for an infinite or a NaN m, and interval(-r, r) for r < 0 or a NaN r.
+*/
+GAOL_INLINE interval interval::centered_form(double m, double r)
+{
+    return interval(m) + interval(-r, r);
+}
+
+ /*!
+    \brief Midpoint and radius (GAOL v5)
+
+    The radius is the smallest double r such that m-r <= left() and
+    m+r >= right(), m being the midpoint: the greater of m-left() and
+    right()-m, rounded upward.
+   */
+GAOL_INLINE void interval::mid_rad(double& m, double& r) const
+{
+    if (is_empty()) {
+        m = midpoint();
+        r = GAOL_NAN;
+        return;
+    }
+    // midpoint() compares the bounds: after the check (see gaol/gaol_fpu.h)
+    GAOL_RND_ENTER();
+    m = midpoint();
+    double below = m - left();
+    double above = right() - m;
+    double res = (below > above) ? below : above;
+    // The radius of the point -0 is +0 (IEEE 1788-2015, 12.12.8: +0 by every
+    // function but inf): right() - m is -0 there, m being +0 (GAOL v5)
+    res = std::fabs(res);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    r = res;
+}
+
+GAOL_INLINE double interval::rad(void) const
+{
+    double m, r;
+    mid_rad(m, r);
+    return r;
+}
+
+  /*
+    The relation symbols (GAOL v5). <, <=, > and >= are the certainly
+    relations, strictPrecedes and precedes of IEEE 1788-2015 and their
+    converses, whichever build configured GAOL. The option --enable-relations,
+    which chose between the set, certainly and possibly relations, is gone
+    with the possibly relations; its set relations were never taken, the
+    builds defining GAOL_SET_RELATIONS where this header read
+    GAOL_SET_RELATION. == and != are the equality of sets, set_eq() and its
+    negation, the equal of IEEE 1788-2015, whatever the build: [3,4] == [3,4],
+    and two empty sets are equal. The former == and !=, the certainly (or
+    possibly) relations, are not back: != was !certainly_eq(), true for [3,4]
+    and [3,4]. set_disjoint() is the "certainly not equal" of the standard.
+    The former operators other than == and != are kept in comments.
+  */
+//   //! Relations
+//   //@{
+// GAOL_NODISCARD GAOL_INLINE bool operator<=(const interval &I1, const interval &I2)
+//   {
+// #if GAOL_SET_RELATION
+//     return I1.set_leq(I2);
+// #elif GAOL_CERTAINLY_RELATIONS
+//     return I1.certainly_leq(I2);
+// #else
+//     // No other case than GAOL_POSSIBLY_RELATIONS
+//     return I1.possibly_leq(I2);
+// #endif
+//   }
+//
+// GAOL_NODISCARD GAOL_INLINE bool operator>=(const interval &I1, const interval &I2)
+//   {
+// #if GAOL_SET_RELATION
+//     return I1.set_geq(I2);
+// #elif GAOL_CERTAINLY_RELATIONS
+//     return I1.certainly_geq(I2);
+// #else
+//     // No other case than GAOL_POSSIBLY_RELATIONS
+//     return I1.possibly_geq(I2);
+// #endif
+//   }
+//
+// GAOL_NODISCARD GAOL_INLINE bool operator<(const interval &I1, const interval &I2)
+//   {
+// #if GAOL_SET_RELATION
+//     return I1.set_le(I2);
+// #elif GAOL_CERTAINLY_RELATIONS
+//     return I1.certainly_le(I2);
+// #else
+//     // No other case than GAOL_POSSIBLY_RELATIONS
+//     return I1.possibly_le(I2);
+// #endif
+//   }
+//
+// GAOL_NODISCARD GAOL_INLINE bool operator>(const interval &I1, const interval &I2)
+//   {
+// #if GAOL_SET_RELATION
+//     return I1.set_ge(I2);
+// #elif GAOL_CERTAINLY_RELATIONS
+//     return I1.certainly_ge(I2);
+// #else
+//     // No other case than GAOL_POSSIBLY_RELATIONS
+//     return I1.possibly_ge(I2);
+// #endif
+//   }
+//
+//   //@}
+
+  //! Relations
+  //@{
+GAOL_NODISCARD GAOL_INLINE bool operator<=(const interval &I1, const interval &I2)
+  {
+    return I1.certainly_leq(I2);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator>=(const interval &I1, const interval &I2)
+  {
+    return I1.certainly_geq(I2);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator<(const interval &I1, const interval &I2)
+  {
+    return I1.certainly_le(I2);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator>(const interval &I1, const interval &I2)
+  {
+    return I1.certainly_ge(I2);
+  }
+
+  /*
+    == and != (GAOL v5): the equality of two sets, set_eq() and set_neq(), the
+    equal of IEEE 1788-2015. Unlike <= and >=, which are the certainly
+    relations, [1,2] == [1,2] is true; the empty set is equal to itself. !=
+    is defined too: with C++20, a != b would be !(a == b) otherwise, and not
+    compile in an earlier standard.
+  */
+GAOL_NODISCARD GAOL_INLINE bool operator==(const interval &I1, const interval &I2)
+  {
+    return I1.set_eq(I2);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator!=(const interval &I1, const interval &I2)
+  {
+    return I1.set_neq(I2);
+  }
+
+  /*
+    An interval and a double (GAOL v5): the relations with interval(d), which
+    the implicit conversion gave before interval(double) became explicit, an
+    infinite d or a NaN included (interval(d) is then empty). No == nor != with
+    a double: set_eq(interval(d)).
+  */
+GAOL_NODISCARD GAOL_INLINE bool operator<=(const interval &I, double d)
+  {
+    return I <= interval(d);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator<=(double d, const interval &I)
+  {
+    return interval(d) <= I;
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator>=(const interval &I, double d)
+  {
+    return I >= interval(d);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator>=(double d, const interval &I)
+  {
+    return interval(d) >= I;
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator<(const interval &I, double d)
+  {
+    return I < interval(d);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator<(double d, const interval &I)
+  {
+    return interval(d) < I;
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator>(const interval &I, double d)
+  {
+    return I > interval(d);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator>(double d, const interval &I)
+  {
+    return interval(d) > I;
+  }
+
+  /*
+    An interval and an integer n (GAOL v5): n compared as the integer it is.
+    Where it is no double, interval(n) is [lo, hi], the two doubles around
+    it, and a double x is below n if and only if x <= lo, above n if and only
+    if x >= hi: <= and >= are those with interval(n), and < and > are <= and
+    >= with interval(n) then, < with interval(lo) being false for I = [lo, lo]
+    though lo < n. < and > take the relation with the double n where n is
+    one for certain (|n| <= 2^53, every int): Clang 18 does not see that
+    interval(n) is then a point, and compiled both choices for an int.
+  */
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator<=(const interval &I, T n)
+  {
+    return I <= interval(n);
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator<=(T n, const interval &I)
+  {
+    return interval(n) <= I;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator>=(const interval &I, T n)
+  {
+    return I >= interval(n);
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator>=(T n, const interval &I)
+  {
+    return interval(n) >= I;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator<(const interval &I, T n)
+  {
+    if (gaol_detail::integer_is_double(n)) {
+      return I < static_cast<double>(n);
+    }
+    const interval N(n);
+    return N.left() == N.right() ? I < N : I <= N;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator<(T n, const interval &I)
+  {
+    if (gaol_detail::integer_is_double(n)) {
+      return static_cast<double>(n) < I;
+    }
+    const interval N(n);
+    return N.left() == N.right() ? N < I : N <= I;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator>(const interval &I, T n)
+  {
+    if (gaol_detail::integer_is_double(n)) {
+      return I > static_cast<double>(n);
+    }
+    const interval N(n);
+    return N.left() == N.right() ? I > N : I >= N;
+  }
+
+template <class T, gaol_detail::if_integer<T> = 0>
+GAOL_NODISCARD GAOL_INLINE bool operator>(T n, const interval &I)
+  {
+    if (gaol_detail::integer_is_double(n)) {
+      return static_cast<double>(n) > I;
+    }
+    const interval N(n);
+    return N.left() == N.right() ? N > I : N >= I;
+  }
+
+  /*!
+    lexicographic_less: a total order on the intervals, for the containers
+    and the algorithms of the standard library that ask one (std::set,
+    std::map, std::sort, std::max, std::min, std::clamp...), which < is
+    not: < is the certainly_le() of IEEE 1788-2015 (strictPrecedes), true
+    as soon as either interval is empty, so that std::set<interval> keeps
+    no two intervals that overlap, and std::sort can read past the end of a
+    vector that holds an empty interval (libstdc++, from 17 elements; GAOL
+    v5). < is no strict weak ordering: the standard library then has an
+    undefined behavior, which is not the same with each implementation.
+
+    A class, which the standard library takes as a comparator:
+    std::set<interval, gaol::lexicographic_less>. The empty set comes
+    first, then the intervals by their left bound and by their right
+    bound, -oo of a left bound and +oo of a right one included, -0.0 and
+    +0.0 being equal as bounds. The order is strict: less(I, I) is false,
+    and two intervals of the same bounds, or two empty sets, are not less
+    than each other. Specializing std::less for
+    gaol::interval is left to the program (issue #70): a program passes
+    gaol::lexicographic_less to its containers explicitly.
+  */
+  struct lexicographic_less {
+    GAOL_NODISCARD GAOL_INLINE
+    bool operator()(const interval &I1, const interval &I2) const
+    {
+      if (I1.is_empty() || I2.is_empty()) {
+        return I1.is_empty() && !I2.is_empty();
+      }
+      if (gaol_detail::bound_less(I1.left(), I2.left())) {
+        return true;
+      }
+      if (gaol_detail::bound_less(I2.left(), I1.left())) {
+        return false;
+      }
+      return gaol_detail::bound_less(I1.right(), I2.right());
+    }
+  };
+
+  //@}
+
+  GAOL_INLINE interval&
+  interval::operator=(double d)
+  {
+    return *this = interval(d);
+  }
+
+  GAOL_INLINE interval&
+  interval::operator&=(double d)
+  {
+    return *this &= interval(d);
+  }
+
+  GAOL_INLINE interval&
+  interval::operator|=(double d)
+  {
+    return *this |= interval(d);
+  }
+
+GAOL_INLINE double
+  interval::left(void) const
+  {
+    return -left_internal();
+  }
+
+  GAOL_INLINE double
+  interval::right(void) const
+  {
+    return right_internal();
+  }
+
+GAOL_NODISCARD extern GAOL_PUBLIC bool feven(double d);
+
+
+  /*!
+    \brief Hausdorff distance between two intervals:
+
+    hausdorff([a,b],[c,d]) = max(|a-c|,|b-d|)
+
+    rounded upward: the tightest upper bound of the distance. Equal bounds,
+    infinite ones included, are at distance 0: hausdorff([1,+oo],[1,+oo]) == 0
+    and hausdorff([1,+oo],[2,+oo]) == 1, while hausdorff([1,+oo],[1,2]) == +oo.
+    The distance is a NaN if either interval is empty.
+   */
+  GAOL_NODISCARD extern GAOL_PUBLIC double hausdorff(const interval &I1, const interval &I2);
+
+   // Built from constants, which the compiler folds, rather than copied from
+   // static intervals initialized when the program starts (GAOL v5)
+   GAOL_INLINE interval interval::one(void)
+	{
+		return interval(1.0);
+	}
+   GAOL_INLINE interval interval::minus_one_plus_one(void)
+	{
+		return interval(-1.0, 1.0);
+	}
+
+   GAOL_INLINE interval interval::pi(void)
+	{
+		return interval(gaol_pi_dn, gaol_pi_up);
+	}
+
+   GAOL_INLINE interval interval::two_pi(void)
+	{
+		return interval(2.0*gaol_pi_dn, 2.0*gaol_pi_up); // No rounding when multiplying by 2
+	}
+
+   GAOL_INLINE interval interval::half_pi(void)
+	{
+		return interval(gaol_half_pi_dn, gaol_half_pi_up);
+	}
+
+   GAOL_INLINE interval interval::one_plus_infinity(void)
+	{
+		return interval(1.0, GAOL_INFINITY);
+	}
+
+
+
+} // namespace gaol_core
+
+/*
+  The namespace gaol, which names the type and the functions of gaol_core
+  one by one, is in gaol/gaol_interval.h (GAOL v5).
+*/
+#endif /* GAOL_INTERVAL_CORE_H */

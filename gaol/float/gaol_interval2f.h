@@ -1,0 +1,357 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+ * Copyright (c) 2002-2009 Laboratoire d'Informatique de
+ *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Frederic Goualard, Jordan NININ
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
+
+#ifndef GAOL_INTERVAL2F_H
+#define GAOL_INTERVAL2F_H
+
+// Compiled where a developer of GAOL defines GAOL_FLOAT_INTERVALS (see
+// gaol/gaol_config.h) and SSE3 instructions are used, and empty otherwise
+// (GAOL v5)
+#include "gaol/gaol_config.h"
+#if defined(GAOL_FLOAT_INTERVALS) && GAOL_USING_SSE3_INSTRUCTIONS
+
+#include <new>
+#include <iosfwd>
+
+#include <limits>
+#include <xmmintrin.h>
+#include <pmmintrin.h>
+
+#include "gaol/gaol_fpu.h"
+#include "gaol/gaol_common.h"
+
+namespace gaol_core {
+
+	class interval; // Forward declaration for interval2f::first() and interval2f::second()
+	class intervalf; // Forward declaration 
+
+	/**
+	@brief Representation of two floating-point intervals in an SSE3 register.
+
+	Bounds are single precision floating-point numbers.
+
+	Note: The left bounds are stored negated
+	*/
+	class interval2f {
+		public:
+			interval2f();
+			interval2f(float v);
+			interval2f(float l, float r);
+			interval2f(float l1, float r1, float l2, float r2);
+			interval2f(const interval2f& I);
+			interval2f(const __m128& xmm);
+			GAOL_PUBLIC interval2f(const char* const str);
+			GAOL_PUBLIC interval2f(const interval& Il, const interval& Ir);
+			GAOL_PUBLIC interval2f(const intervalf& Il, const intervalf& Ir);
+
+			GAOL_PUBLIC interval first(void) const; // Returns the first interval (rightmost in register)
+			GAOL_PUBLIC interval second(void) const; // Returns the second interval (leftmost in register)
+
+			interval2f& operator=(const interval2f& I);
+
+			interval2f& operator+=(const interval2f& I);
+			const interval2f operator+(const interval2f& I) const;
+			const interval2f operator+(void) const;
+
+			interval2f& operator-=(const interval2f& I);
+			const interval2f operator-(const interval2f& I) const;
+			const interval2f operator-(void) const;
+
+			GAOL_PUBLIC interval2f& operator*=(const interval2f& I);
+			const interval2f operator*(const interval2f& I) const;
+
+      // Not implemented: it aborts (the intervals of floats are unfinished)
+      GAOL_PUBLIC interval2f inverse() const;
+
+			__m128& get_xmminterval(void);
+			const __m128& get_xmminterval(void) const;
+
+			typedef float xmm4[4] __attribute__((aligned(16)));
+			typedef double xmm2d[2] __attribute__((aligned(16)));
+
+			void get_bounds(xmm4& bounds) const;
+
+
+			/*
+				The following relations are true if both intervals verify them.
+			*/
+			GAOL_PUBLIC bool possibly_eq_all(const interval2f& I) const;
+			GAOL_PUBLIC bool set_eq_all(const interval2f& I) const;
+			GAOL_PUBLIC bool set_contains_all(const interval2f& I) const;
+			GAOL_PUBLIC int set_contains(float v) const;
+
+
+      // Allocators defined to enforce alignment on a 16 bytes boundary
+		GAOL_PUBLIC void *operator new(size_t sz);
+		GAOL_PUBLIC void operator delete(void *p);
+
+		GAOL_PUBLIC void *operator new[](size_t sz);
+		GAOL_PUBLIC void operator delete[](void *p);
+
+		GAOL_PUBLIC void *operator new(size_t sz, void *p);
+		GAOL_PUBLIC void operator delete(void *p, void *place);
+
+			friend interval2f pow(const interval2f& I, int n);
+
+			static __m128 m128_universe(void); // { [-oo, +oo] | [-oo, +oo] }
+			static __m128 m128_emptyset(void); // { \emptyset | \emptyset }
+			static __m128 m128_zero(void); // { 0 | 0 }
+			static __m128 m128_signsmask(void); // { [0, -0] | [0, -0] }
+			static __m128 m128_lsignmask(void);
+			static __m128 m128_hsignmask(void);
+			static __m128 m128_lsignsmask(void);
+			static __m128 m128_hsignsmask(void);
+			static __m128 m128_oppositemask(void); // { [-0, -0] | [-0, -0] }
+			static __m128 m128_02mask(void);
+			static __m128 m128_2mask(void);
+			static __m128 m128_0mask(void);
+			static __m128 m128_01mask(void);
+			static __m128 m128_23mask(void);
+			static __m128 m128_012mask(void);
+			static __m128d m128d_signmask(void);
+
+		private:
+			__m128 xmmbounds; // Lower 64bits = left bound, upper 64 bits = right bound
+	};
+
+  // interval2f::inverse(), which is not implemented: it aborts
+  inline interval2f inverse(const interval2f& I)
+  {
+    return I.inverse();
+  }
+
+	GAOL_PUBLIC std::ostream& operator<<(std::ostream& out, const interval2f& I);
+  GAOL_PUBLIC interval2f pow(const interval2f& I, int n);
+
+	inline void interval2f::get_bounds(xmm4& bounds) const
+	{
+		_mm_store_ps(bounds,xmmbounds);
+	}
+
+	inline __m128& interval2f::get_xmminterval(void)
+	{
+		return xmmbounds;
+	}
+
+	inline const __m128& interval2f::get_xmminterval(void) const
+	{
+		return xmmbounds;
+	}
+
+	inline __m128 interval2f::m128_universe(void)
+	{
+		return _mm_set1_ps(std::numeric_limits<float>::infinity());
+	}
+
+	inline __m128 interval2f::m128_emptyset(void)
+	{
+		return _mm_set1_ps(std::numeric_limits<float>::quiet_NaN());
+	}
+
+	inline __m128 interval2f::m128_zero(void)
+	{
+		return _mm_set1_ps(0.0f);
+	}
+
+
+	inline __m128 interval2f::m128_signsmask(void)
+	{
+		return _mm_set_ps(0.0f,-0.0f,0.0f,-0.0f);
+	}
+
+	inline __m128 interval2f::m128_lsignmask(void)
+	{
+		return _mm_set_ps(0.0f,0.0f,0.0f,-0.0f);
+	}
+
+	inline __m128 interval2f::m128_lsignsmask(void)
+	{
+		return _mm_set_ps(0.0f,0.0f,-0.0f,-0.0f);
+	}
+
+	inline __m128 interval2f::m128_hsignmask(void)
+	{
+		return _mm_set_ps(0.0f,-0.0f,0.0f,0.0f);
+	}
+
+	inline __m128 interval2f::m128_hsignsmask(void)
+	{
+		return _mm_set_ps(-0.0f,-0.0f,0.0f,0.0f);
+	}
+
+	inline __m128 interval2f::m128_oppositemask(void)
+	{
+		return _mm_set_ps(-0.0f,-0.0f,-0.0f,-0.0f);
+	}
+
+	inline __m128 interval2f::m128_02mask(void)
+	{
+		return _mm_cmpeq_ps(_mm_set1_ps(0.0f),_mm_set_ps(0.0f,1.0f,0.0f,1.0f));
+	}
+
+	inline __m128 interval2f::m128_2mask(void)
+	{
+		return _mm_cmpeq_ps(_mm_set1_ps(0.0f),_mm_set_ps(0.0f,1.0f,0.0f,0.0f));
+	}
+
+	inline __m128 interval2f::m128_0mask(void)
+	{
+		return _mm_cmpeq_ps(_mm_set1_ps(0.0f),_mm_set_ps(0.0f,0.0f,0.0f,1.0f));
+	}
+
+	inline __m128 interval2f::m128_01mask(void)
+	{
+		return _mm_cmpeq_ps(_mm_set1_ps(0.0f),_mm_set_ps(0.0f,0.0f,1.0f,1.0f));
+	}
+	inline __m128 interval2f::m128_23mask(void)
+	{
+		return _mm_cmpeq_ps(_mm_set1_ps(0.0f),_mm_set_ps(1.0f,1.0f,0.0f,0.0f));
+	}
+
+	inline __m128 interval2f::m128_012mask(void)
+	{
+		return _mm_cmpeq_ps(_mm_set1_ps(0.0f),_mm_set_ps(0.0f,1.0f,1.0f,1.0f));
+	}
+
+
+	inline __m128d interval2f::m128d_signmask(void)
+	{
+		return _mm_set_pd(0.0,-0.0);
+	}
+
+
+
+
+
+
+	inline interval2f::interval2f()
+	{
+		xmmbounds = _mm_set1_ps(std::numeric_limits<float>::infinity());
+	}
+
+	inline interval2f::interval2f(float v)
+	{
+		xmm4 tmp = {-v, v, -v, v};
+		xmmbounds = _mm_load_ps(tmp);
+	}
+
+	inline interval2f::interval2f(float l, float r)
+	{
+
+		xmm4 tmp = {-l, r, -l, r};
+		xmmbounds = _mm_load_ps(tmp);
+	}
+
+	inline interval2f::interval2f(float l1, float r1, float l2, float r2)
+	{
+
+		xmm4 tmp = {-l1, r1, -l2, r2};
+		xmmbounds = _mm_load_ps(tmp);
+	}
+
+
+	inline interval2f::interval2f(const interval2f& I)
+	{
+		xmmbounds = I.xmmbounds;
+	}
+
+	inline interval2f::interval2f(const __m128& xmm)
+	{
+		xmmbounds = xmm;
+	}
+
+
+	inline interval2f& interval2f::operator=(const interval2f& I)
+	{
+		xmmbounds = I.xmmbounds;
+		return *this;
+	}
+
+
+	inline interval2f& interval2f::operator+=(const interval2f& I)
+	{
+		GAOL_RND_ENTER_SSE();
+		xmmbounds = _mm_add_ps(xmmbounds,I.xmmbounds);
+		GAOL_RND_LEAVE_SSE();
+		return *this;
+	}
+
+	inline interval2f& interval2f::operator-=(const interval2f& I)
+	{
+		GAOL_RND_ENTER_SSE();
+		xmmbounds = _mm_add_ps(xmmbounds,_mm_shuffle_ps(I.xmmbounds,I.xmmbounds,_MM_SHUFFLE(2,3,0,1)));
+		GAOL_RND_LEAVE_SSE();
+		return *this;
+	}
+
+
+
+
+	inline const interval2f interval2f::operator-(void) const
+	{
+		return interval2f(_mm_shuffle_ps(xmmbounds,xmmbounds,_MM_SHUFFLE(2,3,0,1)));
+	}
+
+	inline const interval2f interval2f::operator+(const interval2f& I) const
+	{
+		GAOL_RND_ENTER_SSE();
+		__m128 tmp = _mm_add_ps(xmmbounds,I.xmmbounds);
+		GAOL_RND_KEEP(tmp);
+		GAOL_RND_LEAVE_SSE();
+		return interval2f(tmp);
+	}
+
+	inline const interval2f interval2f::operator-(const interval2f& I) const
+	{
+		GAOL_RND_ENTER_SSE();
+		__m128 tmp = _mm_add_ps(xmmbounds,_mm_shuffle_ps(I.xmmbounds,I.xmmbounds,_MM_SHUFFLE(2,3,0,1)));
+		GAOL_RND_KEEP(tmp);
+		GAOL_RND_LEAVE_SSE();
+		return interval2f(tmp);
+	}
+
+	inline const interval2f interval2f::operator*(const interval2f& I) const
+	{
+		return interval2f(*this) *= I;
+	}
+
+
+
+	inline int interval2f::set_contains(float v) const
+	{
+		xmm4 tmp;
+		_mm_store_ps(tmp,xmmbounds);
+		// Bit 1 for the first interval, bit 0 for the second
+		return ((((-tmp[0])<=v) && tmp[1]>=v)) << 1 | (((-tmp[2])<=v) && tmp[3]>=v);
+	}
+
+
+
+
+
+
+} // namespace cell
+
+// In the namespace gaol too, as in GAOL 4 (see gaol/gaol_interval.h)
+namespace gaol {
+  using gaol_core::interval2f;
+  using gaol_core::operator<<;
+  using gaol_core::inverse;
+  using gaol_core::pow;
+} // namespace gaol
+
+#endif // GAOL_FLOAT_INTERVALS && GAOL_USING_SSE3_INSTRUCTIONS
+
+#endif // GAOL_INTERVAL2F_H

@@ -3,73 +3,87 @@
 # the autotools or the meson build, and runs the tests, as the continuous
 # integration does. To be run from the root of GAOL's sources:
 #
-#   sh .github/scripts/tests.sh <prefix of GAOL> <prefix of mathlib> static|shared [apmathlib|crlibm|m]
+#   sh .github/scripts/tests.sh <prefix of GAOL> static|shared
 #
-# The prefix of mathlib is the one of GAOL when the mathlib of 3rd/mathlib was
-# installed with it. static links libgaol.a, shared links libgaol.so (or
-# .dylib) with an rpath. The last argument is the mathematical library GAOL
-# was built with: mathlib (apmathlib, the default), CRlibm (crlibm, the prefix
-# of mathlib being the one of CRlibm), or the math library of the system (m,
-# the prefix of mathlib being ignored). With the latter, GAOL does not aim at
-# tight bounds (see doc/building.md): the checks of elementary,
-# other_functions and reverse on the distance to the tightest bounds ("no
-# more than ...") may fail, and no other. The flags of the tests are those of TEST_FLAGS, with
-# which the code using GAOL is compiled (see CMakeLists.txt); on a 32-bit x86
-# processor, -msse2 -mfpmath=sse too, without which gaol/gaol_config.h refuses
-# to compile.
+# static links libgaol.a, shared links libgaol.so (or .dylib) with an rpath.
+# No other library is linked: the elementary functions of CORE-MATH are
+# compiled into libgaol itself. The flags of the tests are those of
+# TEST_FLAGS, with which the code using GAOL is compiled (see CMakeLists.txt);
+# on a 32-bit x86 processor, -msse2 -mfpmath=sse too, without which
+# gaol/gaol_config.h refuses to compile, and on 32-bit Windows -faligned-new=8
+# too, which the SSE2 intervals need there and gaol/gaol_config.h checks; and
+# -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it.
+# Where pkg-config finds the gaol.pc that was installed, its Cflags are given
+# too: they are what the code using GAOL is compiled with, -mfma among them
+# where the build took the fused multiply-add instructions. Without it the
+# fma() of arithmetic.cpp and core_math.cpp was the one of the C library, which
+# is not correctly rounded with MSYS2 MINGW32 (msvcrt), and 44 of the 100000
+# checks of fma failed there (GAOL v5).
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+#
+# The flags and the libraries are lists of words, which the shell has to split
+# shellcheck disable=SC2086,SC2046
 set -e
 prefix=$1
-mathlib=$2
-linking=$3
+linking=$2
 flags="${TEST_FLAGS:--std=c++17 -O2 -frounding-math -fno-fast-math -ffp-contract=off}"
 case "$(${CXX:-c++} -dumpmachine 2>/dev/null)" in
+  i?86-*mingw*|i?86-*windows*) flags="$flags -msse2 -mfpmath=sse -faligned-new=8" ;;
   i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
 esac
-backend=${4:-apmathlib}
-case "$backend" in
-  apmathlib) mathlib_libs="$mathlib/lib/libultim.a" ;;
-  # GAOL's headers include crlibm.h
-  crlibm) mathlib_libs="$mathlib/lib/libcrlibm.a -lm"; flags="$flags -I$mathlib/include" ;;
-  m) mathlib_libs="-lm" ;;
-  *) echo "unknown mathematical library: $backend"; exit 2 ;;
-esac
-if [ "$linking" = shared ]; then
-  libs="-L$prefix/lib -lgaol $mathlib_libs -Wl,-rpath,$prefix/lib"
-else
-  libs="$prefix/lib/libgaol.a $mathlib_libs"
+# The flags of gaol.pc, which the code using GAOL is given (GAOL v5)
+if command -v pkg-config > /dev/null && PKG_CONFIG_PATH="$prefix/lib/pkgconfig" pkg-config --exists gaol; then
+  flags="$flags $(PKG_CONFIG_PATH="$prefix/lib/pkgconfig" pkg-config --cflags gaol)"
 fi
-grep -H -E "GAOL_PRESERVE_ROUNDING|USING_SSE2_INSTRUCTIONS|USING_SSE3_INSTRUCTIONS|GAOL_VERBOSE_MODE" "$prefix/include/gaol/gaol_configuration.h" || true
+# -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it,
+# to every test below, the one built with gaol.pc included (GAOL v5)
+psabi=""
+if echo 'int main() { return 0; }' | ${CXX:-c++} -Werror -Wno-psabi -x c++ -c -o /dev/null - 2>/dev/null; then
+  psabi="-Wno-psabi"
+fi
+if [ "$linking" = shared ]; then
+  libs="-L$prefix/lib -lgaol -Wl,-rpath,$prefix/lib"
+else
+  libs="$prefix/lib/libgaol.a"
+fi
+grep -H -E "GAOL_PRESERVE_ROUNDING|GAOL_USING_SSE2_INSTRUCTIONS|GAOL_USING_SSE3_INSTRUCTIONS|GAOL_USING_NEON_INSTRUCTIONS|GAOL_VERBOSE_MODE" "$prefix/include/gaol/gaol_configuration.h" || true
 status=0
-for test in arithmetic elementary numbers other_functions reverse rounding_direction; do
-  ${CXX:-c++} $flags -I"$prefix/include" -Itests tests/$test.cpp $libs -o $test
+# test_ibex_codac: the cases of the unit tests that IBEX and Codac run on their
+# intervals (GAOL v5). Not expressions, which builds the expressions of
+# gaol_core with the headers of the sources of GAOL, that are not installed
+for test in arithmetic elementary numbers other_functions reverse rounding_direction test_ibex_codac; do
+  ${CXX:-c++} $flags $psabi -I"$prefix/include" -Itests tests/$test.cpp $libs -o $test
   # The checks that failed, which the last lines do not show
   if ./$test > $test.log 2>&1; then
     tail -1 $test.log
-  elif [ "$backend" = m ] && { [ $test = elementary ] || [ $test = other_functions ] || [ $test = reverse ]; } && tail -1 $test.log | grep -q -E "^[0-9]+ checks, [0-9]+ failed$" \
-       && ! grep -E "checks, [1-9][0-9]* failed" $test.log | grep -v -E "^[0-9]+ checks, |: no more than " > /dev/null; then
-    # The math library of the system: only distances to the tightest bounds
-    echo "$(tail -1 $test.log), all of them on the distance to the tightest bounds:"
-    grep -E "checks, [1-9][0-9]* failed" $test.log | grep -v -E "^[0-9]+ checks, "
   else
     grep -E "checks, [1-9][0-9]* failed|^FAILED" $test.log | head -60
     status=1
   fi
 done
-${CXX:-c++} $flags -I"$prefix/include" tests/performance.cpp $libs -o performance
-# The same test built with the flags and libraries of gaol.pc alone, where
-# pkg-config exists (its Cflags carry the flags of interval arithmetic)
+${CXX:-c++} $flags $psabi -I"$prefix/include" tests/performance.cpp $libs -o performance
+# The same test built with the flags and libraries of gaol.pc alone, and
+# -Wno-psabi, where pkg-config exists (its Cflags carry the flags of interval
+# arithmetic)
 if command -v pkg-config > /dev/null; then
   export PKG_CONFIG_PATH="$prefix/lib/pkgconfig"
   # -lgaol takes the shared library where there is one: on Windows, its DLL
   # has to be on the PATH (meson installs it in bin), as a Unix path under
   # MSYS2, where the colon of a Windows path breaks the PATH
   if command -v cygpath > /dev/null; then
-    export PATH="$(cygpath -u "$prefix")/bin:$(cygpath -u "$prefix")/lib:$PATH"
+    unix_prefix=$(cygpath -u "$prefix")
+    export PATH="$unix_prefix/bin:$unix_prefix/lib:$PATH"
   else
     export PATH="$prefix/bin:$prefix/lib:$PATH"
   fi
   echo "pkg-config --cflags --libs gaol: $(pkg-config --cflags --libs gaol)"
-  ${CXX:-c++} -std=c++17 -O2 $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) \
+  ${CXX:-c++} -std=c++17 -O2 $psabi $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) \
     -Wl,-rpath,"$prefix/lib" -o rounding_direction_pc
   if ./rounding_direction_pc > rounding_direction_pc.log 2>&1; then
     echo "with pkg-config: $(tail -1 rounding_direction_pc.log)"

@@ -1,0 +1,77 @@
+# The mingw-w64 whose fma() or round() is wrong are refused when compiling
+# (gaol/gaol_config.h): CORE-MATH computes with that fma() where the build
+# has no -mfma (GAOL_FMA OFF; GAOL_FMA gives it to GCC for Windows on x86-64
+# and on 32-bit x86, and these toolchains stay refused, their round() being
+# wrong too), so that the bounds would not enclose the exact values. On x86-64, GCC 12.2.0 and 13.2.0 of Chocolatey are
+# MinGW-Builds of mingw-w64 11 (UCRT) and GCC 11.2.0 is WinLibs mingw-w64 9
+# (msvcrt.dll), all before 12: their fma() and round() are those of
+# mingw-w64's own math library. On 32-bit x86, GCC 11.2.0 is WinLibs
+# mingw-w64 9, whose fma() rounds each of its partial sums to a double. Each
+# job looks for the reason in the message.
+# The steps of the job mingw-refused of windows.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: windows-mingw-refused
+description: The job mingw-refused of windows.yml for one configuration
+inputs:
+  bin:
+    description: The key bin of the row of the matrix of the job
+    default: ''
+  choco_flags:
+    description: The key choco_flags of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  message:
+    description: The key message of the row of the matrix of the job
+    default: ''
+  version:
+    description: The key version of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: MinGW-w64, from Chocolatey
+      shell: bash
+      run: |
+        choco install -y -r --no-progress mingw --version=${{ inputs.version }} --force ${{ inputs.choco_flags }}
+        echo '${{ inputs.bin }}' >> "$GITHUB_PATH"
+    # The MinGW-w64 of this configuration is the first in PATH, whatever the
+    # configurations before it of the job installed (GAOL v5)
+    - name: The MinGW-w64 asked for is the one of PATH
+      shell: bash
+      run: |
+        want=$(echo "${{ inputs.version }}" | cut -d. -f1-3)
+        g++ --version | head -n 1
+        g++ --version | head -n 1 | grep -F -e "$want"
+    - name: The version of mingw-w64, and a build that has to fail
+      shell: bash
+      run: |
+        g++ --version
+        echo '#include <stdlib.h>' | g++ -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) '
+        cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+        if cmake --build build > build.log 2>&1; then
+          cat build.log
+          echo "This MinGW-w64 was not refused"
+          exit 1
+        fi
+        cat build.log
+        grep -F -q "GAOL cannot be compiled with this mingw-w64" build.log
+        grep -F -q "${{ inputs.message }}" build.log

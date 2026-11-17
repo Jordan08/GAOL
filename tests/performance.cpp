@@ -1,18 +1,48 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
- * Performance of this fork of GAOL, which the continuous integration prints.
+ * Performance of GAOL v5, which the continuous integration prints.
  *
- * The time per operation of GAOL's arithmetic and elementary functions, and
- * of the same operations on doubles, in nanoseconds: the median of 5 measures,
- * each made over 1024 operands, as many times as it takes to last 20 ms. The
- * table is written in Markdown. This is not a test: it always succeeds.
+ * The time per operation of GAOL's arithmetic and elementary functions, of
+ * the constructor, the intersection and some relations, and of the same
+ * operations on doubles, in nanoseconds: the median of 5 measures, each made
+ * over 1024 operands, as many times as it takes to last 20 ms. The table is
+ * written in Markdown. This is not a test: it always succeeds.
+ *
+ * The last rows are lines of + - * / alone between 8 or 16 intervals, which
+ * the operations of GAOL v5 take in a register from one to the next (GAOL v5):
+ * 15 additions, 15 additions and subtractions, 7
+ * products, 7 quotients and 13 operations of the four kinds, the time of the
+ * whole line, in nanoseconds, against the same line of doubles.
+ *
+ * The constructor, x &= y and the relations compare bounds with the quiet
+ * comparisons of <cmath> (std::islessequal(), std::isunordered()...), one
+ * instruction each with GCC and Clang on x86 (GAOL v5): their rows show what
+ * these comparisons cost with the other compilers of the continuous
+ * integration, Visual C++ among them. They compare the bounds as bounds,
+ * as integers where two compare equal (gaol_port.h), which the modes that
+ * flush the subnormals to zero do not change (GAOL v5).
+ *
+ * After the table, the time of the check each operation makes, 1 + (2^-1060
+ * + 0) not above 1, which shows the rounding direction and the modes that flush the
+ * subnormals to zero (gaol/gaol_fpu.h), and of the same check made of 2^-60,
+ * a normal double: a processor that takes a microcode assist for a subnormal
+ * operand or result shows it there, each operation of GAOL paying it (GAOL
+ * v5).
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-09-20)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include "gaol/gaol.h"
+
+#if GAOL_NEON_MSVC
+#  include <intrin.h> // _ReadStatusReg() of FPCR
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -28,6 +58,13 @@ using namespace gaol;
 namespace
 {
   volatile double sink;
+
+#if !GAOL_USING_NEON_INSTRUCTIONS
+  // The doubles of the two checks, read from volatile memory, as GAOL reads
+  // its own: 2^-1060, the subnormal of gaol/gaol_fpu.h, and 2^-60
+  const volatile double check_subnormal = 8.0947715414629834e-320;
+  const volatile double check_normal = 8.67361737988403547205962240695953369140625e-19;
+#endif
 
   template<class F>
   void repeat(const F& operation, std::size_t rounds, std::size_t n)
@@ -110,14 +147,61 @@ int main()
 
   const std::size_t n = 1024;
   std::mt19937_64 generator(42);
+  // The intervals overlapping X drawn apart, so that X and Y are the operands
+  // the table always had
+  std::mt19937_64 overlap_generator(43);
   std::uniform_real_distribution<double> uniform(0.5, 4.0);
-  std::vector<double> a(n), b(n);
-  std::vector<interval> X(n), Y(n);
+  std::vector<double> a(n), b(n), c(n);
+  std::vector<interval> X(n), Y(n), W(n);
   for (std::size_t i = 0; i < n; ++i) {
     a[i] = uniform(generator);
     b[i] = uniform(generator);
-    X[i] = interval(a[i], a[i] + 1e-3*uniform(generator));
+    c[i] = a[i] + 1e-3*uniform(generator);
+    X[i] = interval(a[i], c[i]);
     Y[i] = interval(b[i], b[i] + 1e-3*uniform(generator));
+    // An interval overlapping X[i], for a nonempty intersection
+    W[i] = interval(a[i] - 1e-3*uniform(overlap_generator), a[i] + 5e-4*uniform(overlap_generator));
+  }
+
+  // The operands of the lines of the last rows, drawn after the ones above
+  std::vector<interval> V[16];
+  std::vector<double> D[16];
+  for (int k = 0; k < 16; ++k) {
+    V[k].resize(n);
+    D[k].resize(n);
+    for (std::size_t i = 0; i < n; ++i) {
+      D[k][i] = uniform(generator);
+      V[k][i] = interval(D[k][i], D[k][i] + 1e-3*uniform(generator));
+    }
+  }
+
+  // The operands of x * y, x / y and sqr(x) of mixed signs, drawn last (GAOL
+  // v5): the bounds of the operands above are all positive, which the
+  // processor predicts, where the signs of the bounds chose a branch of the
+  // product, of the quotient and of the square of the former code (GAOL 4 and,
+  // before their kernels, the FPU intervals), mispredicted for operands of
+  // random signs. These 1 024 operands are learned by heart by the predictor
+  // of a processor, which understates that cost (the product of the former FPU
+  // intervals took 5.7 ns on them, 12.4 on 16 384, Apple M2)
+  std::uniform_real_distribution<double> signed_uniform(-4.0, 4.0);
+  std::vector<double> sa(n), sb(n);
+  std::vector<interval> SX(n), SY(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    sa[i] = signed_uniform(generator);
+    sb[i] = signed_uniform(generator);
+    SX[i] = interval(sa[i], sa[i] + 1e-3*uniform(generator));
+    SY[i] = interval(sb[i], sb[i] + 1e-3*uniform(generator));
+  }
+
+  // The operands of nth_root(x, 3), the cube root, and asinpi(x), drawn after all the others so that those of the rows above stay as
+  // they were (GAOL v5): asinpi() is defined on [-1, 1]. They are the rows that show a function of CORE-MATH
+  // reading the rounding direction at each call, through fegetround() of the C library on a 32-bit x86 processor
+  std::uniform_real_distribution<double> within_unit(-0.9, 0.9);
+  std::vector<double> u(n);
+  std::vector<interval> U(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    u[i] = within_unit(generator);
+    U[i] = interval(u[i], u[i] + 1e-3*uniform(generator));
   }
 
   struct Row
@@ -134,8 +218,29 @@ int main()
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] * b[i]; }, n) },
     { "x / y", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] / Y[i]; sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / b[i]; }, n) },
+    // The quotient by a positive double (GAOL v5): D[0] is drawn for the lines of the last rows,
+    // and is only read here. It is the one row that divides by a double: on the AVX-512 path that is fast_div_by(),
+    // whose scalar divisions with the embedded rounding (#191) no other row runs (x / y runs div_bounds())
+    { "x / d", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] / D[0][i]; sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / D[0][i]; }, n) },
+    // The extended quotient and the inverse (GAOL v5): operator%= and inverse() have kernels
+    // of their own with the NEON and SSE2 intervals, which no other row runs (the operands have no zero)
+    { "x % y", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] % Y[i]; sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / b[i]; }, n) },
+    { "x.inverse()", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i].inverse(); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = 1.0 / a[i]; }, n) },
     { "sqr(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = sqr(X[i]); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] * a[i]; }, n) },
+    { "x * y, random signs", nanoseconds_per_operation([&](std::size_t i) { const interval z = SX[i] * SY[i]; sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = sa[i] * sb[i]; }, n) },
+    { "x / y, random signs", nanoseconds_per_operation([&](std::size_t i) { const interval z = SX[i] / SY[i]; sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = sa[i] / sb[i]; }, n) },
+    { "sqr(x), random signs", nanoseconds_per_operation([&](std::size_t i) { const interval z = sqr(SX[i]); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = sa[i] * sa[i]; }, n) },
+    { "pow(x, 2)", nanoseconds_per_operation([&](std::size_t i) { const interval z = pow(X[i], 2); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = a[i] * a[i]; }, n) },
+    { "pow(x, 2), random signs", nanoseconds_per_operation([&](std::size_t i) { const interval z = pow(SX[i], 2); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = sa[i] * sa[i]; }, n) },
     { "pow(x, 3)", nanoseconds_per_operation([&](std::size_t i) { const interval z = pow(X[i], 3); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] * a[i] * a[i]; }, n) },
     { "sqrt(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = sqrt(X[i]); sink = z.left(); sink = z.right(); }, n),
@@ -148,9 +253,74 @@ int main()
                nanoseconds_per_operation([&](std::size_t i) { sink = std::sin(a[i]); }, n) },
     { "cos(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = cos(X[i]); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = std::cos(a[i]); }, n) },
+    { "nth_root(x, 3)", nanoseconds_per_operation([&](std::size_t i) { const interval z = nth_root(X[i], 3); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::cbrt(a[i]); }, n) },
+    // The root of a negative order, one check for the root and its inverse (GAOL
+    // v5): -2 goes through the square root, which has a vector
+    // path on some builds
+    { "nth_root(x, -2)", nanoseconds_per_operation([&](std::size_t i) { const interval z = nth_root(X[i], -2); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = 1.0/std::sqrt(a[i]); }, n) },
+    { "asinpi(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = asinpi(U[i]); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::asin(u[i]) / 3.14159265358979323846; }, n) },
+    { "interval(a, b)", nanoseconds_per_operation([&](std::size_t i) { const interval z(a[i], c[i]); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = a[i]; sink = c[i]; }, n) },
+    { "floor(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = floor(X[i]); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::floor(a[i]); }, n) },
+    { "x &= y", nanoseconds_per_operation([&](std::size_t i) { interval z = X[i]; z &= W[i]; sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::max(a[i], b[i]); }, n) },
+    { "x | y", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] | W[i]; sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::max(a[i], b[i]); }, n) },
+    { "max(x, y)", nanoseconds_per_operation([&](std::size_t i) { const interval z = max(X[i], Y[i]); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::max(a[i], b[i]); }, n) },
+    { "min(x, y)", nanoseconds_per_operation([&](std::size_t i) { const interval z = min(X[i], Y[i]); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::min(a[i], b[i]); }, n) },
+    { "x.midpoint()", nanoseconds_per_operation([&](std::size_t i) { sink = X[i].midpoint(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = 0.5*(a[i] + c[i]); }, n) },
+    { "x <= y", nanoseconds_per_operation([&](std::size_t i) { sink = (X[i] <= Y[i]) ? 1.0 : 0.0; }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = (a[i] <= b[i]) ? 1.0 : 0.0; }, n) },
+    { "x.set_contains(y)", nanoseconds_per_operation([&](std::size_t i) { sink = W[i].set_contains(X[i]) ? 1.0 : 0.0; }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = (a[i] <= b[i]) ? 1.0 : 0.0; }, n) },
+    { "line of 15 +", nanoseconds_per_operation([&](std::size_t i) {
+        const interval z = V[0][i] + V[1][i] + V[2][i] + V[3][i] + V[4][i] + V[5][i] + V[6][i] + V[7][i]
+                           + V[8][i] + V[9][i] + V[10][i] + V[11][i] + V[12][i] + V[13][i] + V[14][i] + V[15][i];
+        sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) {
+        sink = D[0][i] + D[1][i] + D[2][i] + D[3][i] + D[4][i] + D[5][i] + D[6][i] + D[7][i]
+               + D[8][i] + D[9][i] + D[10][i] + D[11][i] + D[12][i] + D[13][i] + D[14][i] + D[15][i]; }, n) },
+    { "line of 15 + and -", nanoseconds_per_operation([&](std::size_t i) {
+        const interval z = V[0][i] - V[1][i] + V[2][i] - V[3][i] + V[4][i] - V[5][i] + V[6][i] - V[7][i]
+                           - V[8][i] + V[9][i] - V[10][i] + V[11][i] - V[12][i] + V[13][i] - V[14][i] + V[15][i];
+        sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) {
+        sink = D[0][i] - D[1][i] + D[2][i] - D[3][i] + D[4][i] - D[5][i] + D[6][i] - D[7][i]
+               - D[8][i] + D[9][i] - D[10][i] + D[11][i] - D[12][i] + D[13][i] - D[14][i] + D[15][i]; }, n) },
+    { "line of 7 *", nanoseconds_per_operation([&](std::size_t i) {
+        const interval z = V[0][i] * V[1][i] * V[2][i] * V[3][i] * V[4][i] * V[5][i] * V[6][i] * V[7][i];
+        sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) {
+        sink = D[0][i] * D[1][i] * D[2][i] * D[3][i] * D[4][i] * D[5][i] * D[6][i] * D[7][i]; }, n) },
+    { "line of 7 /", nanoseconds_per_operation([&](std::size_t i) {
+        const interval z = V[0][i] / V[1][i] / V[2][i] / V[3][i] / V[4][i] / V[5][i] / V[6][i] / V[7][i];
+        sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) {
+        sink = D[0][i] / D[1][i] / D[2][i] / D[3][i] / D[4][i] / D[5][i] / D[6][i] / D[7][i]; }, n) },
+    { "line of 13 + - * /", nanoseconds_per_operation([&](std::size_t i) {
+        const interval z = ((((((V[0][i] + V[1][i]) * V[2][i] - V[3][i]) * V[4][i] + V[5][i]) * V[6][i] - V[7][i])
+                             / V[8][i] + V[9][i]) * V[10][i] - V[11][i]) / V[12][i] + V[13][i];
+        sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) {
+        sink = ((((((D[0][i] + D[1][i]) * D[2][i] - D[3][i]) * D[4][i] + D[5][i]) * D[6][i] - D[7][i])
+                 / D[8][i] + D[9][i]) * D[10][i] - D[11][i]) / D[12][i] + D[13][i]; }, n) },
   };
 
-  std::printf("GAOL performance: %s, rounding direction %s\n\n", platform().c_str(),
+  std::printf("GAOL performance: %s, %s, rounding direction %s\n\n", platform().c_str(),
+#if GAOL_USING_NEON_INSTRUCTIONS
+              "NEON intervals",
+#elif GAOL_USING_SSE2_INSTRUCTIONS
+              "SSE2 intervals",
+#else
+              "FPU intervals",
+#endif
 #if GAOL_PRESERVE_ROUNDING
               "restored after each operation (GAOL_PRESERVE_ROUNDING)"
 #else
@@ -160,8 +330,46 @@ int main()
   std::printf("| Operation | Interval (ns) | Double (ns) | Interval / double |\n");
   std::printf("|---|---:|---:|---:|\n");
   for (const Row& row : rows) {
-    std::printf("| %s | %.2f | %.2f | %.1f |\n", row.operation, row.interval_ns, row.double_ns, row.interval_ns / row.double_ns);
+    // The table is Markdown, which the jobs of the continuous integration copy into their summary: a pipe in the
+    // name of a row (x | y) would end its cell, and is written \| (the scripts read it back as |)
+    std::string operation;
+    for (const char* character = row.operation; *character != '\0'; ++character) {
+      if (*character == '|') {
+        operation += '\\';
+      }
+      operation += *character;
+    }
+    std::printf("| %s | %.2f | %.2f | %.1f |\n", operation.c_str(), row.interval_ns, row.double_ns, row.interval_ns / row.double_ns);
   }
+
+#if GAOL_USING_NEON_INSTRUCTIONS
+  // The check of each operation with the NEON intervals is the read of FPCR
+  // (gaol_core::round_upward_if_needed()), not an addition (GAOL v5)
+  const double check_fpcr_ns = nanoseconds_per_operation([&](std::size_t) {
+#  if GAOL_NEON_MSVC
+      const unsigned long long fpcr = static_cast<unsigned long long>(_ReadStatusReg(ARM64_FPCR));
+#  else
+      unsigned long long fpcr;
+      __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+#  endif
+      sink = static_cast<double>(fpcr); }, n);
+  std::printf("\nThe check of each operation, the read of the control register FPCR with mrs: %.2f ns\n", check_fpcr_ns);
+#elif GAOL_RND_X86_DIRECT
+  // The check of each operation on a 32-bit x86 processor is the read of the
+  // control word of the x87 unit and of MXCSR, and a comparison of both
+  // (gaol_core::round_upward_if_needed()), not an addition (GAOL v5)
+  const double check_registers_ns = nanoseconds_per_operation([&](std::size_t) {
+      gaol_core::round_upward_if_needed(); }, n);
+  std::printf("\nThe check of each operation, the read of the control word of the x87 unit and of MXCSR, "
+              "round_upward_if_needed(): %.2f ns\n", check_registers_ns);
+#else
+  const double check_subnormal_ns = nanoseconds_per_operation([&](std::size_t) {
+      sink = !(1.0 + (check_subnormal + 0.0) > 1.0) ? 1.0 : 0.0; }, n);
+  const double check_normal_ns = nanoseconds_per_operation([&](std::size_t) {
+      sink = !(1.0 + (check_normal + 0.0) > 1.0) ? 1.0 : 0.0; }, n);
+  std::printf("\nThe check of each operation, 1 + (2^-1060 + 0) not above 1: %.2f ns; the same with 2^-60: %.2f ns\n",
+              check_subnormal_ns, check_normal_ns);
+#endif
 
   gaol::cleanup();
   return 0;

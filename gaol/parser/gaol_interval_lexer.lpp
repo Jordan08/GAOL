@@ -1,0 +1,929 @@
+%{
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+ * Copyright (c) 2002-2006 Laboratoire d'Informatique de
+ *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Frederic Goualard, Jordan NININ
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
+#include <cstdio>
+#include <cstdlib>
+#include <climits>
+#include <cmath>
+#include <cstddef>
+#include <cstring>
+#include <limits>
+#include <new>
+#include <string>
+#include <vector>
+#include <stdint.h>
+#include "gaol/gaol_config.h"
+#include "gaol/gaol_interval.h"
+#include "gaol/parser/gaol_expression.h"
+#include "gaol/math/gaol_double_op.h"
+#include "gaol/parser/gaol_parser.h"
+
+
+/*
+  The following 'namespace' statement must appear before including
+  gaol/parser/gaol_interval_parser.h
+ */
+using namespace gaol_core;
+
+#include "gaol/parser/gaol_interval_parser.h"
+#include "gaol/gaol_fpu.h"
+
+/*
+  The characters of the string, which the context of the reading gives,
+  max_size at most at a time, and 0 at its end (gaol_read_input() in
+  gaol/parser/gaol_interval_parser.ypp): the string is read up to its length, NUL
+  characters included, which no token holds (GAOL v5)
+*/
+extern int gaol_read_input(void *context, char *buf, int max_size);
+#define YY_INPUT(buf, result, max_size) { (result) = gaol_read_input(yyextra, (buf), (max_size)); }
+
+/*
+  As many characters at a time as the buffer of flex holds, and not 8192: a
+  token longer than that, a number or a run of blanks, was scanned again from
+  its start at each refill of 8192 characters, in a time quadratic in its
+  length (2.9 s for 4 million blanks, 47 s for 16 million, with GCC 15.2), and
+  is now refilled once each time the buffer doubles (GAOL v5): 0.03 s and
+  0.11 s
+*/
+#define YY_READ_BUF_SIZE INT_MAX
+
+/*
+  An error of flex: an allocation that failed, the other errors it reports
+  being those of input it does not read here or of states it never reaches.
+  flex wrote it and called exit(2), which ended the program: it throws
+  std::bad_alloc, which gaol_lex() hands to the parser as an error (GAOL v5).
+  The function that throws is in gaol/parser/gaol_interval_parser.ypp, so that the
+  code flex writes after the error is not code that the compiler sees no way
+  to reach (C4702 of Visual C++)
+*/
+extern void gaol_flex_error();
+#define YY_FATAL_ERROR(msg) gaol_flex_error()
+
+// The memory of flex, linked to the context of the reading, which frees what
+// flex leaves when an allocation fails (gaol/parser/gaol_interval_parser.ypp)
+extern void *gaol_flex_alloc(void *context, std::size_t size);
+extern void *gaol_flex_realloc(void *context, void *p, std::size_t size);
+extern void gaol_flex_free(void *context, void *p);
+// Keeps the exception being handled for the parser to throw again
+extern void gaol_lexer_failed(void *context);
+
+// The lexer of flex, which gaol_lex() calls
+#define YY_DECL static int gaol_lex_tokens(YYSTYPE *yylval_param, yyscan_t yyscanner)
+
+// Keeps the text of a number that is not a double in the context of the
+// reading, and gives its rank (gaol/parser/gaol_interval_parser.ypp; GAOL v5)
+extern unsigned long long gaol_note_number(void *context, const char *text);
+
+// The function of a name, in the table of the names the string is read with,
+// which the context of the reading gives (gaol/parser/gaol_interval_parser.ypp); 0
+// for a name that is not in it
+extern const void *gaol_lookup_function(const char *name, void *context);
+
+/*
+  Numbers are read exactly, whatever the C library. A number no double is
+  exactly is represented by the tightest interval of doubles enclosing it.
+  GAOL read it with strtod() rounding downward then upward, and told it from a
+  double by the inexact flag strtod() raised; it read integers rounded to
+  nearest. Not every C library rounds strtod() in the rounding direction and
+  raises the flag: the C runtime of Windows, with Visual C++ or MinGW, and musl
+  on 64-bit ARM processors round to nearest whatever the direction and raise no
+  flag, so that "0.1" was read as the double nearest to 1/10, which does not
+  enclose it. strtod() now gives a double near the number, which the number is
+  compared with exactly, as integers, to find the doubles on each side of it.
+  strtod() reads the decimal point of the C locale: under a locale writing a
+  decimal comma, it stops at the '.' of "0.1" and gives 0, far from the
+  number. The doubles on each side of it are then found by steps doubling
+  from that double, and by bisection on the bits of the doubles (GAOL v5).
+  The number is compared with each double taken apart by its bits, so that
+  denormals-are-zero, where a subnormal is 0 in a comparison, changes nothing
+  (GAOL v5). The text is taken apart once, and not by each of the comparisons
+  (about 125 under such a locale), which read a long number in a time
+  quadratic in its length (GAOL v5).
+*/
+namespace {
+
+  // A natural number, as digits in base 2^32, least significant first, with no
+  // leading zero digit (0 has no digit)
+  typedef std::vector<uint32_t> gaol_natural;
+
+  // n = n*m + a, with m > 0
+  void gaol_natural_mul_add(gaol_natural& n, uint32_t m, uint32_t a)
+  {
+    uint64_t carry = a;
+    for (std::size_t i = 0; i < n.size(); ++i) {
+      const uint64_t t = static_cast<uint64_t>(n[i])*m + carry;
+      n[i] = static_cast<uint32_t>(t);
+      carry = t >> 32;
+    }
+    if (carry != 0) {
+      n.push_back(static_cast<uint32_t>(carry));
+    }
+  }
+
+  // n = n*5^e, with e >= 0
+  void gaol_natural_mul_pow5(gaol_natural& n, long long e)
+  {
+    for (; e >= 13; e -= 13) {
+      gaol_natural_mul_add(n, 1220703125u, 0); // 5^13
+    }
+    uint32_t m = 1;
+    for (; e > 0; --e) {
+      m *= 5;
+    }
+    gaol_natural_mul_add(n, m, 0);
+  }
+
+  // n = n*2^e, with e >= 0
+  void gaol_natural_shift_left(gaol_natural& n, long long e)
+  {
+    if (n.empty()) {
+      return;
+    }
+    const unsigned int bits = static_cast<unsigned int>(e % 32);
+    if (bits != 0) {
+      uint32_t carry = 0;
+      for (std::size_t i = 0; i < n.size(); ++i) {
+        const uint32_t d = n[i];
+        n[i] = (d << bits) | carry;
+        carry = d >> (32 - bits);
+      }
+      if (carry != 0) {
+        n.push_back(carry);
+      }
+    }
+    n.insert(n.begin(), static_cast<std::size_t>(e / 32), 0u);
+  }
+
+  // a*b
+  gaol_natural gaol_natural_mul(const gaol_natural& a, const gaol_natural& b)
+  {
+    gaol_natural r;
+    if (a.empty() || b.empty()) {
+      return r;
+    }
+    r.assign(a.size() + b.size(), 0u);
+    for (std::size_t j = 0; j < b.size(); ++j) {
+      uint64_t carry = 0;
+      for (std::size_t i = 0; i < a.size(); ++i) {
+        // At most (2^32 - 1)^2 + 2(2^32 - 1) = 2^64 - 1
+        const uint64_t t = static_cast<uint64_t>(a[i])*b[j] + r[i + j] + carry;
+        r[i + j] = static_cast<uint32_t>(t);
+        carry = t >> 32;
+      }
+      r[a.size() + j] = static_cast<uint32_t>(carry);
+    }
+    while (r.back() == 0) { // No leading zero digit, as gaol_natural_compare() needs
+      r.pop_back();
+    }
+    return r;
+  }
+
+  // n*m, with m an integer of 64 bits at most
+  gaol_natural gaol_natural_mul_u64(const gaol_natural& n, uint64_t m)
+  {
+    gaol_natural digits; // m in base 2^32, with no leading zero digit
+    if ((m >> 32) != 0) {
+      digits.push_back(static_cast<uint32_t>(m & 0xffffffffu));
+      digits.push_back(static_cast<uint32_t>(m >> 32));
+    } else if (m != 0) {
+      digits.push_back(static_cast<uint32_t>(m));
+    }
+    return gaol_natural_mul(n, digits);
+  }
+
+  // The sign of a - b
+  int gaol_natural_compare(const gaol_natural& a, const gaol_natural& b)
+  {
+    if (a.size() != b.size()) {
+      return (a.size() < b.size()) ? -1 : 1;
+    }
+    for (std::size_t i = a.size(); i-- > 0; ) {
+      if (a[i] != b[i]) {
+        return (a[i] < b[i]) ? -1 : 1;
+      }
+    }
+    return 0;
+  }
+
+  /*
+    The bound an exponent is kept at in a number of the text s: beyond it, the
+    number is above the largest double or below the least positive one,
+    whatever its digits. A significand that is not 0, of fewer than L digits,
+    fewer than L of them after its point, L being the length of s, times 10^e
+    lies between 10^(e - L) and 10^(e + L); in hexadecimal, times 2^e, between
+    2^(e - 4L) and 2^(e + 4L). An exponent beyond 4L + 2000, or below its
+    opposite, thus puts the number beyond the doubles, and so does the bound.
+    GAOL kept exponents below 100000, which is not beyond the doubles when the
+    significand has a million zeros after its point: "0." followed by a
+    million zeros then "1e1000001", which is 1, was compared as 10^-900001
+    (GAOL v5).
+  */
+  long long gaol_exponent_bound(const char *s)
+  {
+    return 4*static_cast<long long>(std::strlen(s)) + 2000;
+  }
+
+  // The bits of a double, and the double of given bits: the doubles of
+  // [0, +oo] are ordered as their bits, read as unsigned integers
+  uint64_t gaol_bits_of(double x)
+  {
+    uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    return bits;
+  }
+
+  double gaol_double_of(uint64_t bits)
+  {
+    double x;
+    std::memcpy(&x, &bits, sizeof x);
+    return x;
+  }
+
+  /*
+    A number v, as the rules below match numbers (decimal digits with an
+    optional point and exponent, or, after 0x, 0o or 0b, hexadecimal, octal or
+    binary digits with an optional point and a binary exponent), taken apart
+    once to be compared with doubles (GAOL v5): gaol_enclose_number() compares a
+    number with up to about 125 of them, and each comparison read the text
+    again, in a time quadratic in its length. It took 2.5 s for 20000 characters under a locale
+    writing a decimal comma, where strtod() is far from the number, against
+    0.08 s under the C locale, which needs two comparisons; both now take
+    about 0.03 s (Intel i7-1185G7, GCC 9.4).
+    v = N*10^k*2^k2 = N*5^k*2^(k+k2), N being an integer, is compared with a
+    double x = M*2^e as N*5^k*2^(k+k2) with M*2^e, and what does not depend on
+    x is kept: N*5^k for k >= 0, N and 5^-k otherwise. A comparison then costs
+    the product of 5^-k by M, a shift and a comparison of integers, in a time
+    linear in the length of the text.
+  */
+  struct gaol_number
+  {
+    bool is_zero;         // v = 0
+    // +1 if v is far above the largest double: 10^311 or more; in base 16, 8
+    // or 2, when its leading digit is worth 2^1026 or more (v is then 2^1026
+    // or more, and every v of 2^(1025 + b) or more is so marked, b being the 4,
+    // 3 or 1 bits of a digit). -1 if v is not 0 and far below the least
+    // positive double: below 10^-331; in base 16, 8 or 2, when 2^(k2 + b
+    // ndigits), above v, is 2^-1081 or less (every v below 2^(-1080 - b) is so
+    // marked). 0 otherwise, numbers just beyond the doubles included, which the
+    // comparisons place.
+    int beyond;
+    // k + k2: long long, as k and k2, which are worth up to 5 times the
+    // length of the text (8 times in base 16, 4 bits a digit): 2^31 and more
+    // for a text of 2^29 characters, where a long of 32 bits (Windows, i386,
+    // armhf) wrapped (GAOL v5)
+    long long kb;
+    // v may be above the largest double, whose strtod() raises the overflow
+    // exception: it is not known to be below it from the exponent and the
+    // digits (below 10^308 in decimal, or 2^1023 in base 16, 8 or 2) or is
+    // far above it (beyond is +1). It is false for v = 0, and for the numbers
+    // far below the least positive double (GAOL v5)
+    bool may_overflow;
+    // v may be below 2^-1022, the least normal double: strtod() of a number
+    // that is subnormal, or below the least subnormal, raises the underflow
+    // exception (GAOL v5, decided on 2026-10-24). It is not known to be above
+    // it from the exponent and the digits (at least 10^-307, above 2^-1022, in
+    // decimal, 2^-1022 in base 16, 8 or 2), or it is far below the least
+    // positive double (beyond is -1). It is false for v = 0
+    bool may_underflow;
+    gaol_natural scaled;  // N*5^k if k >= 0, N otherwise
+    gaol_natural pow5;    // 5^-k if k < 0, no digit otherwise
+
+    gaol_number() : is_zero(true), beyond(0), kb(0), may_overflow(false), may_underflow(false) {}
+  };
+
+  // The value of a digit of a number in base 16 or less, in either case
+  uint32_t gaol_digit_value(char c)
+  {
+    return static_cast<uint32_t>((c >= '0' && c <= '9') ? c - '0' : ((c | 0x20) - 'a' + 10));
+  }
+
+  // The number s writes, taken apart
+  gaol_number gaol_take_apart(const char *s)
+  {
+    // v = N*10^k*2^k2, N being written with ndigits digits
+    gaol_natural N;
+    long long k = 0, k2 = 0, ndigits = 0;
+    const long long exponent_bound = gaol_exponent_bound(s);
+    const bool hexadecimal = (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'));
+    const bool octal = (s[0] == '0' && (s[1] == 'o' || s[1] == 'O'));
+    const bool binary = (s[0] == '0' && (s[1] == 'b' || s[1] == 'B'));
+    // A number in base 16, 8 or 2 has a binary exponent, after a p, and each
+    // of its digits after the point is worth 4, 3 or 1 bits
+    const bool power_of_two = hexadecimal || octal || binary;
+    const long long digit_bits = hexadecimal ? 4 : (octal ? 3 : 1);
+    const uint32_t base = hexadecimal ? 16 : (octal ? 8 : (binary ? 2 : 10));
+    if (power_of_two) {
+      s += 2;
+    }
+    // The digits are counted first, and put in N only for a number that is
+    // not beyond the doubles (below): building N takes a time quadratic in the
+    // number of digits, which a number of 100000 digits 7, far above the
+    // largest double, spent for nothing (GAOL v5)
+    const char *const digits = s;
+    bool fraction = false;
+    for (; *s != '\0' && (power_of_two ? (*s != 'p' && *s != 'P') : (*s != 'e' && *s != 'E')); ++s) {
+      if (*s == '.') {
+        fraction = true;
+        continue;
+      }
+      const uint32_t digit = gaol_digit_value(*s);
+      if (ndigits != 0 || digit != 0) {
+        ++ndigits;
+      }
+      if (fraction) {
+        if (power_of_two) {
+          k2 -= digit_bits;
+        } else {
+          --k;
+        }
+      }
+    }
+    const char *const digits_end = s;
+    if (*s != '\0') { // Exponent
+      ++s;
+      const bool negative = (*s == '-');
+      if (*s == '-' || *s == '+') {
+        ++s;
+      }
+      long long e = 0;
+      for (; *s != '\0'; ++s) {
+        if (e <= exponent_bound) {
+          e = 10*e + (*s - '0');
+        }
+      }
+      if (e > exponent_bound) {
+        e = exponent_bound;
+      }
+      (power_of_two ? k2 : k) += (negative ? -e : e);
+    }
+
+    gaol_number v;
+    v.is_zero = (ndigits == 0);
+    if (v.is_zero) {
+      return v;
+    }
+    // 10^(k+ndigits-1) <= v < 10^(k+ndigits), respectively
+    // 2^(k2+b(ndigits-1)) <= v < 2^(k2+b ndigits), b being 4, 3 or 1, far above
+    // the largest double or below the least positive one
+    if (power_of_two ? k2 + digit_bits*(ndigits - 1) > 1025 : k + ndigits - 1 > 310) {
+      v.beyond = 1;
+      v.may_overflow = true;
+      return v;
+    }
+    if (power_of_two ? k2 + digit_bits*ndigits < -1080 : k + ndigits < -330) {
+      v.beyond = -1;
+      v.may_underflow = true;
+      return v;
+    }
+    v.kb = k + k2;
+    // v < 10^(k+ndigits) < 10^308, or v < 2^(k2+b ndigits) <= 2^1023, is below the largest double
+    v.may_overflow = power_of_two ? k2 + digit_bits*ndigits > 1023 : k + ndigits > 308;
+    // v >= 10^(k+ndigits-1) >= 10^-307 > 2^-1022, or v >= 2^(k2+b(ndigits-1)) >= 2^-1022, is a normal double or more
+    v.may_underflow = power_of_two ? k2 + digit_bits*(ndigits - 1) < -1022 : k + ndigits - 1 < -307;
+    // N, the digits after the leading zeros
+    for (const char *d = digits; d != digits_end; ++d) {
+      if (*d != '.') {
+        const uint32_t digit = gaol_digit_value(*d);
+        if (!N.empty() || digit != 0) {
+          gaol_natural_mul_add(N, base, digit);
+        }
+      }
+    }
+    v.scaled.swap(N);
+    if (k >= 0) {
+      gaol_natural_mul_pow5(v.scaled, k);
+    } else {
+      v.pow5.push_back(1u);
+      gaol_natural_mul_pow5(v.pow5, -k);
+    }
+    return v;
+  }
+
+  /*
+    The sign of v - x, v being a number taken apart, and x a double.
+    x is taken apart by its bits, and never compared nor decomposed as a
+    double (GAOL v5): with denormals-are-zero, which programs linked with
+    -Ofast have (crtfastmath.o) and the code they load can set, the
+    comparisons of a subnormal with 0 and std::frexp() see it as 0. GAOL then
+    took every subnormal for 0, so that "1e-310" was above all of them and was
+    read as the interval from the greatest subnormal to the least normal
+    double, which does not enclose it, and "0" as the greatest subnormal.
+  */
+  int gaol_compare_number(const gaol_number& v, double x)
+  {
+    const uint64_t bits = gaol_bits_of(x);
+    const uint64_t plus_infinity = gaol_bits_of(std::numeric_limits<double>::infinity());
+    const bool zero = ((bits << 1) == 0); // +0 or -0
+    // 0 < x <= +oo: the bits of a negative number and of a NaN are above those of +oo
+    const bool positive = (!zero && bits <= plus_infinity);
+    if (v.is_zero) { // v = 0
+      return zero ? 0 : (positive ? -1 : 1);
+    }
+    if (!positive) {
+      return 1;
+    }
+    if (bits == plus_infinity) { // v is below +oo
+      return -1;
+    }
+    if (v.beyond != 0) {
+      return v.beyond;
+    }
+
+    // x = M*2^e, M being an integer of 53 bits at most: the 52 bits of the
+    // fraction of x, and 2^52 more for a normal double, whose leading bit they
+    // leave out; a subnormal has none, and the exponent -1074 of its unit, the
+    // least positive double
+    const uint64_t biased_exponent = bits >> 52; // The sign bit is 0
+    uint64_t M = bits & 0x000fffffffffffffull;
+    long e = -1074;
+    if (biased_exponent != 0) {
+      M |= 0x0010000000000000ull;
+      e = static_cast<long>(biased_exponent) - 1075;
+    }
+
+    // N*5^k*2^(k+k2) compared with M*2^e
+    gaol_natural A(v.scaled), B;
+    if (v.pow5.empty()) {
+      B.push_back(static_cast<uint32_t>(M));
+      if ((M >> 32) != 0) { // No leading zero digit, as gaol_natural_compare() needs
+        B.push_back(static_cast<uint32_t>(M >> 32));
+      }
+    } else {
+      B = gaol_natural_mul_u64(v.pow5, M);
+    }
+    if (v.kb >= e) {
+      gaol_natural_shift_left(A, v.kb - e);
+    } else {
+      gaol_natural_shift_left(B, e - v.kb);
+    }
+    return gaol_natural_compare(A, B);
+  }
+
+  /*
+    The tightest interval of doubles [l, r] enclosing the number s, with no
+    sign; returns whether s is a double, l and r being it.
+    The greatest double lo not above the number, and the next one hi, are
+    bracketed by steps doubling from the double strtod() gives, then found by
+    bisection on the bits: two comparisons when strtod() gives the nearest
+    double, at most about 125 whatever it gives (GAOL v5). GAOL moved one
+    double at a time from it: under a locale writing a decimal comma, where
+    strtod("0.1") is 0, it had about 4.6e18 doubles to go through, and the
+    reading never ended. The text is taken apart once for all the
+    comparisons, so that the time of a reading under such a locale is about
+    that of a reading under the C locale, whatever the length of the number
+    (1.0 to 1.2 times as long; GAOL v5).
+  */
+  bool gaol_enclose_number(const char *s, double& l, double& r)
+  {
+    const gaol_number v = gaol_take_apart(s); // Before the rounding mode changes
+    // The guard, rather than GAOL_RND_PRESERVE() and GAOL_RND_RESTORE(): the
+    // comparisons of the number allocate (std::vector, std::string), and a
+    // failed allocation left the direction to nearest (GAOL v5)
+    const rounding_guard rnd;
+    round_nearest();
+    // strtod() of a number above the largest double gives +oo and raises the
+    // overflow exception, which stops a program that enabled it and, for a
+    // number that is read and not computed with, left a flag that stands for
+    // an infinite bound of the interval (doc/using.md, The floating-point
+    // exceptions): 1e400*0 is [0], and raised it. A number that may reach the
+    // largest double is compared with it first, and when it is above, strtod()
+    // is not called: the largest double is the guess, which the steps and the
+    // bisection below place. Below it, strtod() cannot overflow, and gives the
+    // guess as it did, so that the reading takes as long as before (GAOL v5).
+    // The same for the underflow exception, which strtod() raises for a number
+    // below the least normal double, as it rounds it to a subnormal or to 0:
+    // a number that may be below it is compared with 2^-1022, and when it is
+    // below, 0 is the guess, which the steps and the bisection place, in at
+    // most about a hundred comparisons (GAOL v5, decided on 2026-10-24)
+    const double largest = (std::numeric_limits<double>::max)();
+    const double least_normal = gaol_double_of(uint64_t(1) << 52); // 2^-1022
+    const bool above_the_doubles = v.may_overflow && gaol_compare_number(v, largest) > 0;
+    const bool below_the_normals = v.may_underflow && gaol_compare_number(v, least_normal) < 0;
+    const uint64_t guess = above_the_doubles ? gaol_bits_of(largest)
+                           : below_the_normals ? uint64_t(0)
+                           : gaol_bits_of(strtod(s,NULL)); // in [0, +oo]
+    const uint64_t top = gaol_bits_of(std::numeric_limits<double>::infinity());
+    // gaol_double_of(lo) <= the number < gaol_double_of(hi), sign_lo being
+    // the comparison of the number with gaol_double_of(lo)
+    uint64_t lo, hi;
+    int sign_lo = gaol_compare_number(v, gaol_double_of(guess));
+    if (sign_lo >= 0) {
+      lo = guess;
+      for (uint64_t step = 1;; step *= 2) {
+        hi = (top - lo > step) ? lo + step : top;
+        if (hi == top) { // +oo is above every number
+          break;
+        }
+        const int sign_hi = gaol_compare_number(v, gaol_double_of(hi));
+        if (sign_hi < 0) {
+          break;
+        }
+        lo = hi;
+        sign_lo = sign_hi;
+      }
+    } else {
+      hi = guess;
+      for (uint64_t step = 1;; step *= 2) {
+        lo = (hi > step) ? hi - step : 0;
+        sign_lo = gaol_compare_number(v, gaol_double_of(lo));
+        if (sign_lo >= 0) { // at the latest for 0, which no number is below
+          break;
+        }
+        hi = lo;
+      }
+    }
+    while (hi - lo > 1) {
+      const uint64_t middle = lo + (hi - lo)/2;
+      const int sign_middle = gaol_compare_number(v, gaol_double_of(middle));
+      if (sign_middle >= 0) {
+        lo = middle;
+        sign_lo = sign_middle;
+      } else {
+        hi = middle;
+      }
+    }
+    // The direction is set back when the guard is destroyed, at the return
+    l = gaol_double_of(lo);
+    r = (sign_lo == 0) ? l : gaol_double_of(hi);
+    return sign_lo == 0;
+  }
+
+  // Reads the number s: returns NUMBER, with lval->d set to it, if it is a
+  // double, and INTERVAL_CST, with lval->num set to the tightest interval of
+  // doubles enclosing it and to the rank of its text, which the context of
+  // the reading keeps (GAOL v5), otherwise
+  int gaol_read_number(const char *s, YYSTYPE *lval, void *context)
+  {
+    double l, r;
+    if (gaol_enclose_number(s, l, r)) {
+      lval->d = l;
+      return NUMBER;
+    }
+    (lval->num).id = gaol_note_number(context, s);
+    (lval->num).l = l;
+    (lval->num).r = r;
+    return INTERVAL_CST;
+  }
+
+  // Natural numbers written in decimal, most significant digit first
+  std::string gaol_decimal_strip(const std::string& a)
+  {
+    const std::size_t i = a.find_first_not_of('0');
+    return (i == std::string::npos) ? std::string("0") : a.substr(i);
+  }
+
+  // The sign of a - b
+  int gaol_decimal_compare(const std::string& a, const std::string& b)
+  {
+    const std::string sa = gaol_decimal_strip(a), sb = gaol_decimal_strip(b);
+    if (sa.size() != sb.size()) {
+      return (sa.size() < sb.size()) ? -1 : 1;
+    }
+    return (sa < sb) ? -1 : ((sa > sb) ? 1 : 0);
+  }
+
+  // a + b, or a - b with a >= b
+  std::string gaol_decimal_add_sub(const std::string& a, const std::string& b, bool subtract)
+  {
+    std::string res;
+    int carry = 0;
+    for (std::size_t i = 0; i < a.size() || i < b.size() || carry != 0; ++i) {
+      const int da = (i < a.size()) ? a[a.size() - 1 - i] - '0' : 0;
+      const int db = (i < b.size()) ? b[b.size() - 1 - i] - '0' : 0;
+      int d = subtract ? da - db - carry : da + db + carry;
+      carry = 0;
+      if (d < 0) {
+        d += 10;
+        carry = 1;
+      } else if (d > 9) {
+        d -= 10;
+        carry = 1;
+      }
+      res.insert(res.begin(), static_cast<char>('0' + d));
+    }
+    return gaol_decimal_strip(res);
+  }
+
+  // A signed decimal integer: its sign and its magnitude
+  struct gaol_decimal
+  {
+    bool negative;
+    std::string magnitude;
+  };
+
+  // a + b, for signed decimal integers
+  gaol_decimal gaol_decimal_add(const gaol_decimal& a, const gaol_decimal& b)
+  {
+    gaol_decimal res;
+    if (a.negative == b.negative) {
+      res.negative = a.negative;
+      res.magnitude = gaol_decimal_add_sub(a.magnitude, b.magnitude, false);
+    } else if (gaol_decimal_compare(a.magnitude, b.magnitude) >= 0) {
+      res.negative = a.negative;
+      res.magnitude = gaol_decimal_add_sub(a.magnitude, b.magnitude, true);
+    } else {
+      res.negative = b.negative;
+      res.magnitude = gaol_decimal_add_sub(b.magnitude, a.magnitude, true);
+    }
+    return res;
+  }
+
+  // The tightest interval of doubles [l, r] enclosing a*10^q
+  void gaol_enclose_decimal(const gaol_decimal& a, long long q, double& l, double& r)
+  {
+    const std::string s = a.magnitude + "e" + std::to_string(q);
+    double lo, hi;
+    gaol_enclose_number(s.c_str(), lo, hi);
+    if (a.negative) {
+      l = -hi;
+      r = -lo;
+    } else {
+      l = lo;
+      r = hi;
+    }
+  }
+
+  /*
+    Reads a number in the uncertain form of IEEE 1788-2015 (9.7.4, 12.11.3,
+    GAOL v5): m?rve, m being a decimal number with an optional sign, r a
+    natural number of units of the last place of m (half a unit when absent)
+    or ?, for an infinite radius, v the direction d or u, and e an exponent
+    written as e and an integer. Returns UNCERTAIN_CST, with lval->itv set
+    to the tightest interval of doubles enclosing the interval the number
+    denotes: [m-r, m+r] times 10^e, [m-r, m] for d, [m, m+r] for u.
+  */
+  int gaol_read_uncertain(const char *s, YYSTYPE *lval)
+  {
+    const long long exponent_bound = gaol_exponent_bound(s);
+    gaol_decimal m;
+    m.negative = (*s == '-');
+    if (*s == '-' || *s == '+') {
+      ++s;
+    }
+    long long places = 0; // Digits after the point
+    bool fraction = false;
+    for (; *s != '?'; ++s) {
+      if (*s == '.') {
+        fraction = true;
+        continue;
+      }
+      m.magnitude += *s;
+      if (fraction) {
+        ++places;
+      }
+    }
+    ++s; // '?'
+    bool infinite = false;
+    std::string radius;
+    if (*s == '?') {
+      infinite = true;
+      ++s;
+    } else {
+      for (; *s >= '0' && *s <= '9'; ++s) {
+        radius += *s;
+      }
+    }
+    char direction = 0;
+    if (*s == 'd' || *s == 'D' || *s == 'u' || *s == 'U') {
+      direction = static_cast<char>(*s | 0x20);
+      ++s;
+    }
+    long long exponent = 0;
+    if (*s == 'e' || *s == 'E') {
+      ++s;
+      const bool negative = (*s == '-');
+      if (*s == '-' || *s == '+') {
+        ++s;
+      }
+      long long e = 0;
+      for (; *s != '\0'; ++s) {
+        if (e <= exponent_bound) {
+          e = 10*e + (*s - '0');
+        }
+      }
+      exponent = (e > exponent_bound) ? exponent_bound : e;
+      if (negative) {
+        exponent = -exponent;
+      }
+    }
+    m.magnitude = gaol_decimal_strip(m.magnitude);
+
+    double l, r;
+    if (infinite) {
+      // m??d is [-oo, m], m??u is [m, +oo], m?? is [-oo, +oo]
+      double ml, mr;
+      gaol_enclose_decimal(m, exponent - places, ml, mr);
+      l = (direction == 'u') ? ml : -GAOL_INFINITY;
+      r = (direction == 'd') ? mr : GAOL_INFINITY;
+    } else {
+      // With one more decimal place, m and the radius are integers: 10m and
+      // 10r, or 5 for half a unit
+      gaol_decimal m10 = m, r10, minus_r10;
+      m10.magnitude += "0";
+      r10.negative = false;
+      r10.magnitude = radius.empty() ? std::string("5") : radius + "0";
+      minus_r10.negative = true;
+      minus_r10.magnitude = r10.magnitude;
+      const long long q = exponent - places - 1;
+      double lo, hi;
+      gaol_enclose_decimal((direction == 'u') ? m10 : gaol_decimal_add(m10, minus_r10), q, l, hi);
+      gaol_enclose_decimal((direction == 'd') ? m10 : gaol_decimal_add(m10, r10), q, lo, r);
+    }
+    (lval->itv).l = l;
+    (lval->itv).r = r;
+    return UNCERTAIN_CST;
+  }
+
+}
+
+namespace gaol_detail {
+  // The sign of v - x, v being the number s writes, with no sign, and x a
+  // double, compared exactly: for the output of intervals
+  // (gaol/core/gaol_interval_io.cpp), whose decimal bounds are rounded outward
+  // whatever the C library (declared in gaol/parser/gaol_parser.h)
+  int compare_number_with_double(const char *s, double x)
+  {
+    return gaol_compare_number(gaol_take_apart(s), x);
+  }
+
+  /*
+    The sign of a - b, a and b being the numbers the texts a and b write, with
+    no sign, compared exactly (declared in gaol/parser/gaol_parser.h; GAOL v5).
+    a = A/PA*2^kA and b = B/PB*2^kB, A and B being the
+    integers gaol_take_apart() keeps (N*5^k, or N) and PA and PB the powers of
+    5 it divides by (none for 1): a - b has the sign of A*PB*2^kA - B*PA*2^kB.
+    2 when one of the two is far beyond the doubles, whose digits it does not
+    keep.
+  */
+  int compare_numbers(const char *a, const char *b)
+  {
+    const gaol_number x = gaol_take_apart(a), y = gaol_take_apart(b);
+    if (x.is_zero || y.is_zero) {
+      return (x.is_zero && y.is_zero) ? 0 : (x.is_zero ? -1 : 1);
+    }
+    if (x.beyond != 0 || y.beyond != 0) {
+      return 2;
+    }
+    gaol_natural left = y.pow5.empty() ? x.scaled : gaol_natural_mul(x.scaled, y.pow5);
+    gaol_natural right = x.pow5.empty() ? y.scaled : gaol_natural_mul(y.scaled, x.pow5);
+    if (x.kb >= y.kb) {
+      gaol_natural_shift_left(left, x.kb - y.kb);
+    } else {
+      gaol_natural_shift_left(right, y.kb - x.kb);
+    }
+    return gaol_natural_compare(left, right);
+  }
+}
+%}
+
+%top{
+/* <stdint.h> before the code of flex, which defines INT8_MIN and the other
+   limits of integer types where <stdint.h> has not defined them: the
+   <stdint.h> of Visual C++, which the prologue includes after that code,
+   redefined them (warning C4005). */
+#include <stdint.h>
+}
+
+/* yyunput() and yyinput() are not used. The case of letters is ignored, as
+   IEEE 1788-2015 has it for literals (9.7.1): [Empty], [1, Inf] and 1E3 are
+   read (GAOL v5). No default rule: a newline, which the rule . does not take
+   and SPACE did not, fell to the one of flex, which wrote it on the standard
+   output and read on (GAOL v5); a newline is now a space. */
+%option nounput noinput caseless nodefault
+
+/* A reentrant scanner, whose state is in a structure of its own rather than
+   in globals, and which gives the value of a token through the pointer the
+   pure parser passes it (bison-bridge): each reading of a string has its own
+   scanner, and several threads read strings at once (GAOL v5). Its extra data
+   is the context of the reading (gaol/parser/gaol_interval_parser.ypp), which holds
+   the names of the functions. No yywrap(): a string is read to its end. */
+%option reentrant bison-bridge noyywrap
+
+/* The input is the string given (YY_INPUT), never interactive: flex would
+   test whether stdin is a terminal, by isatty(), for the buffer it creates.
+   The memory of flex is that of the reading (GAOL v5) */
+%option never-interactive noyyalloc noyyrealloc noyyfree
+
+DIGIT		[0-9]
+HEXDIGIT	[0-9a-f]
+OCTDIGIT	[0-7]
+BINDIGIT	[01]
+INT		{DIGIT}+
+E 		e[+-]?{DIGIT}+
+DECSIGNIFICAND	{DIGIT}*"."{DIGIT}+|{DIGIT}+"."?
+SPACE		[ \t\r\n]+
+
+%%
+
+"empty"		{ return EMPTY_STR; }
+"entire"	{ return ENTIRE_STR; }
+"inf"		{ return INFINITY_STR; }
+"infinity"	{ return INFINITY_STR; }
+"pi"		{ return PI_STR; }
+"dmin"                     { return DMIN_STR; }
+"dmax"                    { return DMAX_STR; }
+[a-z_][a-z0-9_]*	{ /* The name of a function, looked for in the table of the
+			     names the string is read with, those of GAOL or those
+			     of IEEE 1788-2015 (gaol_lookup_function() in
+			     gaol/parser/gaol_interval_parser.ypp): a name that is not in
+			     it is an error. The names above, which are no
+			     functions, come first (GAOL v5) */
+			  yylval->fn = gaol_lookup_function(yytext, yyextra);
+			  return yylval->fn ? FUNCTION_NAME : UNEXPECTED_CHAR; }
+"["		{ return '['; }
+"]"		{ return ']'; }
+"<"		{ return '<'; }
+">"		{ return '>'; }
+"("		{ return '('; }
+")"		{ return ')'; }
+","		{ return ','; }
+"+"		{ return '+'; }
+"-"		{ return '-'; }
+"*"		{ return '*'; }
+"/"		{ return '/'; }
+
+{INT} |
+{DIGIT}+{E} |
+{DIGIT}*"."{DIGIT}+({E})? |
+{DIGIT}+"."{DIGIT}*({E})?	{ return gaol_read_number(yytext, yylval, yyextra); }
+0x({HEXDIGIT}*"."{HEXDIGIT}+|{HEXDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval, yyextra); }
+0o({OCTDIGIT}*"."{OCTDIGIT}+|{OCTDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval, yyextra); }
+0b({BINDIGIT}*"."{BINDIGIT}+|{BINDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval, yyextra); }
+[+-]?({DECSIGNIFICAND})"?"({DIGIT}+|"?")?[du]?({E})?	{ return gaol_read_uncertain(yytext, yylval); }
+{SPACE}		{  }
+.		{ return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
+%%
+
+/*
+  The scanner of a reading, whose extra data is the context of the reading,
+  which gives the string: 0 if it could not be allocated. gaol_cleanup_parsing()
+  frees it. Its buffer is allocated when the lexer reads the first token
+  (GAOL v5)
+*/
+void *gaol_core::gaol_initialize_parsing(void *context)
+{
+  yyscan_t scanner;
+  if (gaol_lex_init_extra(context, &scanner) != 0) {
+    return 0;
+  }
+  return scanner;
+}
+
+void gaol_core::gaol_cleanup_parsing(void *scanner)
+{
+  gaol_lex_destroy(scanner);
+}
+
+/*
+  The next token, for the parser: that of the lexer of flex, or, when it
+  threw, UNEXPECTED_CHAR, a syntax error, which makes the parser free the
+  nodes on its stack and stop, the exception being kept in the context of the
+  reading for gaol_parse_string() to throw (GAOL v5). Thrown through the
+  parser, it left them: std::bad_alloc from flex (YY_FATAL_ERROR) or from the
+  reading of a number.
+*/
+int gaol_lex(YYSTYPE *lval, yyscan_t scanner)
+{
+  try {
+    return gaol_lex_tokens(lval, scanner);
+  } catch (...) {
+    gaol_lexer_failed(gaol_get_extra(scanner));
+    return UNEXPECTED_CHAR;
+  }
+}
+
+/*
+  The allocation functions of flex (%option noyyalloc noyyrealloc noyyfree),
+  given the scanner, which is the state that yylex_init_extra() has made for
+  its first allocation, whose extra data is the context too. yy_fatal_error(),
+  which wrote the error and ended the program, is no longer called
+  (YY_FATAL_ERROR): its address is taken so that compilers do not warn that
+  it is unused.
+*/
+void *yyalloc(yy_size_t size, yyscan_t yyscanner)
+{
+  static_cast<void>(&yy_fatal_error);
+  return gaol_flex_alloc(gaol_get_extra(yyscanner), size);
+}
+
+void *yyrealloc(void *p, yy_size_t size, yyscan_t yyscanner)
+{
+  return gaol_flex_realloc(gaol_get_extra(yyscanner), p, size);
+}
+
+void yyfree(void *p, yyscan_t yyscanner)
+{
+  gaol_flex_free(gaol_get_extra(yyscanner), p);
+}

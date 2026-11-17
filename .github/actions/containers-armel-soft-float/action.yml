@@ -1,0 +1,59 @@
+# A target whose floating point is in software (GAOL v5): Debian 12 armel,
+# 32-bit ARM, cross-compiled by its GCC 12 and run under qemu-arm.
+# fesetround(FE_UPWARD) returns 0 there, glibc writing the FPSCR of the VFP
+# qemu emulates, which the arithmetic in software does not read, and GAOL
+# computed every bound to nearest (765 344 of the 6 234 574 checks of
+# arithmetic failed): its initialization has to stop the program, with the
+# message saying why (check_upward_rounding(), gaol/gaol_common.cpp)
+# The steps of the job armel-soft-float of containers.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: containers-armel-soft-float
+description: The job armel-soft-float of containers.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Cross-compile for armel and run under qemu-arm
+      shell: bash -e {0}
+      run: |
+        docker run --rm -v "$PWD:/gaol:ro" debian:bookworm sh -c '
+          set -e
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends g++-arm-linux-gnueabi gcc-arm-linux-gnueabi cmake make qemu-user ca-certificates > /dev/null
+          arm-linux-gnueabi-g++ --version | head -1
+          cmake -S /gaol -B /tmp/b -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON \
+            -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm \
+            -DCMAKE_C_COMPILER=arm-linux-gnueabi-gcc -DCMAKE_CXX_COMPILER=arm-linux-gnueabi-g++ > /tmp/cmake.log 2>&1 || { tail -30 /tmp/cmake.log; exit 1; }
+          cmake --build /tmp/b -j 4 --target gaol_test_arithmetic > /tmp/build.log 2>&1 || { tail -20 /tmp/build.log; exit 1; }
+          status=0
+          qemu-arm -L /usr/arm-linux-gnueabi /tmp/b/tests/gaol_test_arithmetic > /tmp/run.log 2>&1 || status=$?
+          tail -3 /tmp/run.log
+          if [ "$status" -eq 0 ]; then
+            echo "GAOL ran on a target whose floating point is in software"
+            exit 1
+          fi
+          if ! grep -q "the rounding direction cannot be set upward on this target" /tmp/run.log; then
+            echo "GAOL stopped, but not for the rounding direction"
+            exit 1
+          fi
+          echo "GAOL stopped with its message (exit status $status)"'

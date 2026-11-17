@@ -1,74 +1,505 @@
+<!-- Copyright (c) 2026 ENSTA, France
+
+     By: Jordan NININ (created 2026-09-20)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # Continuous integration
 
-Part of the documentation of [this fork of GAOL](../README.md#documentation).
+Part of the documentation of [GAOL v5](../README.md#documentation).
 
 The workflows of `.github/workflows/` build GAOL with CMake and run the tests
-on:
+(a job is a group of configurations: see
+[Jobs and configurations](#jobs-and-configurations)),
+with `make test` (`cmake --build <build> --target test`, `RUN_TESTS` with
+Visual Studio). They run for each pull request, and for each push to the
+branches `master` and `dev` only: a push to another branch
+runs nothing until it is proposed, which halves the jobs of a pull request (GAOL
+v5), and neither does a push to `dev` that changes only the notes of the work on
+GAOL v5 (`TODO*.md`, `process.md` and `STEP.md`: `paths-ignore` of the five
+workflows that build GAOL), which would otherwise
+cancel the checks of the commit before it; `workflow_dispatch` runs them on any
+branch. `performance.yml`
+is an exception: it runs for the pull requests that change what it measures
+only (see [The speed of a pull request](#the-speed-of-a-pull-request)); so is
+`manual.yml`, which runs for the pushes and the pull requests that change
+`manual/` or itself; and so is `release.yml`, which runs for every tag of a commit of `master`: it builds
+the three packages of the version, tests them installed, and attaches them to
+the GitHub Release of the tag; a pull request that changes it or the files of
+CPack builds them without a Release (see
+[doc/building.md](building.md#the-archive-of-the-sources-and-the-packages);
+GAOL v5). The badges of
+[README.md](../README.md) show their state on `master`. They build on:
 
-- **Linux:** Ubuntu 22.04, 24.04 and 26.04 on x86_64 and arm64, with GCC and
-  Clang, also with the address and undefined behaviour sanitizers, and with
-  CMake 3.14.
+- **Linux:** Ubuntu 24.04 and 26.04 on x86_64 and arm64, with GCC and Clang,
+  also with the address and undefined behaviour sanitizers, with `-Wall
+  -Wextra -Werror` (see below), with CMake 3.14, with the self-test of
+  the check of the assembly (`tests/tools/asm-order/check_order.py --selftest`,
+  Python alone, and the check of the library itself with GCC 13.3 and Clang 18,
+  with and without the rounding direction preserved, GAOL v5),
+  with the compilers of Ubuntu 22.04 (GCC 11 and Clang 14 on x86_64, GCC 11
+  on arm64), whose images GitHub retires by April 2027, with GCC 9, which has
+  no `__builtin_roundeven()` (see [3rd/README.md](../3rd/README.md)), and as a
+  shared library (`BUILD_SHARED_LIBS`, `--enable-shared` and
+  `-Ddefault_library=shared`: the static library is the default of the three
+  builds, GAOL v5), and with the interprocedural optimization
+  (`-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`, GCC of Ubuntu 24.04, the rounding
+  direction preserved, and again with the arithmetic on the SSE2 path, in a job
+  of its own, whatever the runner has), which GAOL neither offers nor refuses (see
+  [Three builds](three-builds.md#interprocedural-optimization-is-not-offered),
+  GAOL v5); the test `automatic_configuration` configures GAOL several
+  times, with the settings of a user and of a developer and in a
+  cross-compilation, and holds the header and the messages to what the checks
+  found (the fused multiply-add instructions, the AVX-512 path, the 128-bit
+  integer, the debugging, the vector intervals); the test `cpack_stale_configure` also
+  runs with `CC="ccache gcc"` and a Ninja outside `PATH`, which it has to pass
+  on to the copies of the tree it configures; and the tests run with the
+  `FE_*` values of Cygwin (newlib, 0 to 3) put over those of glibc for the
+  sources of CORE-MATH (`.github/scripts/newlib-fe-values.h`), Cygwin, which
+  defines `__x86_64__` but not `__WIN32__`, as Linux (see
+  [3rd/README.md](../3rd/README.md), item 6; and a job builds it, below).
 - **Linux containers:**
   - Debian 12 and 13 on amd64, arm64 and armhf, and Debian 12 on i386;
   - manylinux_2_28 on x86_64 and aarch64;
   - Alpine (musl) on x86_64 and aarch64;
-  - Debian 13 under qemu on s390x, ppc64le and riscv64.
-- **macOS:** 14, 15 and 26, on arm64 and x86_64 (natively or under Rosetta), and
-  with the sanitizers with AppleClang, LLVM's Clang and GCC.
+  - Debian 13 under qemu on s390x, ppc64le and riscv64, and Ubuntu 24.04
+    (GCC 13) under qemu for POWER9 (`-mcpu=power9`);
+  - Debian 12 armel, 32-bit ARM with the floating point in software,
+    cross-compiled by its GCC 12 and run under qemu-arm, where GAOL has to stop
+    at its initialization with the message saying that the rounding direction
+    cannot be set upward (GAOL v5): `fesetround(FE_UPWARD)` returns 0 there
+    and changes nothing;
+  - built for size (`MinSizeRel`, `-Os`) on Debian 13 armhf and for POWER9,
+    where GCC calls the intersection rather than inlining it, and
+    `tests/rounding_direction.cpp` checks the choices a program makes on
+    `is_empty()` of an empty interval there too.
+  - Debian 13 on amd64 with the relations between intervals testing the empty
+    sets before the bounds (`-DGAOL_RELATION_BOUNDS_FIRST=0`, the order of
+    RISC-V), where GCC 14 raised the invalid-operation flag for an empty
+    operand when the equal bounds were found by `==`
+    (`tests/rounding_direction.cpp`).
+- **macOS:** 15 and 26, on arm64 and x86_64 (natively or under Rosetta), 27 on
+  arm64 (on the runner labelled `xcode-27`; there is no job of macOS 27 on
+  x86_64 under Rosetta, GitHub having no runner for it), a
+  universal build (arm64 and x86_64, GAOL v5: the macros of each part, the tests
+  of the arm64 part natively and the test programs of the x86_64 part under
+  Rosetta, and the intervals each part says it has) with CMake, with autotools
+  (`-arch` twice in `CFLAGS`, `CXXFLAGS` and `LDFLAGS`) and with meson (in
+  `c_args`, `cpp_args` and the link arguments), on macOS 15 and 26; the
+  generator of Xcode, with the list `arm64;x86_64` (universal) and without any
+  (CMake gives Xcode the architecture of the machine: `lipo` says `arm64`
+  alone); and the sanitizers with AppleClang, LLVM's Clang and GCC.
 - **Windows:**
-  - Visual Studio 2022 and 2026, on x86, x64 and arm64, Release and Debug;
-  - MinGW-w64 15, on x86 and x64;
-  - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).
+  - Visual Studio 2022 and 2026, on x86, x64 and arm64, Release and Debug (on
+    arm64, the compiler of Visual Studio 2022, MSVC 14.44, installed with
+    Visual Studio 2026: GitHub has no image with Visual Studio 2022 on arm64
+    any more). On x64 and x86 the intervals are the SSE2 ones (GAOL v5; on x86
+    their two bounds are two doubles, which need no aligned memory), on arm64
+    the NEON ones (Visual C++ and clang-cl), which a step of each job checks. A
+    job on x86 asks for the FPU intervals (`GAOL_SIMD=OFF`), so that their code,
+    and the rounding direction they keep through the x87 unit and MXCSR, stay
+    covered, and a job on arm64 with Visual C++ and another with clang-cl do
+    the same (`GAOL_SIMD=OFF`). Two x64 jobs ask
+    for the AVX-512 path (`GAOL_PREFER_AVX512`, a setting of the developers), as
+    the one with the rounding direction preserved gets it from the configuration:
+    they take it where the runner has the
+    instructions, which the step tells, with a warning where it has not. The
+    runners have them or not, according to the machine GitHub gives, so that
+    five more jobs run the unit tests that compute
+    with intervals under Intel SDE, which emulates a processor with them
+    (Visual Studio 2022 and 2026, Release and Debug, and clang-cl, with
+    `GAOL_PRESERVE_ROUNDING` or `GAOL_PREFER_AVX512`);
+  - clang-cl, the Clang of Visual Studio (toolset `ClangCL`): of Visual
+    Studio 2022 on x64, Release and Debug, and of Visual Studio 2026 on x86,
+    x64 and arm64, Release. On x64 it defines `__x86_64__` and `_WIN32` but
+    not `__WIN32__`, which upstream CORE-MATH tests to read the rounding
+    direction in `cbrt`, `rsqrt` and `asinpi` (see
+    [3rd/README.md](../3rd/README.md), item 6); on x86, GAOL gives it
+    `-msse2`, without which it computes doubles on the x87 unit;
+  - MinGW-w64 15 on x86 and x64, Release and Debug (SSE2 intervals on both,
+    `-faligned-new=8` on x86, which a step checks; GAOL v5), 14 on x86 and x64,
+    12 and 13 on x86; on x86, Release, GCC 15.2 with `GAOL_PRESERVE_ROUNDING`
+    (with `-mfma`, GAOL v5) and GCC 13.2 with `GAOL_FMA=OFF` (the `fma()` of
+    mingw-w64 11 on the x87 unit);
+  - MSYS2 UCRT64 (GCC, and GCC again with `GAOL_PRESERVE_ROUNDING`, with and
+    without `GAOL_FMA`: with `-mfma`, `__FMA__` is defined, so that the rounding
+    direction goes through MXCSR alone, which Linux, clang-cl and Visual C++
+    x64 with `/arch:AVX2` run, and mingw-w64 13 and later read it with a
+    `fegetround()` that joins the two
+    units and set it with a `fesetround()` that clears the exception flags,
+    which GAOL does not call there; GAOL v5) and CLANG64 (Clang, and Clang
+    again with `GAOL_PRESERVE_ROUNDING`, which takes `-mfma` and the same path,
+    but the AVX-512 one where the runner has the instructions, GCC for Windows
+    never taking it),
+    and CLANGARM64 on the arm64 runners (Clang, the NEON intervals, and Clang
+    again with `GAOL_PRESERVE_ROUNDING`);
+  - Cygwin, GCC for x86-64, Release and Debug (GAOL v5): `-mfma
+    -mprefer-vector-width=128` in the flags, the objects read as below, all the
+    tests passing but those that are skipped (`intervalf`, `interval2f`, and
+    `cpack_stale_configure`, the CPack of Cygwin not making an archive) in both
+    build types, and a configuration with `GAOL_FMA=OFF` that
+    `gaol/gaol_config.h` has to refuse; with autotools and meson as well, and
+    the tests built again with the installed GAOL (`tests.sh`);
+  - Clang with the target of Visual C++ and the driver of GCC (`clang++`, not
+    clang-cl), in the environment of Visual Studio (GAOL v5): CMake and meson
+    for x64 and x86 (meson with a file of cross-compilation for x86, which
+    names the machine and the target), and autotools for x64 (in a shell of
+    MSYS2, with `lld` and `llvm-ar`); the library is built in C++14 there, the
+    standard library of Visual C++ needing it;
+  - With GCC on x64 and on x86, in Release, MinGW-w64 15, 14, 13 (x86) and 12
+    (x86), MSYS2 UCRT64 and Cygwin, a step reads the objects with `objdump`
+    (`.github/scripts/check-gcc-windows-fma.sh`, GAOL v5):
+    `gaol_interval_core.cpp` and the `cos` of CORE-MATH have to hold fused
+    multiply-add instructions (`GAOL_FMA` gives these compilers `-mfma
+    -mprefer-vector-width=128`), and no object, the tests' included, an
+    instruction on a `%ymm` or `%zmm` register, which GCC would spill to a stack
+    Windows x64 aligns on 16 bytes (GCC bug 54412); on x86 such lines are
+    listed and noticed, not an error.
 
-They also build GAOL with autotools and meson, with the mathlib of
-`3rd/mathlib`, on Ubuntu (x86_64, arm64), Debian (i386, armhf), macOS (arm64,
-x86_64) and MSYS2, and the tests with the GAOL they install; build GAOL with
-each of the three builds against a mathlib installed apart, on Ubuntu x86_64
-(`MATHLIB_DIR`, `--with-mathlib-include`, `-Dwith-mathlib-include`); build GAOL
-with autotools and meson with the two other mathematical libraries they offer,
-on Ubuntu x86_64: CRlibm (`scripts/install-crlibm.sh`), with which the six
-tests pass, and the math library of the system, with which only checks on the
-distance to the tightest bounds may fail; build GAOL
-as a part of another project, brought in by FetchContent
-(`tests/fetch_content`), and the tests with the GAOL that project installs;
-check that the three builds agree on each of these machines; check
-that Clang is refused on 32-bit ARM, Clang 14 on 64-bit ARM, and MinGW-w64 11
-to 14 (13 and 14 with autotools and meson too), and Visual C++ without
-`/fp:strict`. Jobs of each build restore the
-rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC and arm64
-Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64, autotools and
-meson. The jobs built in Release print the time per operation in their summary.
+They also build GAOL with autotools and meson on Ubuntu (x86_64, arm64),
+Debian (i386, armhf), macOS (arm64, x86_64), MSYS2 (UCRT64 for x64, MINGW32
+for x86, GAOL v5) and Cygwin, and with meson and
+Visual Studio 2022 (x64, x86) and 2026 (x64, arm64), and with meson 0.53.2, the oldest the
+meson build takes (Ubuntu x86_64, GAOL v5), run the tests (`make test`,
+`ninja test`), and build them again with the
+GAOL they install (but with Clang for the target of Visual C++, with autotools
+and meson), which is the only library installed, CORE-MATH being
+compiled into it; build GAOL as a part of another project, brought in by
+FetchContent (`tests/fetch_content`), and the tests with the GAOL that project
+installs, and check that GAOL and CORE-MATH are compiled as in Release where
+that project gives no build type (`tests/release_flags.py`, GAOL v5); build
+GAOL as a subproject of a meson project (`tests/meson_subproject`, Ubuntu
+x86_64, with the meson of pipx and the meson 1.3 of Ubuntu), whose code
+compiled with `gaol_dep` has to get the flags of `gaol.pc`, and GAOL to be
+built in release in the default build type of meson (GAOL v5); check that
+`GAOL_DEBUG` and `enable-debug` build GAOL for debugging, alone and brought
+into another project, and that GAOL built alone with Ninja Multi-Config builds
+Release by default (`linux.yml`, `build-systems.yml`, configured only, GAOL
+v5); check that the three builds agree on each of these machines; check that
+configure and meson, and autoconf when it generates configure (Linux), read a
+`VERSION.txt` that starts with a byte order mark or has the line ends of
+Windows (`.github/scripts/version-file.sh`), and that meson reads it with
+no Python on `PATH` (Linux); check that `make distclean` gives the source tree
+back as git has it, after the autotools have built, installed and tested GAOL
+in it (Ubuntu, macOS); check that the builds
+refuse Clang on 32-bit ARM and Clang 14 on 64-bit ARM, that
+`gaol/gaol_config.h` refuses MinGW-w64 GCC 11 to 13 and MSYS2 MINGW64 (GCC
+and Clang) on x64 and GCC 11 on x86,
+`-ffinite-math-only` and `-ffast-math` with GCC and Clang (the tests
+`refused_*` of the three builds, see [Tests](tests.md)), and Visual C++ and
+clang-cl without `/fp:strict`. Jobs of each build
+restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC
+and Clang (which take the AVX-512 path where the runner has it, Clang having
+computed a difference of that path once flush-to-zero was set back, GAOL v5)
+and arm64 GCC and Clang (GCC too since the NEON intervals, GAOL v5: it does not
+model the direction they write into FPCR), Debian i386 and armhf, macOS arm64,
+Visual Studio x86 and x64, autotools and meson.
+Jobs of autotools and of meson on Ubuntu x86_64 build GAOL
+without exceptions (`--disable-exceptions`, `-Denable-exception=false`),
+where an error of GAOL ends the program, and run the examples and the tests,
+which leave out there the checks of an exception (GAOL v5). The jobs built in
+Release print the time per operation in their summary, a table that no other run
+compares: `performance.yml` compares the base of a pull request with its head
+(see [The speed of a pull request](#the-speed-of-a-pull-request)).
 
-The manual is built from `manual/gaol.tex` with the LaTeX of Ubuntu 24.04, by
-the autotools and the meson builds, when `manual/` changes (`manual.yml`); the
-PDF is an artifact of the run.
+On 64-bit ARM processors the intervals are the NEON ones by default
+(`GAOL_SIMD`, `--enable-simd`, `-Denable-simd`; GAOL v5: `GAOL_ARM64`,
+`--enable-arm64` and `-Denable-arm64` were an option of their own), so that the jobs of
+Ubuntu arm64, macOS arm64 and the aarch64 containers, and those of autotools
+and meson on arm64, test them. A few jobs build the FPU intervals instead,
+which the NEON ones replace on these processors, so that their code stays
+covered, the preserved rounding direction included: the GCC and the Clang of
+Ubuntu 24.04 arm64 (`-DGAOL_SIMD=OFF`), and both with the rounding direction
+preserved too, macOS 15 arm64 (`-DGAOL_SIMD=OFF`), and autotools
+(`--disable-simd`) and meson (`-Denable-simd=false`) on Ubuntu 24.04 arm64.
+The GCC and the Clang of Ubuntu 24.04 x86-64 build them too
+(`-DGAOL_SIMD=OFF`), GCC without and with the direction preserved and Clang
+with it: the compound products and quotients of the FPU intervals hold the
+direction only by the order of their stores, which the checks of
+`tests/rounding_direction.cpp` run with the direction preserved make a rule
+(GAOL v5). A build that fell back to
+the FPU intervals without saying so would keep every test green, so the jobs
+check which intervals the configuration took, in a step "The intervals"
+(`.github/scripts/check-intervals.sh`, which reads
+`GAOL_USING_NEON_INSTRUCTIONS` and `GAOL_USING_SSE2_INSTRUCTIONS` in
+`gaol_configuration.h`, and fails if they are not the expected ones): the main
+jobs of `linux.yml`, those of `macos.yml`, autotools and meson expect the NEON
+intervals on 64-bit ARM, the SSE2 intervals on x86-64, and the FPU intervals
+where the option (`GAOL_SIMD`) is off; the Visual Studio jobs
+of `windows.yml`, those of clang-cl included, expect the SSE2 intervals on x64
+and on x86 (GAOL v5) and the NEON intervals on arm64; the MSYS2 jobs, the SSE2
+ones on x64 and the NEON ones on arm64; four jobs of `linux.yml` give the SSE2
+intervals of Linux the form they have on x86 with Visual C++ and clang-cl
+(`-DGAOL_SSE2_UNALIGNED_STORAGE=ON`), and check that the configuration has it;
+the
+Linux containers make the check before the build, from the triplet that
+`c++ -dumpmachine` gives: the NEON intervals for `aarch64-*`, the SSE2
+intervals for `x86_64-*` and `i?86-*` (i386 included), and the FPU intervals
+for `arm*`, `s390x-*`, `powerpc64le-*` and `riscv64-*`; for any other triplet
+the check is left out, without a message.
+
+Six jobs of `linux.yml`, with the GCC and the Clang of Ubuntu 26.04 on x86_64
+and on arm64, and on x86_64 again with the SSE2 intervals in the form they have
+on x86 with Visual C++ and clang-cl (`-DGAOL_SSE2_UNALIGNED_STORAGE=ON`, GAOL
+v5), and one of `macos.yml`, with the AppleClang of macOS 26 arm64,
+build the library, the sources of CORE-MATH included, the tests and the
+examples with `-Wall -Wextra -Werror`, and four of `windows.yml` with `/W4 /WX`,
+with the Visual C++ of Visual Studio 2026: x64 in Release, and again asking for the
+AVX-512 path (compiled where the runner has the instructions), x64 in Debug,
+and x86 in Release. On arm64, the check of the
+installed headers below compiles the header of the NEON intervals, which
+`gaol/core/gaol_interval_core.h` includes, with the warnings of the headers
+(`-Wold-style-cast`, `-Wundef`) that the intrinsics of `<arm_neon.h>` have to
+stay clear of (GAOL v5). The first seven check the headers
+GAOL installs with `.github/scripts/headers.sh` (GAOL v5): each compiles alone
+with `-std=c++11`, the oldest standard GAOL takes, and
+`-Wall -Wextra -Wold-style-cast -Wundef -Werror` (they have no cast of C,
+nor any `#if` on a macro that may be undefined), but the
+three that other headers include in the middle of their code, and the macros they define start with `GAOL_` or `gaol_`. The two jobs
+with `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` check the configuration has that form
+before they build, and make the check for the installation in that form:
+`gaol/core/gaol_interval_detail.h` did not compile alone there (GAOL v5).
+`-Werror` and `/WX` go to the targets only (`CMAKE_COMPILE_WARNING_AS_ERROR`),
+so that no check of CMake fails on a warning of its test program. Until then,
+the library was compiled with `-Wall -Wconversion`, and no job failed on a
+warning.
+
+`tests/numbers.cpp` reads numbers and writes exact texts under a locale
+writing a decimal comma where the system has one (see [Tests](tests.md)), and
+says so and passes where it has none. The jobs on Ubuntu and in the Debian
+containers generate `fr_FR.UTF-8` before the tests, with `localedef`
+(`.github/scripts/comma-locale.sh`): their systems have no such locale; macOS
+has `fr_FR.UTF-8`, and Windows `French_France.1252`. After the tests, each job
+that runs them fails if the output of `numbers` holds no check under such a
+locale: the output ctest keeps in `Testing/Temporary/LastTest.log`,
+`tests/numbers.log` with the autotools, `meson-logs/testlog.txt` with meson
+(GAOL v5: only the CMake jobs of `linux.yml` checked it). Alpine and
+manylinux have no locale writing a decimal comma to generate, and check
+nothing of the kind; nor do the configurations under Intel SDE, which run each
+test program by `.github/scripts/sde-tests.sh`, and the x86_64 part of the
+universal builds of macOS, whose programs run one by one under Rosetta (the
+arm64 part is checked). `numbers` has 300 s (`GAOL_NUMBERS_TIMEOUT`), 400 in the
+four jobs of `linux.yml` with the sanitizers, where it took 109 to 287 s and
+once more than 300, 900 in the job of macOS 15 x86_64 GCC with the sanitizers,
+where it took 182 to 577 s in 30 runs, and more than 400 six times, and 600
+in the job of macOS 26 arm64 LLVM Clang with the sanitizers, where it took 162
+to 297 s in 28 runs, and once more than 300.
+
+The manual of GAOL v5 (`manual/v5/manual_gaolv5.tex`) is built with the LaTeX of
+Ubuntu 24.04, by the autotools, the CMake and the meson builds, when `manual/`
+changes (`manual.yml`), each build writing `manual/Manual_GAOLv5.pdf` of the
+sources; the PDF is an artifact of the run. The manual of GAOL 4 is not built:
+its PDF, `manual/v4/Manual_GAOLv4.pdf`, was built once. The examples of the manual of GAOL v5 that show
+what they print are compiled in C++11 with the GAOL that the job Ubuntu 24.04
+x86_64 GCC of `linux.yml` installs, at each run, so that a change of the
+library that changes one of their outputs shows, and have to print what the
+manual shows (`manual/check_examples.py`, GAOL v5).
+
+## Jobs and configurations
+
+A job of `linux.yml`, `containers.yml`, `macos.yml`, `windows.yml` and
+`build-systems.yml` is a group of configurations: they run one after the other
+on the same image of runner, so that a pull request lists about sixty checks
+instead of two hundred (GAOL v5). A configuration is a step of the job that
+calls an action of `.github/actions/` (`<workflow>-<job>`, and
+`buildsystems-<job>` for `build-systems.yml`: the steps of what was a job of
+its own) with the row of the matrix that job had, and it has the name that job
+had. Where this document says "job" for something that is
+checked (the jobs of `windows.yml` that ask for `/W4 /WX`, for example), it
+means such a configuration.
+
+- A configuration that fails does not stop the next ones of its job (`if: ${{
+  !cancelled() }}`). The job fails at the end; its summary has a table with the
+  result of each configuration, its log a step for each. Running the failed
+  job again runs all its configurations again.
+- Each action starts by giving its configuration the tree as git has it
+  (`git clean`, `git reset --hard`; `sudo chown` first on Linux, the containers
+  writing as root) and a temporary directory from which the names the actions
+  write there (`gaol`, `audit`, `configure.log`...) are removed. What a
+  configuration changes outside of those is
+  dealt with where it changes it: the CMake 3.14.7 of `cmake-3-14` is put first
+  in the PATH of its own steps only, and `launcher-ninja` puts back the Ninja
+  it removes; the MinGW-w64 of Chocolatey replaces the previous one, each
+  configuration installing its own and checking that its `g++` is the first in
+  PATH; MSYS2 is installed once for the group, the configurations choosing their
+  environment with `MSYSTEM` (the action refuses a second installation); meson
+  is installed with `pipx install --force`, so that 0.53.2 and the latest follow
+  each other; the macOS sanitizers set `LDFLAGS` for every compiler.
+- The groups are of about fifteen minutes of work. The configurations that
+  change the machine come last in their group, and the ones that need it as it
+  is come first (the meson of Ubuntu before any `pipx install meson`, the
+  archives of the sources before `apt-get install autoconf`, the setup of MSYS2
+  before the calls of `ilammy/msvc-dev-cmd`, whose environment grows at each
+  call until the `xargs` of MSYS2 refuses it; the x86 configurations with the
+  clang of LLVM before the x64 ones, whose call puts the clang of Visual
+  Studio first in PATH, and which a step of the clang configurations checks:
+  an x86 one fails if the `clang++` it finds is the one of Visual Studio for
+  x64). Intel SDE is set up by each
+  configuration that runs under it: the action extracts it into the tree,
+  which the next configuration cleans.
+- Each configuration keeps on its step the `timeout-minutes` its job had, and
+  the job has their sum (at most the 6 hours GitHub allows): a configuration
+  that hangs is stopped as before, and the ones after it still run.
+- To add a configuration, add a step to the job of the machine it runs on, with
+  the name it is to have and the row of its matrix as `with:`. A new kind of
+  job is a new action; a configuration longer than the others, or that has to
+  start from a machine of its own (Cygwin), is a job of its own.
+- Two configurations of `build-systems.yml` are alone in their job, there being
+  no other of their image of runner in this workflow: *Meson, Visual Studio 2026
+  x64* (`windows-2025-vs2026`) and *Meson, Visual Studio 2026 arm64*
+  (`windows-11-vs2026-arm`), 2.4 minutes each. They stay so: joining a group of
+  `windows.yml` would put actions of another workflow in it and bring back what
+  one configuration leaves to the next on Windows (the environment of
+  `ilammy/msvc-dev-cmd`, the installs of `pipx`).
+- The actions that the workflows use are on the moving tag of their release
+  (`actions/checkout@v7`, `msys2/setup-msys2@v2`, `ilammy/msvc-dev-cmd@v1`...),
+  which is how a fix of theirs reaches the jobs; only `petarpetrovt/setup-sde`
+  is pinned, to the commit of its release.
+
+## The speed of a pull request
+
+The times of the continuous integration cannot be compared from one run to the
+next (GAOL v5). The runners are virtual machines shared with other jobs, whose
+speed changes by several times between two runs of the same code: `x * y` with
+Visual C++ x64 took 7.9 ns and then 16.3, and `sqrt` with MSYS2 and GCC 16
+6.8 ns and then 170. The step "Performance" of the jobs of `linux.yml`,
+`macos.yml`, `windows.yml`, `containers.yml` and `build-systems.yml` prints the
+table of `gaol_performance` in their summary (and never fails a job): it tells
+what a platform costs at that moment, and nothing else. Showing the best of
+several passes would not help: a pull request is to be compared with its base,
+which is not measured at the same moment.
+
+`performance.yml` measures two builds in turn, in the same job, so that what the
+runner does between two moments reaches both. It runs for a pull request that
+changes what is measured, not for one that changes the documentation: `gaol/`,
+`3rd/` (CORE-MATH), `tests/performance.cpp`, the files of the benchmark
+`doc/compare/code/bench*` and `doc/compare/code/run_perf.sh`, the files
+`CMakeLists.txt` and `cmake/`, and the scripts and the workflow themselves. A
+job:
+
+1. checks out the merge commit of the pull request and its first parent, which
+   is the base it is merged into: the difference between the two is the pull
+   request alone, whatever the base branch has gained since the pull request
+   was started;
+2. configures both with CMake in Release and builds `gaol_performance` alone,
+   with the options of the job; the programs of the base are kept from one run
+   to the next (`actions/cache`, keyed by the job, the image of the runner and
+   the commit of the base, `--before-cache` of `performance-ab.sh`), so that
+   the next push of the same pull request builds only the pull request (GAOL
+   v5). What is kept is the programs, not the times, which are measured in
+   turn in every run; the image of the runner, the model of the processor and
+   whether it has the AVX-512 instructions (processors of one model do not all
+   have them) are in the key so that the two builds come from the same tools
+   and the same choices (the AVX-512 path and the fused multiply-add
+   instructions are taken where the machine building runs them, and a program
+   built on a runner with AVX-512 stops on one that has none); a key has no
+   comma, which the names of
+   the jobs have, so they are written with underscores in it;
+3. runs `gaol_performance` three times with each build, the base first in the
+   first and third runs and the pull request first in the second
+   (`.github/scripts/performance-ab.sh`);
+4. writes in the summary of the job the table of the median of each row for the
+   base and for the pull request, their ratio (base over pull request: above 1,
+   the pull request is faster) and the spread of the runs, the largest ratio of
+   the slowest run to the fastest of either build
+   (`.github/scripts/compare-performance.py`).
+
+The jobs are Ubuntu 24.04 x86_64 with GCC, with Clang, with GCC and the
+rounding direction preserved, and with GCC and with Clang and the FPU
+intervals; Ubuntu 24.04 arm64 with GCC and with Clang (the
+NEON intervals) and with GCC and the FPU intervals (the kernels of #157); macOS
+26 arm64 (the NEON intervals) and macOS 15 x86_64; Visual Studio 2026 x64, x86,
+arm64, and x64 with the rounding direction preserved (with the AVX-512 path
+left out too, which measures the macros that write MXCSR alone), and with
+clang-cl for x64, x86 and arm64; MSYS2 UCRT64 (GCC) and CLANG64 (Clang);
+and Debian 13
+containers for i386 and armhf, `gaol_performance` alone and no cache there (the
+image of Debian changes under the job). The other platforms (POWER, s390x,
+RISC-V, MinGW-w64 of Chocolatey, the 32-bit Windows of MSYS2) are not compared,
+nor are the autotools and meson builds: the three builds give the same flags,
+which `.github/audit` checks.
+
+The table never fails a job because of a time. Only a large difference, on rows
+that share their code, means something on a shared runner (the same code has
+given a ratio of up to 1.17), and a ratio within the spread of the runs is
+noise: under the table, the rows whose ratio is 1.5 or more, or 2/3 or less, and
+beyond the spread of the runs (for a spread of 3, a ratio of 0.5 is not listed,
+one of 0.25 is) are listed, or none is; a row of two times of 0 has no ratio,
+and a run of 0 makes the spread infinite. A job fails when a build or a program
+does, and when the tables cannot be compared: an output with no row, or no row
+common to the base and the pull request (the format of the output of
+`gaol_performance` changed), which `compare-performance.py` says and fails on.
+The comparison has its test, which needs Python alone and runs first in each
+job, before the builds (`.github/scripts/test-performance-tools.py`): tables
+made for the purpose, with rows on one side only, a `|` in a name, one run,
+times of 0, empty outputs and the spread, and `processor_name()` of
+`doc/compare/code/run_perf.sh` with other `/proc/cpuinfo` (not on Windows). It
+fails if the median is replaced by the mean or the threshold is inverted.
+
+On Linux, macOS and with Visual Studio the job also runs the ten long lines of
+`doc/compare/code/run_lines.sh` with `gaol_bench`, the program of the benchmark
+(the CMake target `gaol_bench`, which `make perf` builds too): 200 000 intervals
+drawn by `bench.py` (Python 3 with numpy, which the script installs with pip
+where it is missing), 3 repeats of each line, 3 runs of each build, and a second
+table under the first. Both builds are tried: the lines are left out, with a
+warning of the job, where one of them has no `gaol_bench` that builds (on macOS
+and Windows, a base older than the target: the head is built all the same, so
+that Visual C++ compiles `gaol_bench` from the first pull request) or numpy
+cannot be installed, and that table is a notice, not an error, where it cannot
+be made. `make perf` runs the same ten lines (see
+[doc/compare/code/README.md](compare/code/README.md)).
+
+The configuration `control-register-performance` of `containers.yml` (Debian 13 armhf and
+arm64) uses the same scripts to compare two builds of one tree that differ by a
+CMake option, both with `GAOL_PRESERVE_ROUNDING`, and only the rows that the
+register can change. On armhf the option is `GAOL_RND_FPSCR_DIRECT`: FPSCR
+written directly (`vmrs`, `vmsr`), or the functions of the C library. On arm64
+it is `GAOL_SIMD`: the NEON intervals, which write FPCR directly (`mrs`, `msr`),
+or the FPU intervals (`-DGAOL_SIMD=OFF`), which use the functions of the C
+library, so that the table compares the two kinds of intervals as much as the
+two ways of writing the register.
+
+The same comparison runs anywhere with CMake, a C++ compiler and, for the long
+lines, Python 3 with numpy:
+
+```sh
+sh .github/scripts/performance-ab.sh --before-src ../base --after-src . --lines
+python3 .github/scripts/compare-performance.py base perf-before-1.md perf-before-2.md perf-before-3.md \
+  -- PR perf-after-1.md perf-after-2.md perf-after-3.md
+python3 .github/scripts/compare-performance.py base perf-lines-before-1.csv perf-lines-before-2.csv perf-lines-before-3.csv \
+  -- PR perf-lines-after-1.csv perf-lines-after-2.csv perf-lines-after-3.csv
+```
+
+(`--options` and `--before-options` give CMake options to both builds or to the
+base alone; the script describes them all.)
 
 ## Configurations refused or left out, and why
 
-Each of these was built by the continuous integration at first, or asked for,
-and gave wrong bounds, crashed, or was far slower than the others. The builds
-now refuse the compilers among them (see
+The configurations GAOL v5 refuses, and those the continuous integration
+leaves out. The builds refuse the compilers among them when configuring, or
+`gaol/gaol_config.h` when compiling (see
 [Compilers and options refused](three-builds.md#compilers-and-options-refused)),
-and the workflows check the refusal where they built before.
+and the last column says which job checks the refusal. What a configuration
+gives with GAOL v5 was measured on 21 September 2026, building it past its
+refusal.
 
-| Configuration | Problem | Now |
+| Configuration | Why | What GAOL v5 does |
 |---|---|---|
-| Clang for 32-bit ARM processors (Debian armhf) | **Wrong bounds.** Clang does not honour the rounding direction there: built by Clang 21, 4556 of 16000 random products, squares and cubes did not enclose their exact values. | Refused by the three builds; a job checks that CMake refuses it (`containers.yml`). GCC builds the armhf jobs. |
-| Clang 14 on 64-bit ARM (Ubuntu 22.04 arm64) | **Wrong bounds.** It says of `-frounding-math` "overriding currently unsupported rounding mode on this target", and bounds of `pow()` and `nth_root()` did not enclose the exact values. Clang 18 honours the rounding direction there. | Refused; a job checks the refusal (`linux.yml`). Ubuntu 22.04 arm64 is built with GCC only, Ubuntu 24.04 and 26.04 arm64 with Clang too. |
-| MinGW-w64 GCC 11.2, 12.2 and 13.2 (mingw-w64 before version 12), x86 and x64 | **Wrong bounds.** Their math library gave `acosh()` near 1 up to 25 million doubles from the exact value, and `asinh()` of large negative numbers NaN, which no number of doubles moved outward repairs ([issue #1](https://github.com/Jordan08/GAOL/issues/1); an inverted interval of the other solution, not explained, is [issue #11](https://github.com/Jordan08/GAOL/issues/11)). | Refused by the three builds; eight jobs check that CMake refuses 11.2 to 14.2, and two that configure and meson refuse 13.2 and 14.2. |
-| MinGW-w64 GCC 14.2 (mingw-w64 12) | **Speed.** The bounds were right, but its `fesetround()` runs the instruction `cpuid` at each call, which exits to the hypervisor in a virtual machine: 3.5 µs per call against 0.13 µs with mingw-w64 13, and `exp()`, `log()`, `sin()` and `cos()` of an interval took 10.6 to 13.8 µs rather than 0.5 to 0.7. | Refused, as above. MinGW-w64 is built with GCC 15.2 (mingw-w64 13) only, and with MSYS2. |
-| Visual C++ without `/fp:strict` | **Crash, and bounds not certified.** Built with `/fp:strict` for GAOL and without it for the tests, `rounding_direction` and `other_functions` crashed with Visual Studio 2022 (a constant computed at compile time in read-only memory, which GAOL wrote); without it everywhere the tests passed, but Visual C++ then assumes rounding to nearest. | Refused by `gaol/gaol_config.h`; each Visual Studio job checks it (`tests/fp_strict`). |
-| The SSE2 intervals on 32-bit Windows | **Crash.** A `std::vector` of SSE2 intervals crashed on its first `movaps` in `rounding_direction` with MinGW-w64 15.2 for x86: GCC takes the memory of `new` to be aligned on 16 bytes, which the C runtime aligns on 8. | The FPU intervals are compiled there, in the three builds, as with Visual C++, for which IBEX and the fork of Fabrice Le Bars build GAOL without them. On 64-bit Windows (MinGW-w64, MSYS2) the SSE2 intervals pass the tests. |
-| Doubles computed on the x87 unit of 32-bit x86 | **Wrong bounds.** In extended precision, `exp`, `sin` and `cos` missed the exact value for most arguments. | The i386 jobs compile with `-msse2 -mfpmath=sse`, which the builds give; `gaol/gaol_config.h` refuses the x87 unit. |
-| An installed mathlib compiled with fused multiply-adds | **Wrong bounds.** On 64-bit ARM, where GCC contracts by default, mathlib's cosine of 2^52 − 1 was −0.4855 rather than 0.4733. | Refused by the three builds, which run a program linked with it. |
-| Debian 11 Bullseye (amd64, arm64, armhf) | **Could not be installed.** Out of support since August 2026: its security repository lists packages that can no longer be downloaded (`libc-dev-bin 2.31-13+deb11u14`...), so that `g++` cannot be installed in the container. | Left out. Debian 12 and 13 are built. |
-| mathlib downloaded by each job | **Every job failed.** The CMake build downloaded `mathlib-2.1.1.tar.gz` from Frédéric Goualard's site in each new build directory, and `scripts/install-mathlib.sh` for configure and meson: on 17 September 2026 the site stopped answering, and all the jobs of the five workflows failed on a connection timed out, after 15 minutes each. | mathlib is in the sources (`3rd/mathlib`), and no job downloads anything but its tools. |
-| The intervals of floats (`gaol::intervalf`, `gaol::interval2f`) | **Unfinished.** `sqrt(intervalf)` returns its argument and `interval2f::inverse()` aborts; neither IBEX nor Codac uses them. | Off by default in the three builds (`GAOL_FLOAT_INTERVALS`); the audit compares the option between them. |
+| Clang for 32-bit ARM processors (Debian armhf) | **Wrong bounds.** Clang does not honour the rounding direction there. Built by Clang 19 (Debian 13) and Clang 21 (Debian sid), GAOL v5 fails `arithmetic`, `elementary`, `reverse`, `other_functions` and `rounding_direction`: bounds of `atan2()`, `sin()`, `cos()`, `pow()`, `nth_root()` and `div_rel()` do not enclose the exact values, and the products are not the tightest ones in any rounding direction. | Refused by the three builds and by `gaol/gaol_config.h`; a job checks that CMake, configure and meson refuse it, for the C compiler alone as for the C++ compiler alone (`containers.yml`). GCC builds the armhf jobs. |
+| Clang 14 on 64-bit ARM (Ubuntu 22.04 arm64, and Clang 14 on Ubuntu 24.04 arm64), and any compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target" | **Wrong bounds.** Clang 14 does not honour the rounding direction on 64-bit ARM, and says so. Built by it, GAOL v5 fails `arithmetic`, `elementary`, `reverse` and `other_functions` in Release, bounds of `nth_root()`, `pow()`, `atan2()`, `cos()`, `div_rel()` and `mid()` not enclosing the exact values, and `elementary` in Debug, a bound of `atan2()`. Clang 18 honours the rounding direction there. | Refused by the three builds; a job checks it for the C compiler alone, the C++ compiler alone and both (`linux.yml`). Ubuntu 22.04 arm64 is built with GCC only, Ubuntu 24.04 and 26.04 arm64 with Clang too. |
+| MinGW-w64 whose `fma()` or `round()` is wrong: on x64, GCC 11 to 13 of Chocolatey (mingw-w64 before 12) and the mingw-w64 linked with `msvcrt.dll` rather than the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on 32-bit x86, GCC 11 of WinLibs (mingw-w64 9), and, without `-mfma`, mingw-w64 12 or later linked with `msvcrt.dll` (MSYS2 MINGW32); on ARM, as on x64, mingw-w64 before 12 or linked with `msvcrt.dll` (the refusal is not tested there; MSYS2 CLANGARM64, which links the UCRT, is built and tested) | **Wrong bounds.** On x64, the `fma()` and `round()` are those of mingw-w64's own math library, computed in doubles. That `fma()` adds the products of the halves of its arguments with four roundings: it is not correctly rounded (10.7 % of the error-free products `fma(a, b, -a*b)` and 25 to 73 % of other triples wrong, depending on the rounding direction), and CORE-MATH computes with it wherever the compiler has no `-mfma` (`GAOL_FMA` off; GCC for Windows on x86-64 and on 32-bit x86 takes `-mfma` by default, and these toolchains stay refused, their `round()` being wrong too). That `round()` depends on the rounding direction: `round(0x1.fffffffffffffp-2)` is 1 except rounding upward. On 32-bit x86 the same `fma()` computes on the x87 unit, and the one of the mingw-w64 9 of WinLibs, compiled without optimization, rounds each of its partial sums to a double; linked with `msvcrt.dll`, that of mingw-w64 12 or later is refused where the build has no `-mfma`, as on x64. GAOL v5 fails `elementary`, `reverse` and `core_math` there: bounds of `tan()`, `asin()`, `atan()`, `sinh()`, `cosh()`, `atanh()` and `atan2()` of small arguments do not enclose the exact values (the continuous integration, and mingw-w64 11 and the objects of MSYS2 MINGW64 under wine). From mingw-w64 12 on, a toolchain linking the UCRT takes the `fma()` and `round()` of `ucrtbase.dll`. | Refused by `gaol/gaol_config.h`; seven jobs check the refusal, three of them MSYS2: MINGW64 with GCC and Clang, and MINGW32 with `GAOL_FMA=OFF` (`windows.yml`). MinGW-w64 GCC 14 and 15 on x64, GCC 12 to 15 on 32-bit x86 (13 also with `GAOL_FMA=OFF`, the `fma()` of mingw-w64 11, which keeps its partial sums in extended precision and passes the tests, though not correctly rounded), and MSYS2 UCRT64 and CLANG64 are built and tested; `tests/core_math.cpp` checks `fma()` and `round()` first. |
+| Visual C++, and clang-cl from Clang 16, without `/fp:strict` (`/fp:precise`, their default) | **Bounds not certified.** They then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, while GAOL computes with the rounding direction set upward. | Refused by `gaol/gaol_config.h`; `gaol::gaol` gives `/fp:strict` to the code linking it, and each Visual Studio job checks the refusal (`tests/fp_strict`), those of clang-cl included (GAOL v5). |
+| The SSE2 intervals on 32-bit Windows, compiled without aligned `new` | **Crash.** GCC takes the memory of `new` to be aligned on 16 bytes, which the C runtime of 32-bit Windows aligns on 8, and a `std::vector` of SSE2 intervals crashes on its first `movaps`: with MinGW-w64 14.2 and 15.2 for x86, in Release and in Debug, `arithmetic`, `other_functions`, `reverse` and `rounding_direction` crash. With `-faligned-new=8` the tests pass, but the code using GAOL needs that flag too. Visual C++ and clang-cl have no such flag: `/Zc:alignedNew` does nothing in C++14 with `cl` (the warning C4316 stays, and `std::allocator` calls `operator new(size_t)`), and with clang-cl it makes the STL fail to compile (`align_val_t` is not an enumeration there); only `/std:c++17` turns the aligned `new` on (Compiler Explorer, MSVC 19.51 and clang-cl 22 for x86). | CMake, configure and meson take the SSE2 intervals on 32-bit Windows with GCC and Clang (MinGW-w64, MSYS2), with `-faligned-new=8` given to the library and to the code using it (`gaol::gaol`, `gaol.pc`, `gaol_dep`); `gaol/gaol_config.h` refuses them compiled without (the tests `refused_aligned_new*` check it). Visual C++ and clang-cl take them with their two bounds kept as two doubles of alignment 8 (`GAOL_SSE2_UNALIGNED_STORAGE`), which need no aligned memory: `test_intervals_aligned_on_8_bytes` of `tests/misc.cpp` runs a representative set of operations on intervals at an address of 8 modulo 16, and stops the program with an aligned load. A compiler that does not take the flag keeps the FPU intervals. On 64-bit Windows (MinGW-w64, MSYS2, Visual C++, clang-cl) the SSE2 intervals are compiled and pass the tests. |
+| The NEON intervals on 32-bit ARM | **Not offered.** The NEON intervals need the vectors of two doubles of 64-bit ARM, which the NEON of 32-bit ARM does not have, and write the rounding direction into FPCR with `mrs` and `msr` in the inline assembly of GCC and Clang, or through `_ReadStatusReg()` and `_WriteStatusReg()` with Visual C++ (`gaol/gaol_config.h`). | `GAOL_ARM64`, `--enable-arm64` and `-Denable-arm64` are ignored there, and the FPU computes the intervals, as before; `gaol/gaol_config.h` stops the compilation of NEON intervals elsewhere (GAOL v5). The Visual Studio jobs check that Visual C++ and clang-cl take the NEON intervals on arm64, and those of MSYS2 CLANGARM64 too (`windows.yml`), and the armhf jobs the FPU ones (`containers.yml`). |
+| Cygwin without the fused multiply-add instructions (`GAOL_FMA=OFF`, or a processor without them) | **Bounds not certified.** The `fma()` of the C library of Cygwin is not correctly rounded: `fma(1 + 2^-30, 1 - 2^-30, -1)` gives 0 instead of -2^-60, and `std::fma` is a call of it without optimization. CORE-MATH computes with `fma()`. GAOL v5 has the instruction instead (`-mfma`, `__builtin_fma`), which every level of optimization keeps. | Refused by `gaol/gaol_config.h`; the Cygwin job of `windows.yml` checks the refusal, and builds and tests Cygwin with `-mfma` (GCC 14.4, Release, the tests passing but three skipped). |
+| Doubles computed on the x87 unit of 32-bit x86 | **Wrong results rounded to nearest, and wrong bounds.** The x87 unit computes with 64-bit significands and 15-bit exponents, and CORE-MATH assumes every operation on doubles rounded to a double (`FLT_EVAL_METHOD` 0, see `3rd/math-core/README.md`). With GCC 12 on Debian 12 i386, CORE-MATH rounded to nearest gives the other neighbour of the exact value at 175 of the arguments compared with SSE2, its results being rounded twice: `exp(-0x1.74910d52d3051p+9)` is 0 rather than 2^-1074, `tanh(0x1.30fc1931f09c9p+4)` 1 rather than 1 − 2^-53. With GCC 9 on x86-64 (`-mfpmath=387`), which turns into doubles at compile time, rounded to nearest, the constants CORE-MATH rounds in the direction in effect (`0x1p-1074 * 0.5`, `-1.0 + 0x1p-54`), GAOL's bounds of `exp2(-1075)`, `exp10(-400)`, `expm1(-800)` and of `atan2()` of a tiny and a huge number do not enclose the exact values. | Refused by `gaol/gaol_config.h`; the builds compile with `-msse2 -mfpmath=sse` on 32-bit x86. `tests/extended_precision.cpp` checks these arguments, CORE-MATH in the four rounding directions and GAOL's bounds, and fails on the x87 unit. |
+| Debian 11 Bullseye (amd64, arm64, armhf) | **Cannot be installed.** Out of support since August 2026: deb.debian.org lists packages of its security repository that it no longer serves (`libc-dev-bin 2.31-13+deb11u14`...), so that `g++` cannot be installed in the container; without that repository the packages are broken, and archive.debian.org does not have it yet. GAOL v5 itself builds and passes its tests there, with GCC 10.2 and CMake 3.18.4 installed from snapshot.debian.org. | Left out of the continuous integration. Debian 12 and 13 are built. |
+| The intervals of floats (`gaol::intervalf`, `gaol::interval2f`) | **Unfinished.** `sqrt(intervalf)` returns its argument and `interval2f::inverse()` aborts; neither IBEX nor Codac uses them. | Compiled by none of the three builds, which have no option for them: only a developer of GAOL defines `GAOL_FLOAT_INTERVALS` (`gaol/gaol_config.h`). The audit still compares it between the builds, none of which defines it. |
 
 ## What these platforms showed
 
 What building and testing GAOL on these platforms showed, while the workflows
-were written and since their first run on 13 September 2026, and what was
+were written and since their first run in September 2026, and what was
 changed in GAOL for it; [What differs from GAOL](differences.md) gives each
 change with its measures.
 
@@ -104,22 +535,27 @@ change with its measures.
     made `x * y` take 18.3 ns rather than 4.9 on x86-64: it is given only
     where doubles are still computed on the x87 unit.
 - **Crashes and builds that failed.**
-  - `libgaol.dylib` of the autotools build on macOS was linked without
-    mathlib, and a program linking it crashed at its first elementary
-    function.
   - configure and meson did not install the headers for MinGW and Visual
     C++, and meson did not compile on Linux (`GETRUSAGE_IN_HEADER`).
   - The agreement jobs passed while a build had not configured in the
     containers, a pipe hiding the failure: they now fail, and print the
     logs.
+  - `configure --enable-debug` did not compile: with `GAOL_DEBUGGING`,
+    `gaol/parser/gaol_expression.h` wrote on `std::cout` without `<iostream>`. The
+    Debug jobs of CMake, which now define `GAOL_DEBUGGING` too, and the test
+    `debugging` compile that code.
+  - `minimum()` and `maximum()` of two zeros of different signs gave +0 and
+    -0 with Visual C++ in Release, rather than -0 and +0, which the unit
+    test of GAOL 4 `float_functions` checks, built with Visual C++ since the
+    tests of `check/` are in `tests/`.
+  - A shared `libgaol` (configure, meson) did not export the classes and
+    functions of the expressions (`gaol/parser/gaol_expression.h`), and a program
+    building one did not link with it. The shared library jobs of CMake,
+    autotools and meson, whose tests link with `libgaol.so`, build
+    `tests/expressions.cpp`; `tests.sh`, which links them with the installed
+    one, does not any more, the headers of the expressions being no longer
+    installed (GAOL v5).
 - **Reports of the sanitizers that were suppressed at first**, and are fixed
   now: the nodes the parser did not free (`lsan.supp`,
-  [issue #4](https://github.com/Jordan08/GAOL/issues/4)), and the shift of
-  an `int` into its sign bit in mathlib's `halfulp()` (`ubsan.supp`,
-  [issue #5](https://github.com/Jordan08/GAOL/issues/5)). Nothing is
+  [issue #4](https://github.com/Jordan08/GAOL/issues/4)). Nothing is
   suppressed any more.
-- **Tried and not taken.** Setting the precision of the x87 unit to 53 bits
-  in mathlib's `Init_Lib()` on 32-bit Windows, as the fork of mathlib by
-  Fabrice Le Bars does, was measured by a workflow of its own with Visual
-  C++ 2022 and 2026, in x86 and x64: it changed neither the bounds nor the
-  time of an operation.

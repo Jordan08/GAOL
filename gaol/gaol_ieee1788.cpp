@@ -1,0 +1,102 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-10-16)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
+/*!
+  \file   gaol_ieee1788.cpp
+  \brief  The definitions of the namespace gaol_ieee1788: textToInterval and
+          intervalToText
+
+  \author NININ Jordan
+  \date   2026-10-16
+*/
+
+#include <stdexcept>
+#include <string>
+
+#include "gaol/gaol_config.h"
+#include "gaol/gaol_common.h"
+#include "gaol/gaol_ieee1788.h"
+#include "gaol/parser/gaol_parser.h"
+
+namespace gaol_ieee1788 {
+
+  /*
+    textToInterval(s) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 12.12.7), in
+    the library rather than inline in its header, for the reading of the
+    whole of s, NUL characters included (GAOL v5): the empty set for a string
+    that is no literal, as for one that the reader refuses with an exception of
+    GAOL, std::invalid_argument or std::domain_error (the exceptions of the
+    standard library that GAOL_ERROR throws, gaol/gaol_common.h). The other
+    exceptions go through, std::bad_alloc among them: the reader threw it where
+    memory ran out, and textToInterval() turned it into the empty set, the
+    interval of no literal, catching every std::exception. The handlers name
+    the two classes, then, not std::exception, nor std::logic_error, which
+    std::length_error and the other logic errors of the library derive from:
+    the reader of GAOL throws these two only.
+  */
+  interval textToInterval(const std::string& s)
+  {
+#if GAOL_EXCEPTIONS_ENABLED
+    try {
+      interval x;
+      return ::gaol_core::gaol_parse_string(s.data(), s.size(), x, ::gaol_core::parsing_names::ieee1788) ? x : interval::emptyset();
+    } catch (const std::invalid_argument&) {
+      return interval::emptyset();
+    } catch (const std::domain_error&) {
+      return interval::emptyset();
+    }
+#else
+    // An error of the reader fails the reading, as a syntax error does
+    interval x;
+    return ::gaol_core::gaol_parse_string(s.data(), s.size(), x, ::gaol_core::parsing_names::ieee1788) ? x : interval::emptyset();
+#endif
+  }
+
+  /*
+    textToInterval(s) of a C string (GAOL v5): a null
+    pointer is no string, so no literal, and the standard gives no answer for
+    it. It is an error of GAOL, as for gaol::textToInterval(): std::invalid_argument
+    is thrown, or, without exceptions, a message is printed and abort() called.
+    It is not the empty set that a string which is no literal gives: the
+    overload of std::string would build a std::string from the null pointer,
+    which the standard leaves undefined (libstdc++ throws std::logic_error).
+  */
+  interval textToInterval(const char* s)
+  {
+    if (s == nullptr) {
+      GAOL_ERRNO = -1;
+      GAOL_ERROR(std::invalid_argument, "Null pointer in interval initialization: a null pointer is no string");
+    }
+    return textToInterval(std::string(s));
+  }
+
+  /*
+    intervalToText(x) of IEEE 1788-2015 (gaol/gaol_ieee1788.h, 13.3): the
+    bounds of x rounded outward, [l, r], [a] for a point interval whose double
+    the digits write exactly, as [4], or [empty], with the C locale, the flags
+    a stream starts with and the digits of interval::precision() (16 unless
+    the program sets another), so that the text is a portable literal
+    (12.11.5) whatever the global output format, the flags of a stream and the
+    locale of the program (GAOL v5). It is the text operator<< writes in the
+    bounds format under these settings. GAOL wrote what operator<< writes: the
+    width format "1.5 (+/- 0.5)", the agreeing digits, a decimal comma under
+    the locale of a program that sets one, and <4, 4> for the point interval
+    4, none of them a literal, and the text changed with the format another
+    thread was setting.
+    The writing itself is ::gaol_core::literal_text() (gaol/parser/gaol_parser.h),
+    in gaol/core/gaol_interval_io.cpp, which holds the writers of intervals.
+  */
+  std::string intervalToText(const interval& x)
+  {
+    return ::gaol_core::literal_text(x);
+  }
+
+} // namespace gaol_ieee1788

@@ -1,36 +1,75 @@
-#-*-Makefile-*-----------------------------------------------------------------
-#  gaol -- Just Another Interval Library
-#------------------------------------------------------------------------------
-# This file is part of the gaol distribution. Gaol was primarily 
-# developed at the Swiss Federal Institute of Technology, Lausanne, 
-# Switzerland, and is now developed at the Institut de Recherche 
-# en Informatique de Nantes, France.
+# Note: To be used with GNU Make
+# If this file has the name "Makefile.in" then it is a template for a
+# Makefile; to generate the actual Makefile, run "./configure" from the base
+# directory of gaol.
 #
 # Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
 # Copyright (c) 2002 Institut de Recherche en Informatique de Nantes, France
-#------------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
-# COPYING file for information.
-#------------------------------------------------------------------------------
-# Note: To be used with GNU Make                                              
-# If this file has the name "Makefile.in" then it is a template for a         
-# Makefile; to generate the actual Makefile, run "./configure" from the base  
-# directory of gaol.                                                          
-#------------------------------------------------------------------------------
-# SVN: $Id$
-#------------------------------------------------------------------------------
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Frederic Goualard, Jordan NININ
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
-# GAOL's own directories before those configure adds to CPPFLAGS
-# (--with-mathlib-include), which come first otherwise: a prefix holding
-# mathlib may hold an installed GAOL too, whose headers were then included
-# rather than those of the sources
+# The examples of GAOL v5 (see examples.md), as examples/CMakeLists.txt builds
+# them: ./configure --with-examples builds them with GAOL (make), and make
+# check runs them, each checking what it prints (see ../Makefile.am). In C++17,
+# with the threads of 13_rounding_environment (PTHREAD_FLAGS) (GAOL v5).
+
+# GAOL's own directories before those given in CPPFLAGS, which come first
+# otherwise: a prefix given there may hold an installed GAOL too, whose headers
+# were then included rather than those of the sources
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+AM_CXXFLAGS = -std=c++17 $(PTHREAD_FLAGS)
+AM_LDFLAGS = $(PTHREAD_FLAGS)
+AM_DEFAULT_SOURCE_EXT = .cpp
 
 # The library just built, by its libtool archive, rather than -lgaol with
-# -L../gaol/.libs, which came after the -L of --with-mathlib-lib: a prefix
-# holding mathlib may hold an installed GAOL too, which was then linked
-LDADD = -lm $(top_builddir)/gaol/libgaol.la @MATHLIB@
+# -L../gaol/.libs, which came after the -L given in LDFLAGS: a prefix given
+# there may hold an installed GAOL too, which was then linked. With the link
+# option gaol.pc gives (-mno-daz-ftz, where the compiler takes it), as the
+# examples of CMake and meson get it from gaol::gaol and gaol_dep (GAOL v5)
+LDADD = $(top_builddir)/gaol/libgaol.la $(GAOL_PC_LIBS)
 
-noinst_PROGRAMS = Goldstein_Price
+# The same list as examples/CMakeLists.txt
+GAOL_EXAMPLES = 01_first_steps 02_decimals_and_rump 03_dependency_problem \
+	04_centered_form 05_interval_newton 06_global_optimization 07_contractors \
+	08_sivia 09_parameter_estimation 10_krawczyk 11_ode_enclosure \
+	12_affine_arithmetic 13_rounding_environment 14_generic_programming \
+	15_text_and_ieee1788 16_Goldstein_Price
 
-Goldstein_Price_SOURCES = Goldstein_Price.cpp
+# 300 seconds for each example, as meson gives them, where configure found
+# timeout(1); make check GAOL_TEST_TIMEOUT=900 gives a slower build more time
+# (GAOL v5)
+GAOL_TEST_TIMEOUT = 300
+if GAOL_HAVE_TIMEOUT
+LOG_COMPILER = $(GAOL_TIMEOUT) $(GAOL_TEST_TIMEOUT)
+endif
+
+if WITH_EXAMPLES
+noinst_PROGRAMS = $(GAOL_EXAMPLES)
+TESTS = $(GAOL_EXAMPLES)
+endif
+
+# make distclean removes the files of the dependencies one by one and leaves
+# their directories: removed here, so that it gives the sources back as git has
+# them (GAOL v5)
+distclean-local:
+	-rm -rf ./$(DEPDIR)
+
+# The archive of the sources, make dist (GAOL v5): automake takes the sources,
+# the headers and the scripts it knows from the variables of the Makefile.am,
+# and EXTRA_DIST names the other files of the repository, here the headers of the examples, their builds of CMake and meson, and their documents.
+# make dist, package_source of CMake and meson dist hold the same files, those
+# of the repository but the notes of the work on GAOL v5 of the branch dev: a
+# file added to the repository is added to this list too, or the job Archives
+# of the sources of the CI, which compares the three archives, fails
+EXTRA_DIST = \
+	CMakeLists.txt \
+	affine.h \
+	box.h \
+	dual.h \
+	examples.md \
+	meson.build \
+	tutorial.md

@@ -1,5 +1,13 @@
 // The benchmark with the intervals of libieeep1788, set-based flavor on
 // doubles, computed with MPFR (see bench_ops.h)
+//
+// Copyright (c) 2026 ENSTA, France
+//
+// By: Jordan NININ (created 2026-09-20)
+//
+// GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+// COPYING.LIB file for information.
+
 #include <p1788/p1788.hpp>
 #include "bench_ops.h"
 

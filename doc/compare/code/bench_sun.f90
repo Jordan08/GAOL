@@ -3,6 +3,14 @@
 !   library,operation,n,repeats,best time (s),time per operation (ns),
 !   sum of the midpoints of the results,sum of their widths
 ! Usage: bench_sun DATA REPEATS [OPERATIONS]
+!
+! Copyright (c) 2026 ENSTA, France
+!
+! By: Jordan NININ (created 2026-09-20)
+!
+! GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+! COPYING.LIB file for information.
+
 module bench_tools
   use iso_c_binding
   implicit none

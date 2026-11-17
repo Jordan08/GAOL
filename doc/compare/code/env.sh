@@ -3,14 +3,25 @@
 # WORK      where the dependencies are downloaded and built, and where the
 #           programs and their outputs go (default: doc/compare/code/work,
 #           ignored by git)
-# PREFIX    where GMP, MPFR, libieeep1788 and GAOL are installed
+# PREFIX    where GMP, MPFR, libieeep1788, GAOL and the headers of
+#           Boost.Interval are installed
 # FILIB_DIR an installed filib++ (include/interval/interval.hpp and
 #           lib/libprim.a); setup.sh builds one under PREFIX otherwise, and
 #           remembers the one it was given in WORK/filib-dir
 # CXX       the C++ compiler for GAOL, libieeep1788 and filib++ (default: g++)
 # F90       Solaris Studio's Fortran compiler (default: f90)
 # JOBS      parallel jobs of the builds
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
+# shellcheck shell=bash
+# The variables are read by the scripts that source this one
+# shellcheck disable=SC2034
 CODE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$CODE_DIR/../../.." && pwd)"
 WORK="${WORK:-$CODE_DIR/work}"
@@ -39,6 +50,31 @@ PROFIL_URL=https://www.tuhh.de/ti3/keil/profil/Profil-$PROFIL_VERSION.tgz
 PROFIL_SHA256=1706e684166360d60f33b4c9301cfe48a6153fc0c624f2087efa9bc94aa07c20
 PROFIL_TGZ="${PROFIL_TGZ:-}"
 PROFIL_DIR="$PREFIX/profil"
+# The last GAOL of Frédéric Goualard, which came after the 4.2.2 that GAOL v5
+# continues: the master
+# branch of his repository (4.2.3, 9 December 2025), with mathlib, the
+# mathematical library his README gives, from his site
+GAOL_GOUALARD_REPO=https://github.com/goualard-f/GAOL
+GAOL_GOUALARD_COMMIT=cd0ee1a75febab97a7f6c18a03e31780a2717f2c
+GAOL_GOUALARD_VERSION=4.2.3
+GAOL_GOUALARD_PREFIX="$PREFIX/gaol-goualard"
+# GAOL of this repository again, built with GAOL_PRESERVE_ROUNDING=ON, in a
+# prefix of its own: the column "GAOL V5.0.0, rounding direction preserved" of
+# the benchmark (setup.sh)
+GAOL_PRESERVE_PREFIX="$PREFIX/gaol-preserve"
+MATHLIB_VERSION=2.1.1
+MATHLIB_URL=https://frederic.goualard.net/software/mathlib-$MATHLIB_VERSION.tar.gz
+MATHLIB_SHA256=f299848aa3e57ebb6248cd3cf54ecc7661a945aeac9e420e71db194965f87281
+# Boost.Interval, of the Boost release BOOST_VERSION (August 2026): header-only,
+# its headers include those of two other modules of Boost, Config and Detail
+# (boost/detail/fenv.hpp), and nothing else; the archives of the three modules
+# at the tag of the release, from GitHub, give them, without the rest of Boost
+BOOST_VERSION=1.92.0
+BOOST_MODULES="interval config detail"
+BOOST_SHA256_interval=8cca133571b9fadb2d9c2e5ae11050ad2be7596851d7569bf32629c193ebbe6b
+BOOST_SHA256_config=b4171037f13373203ba79cbc141d612982052283e696a315185ab5bea46102a0
+BOOST_SHA256_detail=ef9f6184eaad274c1f7e616c3e2b7d9e9b4c12c4b10b67d6d4434fd431c994bc
+BOOST_DIR="$PREFIX/boost"
 
 # The flags of interval arithmetic for GCC (see doc/using.md), and those of
 # the benchmarks. Solaris Studio needs -xia for its interval type.
@@ -48,6 +84,10 @@ CXXFLAGS_BENCH="${CXXFLAGS_BENCH:--O3 -DNDEBUG}"
 # setup.sh builds and to every program, as GAOL takes them by default
 # (GAOL_FMA): FMA_FLAGS= (empty) for a processor without them
 FMA_FLAGS="${FMA_FLAGS--mfma}"
+# SSE2 and SSE3 for Goualard's GAOL, whose headers choose their intervals by them
+# (SSE_FLAGS= (empty) on a 64-bit ARM processor, whose compilers refuse them:
+# run_lines_arm64.sh)
+SSE_FLAGS="${SSE_FLAGS--msse2 -msse3}"
 F90FLAGS_BENCH="${F90FLAGS_BENCH:--O3 -xia}"
 F90FLAGS_CASES="${F90FLAGS_CASES:--O3 -xia}"
 
@@ -57,6 +97,12 @@ export LD_LIBRARY_PATH="$PREFIX/lib:${LD_LIBRARY_PATH:-}"
 # Compiler flags of GAOL, as installed (gaol.pc), of libieeep1788 and of filib++
 gaol_cflags() { pkg-config --cflags gaol; }
 gaol_libs() { pkg-config --libs gaol; }
+gaol_preserve_cflags() { PKG_CONFIG_PATH="$GAOL_PRESERVE_PREFIX/lib/pkgconfig" pkg-config --cflags gaol; }
+gaol_preserve_libs() { PKG_CONFIG_PATH="$GAOL_PRESERVE_PREFIX/lib/pkgconfig" pkg-config --libs gaol; }
+# Goualard's GAOL installs no gaol.pc: its headers hold the SSE2 and SSE3
+# intervals its configure found, and its library calls mathlib's
+gaol_goualard_cflags() { echo "-I$GAOL_GOUALARD_PREFIX/include $IA_CXXFLAGS $SSE_FLAGS $FMA_FLAGS"; }
+gaol_goualard_libs() { echo "-L$GAOL_GOUALARD_PREFIX/lib -lgaol -lultim -lm"; }
 p1788_cflags() { echo "-std=c++11 -I$PREFIX/include"; }
 p1788_libs() { echo "-L$PREFIX/lib -lmpfr -lgmp"; }
 # filib++'s headers have dynamic exception specifications, deprecated in C++11
@@ -65,5 +111,7 @@ filib_libs() { echo "-L$FILIB_DIR/lib -lprim"; }
 # PROFIL/BIAS: its headers are in the include directory itself (Interval.h)
 profil_cflags() { echo "-I$PROFIL_DIR/include"; }
 profil_libs() { echo "-L$PROFIL_DIR/lib -lProfil -lBias -llr"; }
+# Boost.Interval: headers only
+boost_cflags() { echo "-I$BOOST_DIR/include"; }
 
 die() { echo "error: $*" >&2; exit 1; }

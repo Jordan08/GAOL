@@ -1,0 +1,356 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+ * Copyright (c) 2002-2006 Laboratoire d'Informatique de
+ *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Frederic Goualard, Jordan NININ
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
+// GAOL 4's unit test check/arithmetic.cpp, run with the checks of unit_tests.h
+// rather than CppUnit (GAOL v5)
+#include "unit_tests.h"
+
+using namespace gaol;
+
+class arithmetic_test {
+public:
+  void setUp() {
+  }
+  void tearDown() {
+  }
+
+  // --> Beginning of tests
+
+  void test_addition() {
+    TEST_SEQ(interval::universe()+interval::universe(),interval::universe());
+    TEST_SEQ(max_inf+max_inf,max_inf);
+    TEST_SEQ(m_inf_m_max+m_inf_m_max,m_inf_m_max);
+
+    TEST_EMPTY(interval::emptyset()+interval::emptyset());
+
+    TEST_SEQ(m_min_zero+m_min_zero,2*m_min_zero);
+    TEST_SEQ(m_min_zero+zero_min,m_min_min);
+	TEST_SEQ(+interval(3,4),interval(3,4));
+	TEST_EMPTY(+interval::emptyset());
+	TEST_SEQ(interval(3,4)+interval(-6,2),interval(-3,6));
+	TEST_SEQ(interval(3,4)+5,interval(8,9));
+ }
+
+
+  void test_subtraction() {
+	TEST_SEQ(-interval(4,5),interval(-5,-4));
+	TEST_SEQ(-max_inf,m_inf_m_max);
+	TEST_EMPTY(-interval::emptyset());
+    TEST_SEQ(interval::universe()-interval::universe(),interval::universe());
+    TEST_SEQ(interval(4,5)-interval(3,7),interval(-3,2));
+	TEST_SEQ(m_inf_m_max-m_inf_m_max,interval::universe());
+	TEST_SEQ(interval(3,4)-5,interval(-2,-1));
+  }
+
+  void test_multiplication() {
+     TEST_EMPTY(interval::emptyset()*interval::emptyset());
+    TEST_EMPTY(interval::emptyset()*interval(4,5));
+    TEST_EMPTY(interval(4,5)*interval::emptyset());
+    TEST_EMPTY(interval::emptyset()*interval::zero());
+    TEST_EMPTY(interval::zero()*interval::emptyset());
+    TEST_EMPTY(interval::emptyset()*3);
+    TEST_EMPTY(3*interval::emptyset());
+    TEST_EMPTY(interval::emptyset()*0.0);
+    TEST_EMPTY(0.0*interval::emptyset());
+
+    TEST_SEQ(interval::universe()*interval::universe(),interval::universe());
+	TEST_SEQ(interval(2,4)*5,interval(10,20));
+	TEST_SEQ(interval(-3,-2)*5,interval(-15,-10));
+	TEST_SEQ(interval(2,4)*(-5),interval(-20,-10));
+	TEST_SEQ(interval(-3,-2)*(-5),interval(10,15));
+	TEST_SEQ(interval(3,4)*0,interval::zero());
+	TEST_EMPTY(interval::emptyset()*0);
+	TEST_SEQ(interval::universe()*0,interval::zero());
+
+	TEST_SEQ(interval(-3,4)*interval::zero(),interval::zero());
+	TEST_SEQ(m_inf_m_max*interval::zero(),interval::zero());
+	TEST_SEQ(max_inf*interval::zero(),interval::zero());
+	TEST_SEQ(interval::zero()*m_inf_m_max,interval::zero());
+	TEST_SEQ(interval::zero()*max_inf,interval::zero());
+
+	// P P
+	TEST_SEQ(interval(4,5)*interval(2,3),interval(8,15));
+	// P M
+	TEST_SEQ(interval(4,5)*interval(-2,3),interval(-10,15));
+	// P N
+	TEST_SEQ(interval(4,5)*interval(-3,-2),interval(-15,-8));
+	// M P
+	TEST_SEQ(interval(-3,-2)*interval(4,5),interval(-15,-8));
+	// M M
+	TEST_SEQ(interval(-3,2)*interval(-4,5),interval(-15,12));
+	// M N
+	TEST_SEQ(interval(-3,2)*interval(-5,-4),interval(-10,15));
+	// N P
+	TEST_SEQ(interval(-3,-2)*interval(4,5),interval(-15,-8));
+	// N M
+	TEST_SEQ(interval(-3,-2)*interval(-4,5),interval(-15,12));
+	// N N
+	TEST_SEQ(interval(-3,-2)*interval(-5,-4),interval(8,15));
+  }
+
+ void test_division() {
+ 	TEST_EMPTY(interval::emptyset()/interval::emptyset());
+	TEST_EMPTY(interval::emptyset()/interval::universe());
+	TEST_EMPTY(interval::universe()/interval::emptyset());
+	TEST_SEQ(interval(3,4)/2,interval(1.5,2));
+	TEST_SEQ(interval(3,4)/(-2),interval(-2,-1.5));
+	TEST_SEQ(interval(-4,-3)/2,interval(-2,-1.5));
+	TEST_SEQ(interval(-4,-3)/(-2),interval(1.5,2));
+	TEST_EMPTY(interval(3,4)/0);
+	TEST_EMPTY(interval::universe()/0);
+
+	// N1 N1
+	// 2/5 is no double: the double below it
+	TEST_SEQ(interval(-3,-2)/interval(-5,-4),interval(0x1.9999999999999p-2, 0.75));
+	// N1 Z
+	TEST_EMPTY(interval(-3,-2)/interval::zero());
+
+	interval tmp;
+	// N1 N0
+	tmp = interval(-3,-2)/interval(-4,0);
+	CPPUNIT_ASSERT(tmp.left() == 0.5 && tmp.right()==GAOL_INFINITY);
+	// N1 M
+	TEST_SEQ(interval(-3,-2)/interval(-4,5),interval::universe());
+	// N1 P0
+	tmp = interval(-3,-2)/interval(0,4);
+	CPPUNIT_ASSERT(tmp.left()==-GAOL_INFINITY && tmp.right()==-.5);
+	// N1 P1
+	TEST_SEQ(interval(-3,-2)/interval(4,5),interval(-0.75, -0x1.9999999999999p-2));
+	// Z Z
+	TEST_EMPTY(interval::zero()/interval::zero());
+	// Z (NMP)
+	TEST_SEQ(interval::zero()/interval(-3,-2),interval::zero());
+	TEST_SEQ(interval::zero()/interval(-3,2),interval::zero());
+	TEST_SEQ(interval::zero()/interval(2,3),interval::zero());
+	// N0 N1
+	TEST_SEQ(interval(-2,0)/interval(-5,-4),interval(0,0.5));
+	// N0 Z
+	TEST_EMPTY(interval(-2,0)/interval::zero());
+	// N0 N0
+	tmp = interval(-2,0)/interval(-4,0);
+	CPPUNIT_ASSERT(tmp.left()==0 && tmp.right()==GAOL_INFINITY);
+	// N0 M
+	TEST_SEQ(interval(-3,0)/interval(-4,2),interval::universe());
+	// N0 P0
+	tmp = interval(-2,0)/interval(0,4);
+	CPPUNIT_ASSERT(tmp.left()==-GAOL_INFINITY && tmp.right()==0);
+	// N0 P1
+	TEST_SEQ(interval(-2,0)/interval(4,5),interval(-0.5,0));
+	// M N1
+	TEST_SEQ(interval(-3,2)/interval(-5,-4),interval(-0.5,0.75));
+	// M Z
+	TEST_EMPTY(interval(-3,2)/interval::zero());
+	// M N0
+	TEST_SEQ(interval(-3,2)/interval(-4,0),interval::universe());
+	// M M
+	TEST_SEQ(interval(-3,2)/interval(-4,5),interval::universe());
+	// M P0
+	TEST_SEQ(interval(-3,2)/interval(0,5),interval::universe());
+	// M P1
+	TEST_SEQ(interval(-3,2)/interval(4,5),interval(-0.75,0.5));
+	// P0 N1
+	TEST_SEQ(interval(0,2)/interval(-5,-4),interval(-0.5,0.0));
+	// P0 Z
+	TEST_EMPTY(interval(0,2)/interval::zero());
+	// P0 N0
+	tmp = interval(0,2)/interval(-4,0);
+	CPPUNIT_ASSERT(tmp.left()==-GAOL_INFINITY && tmp.right()==0);
+	// P0 M
+	TEST_SEQ(interval(0,2)/interval(-4,5),interval::universe());
+	// P0 P0
+	tmp = interval(0,2)/interval(0,5);
+	CPPUNIT_ASSERT(tmp.left()==0 && tmp.right()==GAOL_INFINITY);
+	// P0 P1
+	TEST_SEQ(interval(0,2)/interval(4,5),interval(0,0.5));
+	// P1 N1
+	TEST_SEQ(interval(2,3)/interval(-5,-4),interval(-0.75, -0x1.9999999999999p-2));
+	// P1 Z
+	TEST_EMPTY(interval(2,3)/interval::zero());
+	// P1 N0
+	tmp = interval(2,3)/interval(-4,0);
+	CPPUNIT_ASSERT(tmp.left() == -GAOL_INFINITY && tmp.right() == -0.5);
+	// P1 M
+	TEST_SEQ(interval(2,3)/interval(-4,5),interval::universe());
+	// P1 P0
+	tmp = interval(2,3)/interval(0,4);
+	CPPUNIT_ASSERT(tmp.left() == 0.5 && tmp.right() == GAOL_INFINITY);
+	// P1 P1
+	TEST_SEQ(interval(2,3)/interval(4,5),interval(0x1.9999999999999p-2, 0.75));
+ }
+
+  void test_reldivision() { // Test for %
+ 	TEST_EMPTY(interval::emptyset()%interval::emptyset());
+	TEST_EMPTY(interval::emptyset()%interval::universe());
+	TEST_EMPTY(interval::universe()%interval::emptyset());
+
+	TEST_SEQ(interval(3,4)%2,interval(1.5,2));
+	TEST_SEQ(interval(3,4)%(-2),interval(-2,-1.5));
+	TEST_SEQ(interval(-4,-3)%2,interval(-2,-1.5));
+	TEST_SEQ(interval(-4,-3)%(-2),interval(1.5,2));
+	TEST_EMPTY(interval(3,4)%0);
+	TEST_SEQ(interval::universe()%0,interval::universe());
+	TEST_SEQ(interval(-3,4)%0,interval::universe());
+
+	interval tmp;
+	// N1 N1
+	TEST_SEQ(interval(-3,-2)%interval(-5,-4),interval(0x1.9999999999999p-2, 0.75));
+	// N1 Z
+	TEST_EMPTY(interval(-3,-2)%interval::zero());
+	// N1 N0
+	tmp = interval(-3,-2)%interval(-4,0);
+	CPPUNIT_ASSERT(tmp.left() == 0.5 && tmp.right()==GAOL_INFINITY);
+	// N1 M
+	TEST_SEQ(interval(-3,-2)%interval(-4,5),interval::universe());
+	// N1 P0
+	tmp = interval(-3,-2)%interval(0,4);
+	CPPUNIT_ASSERT(tmp.left()==-GAOL_INFINITY && tmp.right()==-.5);
+	// N1 P1
+	TEST_SEQ(interval(-3,-2)%interval(4,5),interval(-0.75, -0x1.9999999999999p-2));
+	// Z Z
+	TEST_SEQ(interval::zero()%interval::zero(),interval::universe());
+	// Z (NMP)
+	TEST_SEQ(interval::zero()%interval(-3,-2),interval::zero());
+	TEST_SEQ(interval::zero()%interval(-3,0),interval::universe());
+	TEST_SEQ(interval::zero()%interval(-3,2),interval::universe());
+	TEST_SEQ(interval::zero()%interval(0,3),interval::universe());
+	TEST_SEQ(interval::zero()%interval(2,3),interval::zero());
+	// N0 N1
+	TEST_SEQ(interval(-2,0)%interval(-5,-4),interval(0,0.5));
+	// N0 Z
+	TEST_SEQ(interval(-2,0)%interval::zero(),interval::universe());
+	// N0 N0
+	TEST_SEQ(interval(-2,0)%interval(-4,0),interval::universe());
+	// N0 M
+	TEST_SEQ(interval(-3,0)%interval(-4,2),interval::universe());
+	// N0 P0
+	TEST_SEQ(interval(-2,0)%interval(0,4),interval::universe());
+	// N0 P1
+	TEST_SEQ(interval(-2,0)%interval(4,5),interval(-0.5,0));
+	// M N1
+	TEST_SEQ(interval(-3,2)%interval(-5,-4),interval(-0.5,0.75));
+	// M Z
+	TEST_SEQ(interval(-3,2)%interval::zero(),interval::universe());
+	// M N0
+	TEST_SEQ(interval(-3,2)%interval(-4,0),interval::universe());
+	// M M
+	TEST_SEQ(interval(-3,2)%interval(-4,5),interval::universe());
+	// M P0
+	TEST_SEQ(interval(-3,2)%interval(0,5),interval::universe());
+	// M P1
+	TEST_SEQ(interval(-3,2)%interval(4,5),interval(-0.75,0.5));
+	// P0 N1
+	TEST_SEQ(interval(0,2)%interval(-5,-4),interval(-0.5,0.0));
+	// P0 Z
+	TEST_SEQ(interval(0,2)%interval::zero(),interval::universe());
+	// P0 N0
+	TEST_SEQ(interval(0,2)%interval(-4,0),interval::universe());
+	// P0 M
+	TEST_SEQ(interval(0,2)%interval(-4,5),interval::universe());
+	// P0 P0
+	TEST_SEQ(interval(0,2)%interval(0,5),interval::universe());
+	// P0 P1
+	TEST_SEQ(interval(0,2)%interval(4,5),interval(0,0.5));
+	// P1 N1
+	TEST_SEQ(interval(2,3)%interval(-5,-4),interval(-0.75, -0x1.9999999999999p-2));
+	// P1 Z
+	TEST_EMPTY(interval(2,3)%interval::zero());
+	// P1 N0
+	tmp = interval(2,3)%interval(-4,0);
+	CPPUNIT_ASSERT(tmp.left() == -GAOL_INFINITY && tmp.right() == -0.5);
+	// P1 M
+	TEST_SEQ(interval(2,3)%interval(-4,5),interval::universe());
+	// P1 P0
+	tmp = interval(2,3)%interval(0,4);
+	CPPUNIT_ASSERT(tmp.left() == 0.5 && tmp.right() == GAOL_INFINITY);
+	// P1 P1
+	TEST_SEQ(interval(2,3)%interval(4,5),interval(0x1.9999999999999p-2, 0.75));
+  }
+
+  void test_inverse() {
+    TEST_EMPTY(inverse(interval::emptyset()));
+    TEST_SEQ(inverse(interval::universe()),interval::universe());
+    // 1/10 is no double: the doubles around it
+    TEST_SEQ(inverse(interval(10.0)),interval(0x1.9999999999999p-4,0x1.999999999999ap-4));
+
+    TEST_SEQ(inverse(interval(-4,-2)),interval(-.5,-.25));
+    interval tmp = inverse(interval(-2,0));
+    CPPUNIT_ASSERT(tmp.left()==-GAOL_INFINITY && tmp.right()==-.5);
+    TEST_EMPTY(inverse(interval::zero()));
+    TEST_SEQ(inverse(interval(-4,2)),interval::universe());
+    TEST_SEQ(inverse(interval(-2,4)),interval::universe());
+    tmp = inverse(interval(0,2));
+    CPPUNIT_ASSERT(tmp.left()==0.5 && tmp.right()==GAOL_INFINITY);
+    TEST_SEQ(inverse(interval(2,4)),interval(0.25,0.5));
+ }
+
+  /* An interval and an integer, in either order (GAOL v5): the
+     double n where n is one, interval(n), the two doubles around it,
+     otherwise. With n = 2^53 + 1 converted to the double 2^53, [1, 2] + n was
+     [2^53, 2^53 + 2], and n + 2 = 2^53 + 3 was not in it. Each result has to
+     contain the exact one, whose bounds are given as the doubles around them
+     where they are no doubles. */
+  void test_integer_operands() {
+    const double two53 = std::ldexp(1.0, 53), two54 = std::ldexp(1.0, 54);
+    const volatile long long n = 9007199254740993LL; // 2^53 + 1
+    const interval x(1.0, 2.0);
+    const auto encloses = [](const interval& z, double l, double r) { return z.left() <= l && z.right() >= r; };
+
+    TEST_TRUE(encloses(x + n, two53 + 2, two53 + 4));      // [n + 1, n + 2]
+    TEST_TRUE(encloses(n + x, two53 + 2, two53 + 4));
+    TEST_TRUE(encloses(x - n, -two53, -(two53 - 1)));      // [1 - n, 2 - n]
+    TEST_TRUE(encloses(n - x, two53 - 1, two53));          // [n - 2, n - 1]
+    TEST_TRUE(encloses(x * n, two53, two54 + 4));          // [n, 2n]
+    TEST_TRUE(encloses(n * x, two53, two54 + 4));
+    TEST_TRUE((x / n).left() < std::ldexp(1.0, -53));      // 1/n < 2^-53
+    TEST_TRUE((x / n).right() >= std::ldexp(1.0, -52));    // 2/n > the double below 2^-52
+    TEST_TRUE(encloses(n / x, std::ldexp(1.0, 52), two53 + 2)); // [n/2, n]
+    interval y(x);
+    y += n;
+    TEST_SEQ(y, x + n);
+    y = x;
+    y -= n;
+    TEST_SEQ(y, x - n);
+    y = x;
+    y *= n;
+    TEST_SEQ(y, x * n);
+    y = x;
+    y /= n;
+    TEST_SEQ(y, x / n);
+    y = x;
+    y %= n;
+    TEST_SEQ(y, x % n);
+    TEST_SEQ(x % n, x % interval(n));
+    TEST_SEQ(n % x, interval(n) % x);
+
+    // An integer that is a double: the operation with that double
+    const interval z(-3.5, 7.25);
+    TEST_SEQ(z + 3, z + 3.0);
+    TEST_SEQ(3u - z, 3.0 - z);
+    TEST_SEQ(z * 3L, z * 3.0);
+    TEST_SEQ(-3LL / z, -3.0 / z);
+    TEST_SEQ(z / static_cast<short>(4), z / 4.0);
+    TEST_SEQ(z + 9007199254740992LL, z + two53);
+  }
+
+  // <-- End of tests
+};
+
+GAOL_UNIT_MAIN(arithmetic_test, "arithmetic_operators",
+               GAOL_UNIT_TEST(test_addition),
+               GAOL_UNIT_TEST(test_subtraction),
+               GAOL_UNIT_TEST(test_multiplication),
+               GAOL_UNIT_TEST(test_division),
+               GAOL_UNIT_TEST(test_reldivision),
+               GAOL_UNIT_TEST(test_inverse),
+               GAOL_UNIT_TEST(test_integer_operands))

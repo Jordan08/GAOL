@@ -3,7 +3,19 @@
 # Cflags carries the flags interval arithmetic needs (see the README), which
 # the code including GAOL's headers has to be compiled with, and the flag of
 # the fused multiply-add instructions GAOL is compiled with (--enable-fma), and
-# Libs mathlib.
+# Libs the libraries to link: the elementary functions of CORE-MATH are
+# compiled into libgaol itself, so only GAOL, and the link options of interval
+# arithmetic (-mno-daz-ftz, where the compiler takes it). Not -lm (GAOL v5):
+# GAOL still calls functions of the math library, which the C++ compiler links.
+# Version is the one configure read from VERSION.txt (GAOL v5).
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-14)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=@libdir@
@@ -12,6 +24,6 @@ includedir=@includedir@
 Name: gaol
 Description: GAOL, Not Just Another Interval Library
 URL: https://github.com/Jordan08/GAOL
-Version: @GAOL_PC_VERSION@
+Version: @GAOL_VERSION@
 Cflags: -I${includedir} @GAOL_PC_CFLAGS@
-Libs: -L${libdir} -lgaol @GAOL_PC_MATHLIB@ -lm
+Libs: -L${libdir} -lgaol @GAOL_PC_LIBS@

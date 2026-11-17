@@ -1,0 +1,120 @@
+# Meson build of GAOL: the unit tests of tests/, as tests/CMakeLists.txt builds
+# them (see there)
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-27)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+#
+# Built where with-tests is true; each is a test of the suite unit, which meson
+# test (make test) and meson test --setup check (make check) run. They are
+# compiled as any code using GAOL, in C++17 for the hexadecimal floating
+# literals of the tests (those of gaol_tests.h, which all but u128.cpp include,
+# of the *_values.h, and of several of the programs; see CMakeLists.txt), and
+# linked with the static libgaol, as CMake links them. Exit status 77 is a test
+# skipped (intervalf and interval2f where the intervals of floats are not
+# compiled). check/, which built the unit tests of GAOL 4 with CppUnit, is
+# gone: they are among these (GAOL v5).
+gaol_tests = [
+  # The arithmetic of gaol_ieee1788 on intervals of doubles written out, a test
+  # to read first (GAOL v5)
+  'interval_ieee_basic',
+  'arithmetic', 'elementary', 'rounding_direction', 'numbers', 'other_functions',
+  'ieee1788', 'reverse', 'u128', 'core_math', 'compoundm1', 'expressions', 'extended_precision',
+  'static_initialization', 'debugging', 'fast_math_link',
+  # The cases of the unit tests of IBEX and Codac on their intervals (GAOL v5)
+  'test_ibex_codac',
+  # The unit tests of GAOL 4 (unit_tests.h)
+  'arithmetic_operators', 'assignment', 'constants', 'constructor', 'float_functions',
+  'generic_functions', 'input_output', 'interval_functions', 'misc', 'non_arithmetic',
+  'relations', 'reverse_mappings', 'trigonometric', 'intervalf', 'interval2f',
+]
+# The rounding direction after the automatic cleanup of GAOL, read by a
+# function registered in a constructor of priority 101, which ELF runs before
+# GAOL initializes itself: a static libgaol only, a shared one initializing
+# itself before that constructor runs (as tests/CMakeLists.txt, BUILD_SHARED_LIBS;
+# GAOL v5: the tests linked the static library whatever default_library)
+# bad_snprintf: the bounds written with a snprintf() that writes wrong digits,
+# which the link of the test gives, by -Wl,--wrap, to the calls of the static
+# libgaol (GAOL v5; see below): on Linux, with a static libgaol, as CMake
+if host_machine.system() == 'linux' and get_option('default_library') != 'shared'
+  gaol_tests += ['automatic_cleanup', 'bad_snprintf']
+endif
+tests_args = []
+if msvc
+  # getenv() and sscanf(), which the tests use as the C standard has them
+  tests_args += ['-D_CRT_SECURE_NO_WARNINGS']
+endif
+# -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it
+# (GAOL v5)
+if cpp_comp.has_argument('-Wno-psabi')
+  tests_args += ['-Wno-psabi']
+endif
+# Linked with the link option of gaol_dep and gaol.pc (-mno-daz-ftz, where the
+# compiler takes it), as CMake links them (GAOL v5)
+tests_dep = declare_dependency(
+  link_with: gaollib_static,
+  include_directories: include_directories('..'),
+  compile_args: tests_args,
+  link_args: gaol_link_args,
+  dependencies: deps,
+)
+foreach t : gaol_tests
+  # fast_math_link: -ffast-math to its link only, its source being compiled as
+  # any code using GAOL, and GAOL_TESTS_NO_DAZ_FTZ where its link has
+  # -mno-daz-ftz (GAOL v5)
+  test_cpp_args = []
+  test_link_args = []
+  # bad_snprintf: snprintf() and __snprintf_chk(), which the fortified calls of
+  # the C library of GNU reach, go to the functions of the test (see
+  # bad_snprintf.cpp)
+  if t == 'bad_snprintf'
+    test_link_args += ['-Wl,--wrap=snprintf', '-Wl,--wrap=__snprintf_chk']
+  endif
+  if t == 'fast_math_link'
+    if not msvc
+      test_link_args += ['-ffast-math']
+    endif
+    if gaol_link_args.length() > 0
+      test_cpp_args += ['-DGAOL_TESTS_NO_DAZ_FTZ=1']
+    endif
+  endif
+  exe = executable('gaol_test_' + t, t + '.cpp',
+    dependencies: tests_dep,
+    cpp_args: test_cpp_args,
+    link_args: test_link_args,
+    override_options: ['cpp_std=c++17'])
+  test(t, exe, suite: 'unit', timeout: 300)
+  check_targets += [exe]
+endforeach
+
+# The options gaol/gaol_config.h refuses, which the compile tests refused_* of
+# tests/CMakeLists.txt check in the CMake build (GAOL v5): refused_options.sh
+# compiles refused_options.cpp with the compiler, the cpp_args and the language
+# standard of the build, and the flags gaol.pc gives the code using GAOL. Not
+# with Visual C++, which has neither option nor macro, nor clang-cl, which
+# ignores the options (gaol_config.h refuses the /fp:fast of both).
+if not msvc
+  refused_args = get_option('cpp_args')
+  if get_option('cpp_std') != 'none'
+    refused_args += ['-std=' + get_option('cpp_std')]
+  endif
+  refused_args += pc_cflags + [
+    '-I' + join_paths(meson.current_build_dir(), '..'),
+    '-I' + join_paths(meson.current_source_dir(), '..')]
+  test('refused_options', find_program('sh'),
+    args: [files('refused_options.sh')],
+    env: {
+      'GAOL_CXX': ' '.join(cpp_comp.cmd_array()),
+      'GAOL_CXXFLAGS': ' '.join(refused_args),
+    },
+    suite: 'unit', timeout: 300)
+endif
+
+# The time per operation of GAOL and of the same operation on doubles, which
+# the continuous integration prints: not a test
+executable('gaol_performance', 'performance.cpp',
+  dependencies: tests_dep,
+  override_options: ['cpp_std=c++14'])

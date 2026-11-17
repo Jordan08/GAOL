@@ -1,20 +1,50 @@
-# Checks that GAOL still builds the ways it did before the CMake build of this
-# fork: with autotools and with meson, with the mathlib of 3rd/mathlib they
-# build themselves, and on Ubuntu x86_64 against a mathlib installed apart
-# (scripts/install-mathlib.sh), as the CMake build (MATHLIB_DIR). The tests
-# are built with each installed GAOL, on Linux (x86_64, arm64, and i386 and
-# armhf in containers), macOS (arm64, x86_64) and Windows (MSYS2). Checks that
-# the three builds give GAOL the same configuration on each kind of machine
-# (.github/audit), and that autotools and meson refuse the MinGW-w64 CMake
-# refuses (mingw-w64 older than version 13). Builds GAOL with the two other
-# mathematical libraries autotools and meson offer, CRlibm and the math library
-# of the system, which no other job compiles.
+# Checks that GAOL still builds the ways it did before its CMake build: with
+# autotools and with meson, which compile the sources of CORE-MATH into libgaol
+# as the CMake build does. Each build runs the unit tests (make test, ninja
+# test), and the tests are built again with each installed GAOL, on Linux
+# (x86_64, arm64, and i386 and armhf in containers), macOS (arm64, x86_64) and
+# Windows (MSYS2 for x64 and for x86, Cygwin, and Visual C++ with meson; not
+# Clang with meson, nor Clang with autotools, which run the tests of the
+# build). Checks that the three builds give GAOL the same configuration on each
+# kind of machine (.github/audit). Each job that runs the unit tests checks
+# that numbers read and wrote numbers under a locale writing a decimal comma,
+# which the Linux jobs and the containers generate first, macOS and Windows
+# having one (.github/scripts/comma-locale.sh, GAOL v5). The autotools jobs
+# check that make distclean gives the sources back as git has them. One job
+# builds GAOL as a subproject of a meson project (tests/meson_subproject, GAOL
+# v5). An autotools job (--disable-exceptions) and a meson job
+# (-Denable-exception=false) build GAOL without exceptions, where an error ends
+# the program, and run the examples and the tests, which leave out the checks
+# of an exception there (GAOL v5). One job builds and tests GAOL with meson
+# 0.53.2, the oldest meson the build takes (GAOL v5). One job makes the
+# archive of the sources with the three builds, and checks that they hold the
+# same files (GAOL v5).
+#
+# A job is a group of configurations that run one after the other on the
+# same image of runner, each one an action of .github/actions/ called
+# with the row of the matrix it had when it was a job of its own: the
+# configurations, their options and their checks are those of the jobs
+# they replace (GAOL v5). Below, a job is one of these configurations.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 name: Autotools and meson
 
 on:
   push:
-    branches: ['**']
+    branches: [master, dev]
+    paths-ignore:
+      # The notes of the work on GAOL v5, which dev holds, and master once a
+      # version is merged into it: a push of them changes no code and starts
+      # no check (GAOL v5)
+      - 'TODO*.md'
+      - 'process.md'
+      - 'STEP.md'
   pull_request:
   workflow_dispatch:
 
@@ -26,417 +56,815 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # actions/checkout runs git init, whose hint about the name of the initial
+  # branch was in the log of every job
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
   # The flags code using GAOL is compiled with (see CMakeLists.txt); on a
   # 32-bit x86 processor, tests.sh adds -msse2 -mfpmath=sse
   TEST_FLAGS: -std=c++17 -O2 -frounding-math -fno-fast-math -ffp-contract=off
+  # Four tests at a time with make test (automake) and ninja test (meson)
+  MESON_TESTTHREADS: 4
 
 jobs:
-  autotools:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: ubuntu-24.04,     configure: '',                           desc: 'Autotools, Ubuntu 24.04 x86_64' }
-          - { os: ubuntu-24.04-arm, configure: '',                           desc: 'Autotools, Ubuntu 24.04 arm64' }
-          - { os: macos-15,         configure: '',                           desc: 'Autotools, macOS 15 arm64' }
-          - { os: macos-15-intel,   configure: '',                           desc: 'Autotools, macOS 15 x86_64' }
-          - { os: ubuntu-24.04,     configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved' }
-          - { os: ubuntu-24.04-arm, configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved' }
-          - { os: ubuntu-24.04,     configure: '', installed_mathlib: true,  desc: 'Autotools, Ubuntu 24.04 x86_64, installed mathlib' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Tools
-        run: |
-          if [ "$RUNNER_OS" = Linux ]; then
-            sudo apt-get update -q
-            sudo apt-get install -y -q g++ cmake make
-          fi
-      - name: mathlib installed apart, for the job using one rather than the mathlib of 3rd/mathlib
-        if: matrix.cfg.installed_mathlib
-        run: sh scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
-      - name: Configure, build and install
-        run: |
-          # The same date on every file, as in a release archive: make then
-          # does not regenerate configure, the Makefile.in or the lexer
-          find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-          if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then
-            mathlib="--with-mathlib-include=$RUNNER_TEMP/mathlib/include --with-mathlib-lib=$RUNNER_TEMP/mathlib/lib"
-          else
-            mathlib=""
-          fi
-          ./configure --prefix="$RUNNER_TEMP/gaol" $mathlib ${{ matrix.cfg.configure }} | tee configure.log
-          grep -E "^(CXXFLAGS|CPPFLAGS) =" gaol/Makefile
-          make -j 4
-          make install
-          # The mathlib of 3rd/mathlib is installed with GAOL; one installed apart is not
-          if [ -z "$mathlib" ]; then
-            grep -q "mathlib: the one of 3rd/mathlib, built with GAOL" configure.log
-            test -f "$RUNNER_TEMP/gaol/lib/libultim.a"
-          else
-            test ! -f "$RUNNER_TEMP/gaol/lib/libultim.a"
-          fi
-      - name: Tests built with the installed GAOL
-        run: |
-          mathlib="$RUNNER_TEMP/gaol"
-          if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then mathlib="$RUNNER_TEMP/mathlib"; fi
-          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$mathlib" static
-      - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
-  meson:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: ubuntu-24.04,     options: '',                                desc: 'Meson, Ubuntu 24.04 x86_64' }
-          - { os: ubuntu-24.04-arm, options: '',                                desc: 'Meson, Ubuntu 24.04 arm64' }
-          - { os: macos-15,         options: '',                                desc: 'Meson, macOS 15 arm64' }
-          - { os: macos-15-intel,   options: '',                                desc: 'Meson, macOS 15 x86_64' }
-          - { os: ubuntu-24.04,     options: '-Denable-preserve-rounding=true', desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved' }
-          - { os: macos-15,         options: '-Denable-preserve-rounding=true', desc: 'Meson, macOS 15 arm64, rounding direction preserved' }
-          - { os: ubuntu-24.04,     options: '', installed_mathlib: true,         desc: 'Meson, Ubuntu 24.04 x86_64, installed mathlib' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Tools
-        run: |
-          if [ "$RUNNER_OS" = Linux ]; then
-            sudo apt-get update -q
-            sudo apt-get install -y -q g++ cmake flex bison pipx
-          else
-            brew install flex bison pipx
-            echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
-            echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
-          fi
-          pipx install meson
-          pipx install ninja
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: mathlib installed apart, for the job using one rather than the mathlib of 3rd/mathlib
-        if: matrix.cfg.installed_mathlib
-        run: sh scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
-      - name: Configure, build and install
-        run: |
-          meson --version
-          if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then
-            mathlib="-Dwith-mathlib-include=$RUNNER_TEMP/mathlib/include -Dwith-mathlib-lib=$RUNNER_TEMP/mathlib/lib"
-          else
-            mathlib=""
-          fi
-          meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib $mathlib ${{ matrix.cfg.options }} | tee configure.log
-          meson compile -C build-meson
-          meson install -C build-meson
-          # The mathlib of 3rd/mathlib is installed with GAOL; one installed apart is not
-          if [ -z "$mathlib" ]; then
-            grep -q "mathlib: the one of 3rd/mathlib, built with GAOL" configure.log
-            test -f "$RUNNER_TEMP/gaol/lib/libultim.a"
-          else
-            test ! -f "$RUNNER_TEMP/gaol/lib/libultim.a"
-          fi
-      - name: Tests built with the installed GAOL
-        run: |
-          mathlib="$RUNNER_TEMP/gaol"
-          if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then mathlib="$RUNNER_TEMP/mathlib"; fi
-          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$mathlib" shared
-      - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
-
-  # GAOL built with CRlibm (--with-mathlib=crlibm), whose bounds are certified
-  # as those of mathlib: the six tests pass. Built with the math library of the
-  # system (--with-mathlib=m), GAOL does not aim at tight bounds: the checks of
-  # elementary, other_functions and reverse on the distance to the tightest
-  # bounds may fail, and no other (.github/scripts/tests.sh). Without these jobs,
-  # gaol/gaol_double_op_crlibm.h and gaol/gaol_double_op_m.h were compiled
-  # nowhere (issue #12).
-  other-mathlib:
-    name: ${{ matrix.cfg.desc }}
+  b1:
+    name: 'Ubuntu 24.04 x86_64, the three builds (8 configurations)'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { build: autotools, mathlib: crlibm, desc: 'Autotools, Ubuntu 24.04 x86_64, CRlibm' }
-          - { build: meson,     mathlib: crlibm, desc: 'Meson, Ubuntu 24.04 x86_64, CRlibm' }
-          - { build: autotools, mathlib: m,      desc: 'Autotools, Ubuntu 24.04 x86_64, math library of the system' }
-          - { build: meson,     mathlib: m,      desc: 'Meson, Ubuntu 24.04 x86_64, math library of the system' }
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
-      - name: Tools
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q g++ make flex bison pipx autoconf automake libtool pkg-config
-          pipx install meson
-          pipx install ninja
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: CRlibm
-        if: matrix.cfg.mathlib == 'crlibm'
-        run: sh scripts/install-crlibm.sh "$RUNNER_TEMP/crlibm"
-      - name: Configure, build and install
-        run: |
-          if [ ${{ matrix.cfg.build }} = autotools ]; then
-            find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-            options="--with-mathlib=${{ matrix.cfg.mathlib }}"
-            if [ ${{ matrix.cfg.mathlib }} = crlibm ]; then
-              options="$options --with-mathlib-include=$RUNNER_TEMP/crlibm/include --with-mathlib-lib=$RUNNER_TEMP/crlibm/lib"
-            fi
-            ./configure --prefix="$RUNNER_TEMP/gaol" $options | tee configure.log
-            make -j 4
-            make install
-          else
-            # The math library of the system is "default" for meson
-            if [ ${{ matrix.cfg.mathlib }} = crlibm ]; then
-              options="-Dwith-mathlib=crlibm -Dwith-mathlib-include=$RUNNER_TEMP/crlibm/include -Dwith-mathlib-lib=$RUNNER_TEMP/crlibm/lib"
-            else
-              options="-Dwith-mathlib=default"
-            fi
-            meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib $options | tee configure.log
-            meson compile -C build-meson
-            meson install -C build-meson
-          fi
-          # No mathlib is built nor installed with GAOL
-          test ! -f "$RUNNER_TEMP/gaol/lib/libultim.a"
-          cat "$RUNNER_TEMP/gaol/lib/pkgconfig/gaol.pc"
-      - name: Tests built with the installed GAOL
-        run: |
-          linking=static
-          if [ ${{ matrix.cfg.build }} = meson ]; then linking=shared; fi
-          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" "$RUNNER_TEMP/crlibm" $linking ${{ matrix.cfg.mathlib }}
-      - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
-
-  container:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: ubuntu-24.04,     platform: linux/386,    image: 'debian:bookworm', build: autotools, desc: 'Autotools, Debian 12 Bookworm i386' }
-          - { os: ubuntu-24.04,     platform: linux/386,    image: 'debian:bookworm', build: meson,     desc: 'Meson, Debian 12 Bookworm i386' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm/v7, image: 'debian:trixie',   build: autotools, desc: 'Autotools, Debian 13 Trixie armhf' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm/v7, image: 'debian:trixie',   build: meson,     desc: 'Meson, Debian 13 Trixie armhf' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Build and tests
-        run: |
-          docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol -e TEST_FLAGS ${{ matrix.cfg.image }} sh -c "
-            set -e
-            apt-get update -qq && apt-get install -y -qq g++ make flex bison meson ninja-build > /dev/null
-            uname -m && c++ --version | head -1
-            if [ ${{ matrix.cfg.build }} = autotools ]; then
-              find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-              ./configure --prefix=/tmp/gaol
-              grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
-              make -j 4 && make install
-              sh .github/scripts/tests.sh /tmp/gaol /tmp/gaol static
-            else
-              meson setup build-meson --prefix=/tmp/gaol --libdir=lib
-              meson compile -C build-meson && meson install -C build-meson
-              sh .github/scripts/tests.sh /tmp/gaol /tmp/gaol shared
-            fi
-            ./performance | tee /gaol/performance.md"
-          cat performance.md >> "$GITHUB_STEP_SUMMARY"
-
-  msys2:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: windows-2022
-    timeout-minutes: 60
-    defaults:
-      run:
-        shell: msys2 {0}
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { build: autotools, desc: 'Autotools, MSYS2 UCRT64 GCC x64' }
-          - { build: meson,     desc: 'Meson, MSYS2 UCRT64 GCC x64' }
-    steps:
-      - uses: actions/checkout@v7
-      - uses: msys2/setup-msys2@v2
+      - id: c1
+        name: 'Meson of Ubuntu 24.04, x86_64, GAOL as a subproject'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson-subproject
+        timeout-minutes: 60
         with:
-          msystem: UCRT64
-          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson flex bison make libtool
-      - name: Configure, build and install
-        run: |
-          prefix="$(cygpath -m "$RUNNER_TEMP")/gaol"
-          if [ ${{ matrix.cfg.build }} = autotools ]; then
-            find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-            ./configure --prefix="$prefix"
-            grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
-            make -j 4 && make install
-          else
-            meson setup build-meson --prefix="$prefix" --libdir=lib
-            meson compile -C build-meson && meson install -C build-meson
-          fi
-          test -f "$prefix/lib/libultim.a"
-      - name: Tests built with the installed GAOL
-        run: sh .github/scripts/tests.sh "$(cygpath -m "$RUNNER_TEMP")/gaol" "$(cygpath -m "$RUNNER_TEMP")/gaol" static
-      - name: Performance
-        run: ./performance | tee -a "$GITHUB_STEP_SUMMARY"
-
-  # The three builds give GAOL the same configuration (.github/audit)
-  agree:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     desc: 'The builds agree, Ubuntu 24.04 x86_64 GCC' }
-          - { os: ubuntu-24.04,     cc: clang, cxx: clang++, desc: 'The builds agree, Ubuntu 24.04 x86_64 Clang' }
-          - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     desc: 'The builds agree, Ubuntu 24.04 arm64 GCC' }
-          - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, desc: 'The builds agree, Ubuntu 24.04 arm64 Clang' }
-          - { os: macos-15,         cc: cc,    cxx: c++,     desc: 'The builds agree, macOS 15 arm64' }
-          - { os: macos-15-intel,   cc: cc,    cxx: c++,     desc: 'The builds agree, macOS 15 x86_64' }
-          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     installed_mathlib: true, desc: 'The builds agree, Ubuntu 24.04 x86_64 GCC, installed mathlib' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Tools
-        run: |
-          if [ "$RUNNER_OS" = Linux ]; then
-            sudo apt-get update -q
-            sudo apt-get install -y -q g++ clang cmake flex bison make pipx
-          else
-            brew install flex bison pipx
-            echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
-            echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
-          fi
-          pipx install meson
-          pipx install ninja
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: mathlib installed apart, for the job using one rather than the mathlib of 3rd/mathlib
-        if: matrix.cfg.installed_mathlib
-        run: sh scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
-      - name: Configure with the three builds and compare
-        run: |
-          mathlib=-
-          if [ "${{ matrix.cfg.installed_mathlib }}" = true ]; then mathlib="$RUNNER_TEMP/mathlib"; fi
-          sh .github/audit/audit.sh audit ${{ matrix.cfg.cc }} ${{ matrix.cfg.cxx }} . "$mathlib" "$RUNNER_TEMP/audit" meson
-          status=0; python3 .github/audit/compare.py --check "$RUNNER_TEMP/audit/audit.json" > agree.md || status=$?
-          cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
-          sh .github/audit/logs.sh "$RUNNER_TEMP/audit/audit" $status
-
-  agree-container:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: ubuntu-24.04,     platform: linux/386,    image: 'debian:bookworm', desc: 'The builds agree, Debian 12 Bookworm i386' }
-          - { os: ubuntu-24.04-arm, platform: linux/arm/v7, image: 'debian:trixie',   desc: 'The builds agree, Debian 13 Trixie armhf' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Configure with the three builds and compare
-        run: |
-          docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol ${{ matrix.cfg.image }} sh -c "
-            set -e
-            apt-get update -qq && apt-get install -y -qq g++ cmake make flex bison meson ninja-build python3 > /dev/null
-            sh .github/audit/audit.sh audit gcc g++ /gaol - /tmp/audit meson
-            status=0; python3 .github/audit/compare.py --check /tmp/audit/audit.json > /gaol/agree.md || status=\$?
-            cat /gaol/agree.md
-            sh .github/audit/logs.sh /tmp/audit/audit \$status"
-          cat agree.md >> "$GITHUB_STEP_SUMMARY"
-
-  agree-msys2:
-    name: The builds agree, MSYS2 UCRT64 GCC x64
-    runs-on: windows-2022
-    timeout-minutes: 45
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: msys2/setup-msys2@v2
+          desc: 'Meson of Ubuntu 24.04, x86_64, GAOL as a subproject'
+          meson: 'apt'
+      - id: c2
+        name: 'Archives of the sources, Ubuntu 24.04 x86_64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-dist
+        timeout-minutes: 60
         with:
-          msystem: UCRT64
-          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-python flex bison make libtool
-      - name: Configure with the three builds and compare
-        run: |
-          export CMAKE_GENERATOR=Ninja
-          out="$(cygpath -m "$RUNNER_TEMP")/audit"
-          sh .github/audit/audit.sh audit gcc g++ . - "$out" meson
-          status=0; python3 .github/audit/compare.py --check "$out/audit.json" > agree.md || status=$?
-          cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
-          sh .github/audit/logs.sh "$out/audit" $status
-
-  mingw-refused:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: windows-2022
-    timeout-minutes: 30
-    defaults:
-      run:
+          desc: 'Archives of the sources, Ubuntu 24.04 x86_64'
+      - id: c3
+        name: 'The builds agree, Ubuntu 24.04 x86_64 GCC'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
+        with:
+          desc: 'The builds agree, Ubuntu 24.04 x86_64 GCC'
+          cc: 'gcc'
+          cxx: 'g++'
+      - id: c4
+        name: 'The builds agree, Ubuntu 24.04 x86_64 Clang'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
+        with:
+          desc: 'The builds agree, Ubuntu 24.04 x86_64 Clang'
+          cc: 'clang'
+          cxx: 'clang++'
+      - id: c5
+        name: 'Meson 0.53.2, Ubuntu 24.04 x86_64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson-oldest
+        timeout-minutes: 60
+        with:
+          desc: 'Meson 0.53.2, Ubuntu 24.04 x86_64'
+      - id: c6
+        name: 'Meson, Ubuntu 24.04 x86_64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Ubuntu 24.04 x86_64'
+          options: ''
+      - id: c7
+        name: 'Meson, Ubuntu 24.04 x86_64, GAOL as a subproject'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson-subproject
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Ubuntu 24.04 x86_64, GAOL as a subproject'
+          meson: 'pipx'
+      - id: c8
+        name: 'Autotools, Ubuntu 24.04 x86_64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, Ubuntu 24.04 x86_64'
+          configure: ''
+      - name: Results of the configurations
+        if: ${{ always() }}
         shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }} c7=${{ steps.c7.outcome }} c8=${{ steps.c8.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 x86_64, the three builds' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Meson of Ubuntu 24.04, x86_64, GAOL as a subproject' ;;
+              c2) name='Archives of the sources, Ubuntu 24.04 x86_64' ;;
+              c3) name='The builds agree, Ubuntu 24.04 x86_64 GCC' ;;
+              c4) name='The builds agree, Ubuntu 24.04 x86_64 Clang' ;;
+              c5) name='Meson 0.53.2, Ubuntu 24.04 x86_64' ;;
+              c6) name='Meson, Ubuntu 24.04 x86_64' ;;
+              c7) name='Meson, Ubuntu 24.04 x86_64, GAOL as a subproject' ;;
+              c8) name='Autotools, Ubuntu 24.04 x86_64' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  b2:
+    name: 'Ubuntu 24.04 x86_64, rounding direction and exceptions (4 configurations)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved'
+          configure: '--enable-preserve-rounding'
+      - id: c2
+        name: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved'
+          options: '-Denable-preserve-rounding=true'
+      - id: c3
+        name: 'Autotools, Ubuntu 24.04 x86_64, without exceptions'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, Ubuntu 24.04 x86_64, without exceptions'
+          configure: '--disable-exceptions --with-examples'
+      - id: c4
+        name: 'Meson, Ubuntu 24.04 x86_64, without exceptions'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Ubuntu 24.04 x86_64, without exceptions'
+          options: '-Denable-exception=false -Dwith-examples=true'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 x86_64, rounding direction and exceptions' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Autotools, Ubuntu 24.04 x86_64, rounding direction preserved' ;;
+              c2) name='Meson, Ubuntu 24.04 x86_64, rounding direction preserved' ;;
+              c3) name='Autotools, Ubuntu 24.04 x86_64, without exceptions' ;;
+              c4) name='Meson, Ubuntu 24.04 x86_64, without exceptions' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  b3:
+    name: 'Debian 12 i386 and shared library (5 configurations)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 285
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Autotools, Debian 12 Bookworm i386'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-container
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, Debian 12 Bookworm i386'
+          platform: 'linux/386'
+          image: 'debian:bookworm'
+          build: 'autotools'
+      - id: c2
+        name: 'Meson, Debian 12 Bookworm i386'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-container
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Debian 12 Bookworm i386'
+          platform: 'linux/386'
+          image: 'debian:bookworm'
+          build: 'meson'
+      - id: c3
+        name: 'The builds agree, Debian 12 Bookworm i386'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-agree-container
+        timeout-minutes: 45
+        with:
+          desc: 'The builds agree, Debian 12 Bookworm i386'
+          platform: 'linux/386'
+          image: 'debian:bookworm'
+      - id: c4
+        name: 'Autotools, Ubuntu 24.04 x86_64, shared library'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, Ubuntu 24.04 x86_64, shared library'
+          configure: '--enable-shared'
+          linking: 'shared'
+      - id: c5
+        name: 'Meson, Ubuntu 24.04 x86_64, shared library'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Ubuntu 24.04 x86_64, shared library'
+          options: '-Ddefault_library=shared'
+          linking: 'shared'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Debian 12 i386 and shared library' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Autotools, Debian 12 Bookworm i386' ;;
+              c2) name='Meson, Debian 12 Bookworm i386' ;;
+              c3) name='The builds agree, Debian 12 Bookworm i386' ;;
+              c4) name='Autotools, Ubuntu 24.04 x86_64, shared library' ;;
+              c5) name='Meson, Ubuntu 24.04 x86_64, shared library' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  b4:
+    name: 'Ubuntu 24.04 arm64 (6 configurations)'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Autotools, Ubuntu 24.04 arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, Ubuntu 24.04 arm64'
+          configure: ''
+      - id: c2
+        name: 'Meson, Ubuntu 24.04 arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Ubuntu 24.04 arm64'
+          options: ''
+      - id: c3
+        name: 'The builds agree, Ubuntu 24.04 arm64 GCC'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
+        with:
+          desc: 'The builds agree, Ubuntu 24.04 arm64 GCC'
+          cc: 'gcc'
+          cxx: 'g++'
+      - id: c4
+        name: 'The builds agree, Ubuntu 24.04 arm64 Clang'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
+        with:
+          desc: 'The builds agree, Ubuntu 24.04 arm64 Clang'
+          cc: 'clang'
+          cxx: 'clang++'
+      - id: c5
+        name: 'Autotools, Ubuntu 24.04 arm64, FPU intervals'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, Ubuntu 24.04 arm64, FPU intervals'
+          configure: '--disable-simd'
+      - id: c6
+        name: 'Meson, Ubuntu 24.04 arm64, FPU intervals'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Ubuntu 24.04 arm64, FPU intervals'
+          options: '-Denable-simd=false'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 arm64' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Autotools, Ubuntu 24.04 arm64' ;;
+              c2) name='Meson, Ubuntu 24.04 arm64' ;;
+              c3) name='The builds agree, Ubuntu 24.04 arm64 GCC' ;;
+              c4) name='The builds agree, Ubuntu 24.04 arm64 Clang' ;;
+              c5) name='Autotools, Ubuntu 24.04 arm64, FPU intervals' ;;
+              c6) name='Meson, Ubuntu 24.04 arm64, FPU intervals' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  b5:
+    name: 'Debian 13 armhf and arm64 rounding direction (4 configurations)'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 225
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Autotools, Debian 13 Trixie armhf'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-container
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, Debian 13 Trixie armhf'
+          platform: 'linux/arm/v7'
+          image: 'debian:trixie'
+          build: 'autotools'
+      - id: c2
+        name: 'Meson, Debian 13 Trixie armhf'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-container
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Debian 13 Trixie armhf'
+          platform: 'linux/arm/v7'
+          image: 'debian:trixie'
+          build: 'meson'
+      - id: c3
+        name: 'The builds agree, Debian 13 Trixie armhf'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-agree-container
+        timeout-minutes: 45
+        with:
+          desc: 'The builds agree, Debian 13 Trixie armhf'
+          platform: 'linux/arm/v7'
+          image: 'debian:trixie'
+      - id: c4
+        name: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved'
+          configure: '--enable-preserve-rounding'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Debian 13 armhf and arm64 rounding direction' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Autotools, Debian 13 Trixie armhf' ;;
+              c2) name='Meson, Debian 13 Trixie armhf' ;;
+              c3) name='The builds agree, Debian 13 Trixie armhf' ;;
+              c4) name='Autotools, Ubuntu 24.04 arm64, rounding direction preserved' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  b6:
+    name: 'MSYS2 MINGW32 (3 configurations)'
+    runs-on: windows-2022
+    timeout-minutes: 165
+    steps:
+      - uses: actions/checkout@v7
+      # One setup of MSYS2 for the group: the configurations choose their
+      # environment with MSYSTEM, the action refusing a second installation
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW32
+          install: >-
+            mingw-w64-i686-toolchain mingw-w64-i686-cmake mingw-w64-i686-ninja
+            mingw-w64-i686-meson make libtool
+            mingw-w64-i686-python
+      # The 32-bit Windows of MinGW-w64 with configure and meson, which
+      # only simulated it (CXXFLAGS=-D_WIN32) before, and the CMake jobs of
+      # windows.yml (Chocolatey) built alone: the SSE2 intervals need
+      # -faligned-new=8 there, the memory of new being aligned on 8 bytes
+      - id: c1
+        name: 'Autotools, MSYS2 MINGW32 GCC x86'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-msys2
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, MSYS2 MINGW32 GCC x86'
+          build: 'autotools'
+          msystem: 'MINGW32'
+          intervals: 'sse2'
+        env:
+          MSYSTEM: 'MINGW32'
+      - id: c2
+        name: 'Meson, MSYS2 MINGW32 GCC x86'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-msys2
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, MSYS2 MINGW32 GCC x86'
+          build: 'meson'
+          msystem: 'MINGW32'
+          intervals: 'sse2'
+        env:
+          MSYSTEM: 'MINGW32'
+      - id: c3
+        name: 'The builds agree, MSYS2 MINGW32 GCC x86'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-agree-msys2
+        timeout-minutes: 45
+        with:
+          desc: 'The builds agree, MSYS2 MINGW32 GCC x86'
+          msystem: 'MINGW32'
+        env:
+          MSYSTEM: 'MINGW32'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'MSYS2 MINGW32' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Autotools, MSYS2 MINGW32 GCC x86' ;;
+              c2) name='Meson, MSYS2 MINGW32 GCC x86' ;;
+              c3) name='The builds agree, MSYS2 MINGW32 GCC x86' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  b7:
+    name: 'MSYS2 UCRT64 (3 configurations)'
+    runs-on: windows-2022
+    timeout-minutes: 165
+    steps:
+      - uses: actions/checkout@v7
+      # One setup of MSYS2 for the group: the configurations choose their
+      # environment with MSYSTEM, the action refusing a second installation
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: >-
+            mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-meson make libtool
+            mingw-w64-ucrt-x86_64-python
+      - id: c1
+        name: 'Autotools, MSYS2 UCRT64 GCC x64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-msys2
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, MSYS2 UCRT64 GCC x64'
+          build: 'autotools'
+          msystem: 'UCRT64'
+          intervals: 'sse2'
+        env:
+          MSYSTEM: 'UCRT64'
+      - id: c2
+        name: 'Meson, MSYS2 UCRT64 GCC x64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-msys2
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, MSYS2 UCRT64 GCC x64'
+          build: 'meson'
+          msystem: 'UCRT64'
+          intervals: 'sse2'
+        env:
+          MSYSTEM: 'UCRT64'
+      - id: c3
+        name: 'The builds agree, MSYS2 UCRT64 GCC x64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-agree-msys2
+        timeout-minutes: 45
+        with:
+          desc: 'The builds agree, MSYS2 UCRT64 GCC x64'
+          msystem: 'UCRT64'
+        env:
+          MSYSTEM: 'UCRT64'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'MSYS2 UCRT64' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Autotools, MSYS2 UCRT64 GCC x64' ;;
+              c2) name='Meson, MSYS2 UCRT64 GCC x64' ;;
+              c3) name='The builds agree, MSYS2 UCRT64 GCC x64' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  b8:
+    name: 'Clang for Visual C++ and Visual Studio 2022 (4 configurations)'
+    runs-on: windows-2022
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Meson, Clang for Visual C++ x86 (clang++)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson-clang-msvc
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Clang for Visual C++ x86 (clang++)'
+          arch: 'x86'
+          target: 'i686-pc-windows-msvc'
+          cpu_family: 'x86'
+          cpu: 'i686'
+          machine: 'X86'
+      - id: c2
+        name: 'Meson, Clang for Visual C++ x64 (clang++)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson-clang-msvc
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Clang for Visual C++ x64 (clang++)'
+          arch: 'x64'
+          target: 'x86_64-pc-windows-msvc'
+          cpu_family: 'x86_64'
+          cpu: 'x86_64'
+          machine: 'X64'
+      - id: c3
+        name: 'Meson, Visual Studio 2022 x64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson-msvc
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Visual Studio 2022 x64'
+          arch: 'x64'
+      - id: c4
+        name: 'Meson, Visual Studio 2022 x86'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson-msvc
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, Visual Studio 2022 x86'
+          arch: 'x86'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Clang for Visual C++ and Visual Studio 2022' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Meson, Clang for Visual C++ x86 (clang++)' ;;
+              c2) name='Meson, Clang for Visual C++ x64 (clang++)' ;;
+              c3) name='Meson, Visual Studio 2022 x64' ;;
+              c4) name='Meson, Visual Studio 2022 x86' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  b16:
+    name: 'Autotools, Clang for Visual C++ x64 (clang++)'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Autotools, Clang for Visual C++ x64 (clang++)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-autotools-clang-msvc
+        with:
+          desc: 'Autotools, Clang for Visual C++ x64 (clang++)'
+
+  # Cygwin, GCC for x86-64 (GAOL v5), with autotools and with meson as with
+  # CMake in windows.yml: GAOL_FMA gives it -mfma -mprefer-vector-width=128,
+  # without which gaol/gaol_config.h refuses it (its fma() is not correctly
+  # rounded). Cygwin is not mingw-w64 (__CYGWIN__, not __MINGW32__).
+  cygwin:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: C:\cygwin\bin\bash.exe --noprofile --norc -eo pipefail -o igncr '{0}'
     strategy:
       fail-fast: false
       matrix:
         cfg:
-          - { build: autotools, version: '14.2.0', desc: 'Autotools, MinGW-w64 14.2.0 x64, refused' }
-          - { build: meson,     version: '14.2.0', desc: 'Meson, MinGW-w64 14.2.0 x64, refused' }
-          - { build: autotools, version: '13.2.0', desc: 'Autotools, MinGW-w64 13.2.0 x64, refused' }
-          - { build: meson,     version: '13.2.0', desc: 'Meson, MinGW-w64 13.2.0 x64, refused' }
+          - { build: autotools, desc: 'Autotools, Cygwin GCC x64' }
+          - { build: meson,     desc: 'Meson, Cygwin GCC x64' }
     steps:
+      - run: git config --global core.autocrlf input
+        shell: pwsh
       - uses: actions/checkout@v7
-      - name: MinGW-w64, from Chocolatey
-        run: |
-          choco install -y -r --no-progress mingw --version=${{ matrix.cfg.version }} --force
-          echo 'C:\ProgramData\mingw64\mingw64\bin' >> "$GITHUB_PATH"
-      - name: Configure, which has to fail, mingw-w64 being older than version 13
+      - uses: cygwin/cygwin-install-action@v6
+        with:
+          packages: |
+            gcc-g++
+            make
+            binutils
+            pkg-config
+            meson
+            ninja
+      - name: Configure, build and install
         run: |
           g++ --version
-          echo '#include <stdlib.h>' | g++ -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) ' || true
-          if [ "${{ matrix.cfg.build }}" = autotools ]; then
-            # The same date on every file, as in a release archive
-            find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
-            configure="sh ./configure"
+          g++ -dumpmachine
+          prefix="$PWD/../gaol-prefix"
+          # The compilers of Cygwin: meson would find the ccache of Strawberry
+          # Perl, first in PATH, which cannot run them ("cannot compile programs")
+          export CC=gcc CXX=g++
+          if [ ${{ matrix.cfg.build }} = autotools ]; then
+            ./configure --prefix="$prefix" --with-tests
+            sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h sse2
+            grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
+            grep -F -e "-mfma -mprefer-vector-width=128" gaol/Makefile
+            make -j 4 && make install
+            make -j 4 test
+            sh .github/scripts/comma-locale.sh check tests/numbers.log
           else
-            python -m pip install -q meson ninja
-            configure="python -m mesonbuild.mesonmain setup build-meson"
+            meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
+            sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h sse2
+            grep -F -e "-mfma" build-meson/compile_commands.json > /dev/null
+            meson compile -C build-meson && meson install -C build-meson
+            ninja -C build-meson test
+            sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
           fi
-          if CC=gcc CXX=g++ $configure > configure.log 2>&1; then
-            cat configure.log
-            echo "This MinGW-w64 was not refused"
-            exit 1
-          fi
-          cat configure.log
-          grep -q "GAOL cannot be built with" configure.log
+          # CORE-MATH is compiled into libgaol: no other library is installed
+          ls "$prefix/lib"
+          for f in "$prefix"/lib/lib*; do
+            case "${f##*/}" in libgaol*) ;; *) echo "$f: not GAOL's"; exit 1 ;; esac
+          done
+      - name: Tests built with the installed GAOL
+        run: sh .github/scripts/tests.sh "$PWD/../gaol-prefix" static
 
-  cmake-installed-mathlib:
-    name: CMake with an installed mathlib, Ubuntu 24.04 x86_64
-    runs-on: ubuntu-24.04
+  b11:
+    name: 'Meson, Visual Studio 2026 x64'
+    runs-on: windows-2025-vs2026
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
-      - name: mathlib
-        run: sh scripts/install-mathlib.sh "$RUNNER_TEMP/mathlib"
-      - name: Configure
+      - id: c1
+        name: 'Meson, Visual Studio 2026 x64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson-msvc
+        with:
+          desc: 'Meson, Visual Studio 2026 x64'
+          arch: 'x64'
+
+  b12:
+    name: 'Meson, Visual Studio 2026 arm64'
+    runs-on: windows-11-vs2026-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Meson, Visual Studio 2026 arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson-msvc
+        with:
+          desc: 'Meson, Visual Studio 2026 arm64'
+          arch: 'arm64'
+
+  b13:
+    name: 'macOS 15 arm64, the three builds (4 configurations)'
+    runs-on: macos-15
+    timeout-minutes: 225
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Autotools, macOS 15 arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, macOS 15 arm64'
+          configure: ''
+      - id: c2
+        name: 'Meson, macOS 15 arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, macOS 15 arm64'
+          options: ''
+      - id: c3
+        name: 'Meson, macOS 15 arm64, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
+        with:
+          desc: 'Meson, macOS 15 arm64, rounding direction preserved'
+          options: '-Denable-preserve-rounding=true'
+      - id: c4
+        name: 'The builds agree, macOS 15 arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
+        with:
+          desc: 'The builds agree, macOS 15 arm64'
+          cc: 'cc'
+          cxx: 'c++'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=ON -DGAOL_BUILD_MATHLIB=OFF -DMATHLIB_DIR="$RUNNER_TEMP/mathlib" | tee configure.log
-          grep -q "Found mathlib: $RUNNER_TEMP/mathlib" configure.log
-      - name: Build
-        run: cmake --build build -j 4
-      - name: Tests
-        run: cd build && ctest -j 4 --output-on-failure
-      - name: Configure without MATHLIB_DIR, the installed mathlib on CMAKE_PREFIX_PATH
-        # As a project building GAOL for itself: the mathlib of 3rd/mathlib is
-        # built and installed with GAOL, even where CMake would find an
-        # installed one, GAOL_FIND_MATHLIB being OFF without MATHLIB_DIR
-        run: |
-          cmake -S . -B build-own-mathlib -DCMAKE_BUILD_TYPE=Release -DGAOL_BUILD_TESTS=OFF \
-            -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/mathlib" -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/gaol-own-mathlib" | tee configure-own-mathlib.log
-          grep -q "mathlib: the one of 3rd/mathlib, built with GAOL" configure-own-mathlib.log
-      - name: Build and install with the mathlib of 3rd/mathlib
-        run: |
-          cmake --build build-own-mathlib -j 4
-          cmake --install build-own-mathlib
-          for file in lib/libgaol.a lib/libultim.a include/MathLib.h include/gaol/gaol.h; do
-            test -f "$RUNNER_TEMP/gaol-own-mathlib/$file" || { echo "$file is not installed"; exit 1; }
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'macOS 15 arm64, the three builds' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Autotools, macOS 15 arm64' ;;
+              c2) name='Meson, macOS 15 arm64' ;;
+              c3) name='Meson, macOS 15 arm64, rounding direction preserved' ;;
+              c4) name='The builds agree, macOS 15 arm64' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
           done
+          exit $status
+
+  b14:
+    name: 'macOS 15 x86_64, autotools (2 configurations)'
+    runs-on: macos-15-intel
+    timeout-minutes: 105
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Autotools, macOS 15 x86_64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
+        with:
+          desc: 'Autotools, macOS 15 x86_64'
+          configure: ''
+      - id: c2
+        name: 'The builds agree, macOS 15 x86_64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
+        with:
+          desc: 'The builds agree, macOS 15 x86_64'
+          cc: 'cc'
+          cxx: 'c++'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'macOS 15 x86_64, autotools' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Autotools, macOS 15 x86_64' ;;
+              c2) name='The builds agree, macOS 15 x86_64' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  b15:
+    name: 'Meson, macOS 15 x86_64'
+    runs-on: macos-15-intel
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Meson, macOS 15 x86_64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-meson
+        with:
+          desc: 'Meson, macOS 15 x86_64'
+          options: ''

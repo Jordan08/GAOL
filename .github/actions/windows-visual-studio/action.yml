@@ -1,0 +1,137 @@
+# The steps of the job visual-studio of windows.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: windows-visual-studio
+description: The job visual-studio of windows.yml for one configuration
+inputs:
+  arch:
+    description: The key arch of the row of the matrix of the job
+    default: ''
+  cl:
+    description: The key cl of the row of the matrix of the job
+    default: ''
+  clang_cl:
+    description: The key clang_cl of the row of the matrix of the job
+    default: ''
+  config:
+    description: The key config of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  generator:
+    description: The key generator of the row of the matrix of the job
+    default: ''
+  opts:
+    description: The key opts of the row of the matrix of the job
+    default: ''
+  toolset:
+    description: The key toolset of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Configure
+      shell: bash
+      run: |
+        cmake -S . -B build -G "${{ inputs.generator }}" -A ${{ inputs.arch }} ${{ inputs.toolset }} -DWITH_TESTS=ON -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ inputs.opts }} | tee configure.log
+        # The compiler of the toolset asked for, not the one of the generator
+        if [ -n "${{ inputs.cl }}" ]; then
+          grep "The CXX compiler identification is MSVC ${{ inputs.cl }}\." configure.log
+        fi
+        # clang-cl for the C sources of CORE-MATH as for those of GAOL
+        if [ "${{ inputs.clang_cl }}" = "true" ]; then
+          test "$(grep -c -E "The (C|CXX) compiler identification is Clang .* with MSVC-like command-line" configure.log)" = 2
+        fi
+    # The intervals of the build: the SSE2 ones on x64 and on x86, where Visual
+    # C++ and clang-cl take them (on x86 with their two bounds as two doubles
+    # of alignment 8, GAOL_SSE2_UNALIGNED_STORAGE; GAOL v5), the NEON ones on
+    # arm64 with Visual C++ and clang-cl (GAOL_SIMD, on by default; GAOL v5),
+    # and the FPU ones where the job asks for them (-DGAOL_SIMD=OFF)
+    - name: The intervals
+      shell: bash
+      run: |
+        case "${{ inputs.arch }}" in x64|Win32) expected=sse2 ;; ARM64) expected=neon ;; *) expected=fpu ;; esac
+        case "${{ inputs.opts }}" in *GAOL_SIMD=OFF*) expected=fpu ;; esac
+        sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
+    # On x64, the processor of the runner, and whether the arithmetic takes
+    # the AVX-512 path, which the configuration decides from the
+    # instructions the runner has (GAOL_AVX512_ARITHMETIC): a warning where
+    # GAOL_PREFER_AVX512 asked for it, or took it from the rounding
+    # direction preserved, and the runner has none (GAOL v5)
+    - name: The processor, and the AVX-512 path
+      if: inputs.arch == 'x64'
+      shell: bash
+      run: |
+        powershell -NoProfile -Command "(Get-CimInstance Win32_Processor).Name" || true
+        grep -E "^#define GAOL_(HAVE_AVX512_TARGET|PREFER_AVX512|AVX512_ARITHMETIC) " build/gaol/gaol_configuration.h || true
+        if ! grep -q "^#define GAOL_HAVE_AVX512_TARGET 1" build/gaol/gaol_configuration.h; then
+          echo "::error::the compiler takes no AVX-512 path"
+          exit 1
+        fi
+        if grep -q "^#define GAOL_PREFER_AVX512 1" build/gaol/gaol_configuration.h \
+           && ! grep -q "^#define GAOL_AVX512_ARITHMETIC 1" build/gaol/gaol_configuration.h; then
+          echo "::warning::GAOL_PREFER_AVX512, on a runner without the AVX-512 instructions: the tests take the SSE2 path"
+        fi
+    - name: Build
+      shell: bash
+      run: cmake --build build --config ${{ inputs.config }} -j 4
+    - name: Tests (make test)
+      shell: bash
+      run: cmake --build build --config ${{ inputs.config }} --target RUN_TESTS
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash
+      run: sh .github/scripts/comma-locale.sh check build
+    # Visual C++ with /arch:AVX2 (GAOL_FMA) and clang-cl write MXCSR alone in the
+    # macros of the rounding direction preserved on x64 (GAOL_RND_MXCSR_ONLY,
+    # gaol/gaol_fpu.h, GAOL v5): the value of the macro as the compiler gave it,
+    # which misc prints and ctest shows only with -V
+    - name: The macros of the rounding direction write MXCSR alone
+      if: inputs.arch == 'x64' && contains(inputs.opts, 'GAOL_PRESERVE_ROUNDING=ON')
+      shell: bash
+      run: |
+        ctest --test-dir build -C ${{ inputs.config }} -R '^misc$' -V | tee misc.log
+        grep -F "GAOL_RND_MXCSR_ONLY is 1:" misc.log
+    - name: Performance
+      if: inputs.config == 'Release'
+      shell: bash
+      run: build/tests/${{ inputs.config }}/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"
+    # The test of misc that enters a function with the stack aligned on 4
+    # bytes, as 32-bit Windows enters its threads and its callbacks (GAOL v5,
+    # tests/misc.cpp): it runs with clang-cl on x86 and prints a line when it
+    # does, which ctest shows only with -V, and which this step looks for. After the
+    # check of the locale, which reads the output of the last ctest (LastTest.log)
+    - name: The stack entered aligned on 4 bytes
+      if: inputs.clang_cl == 'true' && inputs.arch == 'Win32'
+      shell: bash
+      run: |
+        ctest --test-dir build -C ${{ inputs.config }} -R '^misc$' -V | tee misc.log
+        grep -F "returned the bounds of the entry aligned on 16 with the stack aligned on 16 minus 4, 8 and 12 bytes at its entry" misc.log
+    - name: Install
+      shell: bash
+      run: cmake --install build --config ${{ inputs.config }}
+    - name: Tests built with the installed GAOL
+      shell: bash
+      run: |
+        cmake -S tests/find_package -B build-find-package -G "${{ inputs.generator }}" -A ${{ inputs.arch }} ${{ inputs.toolset }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
+        cmake --build build-find-package --config ${{ inputs.config }} -j 4
+        cmake --build build-find-package --config ${{ inputs.config }} --target RUN_TESTS
+    - name: GAOL's headers refused without /fp:strict
+      shell: bash
+      run: cmake -S tests/fp_strict -B build-fp-strict -G "${{ inputs.generator }}" -A ${{ inputs.arch }} ${{ inputs.toolset }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
