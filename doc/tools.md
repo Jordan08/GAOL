@@ -80,7 +80,7 @@ for the CI (GAOL v5).
 | Script | What it is for |
 |---|---|
 | [check_branch](../.github/scripts/check_branch) | Checks a branch before it is pushed, from the tree that holds it: `check_branch <branch> [base]`, the base being `origin/dev`. It reads the messages of the commits (two lines at most, no line that credits a tool), the files that a pull request must leave alone (the registers of the work, the PDF of the manual) and the build products that were committed, and the whitespace. |
-| [gcore](../.github/scripts/gcore) | Runs a command while holding some of the four core tokens that the sessions working on the machine share, so that their builds and their tests never use more than four cores in all: `gcore [-n N] <command>`. |
+| [gcore](../.github/scripts/gcore) | Runs a command while holding some of the four core tokens that the sessions working on the machine share, so that their builds and their tests never use more than four cores in all: `gcore [-n N] <command>`. Copy it out of the tree before running it: it makes a `corelocks` directory in the parent of the directory that holds it. |
 
 ## Tests
 
