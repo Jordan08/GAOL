@@ -91,7 +91,19 @@ namespace gaol_names
   GAOL_NAMES_CLASS(pow_itv_node);
   GAOL_NAMES_CLASS(nth_root_node);
   GAOL_NAMES_CLASS(sin_node);
+  GAOL_NAMES_CLASS(cos_node);
+  GAOL_NAMES_CLASS(tan_node);
+  GAOL_NAMES_CLASS(atan2_node);
+  GAOL_NAMES_CLASS(asin_node);
+  GAOL_NAMES_CLASS(acos_node);
+  GAOL_NAMES_CLASS(atan_node);
+  GAOL_NAMES_CLASS(sinh_node);
+  GAOL_NAMES_CLASS(cosh_node);
+  GAOL_NAMES_CLASS(tanh_node);
   GAOL_NAMES_CLASS(asinh_node);
+  GAOL_NAMES_CLASS(acosh_node);
+  GAOL_NAMES_CLASS(atanh_node);
+  GAOL_NAMES_CLASS(exp_node);
   GAOL_NAMES_CLASS(log_node);
   // The nodes of the functions GAOL v5 adds to the expressions
   GAOL_NAMES_CLASS(exp2_node);

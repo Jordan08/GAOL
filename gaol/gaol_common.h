@@ -50,8 +50,7 @@
 namespace gaol_core {
   
   // defined in gaol_common.cpp; public, as GAOL_DEBUG_VERBOSE reads it in the
-  // inline functions of the headers, compiled into the code using GAOL (GAOL
-  // v5)
+  // code using GAOL that is compiled with GAOL_DEBUGGING (GAOL v5)
   extern GAOL_PUBLIC int debug_level;
   
   // GAOL_DEBUG before GAOL v5, now the option of CMake that builds GAOL for

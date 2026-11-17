@@ -36,11 +36,12 @@ namespace gaol_core {
   /*!
   \brief Evaluation of an expression: the interval it denotes
   
-  The evaluator is not a visitor any more (GAOL v5): GAOL 4 made it derive
-  from expr_visitor, a base class for visitors of any kind that it was the
-  only one of, with a visit() by node type that set error for the nodes a
-  visitor did not overload; expr_visitor and gaol_expr_visitor.h are gone, and
-  the accept() of a node takes an expr_eval.
+  The evaluator derives from no base class of visitors any more (GAOL v5):
+  GAOL 4 made it derive from expr_visitor, a base class for visitors of any
+  kind that it was the only one of, with a visit() by node type that set error
+  for the nodes a visitor did not overload; expr_visitor and
+  gaol_expr_visitor.h are gone, and the accept() of a node takes an expr_eval,
+  whose visit() it calls.
 
   The stack of the program an evaluation takes does not depend on the depth
   of the tree (GAOL v5). GAOL visited the operands of a node from inside its
@@ -72,7 +73,7 @@ namespace gaol_core {
   class expr_eval {
     public:
     expr_eval() : error(false), depth(0), running(false), combining(false) {}
-    //! True if an error occurred during the last evaluation
+    //! True if an error occurred since the construction or the last reset()
     bool error_occurred() const {
       return error;
     }

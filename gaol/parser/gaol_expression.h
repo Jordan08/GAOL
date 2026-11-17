@@ -937,11 +937,6 @@ namespace gaol_core {
         */
         
         /*
-        null_node --
-        */
-        
-        
-        /*
         double_node --
         */
         
