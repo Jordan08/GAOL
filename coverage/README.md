@@ -6,7 +6,7 @@
      COPYING.LIB file for information. -->
 # Coverage of the tests
 
-*Written by `coverage/coverage_summary.py` from the report of gcovr, which `cmake --build <build> --target coverage` runs (`-DGAOL_COVERAGE=ON`). Last run: 2026-11-12.*
+*Written by `coverage/coverage_summary.py` from the report of gcovr, which `cmake --build <build> --target coverage` runs (`-DGAOL_COVERAGE=ON`). Last run: 2026-11-17.*
 
 The line-by-line report is [coverage.html](coverage.html), one page holding its own style.
 
@@ -14,12 +14,12 @@ The line-by-line report is [coverage.html](coverage.html), one page holding its 
 
 | | Lines | Covered | Not run | % | |
 |---|---:|---:|---:|---:|---|
-| **GAOL (`gaol/`)** | 6423 | 6106 | 317 | **95.1** | `███████████████████░` |
+| **GAOL (`gaol/`)** | 6503 | 6213 | 290 | **95.5** | `███████████████████░` |
 | CORE-MATH (`3rd/math-core/`) | 8172 | 6738 | 1434 | 82.5 | `████████████████░░░░` |
 
-**The tests run 95.1 % of the lines of GAOL, above the 80 % GAOL v5 aims at.**
+**The tests run 95.5 % of the lines of GAOL, above the 80 % GAOL v5 aims at.**
 
-Branches: 68.4 % of those of GAOL are taken both ways.
+Branches: 69.2 % of those of GAOL are taken both ways.
 
 The lines of CORE-MATH that are never run are its accurate phases, which a handful of arguments in a million reach, and the paths of the architectures this machine is not. They are counted among the lines not run, and are checked otherwise: the accurate path of `sin` is compared with the upstream sources compiled unchanged, and that of `cos` with its roundings computed by mpmath (see `doc/tests.md`); the other accurate phases are reached by the tests of their bounds only.
 
@@ -30,15 +30,16 @@ Sorted by coverage, least covered first.
 | File | Lines | Covered | % | Branches taken |
 |---|---:|---:|---:|---:|
 | `gaol/parser/gaol_expr_visitor.h` | 99 | 9 | 9.1 | -- |
-| `gaol/parser/gaol_expr_eval.h` | 173 | 151 | 87.3 | 40.5 % |
-| `gaol/parser/gaol_expression.cpp` | 740 | 663 | 89.6 | 35.8 % |
-| `gaol/core/gaol_interval_sse_impl.h` | 411 | 377 | 91.7 | 64.9 % |
-| `gaol/parser/gaol_eval_stack.h` | 34 | 32 | 94.1 | 63.3 % |
-| `gaol/core/gaol_interval_io.cpp` | 349 | 330 | 94.6 | 68.8 % |
+| `gaol/parser/gaol_expr_eval.h` | 182 | 160 | 87.9 | 56.3 % |
+| `gaol/core/gaol_interval_sse_impl.h` | 416 | 382 | 91.8 | 64.8 % |
+| `gaol/parser/gaol_expression.cpp` | 740 | 693 | 93.6 | 37.8 % |
+| `gaol/core/gaol_interval_io.cpp` | 386 | 365 | 94.6 | 67.6 % |
 | `gaol/gaol_common.h` | 21 | 20 | 95.2 | 66.7 % |
-| `gaol/core/gaol_interval_core.h` | 385 | 372 | 96.6 | 72.9 % |
-| `gaol/core/gaol_interval_pow.cpp` | 515 | 498 | 96.7 | 73.1 % |
-| `gaol/core/gaol_interval_relational.cpp` | 700 | 677 | 96.7 | 70.3 % |
+| `gaol/core/gaol_interval_core.h` | 389 | 376 | 96.7 | 72.9 % |
+| `gaol/core/gaol_interval_relational.cpp` | 704 | 681 | 96.7 | 70.2 % |
+| `gaol/core/gaol_interval_pow.cpp` | 523 | 506 | 96.7 | 73.1 % |
+| `gaol/parser/gaol_eval_stack.h` | 34 | 33 | 97.1 | 66.7 % |
+| `gaol/gaol_common.cpp` | 73 | 71 | 97.3 | 84.0 % |
 | `gaol/core/gaol_interval_detail.h` | 58 | 57 | 98.3 | 80.4 % |
 | `gaol/core/gaol_interval_trig.cpp` | 350 | 345 | 98.6 | 87.6 % |
 | `gaol/core/gaol_interval_core.cpp` | 374 | 369 | 98.7 | 69.3 % |
@@ -47,12 +48,11 @@ Sorted by coverage, least covered first.
 | `gaol/core/gaol_interval_exp_log.cpp` | 124 | 124 | 100.0 | 78.7 % |
 | `gaol/core/gaol_interval_hyperbolic.cpp` | 52 | 52 | 100.0 | 82.7 % |
 | `gaol/core/gaol_interval_sse.h` | 101 | 101 | 100.0 | 73.1 % |
-| `gaol/core/gaol_interval_sse_kernels.h` | 47 | 47 | 100.0 | 58.3 % |
-| `gaol/gaol_common.cpp` | 63 | 63 | 100.0 | 85.4 % |
+| `gaol/core/gaol_interval_sse_kernels.h` | 48 | 48 | 100.0 | 57.7 % |
 | `gaol/gaol_fpu.h` | 82 | 82 | 100.0 | 94.4 % |
 | `gaol/gaol_fpu_fenv.h` | 41 | 41 | 100.0 | 100.0 % |
 | `gaol/gaol_ieee1788.cpp` | 15 | 15 | 100.0 | 66.7 % |
-| `gaol/gaol_ieee1788.h` | 114 | 114 | 100.0 | 61.5 % |
+| `gaol/gaol_ieee1788.h` | 116 | 116 | 100.0 | 61.5 % |
 | `gaol/gaol_init_cleanup.cpp` | 19 | 19 | 100.0 | 50.0 % |
 | `gaol/gaol_interval.cpp` | 46 | 46 | 100.0 | 58.8 % |
 | `gaol/gaol_interval.h` | 5 | 5 | 100.0 | -- |
@@ -69,20 +69,21 @@ Sorted by coverage, least covered first.
 ## The lines the tests never run
 
 - `gaol/parser/gaol_expr_visitor.h`: 81-170
-- `gaol/parser/gaol_expr_eval.h`: 74, 122, 128, 136, 142, 154, 160, 168, 174, 180, 186, 192, 198, 204, 210, 216, 222, 228, 234, 240, 246, 252
-- `gaol/parser/gaol_expression.cpp`: 176, 270, 273, 337, 339, 348, 350, 456, 458, 480, 533, 535, 614, 616, 649, 651, 824, 826, 847, 849-854, 857, 859-860, 863, 865, 897, 899, 931, 933, 965, 967, 999, 1001, 1033, 1035, 1067, 1069, 1102, 1104, 1136, 1138, 1170, 1172, 1239, 1241, 1273, 1275, 1307, 1309, 1375, 1377, 1510, 1513-1517, 1519-1522, 1524-1526, 1528, 1530-1533, 1535-1536, 1538
-- `gaol/core/gaol_interval_sse_impl.h`: 47, 61, 73, 75-76, 78, 84, 86, 876, 882-883, 900, 915-916, 931, 940-941, 956-957, 965-967, 982-984, 991-993, 1009-1010, 1302, 1305-1307
-- `gaol/parser/gaol_eval_stack.h`: 101, 137
-- `gaol/core/gaol_interval_io.cpp`: 260, 269, 305, 353-354, 356-358, 381, 383, 392-400
-- `gaol/gaol_common.h`: 302
-- `gaol/core/gaol_interval_core.h`: 1871, 2198, 2200-2205, 2207, 2260-2261, 2263, 2285
-- `gaol/core/gaol_interval_pow.cpp`: 188, 633, 672, 675, 726, 736, 780, 784, 791, 821, 829, 1019-1020, 1155, 1215, 1239, 1339
-- `gaol/core/gaol_interval_relational.cpp`: 58, 69, 102-104, 106-108, 110, 112-113, 115-116, 118-119, 132, 153, 173-174, 176-177, 565-566
+- `gaol/parser/gaol_expr_eval.h`: 82, 130, 136, 144, 150, 162, 168, 176, 182, 188, 194, 200, 206, 212, 218, 224, 230, 236, 242, 248, 254, 260
+- `gaol/core/gaol_interval_sse_impl.h`: 47, 61, 73, 75-76, 78, 84, 86, 869, 879-880, 897, 912-913, 928, 937-938, 953-954, 962-964, 979-981, 988-990, 1006-1007, 1302, 1305-1307
+- `gaol/parser/gaol_expression.cpp`: 176, 332, 334, 343, 345, 533, 535, 614, 616, 649, 651, 824, 826, 857, 859-860, 863, 865, 897, 899, 931, 933, 965, 967, 999, 1001, 1033, 1035, 1067, 1069, 1102, 1104, 1136, 1138, 1170, 1172, 1239, 1241, 1273, 1275, 1307, 1309, 1375, 1377, 1517, 1538-1539
+- `gaol/core/gaol_interval_io.cpp`: 147, 337, 346, 382, 430-431, 433-435, 458, 460, 469-472, 474-479
+- `gaol/gaol_common.h`: 309
+- `gaol/core/gaol_interval_core.h`: 1871, 2199, 2201-2206, 2208, 2261-2262, 2264, 2286
+- `gaol/core/gaol_interval_relational.cpp`: 58, 69, 102-104, 106-108, 110, 112-113, 115-116, 118-119, 132, 153, 173-174, 176-177, 564-565
+- `gaol/core/gaol_interval_pow.cpp`: 188, 633, 672, 675, 726, 736, 781, 786, 794, 826, 836, 1027-1028, 1163, 1223, 1247, 1347
+- `gaol/parser/gaol_eval_stack.h`: 102
+- `gaol/gaol_common.cpp`: 133, 137
 - `gaol/core/gaol_interval_detail.h`: 321
 - `gaol/core/gaol_interval_trig.cpp`: 267, 271, 805, 844, 847
-- `gaol/core/gaol_interval_core.cpp`: 312-314, 1449, 1462
+- `gaol/core/gaol_interval_core.cpp`: 313-315, 1449, 1462
 - `gaol/math/gaol_compoundm1.h`: 189, 365-366, 1406-1407, 1460-1461
-- `gaol/core/gaol_interval_internal.h`: 476
+- `gaol/core/gaol_interval_internal.h`: 465
 
 ## CORE-MATH, file by file
 
@@ -116,7 +117,7 @@ Sorted by coverage, least covered first.
 | `3rd/math-core/src/binary64/pow/qint.h` | 314 | 282 | 89.8 | 70.4 % |
 | `3rd/math-core/src/binary64/asinpi/asinpi.c` | 249 | 226 | 90.8 | 68.1 % |
 | `3rd/math-core/src/binary64/acosh/acosh.c` | 179 | 163 | 91.1 | 73.9 % |
-| `3rd/math-core/src/binary64/erfc/erfc.c` | 302 | 277 | 91.7 | 83.0 % |
+| `3rd/math-core/src/binary64/erfc/erfc.c` | 302 | 277 | 91.7 | 86.4 % |
 | `3rd/math-core/src/binary64/sinpi/sinpi.c` | 177 | 163 | 92.1 | 60.0 % |
 | `3rd/math-core/src/binary64/log2/log2.c` | 93 | 86 | 92.5 | 86.4 % |
 | `3rd/math-core/src/binary64/log1p/log1p.c` | 153 | 142 | 92.8 | 79.6 % |
