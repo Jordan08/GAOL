@@ -1278,8 +1278,8 @@ changes one of the outputs shows.
 The workflows of \file{.github/workflows/} build GAOL with CMake and run the
 tests, with \cmd{make test} (\cmd{cmake -{}-build <build> -{}-target test},
 \cmd{RUN\_TESTS} with Visual Studio). They run for each pull request, and
-for each push to the branches \code{master}, \code{configure-clean} and
-\code{dev} only: a push to another branch runs nothing until it
+for each push to the branches \code{master} and \code{dev} only: a push to
+another branch runs nothing until it
 is proposed, which halves the jobs of a pull request;\newinvfive{}
 \code{workflow\_dispatch} runs them on any branch. \file{performance.yml},
 \file{manual.yml} and \file{release.yml} are the exceptions: the first runs for
@@ -1288,7 +1288,7 @@ second for the pushes and pull requests that change \file{manual/} or itself,
 the third for the tags that are pushed (it makes the GitHub Release of the
 version with its three packages) and for the pull requests that change it or
 the files of CPack (\file{CMakeLists.txt} and \file{cmake/}). The badges of \file{README.md} show
-their state on \code{configure-clean}. Table~\ref{tab:ci-platforms} gives
+their state on \code{master}. Table~\ref{tab:ci-platforms} gives
 the systems, the processors and the compilers they build on; the list of
 the platforms GAOL supports is in the chapter on the installation
 (\pxref{sec:platforms}).

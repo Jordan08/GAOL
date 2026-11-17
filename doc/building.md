@@ -263,7 +263,8 @@ CMake that are not GAOL's: `CMAKE_BUILD_TYPE`, `CMAKE_INSTALL_PREFIX`,
 
 The three builds make the archive of the sources, `gaol-<version>.tar.gz`,
 with the same files: those of the repository but the notes of the work on
-GAOL v5 that only the development branch `dev` holds (GAOL v5):
+GAOL v5 that the development branch `dev` holds, and `master` once a version of
+`dev` is merged into it (GAOL v5):
 
 ```bash
 git clone https://github.com/Jordan08/GAOL.git gaol && cd gaol

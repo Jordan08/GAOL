@@ -72,6 +72,16 @@ of the repository (its options are in [.shellcheckrc](../.shellcheckrc)), which
 reports nothing either: the lists of flags that the shell has to split carry a
 `# shellcheck disable=` with the reason.
 
+## The work on the repository
+
+In [.github/scripts/](../.github/scripts/), for the people who work on GAOL, not
+for the CI (GAOL v5).
+
+| Script | What it is for |
+|---|---|
+| [check_branch](../.github/scripts/check_branch) | Checks a branch before it is pushed, from the tree that holds it: `check_branch <branch> [base]`, the base being `origin/dev`. It reads the messages of the commits (two lines at most, no line that credits a tool), the files that a pull request must leave alone (the notes of the work, which the base marks `export-ignore` in `.gitattributes`, `ChangeLog`, `doc/differences.md` and the PDF of the manual) and the build products that were committed, and the whitespace. |
+| [gcore](../.github/scripts/gcore) | Runs a command while holding some of the four core tokens that the sessions working on the machine share, so that their builds and their tests never use more than four cores in all: `gcore [-n N] <command>`. Copy it out of the tree before running it: it makes a `corelocks` directory in the parent of the directory that holds it. |
+
 ## Tests
 
 In [tests/](../tests/). The six `*_values.py` scripts write the headers of

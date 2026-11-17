@@ -13,11 +13,11 @@ The workflows of `.github/workflows/` build GAOL with CMake and run the tests
 [Jobs and configurations](#jobs-and-configurations)),
 with `make test` (`cmake --build <build> --target test`, `RUN_TESTS` with
 Visual Studio). They run for each pull request, and for each push to the
-branches `master`, `configure-clean` and `dev` only: a push to another branch
+branches `master` and `dev` only: a push to another branch
 runs nothing until it is proposed, which halves the jobs of a pull request (GAOL
 v5), and neither does a push to `dev` that changes only the notes of the work on
-GAOL v5 (`TODO*.md`, `process.md`, `STEP.md`, `todo-notes/` and `.claude/`:
-`paths-ignore` of the five workflows that build GAOL), which would otherwise
+GAOL v5 (`TODO*.md`, `process.md` and `STEP.md`: `paths-ignore` of the five
+workflows that build GAOL), which would otherwise
 cancel the checks of the commit before it; `workflow_dispatch` runs them on any
 branch. `performance.yml`
 is an exception: it runs for the pull requests that change what it measures
@@ -29,7 +29,7 @@ the GitHub Release of the tag; a pull request that changes it or the files of
 CPack builds them without a Release (see
 [doc/building.md](building.md#the-archive-of-the-sources-and-the-packages);
 GAOL v5). The badges of
-[README.md](../README.md) show their state on `configure-clean`. They build on:
+[README.md](../README.md) show their state on `master`. They build on:
 
 - **Linux:** Ubuntu 24.04 and 26.04 on x86_64 and arm64, with GCC and Clang,
   also with the address and undefined behaviour sanitizers, with `-Wall
