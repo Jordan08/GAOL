@@ -543,9 +543,11 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 8. **Contrôler et commiter.** Lance `check_branch <branche>` depuis l'arbre
    (`.github/scripts/check_branch`, à copier dans ton scratchpad ; sa base par
    défaut est `origin/dev`). Il vérifie les messages (deux lignes au plus,
-   aucune mention de Claude), l'absence des registres, du PDF et des produits de
-   build, et les espaces. Commite par fichiers nommés (section 3.1). Plusieurs
-   commits courts valent mieux qu'un fourre-tout.
+   aucune mention de Claude), l'absence des registres (les fichiers que
+   `.gitattributes` marque `export-ignore`, `ChangeLog` et
+   `doc/differences.md`), du PDF et des produits de build, et les espaces.
+   Commite par fichiers nommés (section 3.1). Plusieurs commits courts valent
+   mieux qu'un fourre-tout.
 9. **Pousser et ouvrir la pull request.** Un push sur une branche autre que
    `master` ou `dev` ne lance **aucune** CI. Elle part
    à l'ouverture de la pull request, ou par `workflow_dispatch`
