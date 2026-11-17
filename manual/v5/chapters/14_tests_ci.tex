@@ -833,7 +833,8 @@ on x86-64 with \option{-mfpmath=387} and GCC 9 (76 of its 300 checks).
 \subsection{The expressions}
 
 \code{expressions} goes through every node of the tree of
-\file{gaol/parser/gaol\_expression.h} and every way a string can be wrong:
+\file{gaol/parser/gaol\_expression.h}, which is not installed, the test being
+built with the sources of GAOL,\newinvfive{} and every way a string can be wrong:
 the numbers in every form the lexer takes, the operators and the functions
 alone and nested, and the strings the parser has to refuse with an exception
 rather than an interval. The intervals have to be read wherever a number may
@@ -1255,7 +1256,7 @@ manual, line by line:\newinvfive{} the examples once printed 1 and 0 where
 the manual showed \code{true} and \code{false}, and \code{chi()} of the
 empty set printed \code{-nan} with GCC where it showed \code{nan}. An
 example holding a \code{main()} is compiled as it is; the others are put in
-a \code{main()} of their own, after \file{<gaol/gaol>}, \file{<gaol/parser/gaol\_expression.h>} and six headers of the standard library (\file{<cmath>}, \file{<iomanip>},
+a \code{main()} of their own, after \file{<gaol/gaol>} and six headers of the standard library (\file{<cmath>}, \file{<iomanip>},
 \file{<iostream>}, \file{<limits>}, \file{<sstream>}, \file{<string>}), with \code{using namespace std} and
 \code{using namespace gaol}, or \code{gaol\_ieee1788} in the chapter of its
 names. A line printed that is too long for the page may be shown on several

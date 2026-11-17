@@ -295,24 +295,16 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
   \code{intervalToExact(x)} & \code{exact\_string(x)}\\
   \code{exactToInterval(s)} & \code{textToInterval(s)} of \code{gaol\_ieee1788}\\
   \hline
-  \multicolumn{2}{l}{\textit{Expressions}}\\*
-  \code{pown(e, n)}, \code{pow(e1, e2)} &
-    the expressions of \code{pown} and of the \ieee{pow} of the standard,
-    declared by \file{gaol/parser/\allowbreak gaol\_expression.h}\\
 \end{longtable}
 \endgroup
 
 \noindent
-Two rows of the table call for a word. \code{overlap(a, b)} is the interval
+One row of the table calls for a word. \code{overlap(a, b)} is the interval
 overlapping function of the standard: it returns an
 \code{overlapping\_state}, one of the sixteen states of Table~10.7 under the
 names of the table, and the type and the member \code{a.overlap(b)} are in
 \code{gaol} too, which has no other name for it
-(Chapter~\ref{chap:relations}).\newinvfive{} The expressions \code{pown(e, n)}
-and \code{pow(e1, e2)} are computed with the \code{pown} and the \code{pow}
-of this namespace; \file{gaol/parser/gaol\_expression.h} declares them with
-the other expressions, and \file{gaol/gaol.h} does not include it, as in
-GAOL~4. The last two parts of this section detail \code{mulRevToPair} and
+(Chapter~\ref{chap:relations}).\newinvfive{} The last two parts of this section detail \code{mulRevToPair} and
 the reverse functions of \code{atan2}.
 
 \paragraph{The two-output division.}

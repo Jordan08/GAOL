@@ -121,14 +121,16 @@ accepts it: the three builds test the compiler for it with a link.
 
 ## The headers
 
-A program includes `gaol/gaol` (or `gaol/gaol.h`), and
-`gaol/parser/gaol_expression.h` for the expressions, with
-`gaol/parser/gaol_expr_eval.h` to evaluate them. The three builds install these and the
-headers they include, each of which compiles alone but the three that other
-headers include in the middle of their code (`gaol/core/gaol_interval_fpu.h`,
-`gaol/core/gaol_interval_neon.h`, `gaol/core/gaol_interval_sse.h`), and not the
-headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
-which did not compile when included, `gaol_init_cleanup.h`,
+A program includes `gaol/gaol` (or `gaol/gaol.h`). The three builds install it
+and the headers it includes, each of which compiles alone but the three that
+other headers include in the middle of their code
+(`gaol/core/gaol_interval_fpu.h`, `gaol/core/gaol_interval_neon.h`,
+`gaol/core/gaol_interval_sse.h`), and not the headers of GAOL's sources (GAOL
+v5): `gaol/parser/gaol_interval_parser.h`, which did not compile when included,
+`gaol/parser/gaol_expression.h`, `gaol/parser/gaol_expr_eval.h` and
+`gaol/parser/gaol_eval_stack.h`, the expressions that `textToInterval()`
+builds, which a program does not use (see [The namespaces](#the-namespaces)),
+`gaol_init_cleanup.h`,
 `gaol/math/gaol_core_math.h`, `gaol/math/gaol_u128.h`,
 `gaol/math/gaol_compoundm1.h`, `gaol/math/gaol_roundeven.h`,
 `gaol/math/gaol_ldexp.h`, `gaol/math/gaol_core_math_port.h`,
@@ -138,8 +140,7 @@ which declared nothing, `gaol_double_op_apmathlib.h` and
 `gaol_double_op_crlibm.h`, of the mathematical libraries GAOL 4 was built with,
 `gaol_limits.h`, `gaol_flags.h`, `gaol_profile.h`, `gaol_allocator.h`,
 `gaol_exceptions.h`, `gaol_exact.h` with `sysdeps/`, which `dtoa.c` needed, and
-`gaol_assert.h`, whose `GAOL_ASSERT` is `assert()` now; a program that included
-`gaol/gaol_expression.h` includes `gaol/parser/gaol_expression.h`. GAOL's headers compile without a warning under
+`gaol_assert.h`, whose `GAOL_ASSERT` is `assert()` now. GAOL's headers compile without a warning under
 `-Wall -Wextra -Wold-style-cast -Wundef`, and put nothing into the global
 namespace:
 `gaol/gaol_exceptions.h` declared `string` and `exception` there, which a
@@ -298,8 +299,8 @@ the direction back: an operation of GAOL after it sets the direction upward
 again, and **`gaol::restore_rounding()` sets it back as many times as the
 program needs** (GAOL v5). What the initialization allocated is freed by the
 automatic cleanup only, after the static objects are destroyed, so that the
-expressions of `gaol/parser/gaol_expression.h` still alive when the program calls
-`gaol::cleanup()` remain valid.
+objects of GAOL still alive when the program calls `gaol::cleanup()` remain
+valid.
 
 The direction set back is the one GAOL found when it initialized itself. It is
 not the one the program started with when an operation of GAOL came first: in
@@ -375,20 +376,24 @@ standard in `gaol_ieee1788`.
 
 `gaol` names the type and the functions of `gaol_core` one by one (GAOL v5):
 the names GAOL 4 had in `gaol` that GAOL v5 still names there (the class
-`interval`, the expressions with their nodes and evaluator, the functions and
-the operators of intervals, the functions of doubles and the rounding
+`interval`, the functions and the operators of intervals, the functions of doubles and the rounding
 direction, `round_downward()`, `round_upward()`, `round_nearest()`,
 `previous_float()`, `next_float()` and `is_finite()`, the version of the
 library, `version_major`, `version_minor`, `version_micro` and `version`, and
 the doubles around π and π/2, `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and
 `gaol_half_pi_up`...), the functions on intervals GAOL v5 adds
 (`exp2`, `log2`, `hypot`, `compoundm1`, `trunc`, `sinpi`, `erf`, `fma`, `cancel_minus`,
-`round_ties_to_even`... and the nodes of their expressions),
-`restore_rounding()` and `exact_string()`. `rnd_keep()` (GAOL v5 adds it, and
+`round_ties_to_even`...), `restore_rounding()` and `exact_string()`. `rnd_keep()` (GAOL v5 adds it, and
 had it in `gaol` in its 4.3 releases; GAOL 4 has none), `NaN_val`,
 `eval_stack`, and the reader of strings, `parse_interval()` and
 `parsing_names`, are in `gaol_core` only, as `gaol_core::rnd_keep(x)`.
-`gaol_ieee1788` names the version as `gaol` does. What GAOL's code uses for
+`gaol_ieee1788` names the version as `gaol` does. The expressions, which GAOL 4
+named in `gaol` too (`expression`, `expr_node`, its thirty nodes, `expr_eval`,
+`evaluate_expr()` and the functions and the operators building an expression),
+are in `gaol_core` only, as the headers that declare them
+(`gaol/parser/gaol_expression.h` and the two that go with it) are not installed
+(GAOL v5): a program reads a string with `textToInterval()`, and does not build
+an expression. What GAOL's code uses for
 itself is
 in `gaol_core` only too, out of the way of the names of a program that opens
 `gaol`: the functions saving and setting the rounding direction and the
@@ -476,9 +481,6 @@ does not count on the direction after an operation that computes no bound (see
 
 The rest of GAOL follows the same split:
 
-- the expressions of `gaol/parser/gaol_expression.h`: `pow(e, n)` and
-  `pow(e1, e2)` in `gaol`, the hybrid power; `pown(e, n)` and `pow(e1, e2)` in
-  `gaol_ieee1788`, the two powers of the standard;
 - `textToInterval`: `gaol::textToInterval("pow([-4,-1],2)")` is [1, 16], and
   `gaol_ieee1788::textToInterval` reads `pow` as the real power, the empty set
   there, and `pown([-4,-1],2)` as the integer power, a name `gaol` does not
@@ -525,13 +527,9 @@ standard:
   `gaol_ieee1788`. An integer exponent beyond the ints gives the pow of
   CORE-MATH at the bounds of x, `pow([2, 3], [1e10])` being [DBL_MAX, +∞], as
   the `pow` of `gaol` gives on the whole of x (GAOL v5: [−∞, +∞]).
-  `pown(e, n)` and `pow(e1, e2)` build expressions computed with this `pown`
-  and this `pow`, declared with the other expressions by
-  `gaol/parser/gaol_expression.h`, which `gaol/gaol` does not include, as with GAOL
-  4. A double converts neither to an interval nor to an expression, their
-  constructors from a double (and that of an expression from an interval)
-  being explicit: `gaol::sin(0.5)` does not compile, with or without
-  `gaol/parser/gaol_expression.h`, and is written `gaol::sin(interval(0.5))`;
+  A double does not convert to an interval, its constructor from a double
+  being explicit: `gaol::sin(0.5)` does not compile, and is written
+  `gaol::sin(interval(0.5))`;
 - `inf` and `sup` of the empty set are +∞ and −∞, where GAOL's bounds are NaN;
 - `isMember(m, x)` is false for an infinite m;
 - `mulRevToPair(b, c)`, the two-output division of 10.5.5, returns the pair
@@ -909,7 +907,7 @@ integer bound, which is empty for a > b compared as numbers
 (`interval(9007199254740993LL, 9007199254740992LL)` is empty, though both lie
 between the same two doubles), the assignment `x = n` and `x |= n`, the
 arithmetic operators (`x + n`, `n * x`, `x += n`...), `set_contains(n)`,
-`expression(n)`, and `numsToInterval()` and `isMember()` in `gaol_ieee1788`;
+and `numsToInterval()` and `isMember()` in `gaol_ieee1788`;
 `x &= n` is `interval(n)` where x contains n, and the empty set otherwise. The
 relations and `set_strictly_contains(n)` compare n as the integer it is:
 `interval(9007199254740992.0) < 9007199254740993LL`, [2^53] < 2^53 + 1, is
@@ -919,9 +917,7 @@ true, though no double lies between them. Every integer type is taken so,
 double, and a `long double` bound next to an integer takes
 `interval(double, double)`). An integer that is a double gives the result the
 double gives, and for the types of 53 bits or less (`int`, `short`, `char`...)
-the same code. `interval(n)` and `expression(n)` are explicit, as their
-constructors from a double; `expression(n)` is `expression(double)` where n is
-a double.
+the same code. `interval(n)` is explicit, as its constructor from a double.
 
 `pow(x, n)` of `gaol` and `pown(x, n)` of `gaol_ieee1788` take an exponent of
 any integer type: `pow(x, 5L)` did not compile, a `long` being as far from an
@@ -940,19 +936,13 @@ doubles there. So do `nth_root(x, q)` and `rootn(x, q)`, whose order beyond the 
 unsigned ints gives an enclosure of the roots, computed by `pow` with the
 exponent 1/q (x^(1/q) is within 2^−21 of 1 for every double x > 0 there),
 `pownRev(c, x, p)`, which gives the hull of the parts of x in these roots and,
-for an even p, in their opposites (for a negative p, c is cut at 0 first), and `pow(e, n)`, `pown(e, n)` and
-`nth_root(e, n)` of the expressions. `nth_root(x, 3L)` was ambiguous;
+for an even p, in their opposites (for a negative p, c is cut at 0 first).
+`nth_root(x, 3L)` was ambiguous;
 `rootn(x, 3000000000u)` and `pownRev(c, 3000000000u)` converted the order to a
 negative `int`, the first giving a wrong interval ([0.99999999839,
 0.99999999946] for [2, 8], rather than [1.00000000023, 1.00000000069]) and the
-second the reverse of a negative power; `rootn(x, 5000000001LL)` and the powers of expressions cut a
-`long` to an `int`; and `nth_root(e, -2)` took the order 4294967294. Beyond
-the ints, `pow(e, n)` and `pown(e, n)` of the expressions are GAOL's `pow`
-with the exponent [n], the powers of the intervals where n is a double, and
-beyond 2^53 the product of x^h and x^l, n = h + l, h a double and |l| < 2^11,
-no node holding a wider integer: wider than the power of the interval where e
-contains 0; beyond the unsigned ints, `nth_root(e, n)` is the root of the
-interval but where e contains 0, where it is wider.
+second the reverse of a negative power; and `rootn(x, 5000000001LL)` cut a
+`long` to an `int`.
 
 ## A result thrown away
 
@@ -961,8 +951,7 @@ another one. `sqrt(x);` alone leaves x as it was, and so do `x.mid();` and
 `x.emptyset();`, a static function that returns the empty set. The functions
 whose result is all they do carry an attribute that makes the compiler warn
 about such a call (GAOL v5): the functions and operators on intervals, their
-predicates, the names of `gaol_ieee1788` and the functions building
-expressions.
+predicates and the names of `gaol_ieee1788`.
 
 ```cpp
 sqrt(x);          // warning: the result is thrown away, x is unchanged
@@ -1430,8 +1419,7 @@ to order its operations with respect to those writes, and relies on `/fp:strict`
 to keep them where the source puts them, which `tests/rounding_direction.cpp`
 checks. With `/W4`, Visual C++ for arm64 warns (C4324, "structure was padded
 due to alignment specifier") of each structure that holds an interval, its
-`float64x2_t` being aligned on 16 bytes there, and of `expr_eval` of the
-installed `gaol/parser/gaol_expr_eval.h`: the warning is harmless, and no job of
+`float64x2_t` being aligned on 16 bytes there: the warning is harmless, and no job of
 the continuous integration compiles with `/W4 /WX` for arm64 (GAOL v5). 32-bit
 ARM, whose NEON has no vector of doubles, does not take them: the option is
 ignored there, and the FPU computes the intervals, as before. A universal build

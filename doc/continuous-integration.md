@@ -551,8 +551,10 @@ change with its measures.
   - A shared `libgaol` (configure, meson) did not export the classes and
     functions of the expressions (`gaol/parser/gaol_expression.h`), and a program
     building one did not link with it. The shared library jobs of CMake,
-    autotools and meson, whose tests link with the installed `libgaol.so`, build
-    `tests/expressions.cpp`.
+    autotools and meson, whose tests link with `libgaol.so`, build
+    `tests/expressions.cpp`; `tests.sh`, which links them with the installed
+    one, does not any more, the headers of the expressions being no longer
+    installed (GAOL v5).
 - **Reports of the sanitizers that were suppressed at first**, and are fixed
   now: the nodes the parser did not free (`lsan.supp`,
   [issue #4](https://github.com/Jordan08/GAOL/issues/4)). Nothing is

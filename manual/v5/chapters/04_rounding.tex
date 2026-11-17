@@ -568,8 +568,7 @@ to order its operations with respect to those writes, and relies on
 \file{tests/rounding\_direction.cpp} checks. With \option{/W4}, Visual C++
 for arm64 warns (C4324, ``structure was padded due to alignment specifier'')
 of each structure that holds an interval, its \code{float64x2\_t} being
-aligned on 16 bytes there, and of \code{expr\_eval} of the installed
-\file{gaol/parser/gaol\_expr\_eval.h}: the warning is harmless, and no job of
+aligned on 16 bytes there: the warning is harmless, and no job of
 the continuous integration compiles with \option{/W4 /WX} for
 arm64.\newinvfive
 
@@ -1477,8 +1476,8 @@ of GAOL after it sets the direction upward again, and
 \code{restore\_rounding()} sets it back as many times as the program
 needs.\newinvfive{} What the initialization allocated is freed by the
 automatic cleanup only, after the static objects are destroyed, so that the
-expressions of \file{gaol/parser/gaol\_expression.h} still alive when the
-program calls \code{cleanup()} remain valid.
+objects of GAOL still alive when the program calls \code{cleanup()} remain
+valid.
 
 \medskip
 The direction set back is the one GAOL found when it initialized itself. It
@@ -1535,9 +1534,8 @@ The program calls it right after its last use of GAOL: an operation of GAOL
 after it sets the rounding direction upward again. The automatic cleanup
 calls it when the program ends, or when the library is unloaded, if the
 program did not, and frees what the initialization allocated, after the
-static objects of the program are destroyed: the expressions of
-\file{gaol/parser/gaol\_expression.h} still alive when the program calls
-\code{cleanup()} remain valid.
+static objects of the program are destroyed: the objects of GAOL still alive
+when the program calls \code{cleanup()} remain valid.
 
 Returns \code{true} the first time it is called and \code{false} afterwards:
 only the first call sets back the rounding direction.
