@@ -14,6 +14,16 @@ arguments in a million, by design, so counting them with the rest would say
 nothing of either.
 
     python3 coverage/coverage_summary.py coverage/coverage.json coverage/README.md
+
+The intervals are computed by one set of files per processor family, chosen by
+the configuration: SSE2 on x86-64, NEON on 64-bit ARM, the FPU elsewhere or with
+GAOL_SIMD=OFF (and the AVX-512 path of x86-64 on request). One run compiles one
+family only, so the page has a section for the files of each family, and
+several runs can be merged first, with gcovr --add-tracefile, into the JSON this
+script reads; each --run adds a line saying what a run was:
+
+    python3 coverage/coverage_summary.py merged.json coverage/README.md \\
+        --run "SSE: x86-64, GCC 15.2" --run "FPU: x86-64, -DGAOL_SIMD=OFF"
 """
 
 # Copyright (c) 2026 ENSTA, France
@@ -23,12 +33,22 @@ nothing of either.
 # GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
 # COPYING.LIB file for information.
 
+import argparse
 import json
 import os
 import sys
 from datetime import date
 
 TARGET = 80.0
+
+# The files of the intervals of each processor family: a run compiles the files
+# of one family, so a page made of one run shows one of these.
+FAMILIES = [
+    ("SSE (x86-64)", "gaol/core/gaol_interval_sse"),
+    ("AVX-512 (x86-64)", "gaol/core/gaol_interval_avx512"),
+    ("NEON (64-bit ARM)", "gaol/core/gaol_interval_neon"),
+    ("FPU", "gaol/core/gaol_interval_fpu"),
+]
 
 
 def percent(covered, total):
@@ -91,11 +111,37 @@ def totals(rows):
     return runnable, covered, branches, taken
 
 
+def families_table(rows):
+    """The rows of GAOL by processor family, with the total of each family."""
+    out = ["| Family | File | Lines | Covered | % | Branches taken |",
+           "|---|---|---:|---:|---:|---:|"]
+    found = False
+    for name, prefix in FAMILIES:
+        members = sorted((r for r in rows if r[0].startswith(prefix)),
+                         key=lambda r: r[0])
+        if not members:
+            continue
+        found = True
+        for path, runnable, covered, branches, taken, _ in members:
+            out.append("| %s | `%s` | %d | %d | %.1f | %s |"
+                       % (name, path, runnable, covered,
+                          percent(covered, runnable),
+                          "%.1f %%" % percent(taken, branches) if branches else "--"))
+        runnable, covered, branches, taken = totals(members)
+        out.append("| | **%s** | %d | %d | **%.1f** | %s |"
+                   % (name, runnable, covered, percent(covered, runnable),
+                      "%.1f %%" % percent(taken, branches) if branches else "--"))
+    return "\n".join(out) if found else None
+
+
 def main():
-    if len(sys.argv) != 3:
-        sys.stderr.write(__doc__)
-        return 2
-    source, target = sys.argv[1], sys.argv[2]
+    parser = argparse.ArgumentParser(description="Page of conclusions of the coverage of GAOL")
+    parser.add_argument("source", help="the JSON of gcovr")
+    parser.add_argument("target", help="the Markdown page to write")
+    parser.add_argument("--run", action="append", default=[], metavar="TEXT",
+                        help="a run the JSON merges, one line of the page; repeatable")
+    args = parser.parse_args()
+    source, target, runs = args.source, args.target, args.run
     with open(source) as f:
         data = json.load(f)
 
@@ -128,6 +174,27 @@ def main():
     out.append("")
     out.append("The line-by-line report is [coverage.html](coverage.html), one page holding its own style.")
     out.append("")
+    if runs:
+        out.append("## The runs this page merges")
+        out.append("")
+        out.append("A run compiles the files of one processor family and the tests run the code "
+                   "of that family only. The runs below are merged (`gcovr --add-tracefile`), so "
+                   "that a line is covered if one of them runs it, and each file of the "
+                   "intervals is counted in the run that compiles it.")
+        out.append("")
+        for run in runs:
+            out.append("- " + run)
+        out.append("")
+        out.append("Each run is `cmake -S . -B <build> -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON "
+                   "-DWITH_EXAMPLES=ON -DGAOL_COVERAGE=ON` (with `-DGAOL_SIMD=OFF` for the FPU) and "
+                   "`cmake --build <build> --target coverage`, which leaves `<build>/coverage.json`. "
+                   "The merge is `gcovr --root . --merge-mode-functions=merge-use-line-min "
+                   "--filter \"$PWD/gaol/\" --filter \"$PWD/3rd/math-core/\" "
+                   "--add-tracefile <run1>.json --add-tracefile <run2>.json ... "
+                   "--html --html-self-contained --html-title \"Coverage of GAOL\" "
+                   "--output coverage/coverage.html --json merged.json`, and this page is "
+                   "`python3 coverage/coverage_summary.py merged.json coverage/README.md --run ...`.")
+        out.append("")
     out.append("## Conclusion")
     out.append("")
     out.append("| | Lines | Covered | Not run | % | |")
@@ -155,12 +222,28 @@ def main():
     out.append("")
     out.append("The lines of CORE-MATH that are never run are its accurate phases, "
                "which a handful of arguments in a million reach, and the paths of the "
-               "architectures this machine is not. They are counted among the lines not run, and are checked otherwise: the accurate "
+               "architectures %s not. They are counted among the lines not run, and are checked otherwise: the accurate "
                "path of `sin` is compared with the upstream sources compiled unchanged, "
                "and that of `cos` with its roundings computed by mpmath (see "
                "`doc/tests.md`); the other accurate phases are reached by the tests of "
-               "their bounds only.")
+               "their bounds only." % ("the runs are" if runs else "this machine is"))
     out.append("")
+    family_table = families_table(rows["GAOL"])
+    if family_table:
+        out.append("## The intervals of each processor family")
+        out.append("")
+        out.append("The configuration chooses the files that compute the intervals: SSE2 on x86-64, "
+                   "NEON on 64-bit ARM, the FPU elsewhere and with `-DGAOL_SIMD=OFF`, and the "
+                   "AVX-512 path of x86-64 where it is asked for. A run compiles one family, so "
+                   "the files of the others are in the page only if a run of them was merged.")
+        out.append("")
+        out.append(family_table)
+        out.append("")
+        absent = [name for name, prefix in FAMILIES
+                  if runs and not any(r[0].startswith(prefix) for r in rows["GAOL"])]
+        if absent:
+            out.append("No merged run compiled the files of: %s." % ", ".join(absent))
+            out.append("")
     out.append("## GAOL, file by file")
     out.append("")
     out.append("Sorted by coverage, least covered first.")
