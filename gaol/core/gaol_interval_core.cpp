@@ -527,9 +527,10 @@ namespace gaol_core {
     the least negative subnormal, the least positive subnormal above a zero,
     +oo above DBL_MAX; a NaN and +oo stay as they are. nextafter() of the C
     library computes with doubles, which the modes that flush the subnormals
-    to zero change: under denormals-are-zero, the UCRT of Windows and the
-    libm of macOS (arm64 and x86_64) did not give the subnormal above 100
-    times 2^-1074 (GAOL v5, continuous integration)
+    to zero change: under denormals-are-zero, for the subnormal above k times
+    2^-1074, from k = 1 on, the UCRT of Windows gave 0 and the libm of macOS
+    (arm64 and x86_64) 2^-1074, where (k + 1) times 2^-1074 is the right one
+    (GAOL v5, continuous integration)
   */
   static double next_double_above(double x)
   {

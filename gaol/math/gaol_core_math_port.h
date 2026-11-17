@@ -165,14 +165,15 @@ took for an undeclared function and did not link.
 #endif /* Windows, or no __builtin_roundeven() */
 
 /*---------------------------------------------------------------------------
-fesetexceptflag() on a 32-bit Windows, which unmasks the exceptions
+fesetexceptflag() of mingw-w64 up to 12, which unmasks the exceptions
 
 cbrt, pow, atan2 and hypot keep the exception flags around their work, with
 _mm_getcsr() and _mm_setcsr() on x86-64 (cbrt, pow and hypot; atan2 calls
 fegetexceptflag() and fesetexceptflag() there too) and with
 fegetexceptflag() and fesetexceptflag() everywhere else. The
-fesetexceptflag() of mingw-w64 for a 32-bit target does not write the flags
-alone: it clears the mask bits of MXCSR with them, so that the invalid, the
+fesetexceptflag() of mingw-w64 for a 32-bit target up to its version 12 does
+not write the flags alone (version 13.0.0 does: commit 4696986c30, 26 February
+2025): it clears the mask bits of MXCSR with them, so that the invalid, the
 divide-by-zero and the overflow exceptions become unmasked (the register went
 from 0x5fb2 to 0x5932 in the continuous integration). An exception then traps
 rather than raise a flag, and GAOL died on the first comparison of the bounds

@@ -406,8 +406,10 @@ namespace gaol_core {
      root through s*s rounded downward, and moved to the next float above when
      it is not a bound yet; where ::sqrt rounds as it should, it is left
      unchanged. The next float is reached by adding the smallest denormal,
-     rather than with nextafter(), which IBEX found to crash on ARM64 macOS when
-     not rounding to nearest. To be called with the rounding direction set
+     rather than with nextafter(). (The crash of nextafter() that IBEX saw on
+     ARM64 macOS when not rounding to nearest came from the x87 control word
+     that GAOL 4.2.3 wrote into FPCR, which enabled the underflow trap: it was
+     not a defect of nextafter().) To be called with the rounding direction set
      upward; the root rounded downward is gaol_minus_sqrt_down() below.
 
      s*s rounded downward, -((-s)*s) when rounding upward, is below x exactly
