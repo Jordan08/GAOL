@@ -5,7 +5,7 @@
  *
  * textToInterval("...") lexes the string, parses it into the tree of
  * gaol/parser/gaol_expression.h, and evaluates that tree
- * (gaol/parser/gaol_expr_eval.h, gaol/parser/gaol_expr_visitor.h). This test
+ * (gaol/parser/gaol_expr_eval.h). This test
  * goes through every node of the tree and
  * every way the string can be wrong, so that the parts of GAOL the other
  * tests never reach are run too:
@@ -1364,7 +1364,7 @@ namespace
     }
 
     // expression(n) for an integer that is a double is expression(double),
-    // written as the double, and a visitor sees a double_node, as before the
+    // written as the double, and the evaluator sees a double_node, as before the
     // overload for the integers (GAOL v5)
     {
       std::ostringstream a, b;
@@ -1820,10 +1820,10 @@ namespace
       explicit probe_leaf(double v) : value_(v) {}
       ~probe_leaf() override { deleted_at = GAOL_TESTS_FRAME_POSITION(); }
       expr_node* clone() const override { return new probe_leaf(value_.get_val()); }
-      void accept(expr_visitor& visitor) override
+      void accept(expr_eval& eval) override
       {
         visited_at = GAOL_TESTS_FRAME_POSITION();
-        visitor.visit(&value_);
+        eval.visit(&value_);
       }
       unsigned int get_precedence() const override { return value_.get_precedence(); }
       std::ostream& display(std::ostream& os) const override { return value_.display(os); }
@@ -2019,13 +2019,13 @@ namespace
     public:
       explicit leaves_values(int count) : count_(count), a_(1.0), b_(2.0) {}
       expr_node* clone() const override { return new leaves_values(count_); }
-      void accept(expr_visitor& visitor) override
+      void accept(expr_eval& eval) override
       {
         if (count_ > 0) {
-          visitor.visit(&a_);
+          eval.visit(&a_);
         }
         if (count_ > 1) {
-          visitor.visit(&b_);
+          eval.visit(&b_);
         }
       }
       unsigned int get_precedence() const override { return 0; }

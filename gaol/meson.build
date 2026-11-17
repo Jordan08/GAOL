@@ -143,7 +143,6 @@ gaol_CORE_HEADERS = [
 gaol_PARSER_HEADERS = [
   'parser/gaol_eval_stack.h',
   'parser/gaol_expr_eval.h',
-  'parser/gaol_expr_visitor.h',
   'parser/gaol_expression.h',
   'parser/gaol_parser.h',
 ]

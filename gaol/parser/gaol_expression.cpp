@@ -65,6 +65,192 @@ namespace gaol_core {
   const unsigned sign_node::precedence = prec_t::uminus_prec;
   const unsigned trunc_node::precedence = prec_t::uminus_prec;
   
+  /*
+  accept() of the nodes (GAOL v5): a node hands itself to the evaluator, which
+  takes it by its type through the visit() it overloads for it. They were
+  defined in gaol/parser/gaol_expression.h, for a visitor of any kind.
+  */
+
+  void null_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "null_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void double_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "double_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void interval_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "interval_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void add_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "add_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void unary_minus_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "unary_minus_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void sub_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "sub_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void mult_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "mult_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void div_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "div_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void pow_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "pow_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void pow_itv_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "pow_itv_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void nth_root_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "nth_root_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void cos_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "cos_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void sin_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "sin_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void tan_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "tan_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void atan2_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "atan2_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void acos_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "acos_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void asin_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "asin_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void atan_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "atan_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void cosh_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "cosh_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void sinh_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "sinh_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void tanh_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "tanh_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void acosh_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "acosh_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void asinh_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "asinh_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void atanh_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "atanh_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void exp_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "exp_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void log_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "log_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void exp2_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "exp2_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void log2_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "log2_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void sign_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "sign_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
+  void trunc_node::accept(expr_eval& eval)
+  {
+    GAOL_DEBUG_VERBOSE(2,std::cout << "trunc_node accepting the evaluator" << std::endl);
+    eval.visit(this);
+  }
+
   namespace {
     /*
     The nodes that wait to be deleted, 32 of them held without allocating

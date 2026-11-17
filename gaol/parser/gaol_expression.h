@@ -39,7 +39,6 @@ cannot be printed.
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_interval.h"
-#include "gaol/parser/gaol_expr_visitor.h"
 
 namespace gaol_core {
   
@@ -70,6 +69,7 @@ namespace gaol_core {
   } Interval_struct;
   
   class expr_node;
+  class expr_eval;
   
   class GAOL_PUBLIC expression {
     friend class expr_node;
@@ -86,7 +86,7 @@ namespace gaol_core {
     /*
     expression(n) for an integer n (GAOL v5): expression(double) where n is
     a double, the node of a double as before, written 7 and seen as a
-    double_node by a visitor; expression(interval(n)), the tightest
+    double_node by the evaluator; expression(interval(n)), the tightest
     interval containing it, otherwise, which expression(double) would
     round. Explicit, as expression(double)
     */
@@ -146,8 +146,12 @@ namespace gaol_core {
     
     virtual expr_node* clone() const =0;
     
-    //! Entry point for visitors.
-    virtual void accept(expr_visitor& visitor) =0;
+    /*
+    Entry point of the evaluation (GAOL v5): the node hands itself to
+    eval.visit(), which takes it by its type. GAOL 4 handed it to a visitor of
+    any kind, expr_visitor, of which expr_eval was the only one GAOL had.
+    */
+    virtual void accept(expr_eval& eval) =0;
     
     virtual unsigned int get_precedence() const =0;
     virtual std::ostream& display(std::ostream& os) const =0;
@@ -198,7 +202,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       protected:
       static const unsigned int precedence;
     };
@@ -217,7 +221,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       
       //! Accessor
       GAOL_INLINE double get_val() const;
@@ -238,7 +242,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       
       //! Accessor
       GAOL_INLINE interval get_val() const;
@@ -259,7 +263,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       
       //! Accessors
       //@{
@@ -282,7 +286,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       
       // Accessor -
       GAOL_INLINE expr_node* get_subexpr();
@@ -303,7 +307,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_left();
@@ -327,7 +331,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_left();
@@ -350,7 +354,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_left();
@@ -372,7 +376,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -403,7 +407,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_left();
@@ -429,7 +433,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -450,7 +454,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -470,7 +474,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -490,7 +494,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -509,7 +513,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_Y();
@@ -529,7 +533,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -548,7 +552,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -567,7 +571,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -587,7 +591,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -606,7 +610,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -625,7 +629,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -646,7 +650,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -665,7 +669,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -684,7 +688,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -704,7 +708,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -723,7 +727,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -745,7 +749,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -767,7 +771,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -789,7 +793,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -811,7 +815,7 @@ namespace gaol_core {
       expr_node* clone() const override;
       std::ostream& display(std::ostream& os) const override;
       unsigned int get_precedence() const override;
-      GAOL_INLINE void accept(expr_visitor& visitor) override;
+      void accept(expr_eval& eval) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -935,21 +939,11 @@ namespace gaol_core {
         /*
         null_node --
         */
-        GAOL_INLINE void null_node::accept(expr_visitor& visitor)
-        {
-          GAOL_DEBUG_VERBOSE(2,std::cout << "null_node accepting visitor" << std::endl);
-          visitor.visit(this);
-        }
         
         
         /*
         double_node --
         */
-        GAOL_INLINE void double_node::accept(expr_visitor& visitor)
-        {
-          GAOL_DEBUG_VERBOSE(2,std::cout << "double_node accepting visitor" << std::endl);
-          visitor.visit(this);
-        }
         
         GAOL_INLINE double double_node::get_val() const
         {
@@ -959,11 +953,6 @@ namespace gaol_core {
         /*
         interval_node --
         */
-        GAOL_INLINE void interval_node::accept(expr_visitor& visitor)
-        {
-          GAOL_DEBUG_VERBOSE(2,std::cout << "interval_node accepting visitor" << std::endl);
-          visitor.visit(this);
-        }
         
         GAOL_INLINE interval interval_node::get_val() const
         {
@@ -974,11 +963,6 @@ namespace gaol_core {
         /*
         add_node --
         */
-        GAOL_INLINE void add_node::accept(expr_visitor& visitor)
-        {
-          GAOL_DEBUG_VERBOSE(2,std::cout << "add_node accepting visitor" << std::endl;);
-          visitor.visit(this);
-        }
         
         GAOL_INLINE expr_node* add_node::get_left()
         {
@@ -993,12 +977,6 @@ namespace gaol_core {
         /*
         unary_minus_node --
         */
-        GAOL_INLINE void unary_minus_node::accept(expr_visitor& visitor)
-        {
-          GAOL_DEBUG_VERBOSE(2,std::cout << "unary_minus_node accepting visitor"
-            << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* unary_minus_node::get_subexpr()
           {
@@ -1008,11 +986,6 @@ namespace gaol_core {
           /*
           sub_node --
           */
-          GAOL_INLINE void sub_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "sub_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* sub_node::get_left()
           {
@@ -1027,11 +1000,6 @@ namespace gaol_core {
           /*
           mult_node --
           */
-          GAOL_INLINE void mult_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "mult_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* mult_node::get_left()
           {
@@ -1046,11 +1014,6 @@ namespace gaol_core {
           /*
           div_node --
           */
-          GAOL_INLINE void div_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "div_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* div_node::get_left()
           {
@@ -1065,11 +1028,6 @@ namespace gaol_core {
           /*
           pow_node --
           */
-          GAOL_INLINE void pow_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "pow_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* pow_node::get_subexpr()
           {
@@ -1085,11 +1043,6 @@ namespace gaol_core {
           /*
           pow_itv_node --
           */
-          GAOL_INLINE void pow_itv_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "pow_itv_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* pow_itv_node::get_left()
           {
@@ -1110,11 +1063,6 @@ namespace gaol_core {
           /*
           nth_root_node --
           */
-          GAOL_INLINE void nth_root_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "nth_root_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* nth_root_node::get_subexpr()
           {
@@ -1130,11 +1078,6 @@ namespace gaol_core {
           /*
           cos_node --
           */
-          GAOL_INLINE void cos_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "cos_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* cos_node::get_subexpr()
           {
@@ -1144,11 +1087,6 @@ namespace gaol_core {
           /*
           sin_node --
           */
-          GAOL_INLINE void sin_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "sin_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* sin_node::get_subexpr()
           {
@@ -1158,11 +1096,6 @@ namespace gaol_core {
           /*
           tan_node --
           */
-          GAOL_INLINE void tan_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "tan_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* tan_node::get_subexpr()
           {
@@ -1172,11 +1105,6 @@ namespace gaol_core {
           /*
           atan2_node --
           */
-          GAOL_INLINE void atan2_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "atan2_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* atan2_node::get_Y()
           {
@@ -1191,11 +1119,6 @@ namespace gaol_core {
           /*
           acos_node --
           */
-          GAOL_INLINE void acos_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "acos_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* acos_node::get_subexpr()
           {
@@ -1205,11 +1128,6 @@ namespace gaol_core {
           /*
           asin_node --
           */
-          GAOL_INLINE void asin_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "asin_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* asin_node::get_subexpr()
           {
@@ -1219,11 +1137,6 @@ namespace gaol_core {
           /*
           atan_node --
           */
-          GAOL_INLINE void atan_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "atan_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* atan_node::get_subexpr()
           {
@@ -1233,11 +1146,6 @@ namespace gaol_core {
           /*
           cosh_node --
           */
-          GAOL_INLINE void cosh_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "cosh_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* cosh_node::get_subexpr()
           {
@@ -1247,11 +1155,6 @@ namespace gaol_core {
           /*
           sinh_node --
           */
-          GAOL_INLINE void sinh_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "sinh_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* sinh_node::get_subexpr()
           {
@@ -1261,11 +1164,6 @@ namespace gaol_core {
           /*
           tanh_node --
           */
-          GAOL_INLINE void tanh_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "tanh_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* tanh_node::get_subexpr()
           {
@@ -1275,11 +1173,6 @@ namespace gaol_core {
           /*
           acosh_node --
           */
-          GAOL_INLINE void acosh_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "acosh_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* acosh_node::get_subexpr()
           {
@@ -1289,11 +1182,6 @@ namespace gaol_core {
           /*
           asinh_node --
           */
-          GAOL_INLINE void asinh_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "asinh_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* asinh_node::get_subexpr()
           {
@@ -1303,11 +1191,6 @@ namespace gaol_core {
           /*
           atanh_node --
           */
-          GAOL_INLINE void atanh_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "atanh_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* atanh_node::get_subexpr()
           {
@@ -1317,11 +1200,6 @@ namespace gaol_core {
           /*
           exp_node --
           */
-          GAOL_INLINE void exp_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "exp_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* exp_node::get_subexpr()
           {
@@ -1331,11 +1209,6 @@ namespace gaol_core {
           /*
           log_node --
           */
-          GAOL_INLINE void log_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "log_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* log_node::get_subexpr()
           {
@@ -1345,11 +1218,6 @@ namespace gaol_core {
           /*
           exp2_node --
           */
-          GAOL_INLINE void exp2_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "exp2_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* exp2_node::get_subexpr()
           {
@@ -1359,11 +1227,6 @@ namespace gaol_core {
           /*
           log2_node --
           */
-          GAOL_INLINE void log2_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "log2_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* log2_node::get_subexpr()
           {
@@ -1373,11 +1236,6 @@ namespace gaol_core {
           /*
           sign_node --
           */
-          GAOL_INLINE void sign_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "sign_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* sign_node::get_subexpr()
           {
@@ -1387,11 +1245,6 @@ namespace gaol_core {
           /*
           trunc_node --
           */
-          GAOL_INLINE void trunc_node::accept(expr_visitor& visitor)
-          {
-            GAOL_DEBUG_VERBOSE(2,std::cout << "trunc_node accepting visitor" << std::endl;);
-            visitor.visit(this);
-          }
           
           GAOL_INLINE expr_node* trunc_node::get_subexpr()
           {
@@ -1438,7 +1291,7 @@ namespace gaol_core {
         /*
         The expressions in the namespace gaol, as in GAOL 4 (see
         gaol/gaol_interval.h): the classes and the functions building and
-        evaluating expressions, the nodes being named by gaol/parser/gaol_expr_visitor.h.
+        evaluating expressions, and their nodes.
         A using-declaration names the overloads declared before it: the functions
         and the operators of intervals that this file overloads for the expressions
         are named again here, after their overloads, so that gaol::sin(e) takes the
@@ -1455,6 +1308,37 @@ namespace gaol_core {
         namespace gaol {
           using gaol_core::expression;
           using gaol_core::expr_node;
+          // The nodes, those of the functions GAOL v5 adds among them
+          using gaol_core::null_node;
+          using gaol_core::double_node;
+          using gaol_core::interval_node;
+          using gaol_core::add_node;
+          using gaol_core::unary_minus_node;
+          using gaol_core::sub_node;
+          using gaol_core::mult_node;
+          using gaol_core::div_node;
+          using gaol_core::pow_node;
+          using gaol_core::pow_itv_node;
+          using gaol_core::nth_root_node;
+          using gaol_core::cos_node;
+          using gaol_core::sin_node;
+          using gaol_core::tan_node;
+          using gaol_core::atan2_node;
+          using gaol_core::acos_node;
+          using gaol_core::asin_node;
+          using gaol_core::atan_node;
+          using gaol_core::cosh_node;
+          using gaol_core::sinh_node;
+          using gaol_core::tanh_node;
+          using gaol_core::acosh_node;
+          using gaol_core::asinh_node;
+          using gaol_core::atanh_node;
+          using gaol_core::exp_node;
+          using gaol_core::log_node;
+          using gaol_core::exp2_node;
+          using gaol_core::log2_node;
+          using gaol_core::sign_node;
+          using gaol_core::trunc_node;
           using gaol_core::evaluate_left_right;
           using gaol_core::evaluate_expr;
           // Named again, with their overloads for the expressions

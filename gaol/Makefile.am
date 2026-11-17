@@ -88,8 +88,8 @@ library_core_include_HEADERS = core/gaol_interval_core.h \
 # gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources
 library_parser_includedir = $(includedir)/gaol/parser
 library_parser_include_HEADERS = parser/gaol_eval_stack.h \
-	parser/gaol_expr_eval.h parser/gaol_expr_visitor.h \
-	parser/gaol_expression.h parser/gaol_parser.h
+	parser/gaol_expr_eval.h parser/gaol_expression.h \
+	parser/gaol_parser.h
 
 # Headers of the sources of GAOL, not installed (GAOL v5):
 # parser/gaol_interval_parser.h, which did not compile when included, the parts

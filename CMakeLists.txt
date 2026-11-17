@@ -1531,8 +1531,7 @@ set(GAOL_CORE_HEADERS
 # gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources
 set(GAOL_PARSER_HEADERS
   gaol/parser/gaol_eval_stack.h gaol/parser/gaol_expr_eval.h
-  gaol/parser/gaol_expr_visitor.h gaol/parser/gaol_expression.h
-  gaol/parser/gaol_parser.h)
+  gaol/parser/gaol_expression.h gaol/parser/gaol_parser.h)
 install(FILES
   gaol/gaol
   ${GAOL_HEADERS}

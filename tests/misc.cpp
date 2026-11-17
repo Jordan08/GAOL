@@ -14,8 +14,8 @@
 
 // GAOL 4's unit test check/misc.cpp, run with the checks of unit_tests.h
 // rather than CppUnit (GAOL v5)
-// The expressions, with their nodes, visitor and evaluator, for the names of
-// the namespace gaol below
+// The expressions, with their nodes and evaluator, for the names of the
+// namespace gaol below
 #include "gaol/parser/gaol_expr_eval.h"
 #include "unit_tests.h"
 
@@ -78,7 +78,6 @@ namespace gaol_names
   GAOL_NAMES_CLASS(interval_format);
   GAOL_NAMES_CLASS(expression);
   GAOL_NAMES_CLASS(expr_node);
-  GAOL_NAMES_CLASS(expr_visitor);
   GAOL_NAMES_CLASS(expr_eval);
   GAOL_NAMES_CLASS(null_node);
   GAOL_NAMES_CLASS(double_node);

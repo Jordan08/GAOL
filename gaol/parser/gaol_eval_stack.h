@@ -131,8 +131,8 @@ namespace gaol_core {
   {
     /*
     Case of underflow, which happens when a tree leaves fewer values than the
-    visitor takes: T() (GAOL v5; it was the_stack[0], the value of an earlier
-    evaluation, or one never set). Nothing is reported here: the visitor has
+    evaluator takes: T() (GAOL v5; it was the_stack[0], the value of an earlier
+    evaluation, or one never set). Nothing is reported here: the evaluator has
     to set its error variable, as expr_eval::result() does.
     */
     if (next_pos == 0) {
