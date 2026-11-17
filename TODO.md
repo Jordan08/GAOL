@@ -1,8 +1,11 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `fc8b9ac` de `dev` (la fusion de #388
-le 17 novembre à 21 h 21 UTC, PJ.3 : le tableau de couverture du manuel et son
-PDF, après les registres de #387, `9665f49`), et avant au commit `8a308a7` de
+Ce qui reste à faire sur GAOL v5 au commit `313ef2d` de `master` (la fusion de
+#390 le 17 novembre à 22 h 20 UTC : `dev`, à `c38417e`, entre dans `master`, la
+version 5.0.0 attend son étiquette), et avant au commit `fc8b9ac` de `dev` (la
+fusion de #388 le 17 novembre à 21 h 21 UTC, PJ.3 : le tableau de couverture du
+manuel et son PDF, après les registres de #387, `9665f49`), et avant au commit
+`8a308a7` de
 `dev` (la fusion de #387 le 17 novembre à 20 h 25 UTC, PJ.8 : les traces de
 `configure-clean` et le dossier `todo-notes/` supprimés, après les commits
 directs du manuel et de la couverture, `c46a6a2` à `5d07c3a`, et les registres
@@ -77,30 +80,30 @@ l'intervalle contient des solutions (PU.1, #323), et deux threads qui
 affichaient la même expression `-x` plantaient (PU.2, #324) ; une borne est
 peut-être fausse encore pour un programme qui met lui-même `FPCR.AH` sur arm64
 (issue #198 : `x / y` des intervalles NEON, cause non trouvée). Rien n'est à
-envoyer à un autre projet ni à publier sans l'accord du mainteneur. Aucune pull
-request n'est ouverte. #382 (la tâche PH : trois commentaires de GAOL,
-`3rd/README.md` et deux fichiers de `doc/compare/`, que les vérifications des
-signalements rendent faux) et #383 (PJ : le rapport de couverture du 17
-novembre, 95,5 % des lignes de `gaol/`, le manuel et son PDF, les temps de
-l'x86 vérifiés) sont fusionnées le 17 novembre à 8 h 31 et 8 h 48 UTC par le
-mainteneur, la CI de leurs têtes au vert (les six workflows), leurs registres
-faits (`TODO_DONE.md` 2.3, 3.49, 4 et 7.49) : la tâche PH est faite. #385
-(hors des points : la classe `expr_visitor` et son en-tête supprimés, les
-`accept()` des nœuds prennent un `expr_eval`) est fusionnée le 17 novembre à
-10 h 00 UTC par le mainteneur, avant la fin de sa CI, ses registres faits
-(`TODO_DONE.md` 2.3, 3.51 et 7.51). #386 (hors des points : les expressions
-et leurs trois en-têtes ne sont plus dans `gaol` ni dans `gaol_ieee1788`, qui
-ne gardent que `textToInterval`) est fusionnée le 17 novembre à 12 h 12 UTC par
-le mainteneur, la CI de sa tête au vert (les huit workflows, Autotools and
-meson à la deuxième tentative), ses registres faits (`TODO_DONE.md` 2.3, 3.52 et
-7.52). #387 (PJ.8 : les workflows et les textes ne nomment plus
-`configure-clean`, le dossier `todo-notes/` est supprimé, ses outils
-`check_branch` et `gcore` sont dans `.github/scripts/`) est fusionnée le 17
-novembre à 20 h 25 UTC par le mainteneur, la CI de sa tête au vert (les huit
-workflows), ses registres faits (`TODO_DONE.md` 2.3, 3.53 et 7.54) : le point
-PJ.8 est fait. Les commits directs du 17 novembre qui précèdent (le manuel, la
-couverture sur trois machines, des tests de `misc`) sont en 7.53. #388 (PJ.3 :
-le tableau de couverture du chapitre 14 du manuel, une ligne de
+envoyer à un autre projet ni à publier sans l'accord du mainteneur. La seule
+pull request ouverte à ce commit est #391 (les registres de la version, de `dev`
+dans `master`). #382 (la tâche PH : trois commentaires de GAOL, `3rd/README.md`
+et deux fichiers de `doc/compare/`, que les vérifications des signalements
+rendent faux) et #383 (PJ : le rapport de couverture du 17 novembre, 95,5 % des
+lignes de `gaol/`, le manuel et son PDF, les temps de l'x86 vérifiés) sont
+fusionnées le 17 novembre à 8 h 31 et 8 h 48 UTC par le mainteneur, la CI de
+leurs têtes au vert (les six workflows), leurs registres faits (`TODO_DONE.md`
+2.3, 3.49, 4 et 7.49) : la tâche PH est faite. #385 (hors des points : la classe
+`expr_visitor` et son en-tête supprimés, les `accept()` des nœuds prennent un
+`expr_eval`) est fusionnée le 17 novembre à 10 h 00 UTC par le mainteneur, avant
+la fin de sa CI, ses registres faits (`TODO_DONE.md` 2.3, 3.51 et 7.51). #386
+(hors des points : les expressions et leurs trois en-têtes ne sont plus dans
+`gaol` ni dans `gaol_ieee1788`, qui ne gardent que `textToInterval`) est
+fusionnée le 17 novembre à 12 h 12 UTC par le mainteneur, la CI de sa tête au
+vert (les huit workflows, Autotools and meson à la deuxième tentative), ses
+registres faits (`TODO_DONE.md` 2.3, 3.52 et 7.52). #387 (PJ.8 : les workflows
+et les textes ne nomment plus `configure-clean`, le dossier `todo-notes/` est
+supprimé, ses outils `check_branch` et `gcore` sont dans `.github/scripts/`) est
+fusionnée le 17 novembre à 20 h 25 UTC par le mainteneur, la CI de sa tête au
+vert (les huit workflows), ses registres faits (`TODO_DONE.md` 2.3, 3.53 et
+7.54) : le point PJ.8 est fait. Les commits directs du 17 novembre qui précèdent
+(le manuel, la couverture sur trois machines, des tests de `misc`) sont en 7.53.
+#388 (PJ.3 : le tableau de couverture du chapitre 14 du manuel, une ligne de
 `doc/differences.md` et le PDF, 97,5 % des 7 822 lignes de `gaol/`) est
 fusionnée le 17 novembre à 21 h 21 UTC par le mainteneur, avant la fin de sa CI
 (Manual, Linux, Linux containers et Windows au vert, Autotools and meson en
@@ -108,26 +111,34 @@ cours et macOS en attente d'un runner), ses registres faits (`TODO_DONE.md` 2.3,
 3.54 et 7.55). La CI du commit de fusion de #387 (`8a308a7`) a eu deux jobs de
 macOS qui n'ont jamais eu de runner (« The job was not acquired by Runner of
 type hosted even after multiple attempts », capacité des runners macOS arm64) :
-leur relance a été annulée par le push de #388. Les
-signalements à d'autres projets sont dans leurs issues, #125
-à #138 sauf #128, et #175 (`TODO_AFTER.md` 2.6) : l'ancienne tâche PH est
-sortie de ce fichier le 17 novembre (`TODO_DONE.md` 3.48 et 3.49). #380 (la
-tâche PZ : le manuel, `doc/differences.md` et
-son PDF, 393 pages) et #381 (le `ChangeLog` de PZ.5) sont fusionnées le 16
-novembre à 22 h 07 et 22 h 09 UTC par le mainteneur, avant la fin de leur CI,
-leurs registres faits (`TODO_DONE.md` 2.3, 3.47, 4 et 7.46) : la tâche PZ est
-faite. #379 (le reste de PX.3 : les bornes qui sont des doubles dans les
-`TEST_HULL`, avec `TEST_HULL_EXACT_LO`, `TEST_HULL_EXACT_HI` et `TEST_SEQ`, et
-les 57 `TEST_EQ` qui restaient, la macro `TEST_EQ` retirée) est fusionnée le 16
-novembre à 20 h 39 UTC, ses registres faits (`TODO_DONE.md` 2.3, 3.46, 4 et
-7.45) : la tâche PX est faite. #373 (hors des points : le diagnostic du contrôle
-de `pow(x, [2])` de `tests/arithmetic.cpp`, qui a échoué une fois sous Rosetta
-sur #358) est dans `dev` par le commit de fusion `cc81735`, que GitHub a fait le
-15 novembre à 22 h 50 UTC sans marquer la pull request fusionnée ; le mainteneur
-l'a fermée le 16 novembre à 7 h 15 UTC (`TODO_DONE.md` 2.4). #351 à #355 et #372
-(la tâche PX : les tests sans dents, le défaut de GCC 12 sur aarch64 que la CI
-de #353 a trouvé, et `==` et `!=` entre intervalles) sont fusionnées, de 13 h 27
-à 22 h 15 UTC le 15 novembre et #353 le 16 à 7 h 16 UTC, leurs registres faits
+leur relance a été annulée par le push de #388. #390 (PJ.3 : `dev` dans
+`master`, 2 338 commits et 980 fichiers, l'arbre de `master` est celui de `dev`)
+est ouverte par la session sur la demande du mainteneur (« ouvre la PR dev ->
+master ») et fusionnée par lui le 17 novembre à 22 h 20 UTC (`313ef2d`), avant
+la fin de sa CI : Manual, Release et Linux verts, Windows, Linux containers et
+Autotools and meson en cours, macOS en attente d'un runner, et Performance rouge
+par construction (sa base, `master`, était GAOL 4.3.2, sans cible
+`gaol_performance`) ; la CI du commit de fusion sur `master` (six workflows)
+tournait au moment des registres. Ses registres sont faits (`TODO_DONE.md` 2.3,
+3.56 et 7.57). Les signalements à d'autres projets sont dans leurs issues, #125
+à #138 sauf #128, et #175 (`TODO_AFTER.md` 2.6) : l'ancienne tâche PH est sortie
+de ce fichier le 17 novembre (`TODO_DONE.md` 3.48 et 3.49). #380 (la tâche PZ :
+le manuel, `doc/differences.md` et son PDF, 393 pages) et #381 (le `ChangeLog`
+de PZ.5) sont fusionnées le 16 novembre à 22 h 07 et 22 h 09 UTC par le
+mainteneur, avant la fin de leur CI, leurs registres faits (`TODO_DONE.md` 2.3,
+3.47, 4 et 7.46) : la tâche PZ est faite. #379 (le reste de PX.3 : les bornes
+qui sont des doubles dans les `TEST_HULL`, avec `TEST_HULL_EXACT_LO`,
+`TEST_HULL_EXACT_HI` et `TEST_SEQ`, et les 57 `TEST_EQ` qui restaient, la macro
+`TEST_EQ` retirée) est fusionnée le 16 novembre à 20 h 39 UTC, ses registres
+faits (`TODO_DONE.md` 2.3, 3.46, 4 et 7.45) : la tâche PX est faite. #373 (hors
+des points : le diagnostic du contrôle de `pow(x, [2])` de
+`tests/arithmetic.cpp`, qui a échoué une fois sous Rosetta sur #358) est dans
+`dev` par le commit de fusion `cc81735`, que GitHub a fait le 15 novembre à 22 h
+50 UTC sans marquer la pull request fusionnée ; le mainteneur l'a fermée le 16
+novembre à 7 h 15 UTC (`TODO_DONE.md` 2.4). #351 à #355 et #372 (la tâche PX :
+les tests sans dents, le défaut de GCC 12 sur aarch64 que la CI de #353 a
+trouvé, et `==` et `!=` entre intervalles) sont fusionnées, de 13 h 27 à 22 h 15
+UTC le 15 novembre et #353 le 16 à 7 h 16 UTC, leurs registres faits
 (`TODO_DONE.md` 2.3, 3.45, 4 et 7.43), alors que ceux de #350 (une suite de
 PW.6, fusionnée le 15 novembre à 7 h 37 UTC) ne le sont pas. #356 à #368 et #370
 (la tâche PY : les textes faux hors du manuel, le code mort, le nom de
@@ -237,7 +248,7 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PJ | La publication de v5.0.0 (`master`, étiquette) | 34 | S |
+| PJ | La publication de v5.0.0 (l'étiquette `v5.0.0`) | 34 | S |
 
 ## PJ. La publication de v5.0.0 (Y) [S, dans cet ordre]
 
@@ -247,11 +258,12 @@ En dernier : elle suppose les corrections faites et les études de PG faites
 par #316 et #317, le manuel (PJ.5) par #294, les textes qui citent macOS 14
 (PJ.6) par #313, les restes de la synthèse (PJ.7) par #313, #314 et #318 et les
 traces de `configure-clean` (PJ.8) par #387, la couverture et le PDF à la
-version (PJ.3, en partie) par #388 (2.3, 3.23, 3.33, 3.34, 3.35, 3.53 et 3.54).
-PU à PZ, faites le 16 novembre, ont changé le code de `gaol/` (PU, PV, PX et PY
-; PZ n'y a changé que des commentaires) et les textes : la couverture, les
-mesures de PJ.2 et le PDF sont à refaire au commit de la version, une seule fois
-(*décidé le 16 novembre*). Fait le 17 novembre (`TODO_DONE.md` 3.49 et 3.50) :
+version (PJ.3, en partie) par #388, et la fusion de `dev` dans `master` (PJ.3,
+en partie) par #390 (2.3, 3.23, 3.33, 3.34, 3.35, 3.53, 3.54 et 3.56). PU à PZ,
+faites le 16 novembre, ont changé le code de `gaol/` (PU, PV, PX et PY ; PZ n'y
+a changé que des commentaires) et les textes : la couverture, les mesures de
+PJ.2 et le PDF sont à refaire au commit de la version, une seule fois (*décidé
+le 16 novembre*). Fait le 17 novembre (`TODO_DONE.md` 3.49 et 3.50) :
 - la couverture et le PDF du manuel, par #383 (95,5 % des 6503 lignes de
   `gaol/`, le tableau du chapitre 14, le PDF) ; #385 a retiré de `gaol/` le
   fichier `gaol_expr_visitor.h`, que ce tableau cite, et #386 a changé
@@ -290,6 +302,14 @@ mesures de PJ.2 et le PDF sont à refaire au commit de la version, une seule foi
   attend le mot du mainteneur : `dev` dans `master` (PJ.3). Le point 71 (PJ.4,
   l'annonce à Frédéric Goualard) est reporté après la version, faute d'adresse :
   l'issue #389 et `TODO_AFTER.md` 1.7 (*décidé le 17 novembre* : 3.55).
+- la fusion de `dev` dans `master`, par #390 (`313ef2d`, le 17 novembre à 22 h
+  20 UTC) : l'arbre de `master` est celui de `dev` (`77b9f27`), la pull request
+  est ouverte par la session sur la demande du mainteneur et fusionnée par lui
+  (3.56). Reste l'étiquette `v5.0.0` : *décidé le 17 novembre*, les registres
+  sont aussi dans `master` avant l'étiquette (par la pull request #391, `master`
+  n'acceptant que des pull requests), et l'étiquette n'est posée que quand toute
+  la CI est verte (celle du commit de fusion de #390 sur `master` et celle de la
+  pull request #391), les jobs qui n'ont pas eu de runner relancés.
 
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de

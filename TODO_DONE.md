@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 17 novembre
-2026 (commit `fc8b9ac` de `dev`, la fusion de #388 ; `configure-clean`, qui
+2026 (commit `313ef2d` de `master`, la fusion de #390 ; `configure-clean`, qui
 était à `83e2f69`, la fusion de #321, est supprimée le 17 novembre : voir la
 section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
@@ -58,6 +58,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 17 novembre 2026
 
+- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit `313ef2d` (la
+  fusion de #390 le 17 novembre à 22 h 20 UTC : `dev`, à `c38417e`, y entre, 2
+  338 commits et 980 fichiers ; l'arbre de `master` est celui de `dev`) ;
+  l'étiquette `v5.0.0` n'est pas encore posée (3.56).
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
   commit `fc8b9ac` (la fusion de #388 le 17 novembre à 21 h 21 UTC, PJ.3 : le
   tableau de couverture du manuel et son PDF, après les registres de #387,
@@ -137,20 +141,20 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   requests des corrections vont vers `dev`, la base du développement depuis le
   13 novembre (3.38) ; `master` (GAOL 4.3.2, plus deux commits de
   `.claude/CLAUDE.md` et leur retrait par la pull request #384, fusionnée le 17
-  novembre à 9 h 42 UTC) ne bouge qu'à la version
-  (point Y : `dev` → `master`, *décidé le 12 novembre* pour `configure-clean`,
-  le 17 pour `dev` : 3.50 ; `MATH-CORE` est supprimée : 3.32). Aucune
-  pull request n'est ouverte : #373 (hors des points : le diagnostic du contrôle
-  de `pow(x, [2])` de `tests/arithmetic.cpp`) est dans `dev` par le commit de
-  fusion `cc81735`, que GitHub a fait le 15 novembre à 22 h 50 UTC sans marquer
-  la pull request fusionnée, et le mainteneur l'a fermée le 16 à 7 h 15 UTC
-  (2.4) ; #351 à #355 et #372 (la tâche PX) sont fusionnées, leurs registres
-  faits (2.3, 3.45 et 7.43), puis #379 (le reste de PX.3) à 20 h 39 UTC (2.3,
-  3.46 et 7.45), puis #380 et #381 (la tâche PZ) à 22 h 07 et 22 h 09 UTC (2.3,
-  3.47 et 7.46), puis #382 (la tâche PH) et #383 (la couverture de PJ) le 17
-  novembre à 8 h 31 et 8 h 48 UTC (2.3, 3.49 et 7.49), alors que ceux de #350
-  (une suite de PW.6, fusionnée le 15
-  novembre à 7 h 37 UTC) ne le sont pas. Le mainteneur a fusionné #165 à #167,
+  novembre à 9 h 42 UTC) n'a bougé qu'à la version, le 17 novembre à 22 h 20
+  UTC, par #390 (point Y : `dev` → `master`, *décidé le 12 novembre* pour
+  `configure-clean`, le 17 pour `dev` : 3.50 ; `MATH-CORE` est supprimée :
+  3.32). Aucune pull request n'est ouverte : #373 (hors des points : le
+  diagnostic du contrôle de `pow(x, [2])` de `tests/arithmetic.cpp`) est dans
+  `dev` par le commit de fusion `cc81735`, que GitHub a fait le 15 novembre à 22
+  h 50 UTC sans marquer la pull request fusionnée, et le mainteneur l'a fermée
+  le 16 à 7 h 15 UTC (2.4) ; #351 à #355 et #372 (la tâche PX) sont fusionnées,
+  leurs registres faits (2.3, 3.45 et 7.43), puis #379 (le reste de PX.3) à 20 h
+  39 UTC (2.3, 3.46 et 7.45), puis #380 et #381 (la tâche PZ) à 22 h 07 et 22 h
+  09 UTC (2.3, 3.47 et 7.46), puis #382 (la tâche PH) et #383 (la couverture de
+  PJ) le 17 novembre à 8 h 31 et 8 h 48 UTC (2.3, 3.49 et 7.49), alors que ceux
+  de #350 (une suite de PW.6, fusionnée le 15 novembre à 7 h 37 UTC) ne le sont
+  pas. Le mainteneur a fusionné #165 à #167,
   #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
   #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
   à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
@@ -4757,6 +4761,25 @@ tournait au moment des registres.
   chiffre du manuel à `coverage/README.md` ; pas de relecteur indépendant (un
   tableau et trois phrases). `check_branch` en règle.
 
+- #390 (PJ.3 ; `dev` dans `master`, tête `c38417e`, 2 338 commits, 980 fichiers,
+  282 287 lignes ajoutées et 142 839 retirées) : ouverte par la session le 17
+  novembre sur la demande du mainteneur (« ouvre la PR dev -> master » : le
+  texte et le titre étaient prêts, 3.54, et les registres disaient que le
+  mainteneur l'ouvrait lui-même, 3.36), fusionnée par lui à 22 h 20 UTC
+  (`313ef2d`, l'arbre de `master` est celui de `dev`, `77b9f27`), avant la fin
+  de sa CI : au moment des registres, Manual, Release et Linux verts, Windows,
+  Linux containers et Autotools and meson en cours, macOS en attente d'un
+  runner ; Performance a 19 jobs rouges, tous à l'étape « Build both, and
+  measure them in turn » avec « No rule to make target 'gaol_performance' » : le
+  workflow construit la base de la pull request, ici `master`, GAOL 4.3.2, qui
+  n'a pas cette cible, et comparer GAOL 4.3.2 à GAOL v5 n'aurait pas de sens ;
+  la règle qui protège `master` (« master verif ») n'exige qu'une pull request
+  (ni contrôle d'état, ni suppression, ni push qui ne soit pas une avance
+  rapide). La CI du commit de fusion sur `master`, six workflows (Performance ne
+  tourne pas sur un push), tournait au moment des registres. Le texte de la
+  pull request (3 412 caractères) dit ce que `master` reçoit, ce qui est
+  vérifié, l'explication de Performance et les questions ouvertes.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -8453,6 +8476,41 @@ préparation de la version laisse ouvertes, et il répond :
 - **Reste à faire** : la pull request vers `master` (le mainteneur), l'étiquette
   sur son mot, PJ.4 après la version.
 
+### 3.56 Le 17 novembre : `dev` dans `master`, et l'étiquette (#390)
+
+Le mainteneur écrit « ouvre la PR dev -> master » (17 novembre), puis « j'ai
+fusionné » ; à la question de la session (l'étiquette maintenant ?) il répond
+« Attendre la CI de master (Recommandé) », puis ajoute : « fait la modif des
+registres sur master également avant de poser l'étiquette. Pour poser
+l'étiquette, attends que toute la CI soit verte. Relance les job si
+nécessaire. »
+
+- **La pull request** : la session l'ouvre cette fois, sur sa demande explicite,
+  alors que les registres disaient (3.36) qu'il l'ouvre et la fusionne lui-même
+  ; elle ne la fusionne pas, et garde la règle pour la suite (ni ouvrir ni
+  fusionner `dev` dans `master` sans sa demande).
+- **Les registres dans `master`** : `master` n'accepte que des pull requests
+  (règle « master verif »), la session fait donc les registres sur `dev` (un
+  commit direct, 7.57) puis ouvre une pull request de `dev` vers `master`, #391,
+  que le mainteneur fusionne ; l'étiquette est posée sur son commit de fusion.
+  Les registres y disent la fusion de #390 et que l'étiquette suit sur ce
+  commit.
+- **L'étiquette** : annotée, de Jordan08, « GAOL 5.0.0: CORE-MATH bounds, IEEE
+  1788-2015, three alike builds, a new manual » (3.55), seulement quand toute la
+  CI est verte : celle du commit de fusion de #390 sur `master` (six workflows)
+  et celle de #391 (les huit, Performance comprise, qui a maintenant une base
+  avec `gaol_performance`) ; les jobs qui n'ont pas eu de runner sont relancés
+  par `rerun-failed-jobs` (API REST) ; une vraie erreur est remontée, jamais
+  affaiblie. Un push sur `master` qui ne change que `TODO*.md` et `process.md`
+  ne lance rien (`paths-ignore`), mais la pull request relance les huit
+  workflows, les `paths-ignore` ne couvrant que `push`.
+- **Pièges** : tant que #391 est ouverte, la tête étant `dev`, aucun push sur
+  `dev` (il relancerait sa CI) ; Performance de #390 est rouge par construction
+  (2.3).
+- **Reste à faire** : la CI verte, la fusion de #391 par le mainteneur, puis
+  l'étiquette, le suivi de `release.yml` (le job `tag`, puis les trois paquets,
+  la Release) et les registres de l'étiquette ; PJ.4 après la version (#389).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -10956,6 +11014,18 @@ leurs registres n'étaient pas faits :
   `process.md` (§12). Les issues #178 et #179 sont mises à jour, #177 non.
 - Ce commit ne change que des fichiers que les workflows ignorent
   (`paths-ignore`) : il n'annule pas la CI du commit de fusion de #388.
+
+### 7.57 Le 17 novembre (après #390 : les registres)
+
+- Les registres de #390, en un commit direct sur `dev`, depuis le clone du
+  scratchpad : `TODO.md` (l'en-tête, les pull requests, le tableau et PJ),
+  ce fichier (en-tête, 1, 2.3, 3.56 et 7.57) et `process.md` (§1, l'en-tête, §12
+  et §13). L'issue #179 est mise à jour ; #178 non (`TODO_AFTER.md` n'a pas
+  changé), #177 non.
+- Ce commit ne change que des fichiers que les workflows ignorent
+  (`paths-ignore`) : il n'annule pas la CI du commit de fusion de #390 sur
+  `master`. Il est ensuite dans `master` par la pull request #391, avant
+  l'étiquette (3.56).
 
 ## 8. Le ménage fait
 

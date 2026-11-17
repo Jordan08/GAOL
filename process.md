@@ -14,9 +14,11 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 17 novembre 2026, au commit `fc8b9ac` de `dev` (la fusion
-de #388, PJ.3 : le tableau de couverture du manuel et son PDF, après les
-registres de #387, `9665f49`), et avant au commit `8a308a7` de `dev` (la fusion
+Dernière mise à jour : 17 novembre 2026, au commit `313ef2d` de `master` (la
+fusion de #390 : `dev`, à `c38417e`, y entre, la version 5.0.0 attend son
+étiquette), et avant au commit `fc8b9ac` de `dev` (la fusion de #388, PJ.3 : le
+tableau de couverture du manuel et son PDF, après les registres de #387,
+`9665f49`), et avant au commit `8a308a7` de `dev` (la fusion
 de #387, PJ.8 : les traces de `configure-clean` et le dossier `todo-notes/`,
 après les commits directs du manuel et de la couverture, `c46a6a2` à `5d07c3a`,
 et les registres de #386, `608af36`), et avant au commit `e30d8bd` de `dev` (la
@@ -87,17 +89,19 @@ Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
     travail (#321, le 13 novembre) ; ses seuls commits absents de `dev`
     retiraient les notes, et restent sous `refs/pull/321/head`. La section 13
     ne passe plus par elle.
-  - `master` : elle ne recevra `dev` qu'à la publication de v5.0.0 (point Y :
-    `dev` → `master`, par une pull request que le mainteneur ouvre et fusionne
-    lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur son
-    mot et qui lance `release.yml`, la GitHub Release et ses trois paquets ;
-    *décidé le 12 novembre*, `TODO_DONE.md` 3.36, et le 17 novembre pour `dev`
-    à la place de `configure-clean`). `MATH-CORE`, l'étape intermédiaire prévue
-    le 3 octobre, est supprimée le 11 novembre. *Décidé le 13 novembre* : pas
-    de fusion dans `master` tant que les tâches PU à PZ de `TODO.md` ne sont
-    pas faites (« il y a encore des TODO. Donc ne fusionne pas dans master
-    maintenant ») ; elles le sont depuis le 16 novembre, et la version attend
-    le mot du mainteneur.
+  - `master` : elle n'a reçu `dev` que le 17 novembre, à la publication de
+    v5.0.0, par #390 (point Y : `dev` → `master`, par une pull request que le
+    mainteneur fusionne lui-même, et qu'il a demandé à la session d'ouvrir ;
+    elle n'accepte que des pull requests, les registres y entrent donc par une
+    pull request de `dev`, avant l'étiquette ; puis l'étiquette annotée
+    `v5.0.0`, que la session pose sur son mot et qui lance `release.yml`, la
+    GitHub Release et ses trois paquets ; *décidé le 12 novembre*,
+    `TODO_DONE.md` 3.36, et le 17 novembre pour `dev` à la place de
+    `configure-clean`). `MATH-CORE`, l'étape intermédiaire prévue le 3 octobre,
+    est supprimée le 11 novembre. *Décidé le 13 novembre* : pas de fusion dans
+    `master` tant que les tâches PU à PZ de `TODO.md` ne sont pas faites (« il y
+    a encore des TODO. Donc ne fusionne pas dans master maintenant ») ; elles le
+    sont depuis le 16 novembre, et la version attend le mot du mainteneur.
   - `todo-status`, l'ancienne branche des rapports et de l'outillage, a été
     supprimée le 4 octobre ; le dossier `todo-notes/`, qui en gardait ce qui
     servait encore, est supprimé le 17 novembre (#387) : ses rapports, la
@@ -1111,16 +1115,17 @@ git ls-remote --heads origin
   (`9a2a88b`, `TODO_DONE.md` 2.3, 3.47, 4 et 7.46), puis, le 17 novembre, #382
   (la tâche PH : trois commentaires de GAOL, `3rd/README.md`, `doc/compare/`) à
   8 h 31 UTC et #383 (PJ : la couverture, le manuel et son PDF) à 8 h 48 UTC
-  (`67f7073`, 2.3, 3.49, 4 et 7.49), puis #385 (hors des points : la
-  suppression d'`expr_visitor`) à 10 h 00 UTC (`a6189a0`, 2.3, 3.51 et 7.51),
-  puis #386 (hors des points : les expressions sortent de `gaol` et de
-  `gaol_ieee1788`) à 12 h 12 UTC (`e30d8bd`, 2.3, 3.52 et 7.52), puis, avec les
-  commits directs du manuel et de la couverture (7.53), #387 (PJ.8 : les traces
-  de `configure-clean`, `todo-notes/` supprimé) à 20 h 25 UTC (`8a308a7`, 2.3,
-  3.53 et 7.54), puis #388 (PJ.3 : le tableau de couverture du manuel et son
-  PDF) à 21 h 21 UTC (`fc8b9ac`, 2.3, 3.54 et 7.55) ; l'audit du 13 octobre a
-  vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
-  J à V.
+  (`67f7073`, 2.3, 3.49, 4 et 7.49), puis #385 (hors des points : la suppression
+  d'`expr_visitor`) à 10 h 00 UTC (`a6189a0`, 2.3, 3.51 et 7.51), puis #386
+  (hors des points : les expressions sortent de `gaol` et de `gaol_ieee1788`) à
+  12 h 12 UTC (`e30d8bd`, 2.3, 3.52 et 7.52), puis, avec les commits directs du
+  manuel et de la couverture (7.53), #387 (PJ.8 : les traces de
+  `configure-clean`, `todo-notes/` supprimé) à 20 h 25 UTC (`8a308a7`, 2.3, 3.53
+  et 7.54), puis #388 (PJ.3 : le tableau de couverture du manuel et son PDF) à
+  21 h 21 UTC (`fc8b9ac`, 2.3, 3.54 et 7.55), puis #390 (PJ.3 : `dev` dans
+  `master`) à 22 h 20 UTC (`313ef2d`, 2.3, 3.56 et 7.57) ; l'audit du 13 octobre
+  a vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H
+  et J à V.
 - **En cours** : au 17 novembre, aucune pull request n'est ouverte :
   #373 (le diagnostic d'un échec sous Rosetta ; `todo-rosetta-diagnostic-pow2`)
   est fermée sans fusion, son contenu étant dans `dev` (`TODO_DONE.md` 2.4), et
@@ -1156,8 +1161,11 @@ git ls-remote --heads origin
   `manual-pz-review-fixes` et `synthese-pu-py`) et #382 (`todo-ph-gaol-texts`)
   et #383 (`manual-pj-coverage`) et #385 (`remove-expr-visitor`) et #386
   (`internal-expressions`) et #387 (`todo-pj8-configure-clean-traces`) et #388
-  (`manual-pj3-coverage`) sont fusionnées, leurs registres faits ; `dev` est au
-  commit de ces registres (7.55), après `fc8b9ac`, la fusion de #388, `9665f49`
+  (`manual-pj3-coverage`) et #390 (`dev` dans `master`) sont fusionnées, leurs
+  registres faits ; la pull request #391 (les registres, de `dev` dans `master`)
+  est ouverte ; `dev` est au commit de ces registres (7.57), après `313ef2d`, la
+  fusion de #390 dans `master`, `c38417e` (7.56), `fc8b9ac`, la fusion de #388,
+  `9665f49`
   (7.54), `8a308a7`, la fusion de #387, `5d07c3a`, `c46a6a2` (7.53),
   `608af36` (7.52), `e30d8bd`, la fusion de #386, `c7f79f3` (7.51), `a6189a0`,
   la fusion de #385, `819e25d` (7.50), `5dff483`, `67f7073`, la fusion de #383,
@@ -1281,9 +1289,14 @@ tâches PU à PZ (*décidé le 13 novembre*).
    prive des notes : `buildsystems-dist` le contrôle à chaque push et à chaque
    pull request. La couverture, les mesures de PJ.2 et le PDF du manuel se
    refont si le code ou les textes ont changé (`TODO.md`, PJ).
-4. **La pull request.** Le mainteneur ouvre et fusionne lui-même celle de
-   `dev` vers `master` (*décidé le 12 novembre*), une vraie fusion, puis la
-   session pose l'étiquette, sur son mot (`TODO.md`, PJ). Les notes sont alors
-   dans l'arbre de `master`, non dans ses archives.
+4. **La pull request.** Le mainteneur fusionne lui-même celle de `dev` vers
+   `master` (*décidé le 12 novembre*), une vraie fusion ; le 17 novembre il a
+   demandé à la session de l'ouvrir (#390). Puis la session pose l'étiquette,
+   sur son mot, quand toute la CI est verte, les jobs sans runner relancés
+   (*décidé le 17 novembre*). `master` n'accepte que des pull requests : les
+   registres qui suivent la fusion y entrent par une pull request de `dev`,
+   avant l'étiquette, que le mainteneur fusionne aussi (#391) ; pendant qu'elle
+   est ouverte, aucun push sur `dev`. Les notes sont alors dans l'arbre de
+   `master`, non dans ses archives.
 5. **Après la version**, le développement continue dans `dev`, que `master`
    rattrape à chaque version.
