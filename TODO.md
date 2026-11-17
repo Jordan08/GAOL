@@ -136,8 +136,8 @@ et 7.37), et ce qu'elles laissent au manuel, à `doc/differences.md` et au
 registres récrits, la même archive des sources) et #322 (la CI sur un push vers
 `dev`) sont fusionnées le 13 novembre dans `dev`, la branche créée de
 `configure-clean` le 12 novembre et la base du développement, et #321 dans
-`configure-clean`, la branche des versions, qui n'a plus les notes de travail :
-ce fichier n'est que dans `dev` (process.md §1 et §13). #295 (PS.2), #296 (PM),
+`configure-clean`, la branche des versions d'alors, supprimée le 17 novembre :
+`dev` la remplace (process.md §1 et §13). #295 (PS.2), #296 (PM),
 #297 (la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette
 de compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
 #301 (la tâche PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38,
@@ -200,7 +200,7 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PJ | La publication de v5.0.0 (`master`, étiquette, annonce) | 34, 71 | S |
+| PJ | La publication de v5.0.0 (`master`, étiquette, annonce, traces de `configure-clean`) | 34, 71, PJ.8 | S |
 
 ## PJ. La publication de v5.0.0 (Y) [S, dans cet ordre]
 
@@ -212,34 +212,27 @@ par #316 et #317, le manuel (PJ.5) par #294, les textes qui citent macOS 14
 3.23, 3.33, 3.34 et 3.35). PU à PZ, faites le 16 novembre, ont changé le code
 de `gaol/` (PU, PV, PX et PY ; PZ n'y a changé que des commentaires) et les
 textes : la couverture, les mesures de PJ.2 et le PDF sont à refaire au commit
-de la version, une seule fois (*décidé le 16 novembre*). Préparé le 17
-novembre à `2d3b47d` de `dev` (`TODO_DONE.md` 3.49) :
-- la couverture et le PDF du manuel, faits par #383 (95,5 % des 6503 lignes de
+de la version, une seule fois (*décidé le 16 novembre*). Fait le 17 novembre
+(`TODO_DONE.md` 3.49 et 3.50) :
+- la couverture et le PDF du manuel, par #383 (95,5 % des 6503 lignes de
   `gaol/`, le tableau du chapitre 14, le PDF), à refaire seulement si du code
   de `gaol/` change encore avant la version ;
 - les temps : une comparaison A/B de l'x86 (Clang 21, SSE2, une même séance)
   entre le code du 12 novembre (`2b5e4f9`) et celui de `dev` ne montre aucune
-  différence au-delà de la dispersion (rapports de 0,96 à 1,06), les tableaux de
-  l'x86 tiennent. Restent le Mac M2 (NEON : `gaol_interval_neon_impl.h` a changé
-  d'une quarantaine de lignes) et le Xeon (AVX-512), par la même comparaison
-  (`.github/scripts/performance-ab.sh --runs 5 --lines`, avant `2b5e4f9`, après
-  `dev`, une dizaine de minutes chacun, le Mac sur secteur ; les sessions
-  MACarm5 et cloud5 sont libres). *À décider* : les refaire, ou garder les
-  mesures du 12 novembre ;
+  différence au-delà de la dispersion (rapports de 0,96 à 1,06) ; *décidé le
+  17 novembre* : le Mac M2 (NEON) et le Xeon (AVX-512) ne sont pas refaits, les
+  mesures du 12 novembre restent ;
 - la CI de `dev` est verte à `9a2a88b` (les cinq workflows), et celle des têtes
   de #382 et de #383 l'était (six workflows) ; celle du commit de fusion
   `67f7073` tournait au moment des registres ;
-- la branche de version (process.md §13), essayée sans rien pousser : la
-  fusion de `dev` dans `configure-clean` n'a que cinq conflits modifié /
-  supprimé (`.gitattributes`, `TODO.md`, `TODO_AFTER.md`, `TODO_DONE.md` et
-  `process.md`) ; une fois ceux-là retirés par `git rm`, l'arbre est celui de
-  `dev` moins 23 fichiers de notes, et rien d'autre ; la CI de la pull request
-  compare les trois archives à `git archive`. *Décidé le 13
-novembre* : pas de fusion dans `master` tant que PU à PZ ne sont pas faites («
-il y a encore des TODO. Donc ne fusionne pas dans master maintenant ») ; elles
-le sont, et la version attend le mot du mainteneur : elle passe d'abord de `dev`
-à `configure-clean`, notes retirées (process.md §13), puis de `configure-clean`
-à `master` (PJ.3).
+- la version va de `dev` dans `master` (process.md §13) : *décidé le 17
+  novembre*, `configure-clean` est supprimée et `dev` prend sa place. L'essai
+  de la fusion (`git merge-tree`, `dev` à `67f7073`) est sans conflit et donne
+  l'arbre de `dev`.
+*Décidé le 13 novembre* : pas de fusion dans `master` tant que PU à PZ ne sont
+pas faites (« il y a encore des TODO. Donc ne fusionne pas dans master
+maintenant ») ; elles le sont, et la version attend le mot du mainteneur :
+`dev` dans `master` (PJ.3).
 
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de
@@ -247,31 +240,28 @@ le sont, et la version attend le mot du mainteneur : elle passe d'abord de `dev`
    défaut. `master` est GAOL 4.3.2, avec lequel les programmes de la
    documentation ne compilent pas, et il n'y a pas d'étiquette `v5.0.0`. *Décidé
    le 12 novembre* (à la place du chemin du 3 octobre, par `MATH-CORE`, que
-   le mainteneur a supprimée sur GitHub le 11 novembre) : une fois
-   `configure-clean` fini, fusionner `configure-clean` dans `master` (qui a deux
-   commits de plus, `577c850` et `406d850`, ceux de `.claude/CLAUDE.md` que
-   `configure-clean` a par `68fe887` et `195e4a2` : une vraie fusion, sans
-   différence de contenu), puis étiqueter `v5.0.0`. *Décidé le 12 novembre au
-   soir* (`TODO_DONE.md` 3.36) : le mainteneur ouvre et fusionne lui-même cette
-   pull request, la session ne l'ouvre pas ; une fois la fusion faite, et sur
-   son mot seulement, la session pose sur le commit de fusion l'étiquette
-   `v5.0.0`, annotée comme `v4.3.2`, qui lance `release.yml` : la GitHub
-   Release, avec les notes que génère GitHub et les trois paquets (`.deb`,
-   `.pkg` de macOS, `.exe` de Windows) ; aucune date ne change, et rien n'est
-   gardé de l'ancien `master` (pas de branche `gaol-4`, les étiquettes `v4.*`
-   suffisent). La fusion d'essai (`git merge-tree`, le 12 novembre à `0ae1840`)
-   était sans conflit et donnait l'arbre de `configure-clean`. Refaite le 17
-   novembre avec la branche de version (`dev` à `2d3b47d`), elle est sans
-   conflit mais ne donne plus l'arbre de la version : `master` a
-   `.claude/CLAUDE.md` (`577c850`, `406d850`), que `configure-clean` n'a plus
-   depuis #321, et la fusion le garde. Le `git archive` de ce commit aurait donc
-   un fichier de plus que les archives de CMake et de `make dist`, et la
-   comparaison de la CI (`buildsystems-dist`) échouerait sur `master` et sur
-   l'étiquette. *À décider* : supprimer `.claude/CLAUDE.md` de `master` par une
-   petite pull request, que le mainteneur fait avant la fusion de
-   `configure-clean` (c'est ce que la préparation recommande : l'arbre de
-   `master` est alors celui de la version) ; ou ajouter à `master` un
-   `.gitattributes` avec `export-ignore` sur ce fichier. *Décidé le 12
+   le mainteneur a supprimée sur GitHub le 11 novembre) : fusionner la branche
+   des versions dans `master`, puis étiqueter `v5.0.0` ; *décidé le 17
+   novembre*, cette branche est `dev` : `configure-clean`, supprimée, ne sert
+   plus à rien. C'est une vraie fusion : `master` a deux commits de plus,
+   `577c850` et `406d850`, ceux de `.claude/CLAUDE.md`, que `dev` a par
+   `68fe887` et `195e4a2`. *Décidé le 17 novembre* : ce fichier sort du dépôt,
+   pour `master` comme pour `dev` ; il est dans
+   `/home/jninin/Documents/WORK/DEV/GAOL/CLAUDE.md`, dossier parent des
+   clones, et noté dans `~/.claude/CLAUDE.md` ; la pull request #384 le retire
+   de `master`, et `dev` ne l'a plus (7.50), de sorte que la fusion donne
+   l'arbre de `dev`. Les notes de travail (`TODO*.md`, `process.md`,
+   `STEP.md`, `todo-notes/`) sont dans l'arbre de `master` après la fusion ;
+   les archives des sources, celles de la Release comprises, ne les ont pas
+   (`.gitattributes`, `export-ignore`, que `buildsystems-dist` contrôle).
+   *Décidé le 12 novembre au soir* (`TODO_DONE.md` 3.36) : le mainteneur
+   ouvre et fusionne lui-même cette pull request, la session ne l'ouvre pas ;
+   une fois la fusion faite, et sur son mot seulement, la session pose sur le
+   commit de fusion l'étiquette `v5.0.0`, annotée comme `v4.3.2`, qui lance
+   `release.yml` : la GitHub Release, avec les notes que génère GitHub et les
+   trois paquets (`.deb`, `.pkg` de macOS, `.exe` de Windows) ; aucune date ne
+   change, et rien n'est gardé de l'ancien `master` (pas de branche `gaol-4`,
+   les étiquettes `v4.*` suffisent). *Décidé le 12
    novembre* : les recettes FetchContent (`doc/using.md`, le manuel,
    `tests/fetch_content`) et le `git clone` de `doc/building.md` visent `master`
    tout le temps, avant comme après l'étiquette, pour avoir la dernière version
@@ -283,15 +273,13 @@ le sont, et la version attend le mot du mainteneur : elle passe d'abord de `dev`
    le mainteneur) interdit de la supprimer et d'y pousser autre chose qu'une
    avance rapide, et exige une pull request (0 approbation, fusion, squash et
    rebase permis) ; aucun contrôle d'état n'est exigé, donc aucun job de macOS
-   14 ; rien ne vise `configure-clean` ni les étiquettes (les quatre `v4.*`
-   existent). La fusion de `configure-clean` dans `master` passe donc par une
-   pull request, non par un push direct. Après v5.0.0, le développement
-   continue dans `dev` (*décidé le 12 novembre*, process.md §13) :
-   `configure-clean` ne reçoit `dev`, notes retirées, qu'à chaque version, et
-   `master` ne reçoit que les versions de `configure-clean`. Les
-   commits à ligne de crédit (123) restent (*décidé le 19 octobre*). La licence
-   est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section « Licences » de
-   `README.md` et dans le manuel : fait. Pour #281, les cas de
+   14 ; rien ne vise les étiquettes (les quatre `v4.*` existent). La fusion de
+   `dev` dans `master` passe donc par une pull request, non par un push
+   direct. Après v5.0.0, le développement continue dans `dev` (*décidé le 12
+   novembre*, process.md §13) et `master` ne reçoit que les versions de `dev`.
+   Les commits à ligne de crédit (123) restent (*décidé le 19 octobre*). La
+   licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section
+   « Licences » de `README.md` et dans le manuel : fait. Pour #281, les cas de
    `tests/test_ibex_codac.cpp` viennent de tests d'IBEX et de Codac sous LGPL v3
    (leur `COPYING.LESSER`), alors que le `README.md` dit GAOL sous LGPL v2
    (`COPYING.LIB`) ; l'en-tête du fichier donne les copyrights et les deux
@@ -314,3 +302,18 @@ le sont, et la version attend le mot du mainteneur : elle passe d'abord de `dev`
    toujours pas de destinataire, et l'adresse de Frédéric Goualard ne se lit
    dans aucun message récent ; aucune réponse des auteurs d'IBEX et de Codac
    depuis 60 jours (recherche par nom) : la licence de #281 attend toujours.
+5. **PJ.8, les traces de `configure-clean`** (*décidé le 17 novembre* : la
+   branche est supprimée) : rien n'est cassé, mais ces textes la nomment
+   encore. Les déclencheurs `branches: [master, configure-clean, dev]` du
+   `push` de `build-systems.yml`, `containers.yml`, `linux.yml`, `macos.yml`,
+   `manual.yml` et `windows.yml` (un fichier de workflow se pousse par SSH :
+   process.md §10) ; les commentaires de `.gitattributes` (lignes 5 et 10) et de
+   `CMakeLists.txt` (ligne 1661) sur la branche des versions qui n'a pas les
+   notes ; `doc/continuous-integration.md` (lignes 16 et 32 : les branches
+   déclenchées, et des badges que `README.md` montre déjà sur `master`) et le
+   chapitre 14 du manuel (lignes 1280 et 1290), avec son PDF. L'histoire reste
+   telle qu'elle est (`ChangeLog`, `doc/tests.md`, `doc/compare/performance.md`,
+   `tests/tools/`, `examples/examples.md`). La branche
+   `todo-rosetta-diagnostic-pow2`
+   (#373, fermée, son contenu est dans `dev`) est la seule autre branche de
+   GitHub : à garder ou à supprimer, au mainteneur.

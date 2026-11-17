@@ -48,8 +48,8 @@ et de #294, de #217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #24
 à #293).
 
 Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
-`TODO_AFTER.md`, `STEP.md`, `todo-notes/`, `.claude/`), n'est que dans la
-branche `dev` (section 1).
+`TODO_AFTER.md`, `STEP.md`, `todo-notes/`), n'est que dans la branche `dev`
+(section 1).
 
 ## 1. Le contexte
 
@@ -62,30 +62,32 @@ branche `dev` (section 1).
   `Jordan08/GAOL`. Il écrit en français. Réponds-lui en français, de façon
   factuelle et concise.
 - **Les branches** :
-  - `dev` : la branche de développement, et la base de toutes les pull
-    requests, depuis le 13 novembre (*décidé le 12 novembre*, « dev devient la
-    base »). Créée de `configure-clean` le 12 novembre (`9d59e0c`), elle seule
-    porte les notes de travail : `TODO.md`, `TODO_DONE.md`, `TODO_AFTER.md`,
-    `process.md`, `STEP.md`, `todo-notes/`, `.claude/` et `.gitattributes`,
-    qui les marque `export-ignore`. Pour le reste, `dev` et `configure-clean`
-    ont les mêmes fichiers, la même archive des sources et le même manuel
-    (#319).
-  - `configure-clean` : la branche des versions, sans les notes de travail
-    (#321, le 13 novembre). Elle ne reçoit que `dev`, à chaque version, notes
-    retirées (section 13), et ne se fusionne jamais dans `dev`, dont elle
-    retirerait les notes.
-  - `master` : elle ne recevra `configure-clean` qu'à la publication de
-    v5.0.0 (point Y : `configure-clean` → `master`, par une pull request que
-    le mainteneur ouvre et fusionne lui-même, puis l'étiquette annotée
-    `v5.0.0`, que la session pose sur son mot et qui lance `release.yml`, la
-    GitHub Release et ses trois paquets ; *décidé le 12 novembre*,
-    `TODO_DONE.md` 3.36). `MATH-CORE`, l'étape intermédiaire prévue le 3
-    octobre, est supprimée le 11 novembre, et la version va directement de
-    `configure-clean` à `master` (*décidé le 12 novembre*). *Décidé le 13
-    novembre* : pas de fusion dans `master` tant que les tâches PU à PZ de
-    `TODO.md` ne sont pas faites (« il y a encore des TODO. Donc ne fusionne
-    pas dans master maintenant ») ; elles le sont depuis le 16 novembre, et la
-    version attend le mot du mainteneur.
+  - `dev` : la branche de développement, la base de toutes les pull requests
+    depuis le 13 novembre (*décidé le 12 novembre*, « dev devient la base »),
+    et, depuis le 17 novembre, la branche des versions (*décidé le 17
+    novembre* : « La branche configure-clean ne sert plus à rien. La branche
+    dev a pris sa place »). Elle porte les notes de travail : `TODO.md`,
+    `TODO_DONE.md`, `TODO_AFTER.md`, `process.md`, `STEP.md` et `todo-notes/`,
+    que `.gitattributes` marque `export-ignore` : les archives des sources,
+    celles de la GitHub Release comprises (`git archive`), ne les ont pas, et
+    la CI le contrôle (`buildsystems-dist`). `master` les aura dans son arbre
+    après la version.
+  - `configure-clean` : supprimée le 17 novembre (sa pointe était `83e2f69`,
+    la fusion de #321). C'était la branche des versions, sans les notes de
+    travail (#321, le 13 novembre) ; ses seuls commits absents de `dev`
+    retiraient les notes, et restent sous `refs/pull/321/head`. La section 13
+    ne passe plus par elle.
+  - `master` : elle ne recevra `dev` qu'à la publication de v5.0.0 (point Y :
+    `dev` → `master`, par une pull request que le mainteneur ouvre et fusionne
+    lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur son
+    mot et qui lance `release.yml`, la GitHub Release et ses trois paquets ;
+    *décidé le 12 novembre*, `TODO_DONE.md` 3.36, et le 17 novembre pour `dev`
+    à la place de `configure-clean`). `MATH-CORE`, l'étape intermédiaire prévue
+    le 3 octobre, est supprimée le 11 novembre. *Décidé le 13 novembre* : pas
+    de fusion dans `master` tant que les tâches PU à PZ de `TODO.md` ne sont
+    pas faites (« il y a encore des TODO. Donc ne fusionne pas dans master
+    maintenant ») ; elles le sont depuis le 16 novembre, et la version attend
+    le mot du mainteneur.
   - `todo-status`, l'ancienne branche des rapports et de l'outillage, a été
     supprimée le 4 octobre : ce qui en sert encore est dans `todo-notes/`.
 - **Les arbres de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V9/GAOL`
@@ -112,7 +114,7 @@ branche `dev` (section 1).
 | Les scripts du dépôt (génération, CI, tests, comparaisons) et à quoi sert chacun | `doc/tools.md` |
 | Le manuel de GAOL v5 | `manual/v5/manual_gaolv5.tex` (la mise en page) et `manual/v5/chapters/` (un fichier par chapitre) (`manual/v4` est celui de GAOL 4 : n'y touche jamais) |
 | La norme IEEE 1788-2015 | `/home/jninin/Documents/WORK/REDAC/ARTICLE/1788-2015.pdf` (table 9.1 p. 28-29, table 10.5 p. 40, 12.12.8 p. 63, littéraux 12.11) |
-| Les consignes permanentes | `.claude/CLAUDE.md`, et `~/.claude/CLAUDE.md` |
+| Les consignes permanentes | `/home/jninin/Documents/WORK/DEV/GAOL/CLAUDE.md`, hors des dépôts depuis le 17 novembre (le dossier parent des clones), et `~/.claude/CLAUDE.md` |
 
 Chaque point a une lettre et garde en sous-points les anciens numéros (4 à
 133), que citent les pull requests, les issues, les rapports et les commentaires
@@ -300,7 +302,7 @@ un est refusée, quel que soit son gain.
     - Le code, les tests, la documentation et le manuel ne renvoient ni aux
       notes de travail (`TODO.md`, `TODO_DONE.md`, `process.md`,
       `todo-notes/`...), ni à leurs points (« point Q of TODO.md », « (GAOL
-      v5, point AC) ») : `configure-clean` et les versions ne les ont pas. On
+      v5, point AC) ») : les archives des versions ne les ont pas. On
       renvoie à une issue ou à une pull request (#NN), et l'histoire d'un
       changement va dans `doc/differences.md` et le `ChangeLog` (les renvois
       de l'époque sont récrits par #319, *décidé le 12 novembre*).
@@ -532,7 +534,7 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
    espaces. Commite par fichiers nommés (section 3.1). Plusieurs commits
    courts valent mieux qu'un fourre-tout.
 9. **Pousser et ouvrir la pull request.** Un push sur une branche autre que
-   `master`, `configure-clean` ou `dev` ne lance **aucune** CI. Elle part
+   `master` ou `dev` ne lance **aucune** CI. Elle part
    à l'ouverture de la pull request, ou par `workflow_dispatch`
    (`gh workflow run <fichier>.yml --ref <branche>`).
 
@@ -742,7 +744,8 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
     job).
 - **Le déclenchement** : sur chaque pull request (`manual.yml` et
   `performance.yml` seulement si leurs chemins changent), sur un push vers
-  `master`, `configure-clean` ou `dev` (`dev` depuis #322, le 13 novembre ; sauf
+  `master` ou `dev` (`dev` depuis #322, le 13 novembre ; `configure-clean`, que
+  les filtres des workflows nomment encore, est supprimée ; sauf
   `performance.yml`, qui ne tourne que sur les pull requests, et sauf un push de
   `dev` qui ne change que les notes : `TODO*.md`, `process.md`, `STEP.md`,
   `todo-notes/` et `.claude/` sont en `paths-ignore` des cinq workflows qui
@@ -789,7 +792,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   - une expérience de CI (comparer deux builds sur les jobs de Windows, sans
     lancer les autres workflows) se fait par un workflow à part qui se lance par
     `on: push: branches: [<la branche>]` : un push vers une branche autre que
-    `master`, `configure-clean` et `dev` ne lance que les workflows qui la
+    `master` et `dev` ne lance que les workflows qui la
     nomment, ni pull request ni les 59 jobs des autres. Exemple :
     `.github/workflows/experiment-fpu-simd.yml` sur la branche jetable
     `experiment-pj-vs-fpu`, jamais fusionnée, supprimée ensuite (#317, run
@@ -805,7 +808,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 - La sortie de `TODO.md` dans la conversation ne suffit pas pour éditer :
   relis-le juste avant, car le mainteneur le modifie souvent.
 - Un sujet de commit trop long ne se corrige plus une fois poussé sur
-  `dev` ou `configure-clean` (on ne force pas ces branches) : mesure-le avant.
+  `dev` ou `master` (on ne force pas ces branches) : mesure-le avant.
 - `make distclean` doit rendre l'arbre tel que git l'a, y compris sans laisser
   de répertoire `.deps` vide. La CI le vérifie.
 - `pkg-config --libs gaol` ne donne pas `-lm` : g++ et clang++ lient eux-mêmes
@@ -821,7 +824,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `interval::two_pi()`.
 - Des branches locales et des stashs du mainteneur existent :
   - ne supprime une branche que si elle est entièrement contenue dans
-    `origin/dev`, ou `origin/configure-clean` pour une branche de version
+    `origin/dev`
     (`git branch -d` le vérifie) ;
   - ne touche pas à une branche non fusionnée sans son accord (par exemple
     `fix-path-core-math`, qui est la seule copie de son travail) ;
@@ -1143,7 +1146,8 @@ git ls-remote --heads origin
   direct `634e3e1`, après la fusion de #294, `1e23540`, après celle de #292,
   `130acea`, et celles de #293, #291, #290 et #289, les registres de #288,
   `6ed4441`, et la fusion de #288, `61a432b`). Ses branches sur GitHub sont
-  `dev`, `configure-clean` et `master` (`MATH-CORE` y est supprimée le 11
+  `dev` et `master` (`configure-clean` est supprimée le 17 novembre ;
+  `MATH-CORE` y est supprimée le 11
   novembre à 22 h 01 UTC, sa pointe `e80819a` dans `configure-clean`, ce que le
   mainteneur confirme le 12 novembre : `TODO_DONE.md` 8.1), avec les branches
   des pull requests ouvertes ; celles des pull requests jetables fermées
@@ -1186,8 +1190,9 @@ git ls-remote --heads origin
   dans leurs issues et `TODO_AFTER.md` 2.6, avec l'accord du mainteneur), puis
   la version (PJ, préparée le 17 novembre, #383 fusionnée : `TODO.md`, après PU
   à PZ,
-  *décidé le 13 novembre* : `dev` dans `configure-clean`, section 13, puis la
-  fusion de `configure-clean` dans `master`, que le mainteneur ouvre et fusionne
+  *décidé le 13 novembre*, la fusion de `dev` dans `master` (section 13 ;
+  `configure-clean` est supprimée le 17 novembre), que le mainteneur ouvre et
+  fusionne
   lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur son mot
   sur le commit de fusion et qui lance la Release de `release.yml` (*décidé le
   12 novembre* : `TODO_DONE.md` 3.36), l'annonce à Frédéric Goualard, la licence
@@ -1205,46 +1210,35 @@ git ls-remote --heads origin
   points sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les points un par un (« traite la
   tâche PF », « traite le point 129 ») : ne commence pas le suivant sans lui.
 
-## 13. Une version : `dev` → `configure-clean` → `master`
+## 13. Une version : `dev` → `master`
 
-`configure-clean` ne reçoit que `dev`, à chaque version, sans ses notes de
-travail (*décidé le 12 novembre* : « dev devient la base »). La première est
-v5.0.0, après les tâches PU à PZ (*décidé le 13 novembre*).
+`dev` est la branche des versions (*décidé le 17 novembre* : `configure-clean`,
+qui retirait les notes, est supprimée). La première est v5.0.0, après les
+tâches PU à PZ (*décidé le 13 novembre*).
 
 1. **Quand.** Le mainteneur le dit. Les tâches de `TODO.md` qui précèdent la
    version sont faites, et la CI de `dev` est verte.
-2. **La fusion de `dev` dans une branche de version**, créée de
-   `configure-clean` :
+2. **L'essai de la fusion**, sans rien pousser :
 
    ```sh
    git fetch origin
-   git switch --no-track -c release-<version> origin/configure-clean
-   git merge origin/dev
+   git merge-tree --write-tree origin/master origin/dev   # sans conflit :
+   l'arbre
+   git rev-parse origin/dev^{tree}                         # le même
    ```
 
-   Une note changée sur `dev` depuis la version précédente donne un conflit
-   « modifié / supprimé » : `git rm` de la note, jamais `git add`. Une note
-   nouvelle de `dev` arrive, elle, sans conflit : retire-la aussi. Après la
-   fusion, aucune note ne doit rester :
-
-   ```sh
-   git ls-files | grep -E '^(TODO|process\.md|STEP\.md|todo-notes/|\.claude/|\.gitattributes)'
-   git diff --stat origin/dev   # rien que la suppression des notes
-   ```
-
-   Une note nouvelle prend aussi sa ligne `export-ignore` dans le
-   `.gitattributes` de `dev`, et son motif dans les `CPACK_SOURCE_IGNORE_FILES`
-   de `CMakeLists.txt`, par une pull request vers `dev` : les deux branches
-   gardent les mêmes builds et la même archive.
-3. **La vérification.** Les trois archives (`cmake --build <build> --target
-   dist`, `make dist`, `meson dist --formats gztar`) donnent exactement les
-   fichiers de `git archive HEAD`, sur la branche de version comme sur `dev`.
-   La couverture, les mesures de PJ.2 et le PDF du manuel se refont si le code
-   ou les textes ont changé (`TODO.md`, PJ).
-4. **Les pull requests.** Celle de `release-<version>` vers `configure-clean`
-   est fusionnée par le mainteneur. Puis il ouvre et fusionne lui-même celle de
-   `configure-clean` vers `master` (*décidé le 12 novembre*), et la session pose
-   l'étiquette, sur son mot (`TODO.md`, PJ).
-5. **Jamais dans l'autre sens.** `configure-clean` ne se fusionne pas dans
-   `dev`, ni les commits d'une branche de version : ils y retireraient les
-   notes.
+   Essai du 17 novembre à `67f7073` : sans conflit, et l'arbre est celui de
+   `dev` ; `master` n'a que deux commits de plus, ceux de `.claude/CLAUDE.md`,
+   que `dev` avait aussi et que la pull request #384 retire de `master`.
+3. **La vérification.** La CI de `dev` est verte. Les trois archives (`cmake
+   --build <build> --target dist`, `make dist`, `meson dist --formats gztar`)
+   donnent exactement les fichiers de `git archive HEAD`, que `.gitattributes`
+   prive des notes : `buildsystems-dist` le contrôle à chaque push et à chaque
+   pull request. La couverture, les mesures de PJ.2 et le PDF du manuel se
+   refont si le code ou les textes ont changé (`TODO.md`, PJ).
+4. **La pull request.** Le mainteneur ouvre et fusionne lui-même celle de
+   `dev` vers `master` (*décidé le 12 novembre*), une vraie fusion, puis la
+   session pose l'étiquette, sur son mot (`TODO.md`, PJ). Les notes sont alors
+   dans l'arbre de `master`, non dans ses archives.
+5. **Après la version**, le développement continue dans `dev`, que `master`
+   rattrape à chaque version.

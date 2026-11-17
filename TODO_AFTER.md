@@ -13,8 +13,8 @@ est dans `TODO_DONE.md` (3.19).
 
 Rien de ce fichier n'est à faire avant v5.0.0, ni sans l'accord du mainteneur.
 Après v5.0.0, le développement continue dans `dev` (*décidé le 12 novembre*,
-`process.md` §13) : `configure-clean` ne reçoit `dev`, notes retirées, qu'à
-chaque version, et `master` ne reçoit que les versions de `configure-clean`. La
+`process.md` §13) : `master` ne reçoit que les versions de `dev`
+(*décidé le 17 novembre* : `configure-clean` est supprimée). La
 GitHub Release que `release.yml` fait à l'étiquette remplace le « pas de GitHub
 Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* :
 `TODO_DONE.md` 3.36). Les points gardent leur lettre et leur ancien numéro
@@ -319,8 +319,7 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    - #132 Apple : rien ; un Feedback facultatif (Feedback Assistant, Apple ID).
    - #133 LLVM : rien ; une demande facultative (github.com/llvm/llvm-project).
    - #134 gmpy2 : rien à l'amont ; un bogue Launchpad facultatif.
-   - #135 musl et #137 libieeep1788 : rien ; fermer les issues si le
-     mainteneur est d'accord.
+   - #135 musl et #137 libieeep1788 : rien ; issues fermées le 17 novembre.
    - #136 Tang et al. : une issue sur github.com/geometryprocessing/intervals
      (dépôt inactif depuis 2023).
    - #138 glibc : rien, ou `asin` seul (Bugzilla de sourceware).
@@ -340,8 +339,9 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    d'auteur des correctifs* : celle du compte personnel du mainteneur, sans
    `Signed-off-by`, remplacée dans les issues par `<adresse-de-l-auteur>` : la
    mettre dans les lignes `From:` des fichiers `.patch` avant l'envoi ; (3) *les
-   liens vers GAOL* des textes visent la branche `configure-clean`, qui garde
-   le code ; après la version, l'étiquette `v5.0.0` est un autre choix.
+   liens vers GAOL* des textes visent la branche `dev` (`configure-clean`,
+   qu'ils visaient, est supprimée le 17 novembre) ; après la version,
+   l'étiquette `v5.0.0` est un autre choix.
 
 ## 3. Écarté, à rouvrir si une condition change
 

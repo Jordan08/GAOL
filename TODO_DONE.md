@@ -1,8 +1,9 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 17 novembre
-2026 (commit `67f7073` de `dev`, la fusion de #383, et `83e2f69` de
-`configure-clean`, la fusion de #321 : voir la section 1). Ce fichier n'est que
+2026 (commit `67f7073` de `dev`, la fusion de #383 ; `configure-clean`, qui
+était à `83e2f69`, la fusion de #321, est supprimée le 17 novembre : voir la
+section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -91,8 +92,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   ceux de #319, #321 et #322, `03f3783` (7.35), eux-mêmes après la fusion de
   #322 à 10 h 53 UTC, `f7046b9`, les registres de la relecture, `5d047c0` et
   `474a7c6` (7.34), et la fusion de #319 à 10 h 17 UTC, `45efbd1`) ; elle seule
-  a les notes de travail. **`configure-clean`**, la branche des versions, est au
-  commit `83e2f69` (la fusion de #321 à 10 h 52 UTC, qui en retire les notes).
+  a les notes de travail. **`configure-clean`**, la branche des versions, est
+  supprimée le 17 novembre (3.50) : elle était au commit `83e2f69` (la fusion de
+  #321 à 10 h 52 UTC, qui en retire les notes).
   Les deux partent de `9d59e0c` (7.33), après `f006421` (la fusion de #318 le 12
   novembre à 19 h 56 UTC, après celle de #317 à 17 h 31 UTC (`9cd5113`), après
   celle de #316 à 15 h 30 UTC (`1afb90a`), après celle de #315 à 15 h 20 UTC
@@ -121,8 +123,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   l'import de CORE-MATH `0b2ae6d1` est du 27 octobre, voir 7.6 à 7.10). Les pull
   requests des corrections vont vers `dev`, la base du développement depuis le
   13 novembre (3.38) ; `master` (GAOL 4.3.2, plus deux commits de
-  `.claude/CLAUDE.md`) ne bouge qu'à la version (point Y : `configure-clean` →
-  `master`, *décidé le 12 novembre*, `MATH-CORE` étant supprimée : 3.32). Aucune
+  `.claude/CLAUDE.md`, que la pull request #384 retire) ne bouge qu'à la version
+  (point Y : `dev` → `master`, *décidé le 12 novembre* pour `configure-clean`,
+  le 17 pour `dev` : 3.50 ; `MATH-CORE` est supprimée : 3.32). Aucune
   pull request n'est ouverte : #373 (hors des points : le diagnostic du contrôle
   de `pow(x, [2])` de `tests/arithmetic.cpp`) est dans `dev` par le commit de
   fusion `cc81735`, que GitHub a fait le 15 novembre à 22 h 50 UTC sans marquer
@@ -298,9 +301,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   défaut ; les instructions FMA, le chemin AVX-512, l'entier 128 bits et le
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
-- **Branches** : GitHub a `dev`, `configure-clean` et `master` (`MATH-CORE` y
-  est supprimée le 11 novembre à 22 h 01 UTC, sa pointe dans `configure-clean`,
-  ce que le mainteneur confirme le 12 : 8.1), avec les branches des pull
+- **Branches** : GitHub a `dev` et `master` (`configure-clean` y est supprimée
+  le 17 novembre : 3.50 ; `MATH-CORE` l'est le 11 novembre à 22 h 01 UTC, sa
+  pointe dans `configure-clean`, ce que le mainteneur confirme le 12 : 8.1),
+  avec les branches des pull
   requests ouvertes ; celles des pull requests jetables fermées
   (`experiment-pg*`, `todo-pg-xle-exfirst`) et les fusionnées sont supprimées
   depuis le 11 novembre (8.1), leurs commits restant sous `refs/pull/<n>/head` ;
@@ -8035,6 +8039,51 @@ Prépare ensuite la tâche PJ » (17 novembre).
   workflows de chaque tête de pull request étaient au vert. Les branches
   `todo-ph-gaol-texts` et `manual-pj-coverage` ne sont plus sur GitHub.
 
+### 3.50 Le 17 novembre : `configure-clean` supprimée, `dev` la remplace
+
+Après la fusion de #382 et de #383, le mainteneur écrit : « La branche
+configure-clean ne sert plus à rien. La branche dev a pris sa place. Tu peux
+supprimer configure-clean et mettre à jour les registres », et répond aux quatre
+questions de 3.49 :
+
+- **`configure-clean` supprimée** : sur GitHub (sa pointe était `83e2f69`, ses
+  deux seuls commits absents de `dev`, `ab44349` et la fusion de #321,
+  retiraient
+  les notes et restent sous `refs/pull/321/head`), et en local dans `GAOL_V9` et
+  `GAOL_V8` (aucun commit qui n'était pas sur GitHub). La version va de `dev`
+  dans `master` : l'essai de la fusion est sans conflit et donne l'arbre de
+  `dev`
+  (process.md §13, récrit). Les notes de travail seront dans l'arbre de `master`
+  ;
+  les archives des sources ne les ont pas (`export-ignore`). Les liens des
+  issues #125, #136 et #67 vers la branche visent `dev`. Ce que le texte du
+  dépôt dit encore de la branche (les déclencheurs de la CI, des commentaires,
+  le
+  chapitre 14 du manuel) est le point PJ.8 de `TODO.md`.
+- **Réponse 1, `.claude/CLAUDE.md`** : « retire .claude du master. Déplace le
+  fichier dans /home/jninin/Documents/WORK/DEV/GAOL. Indique également le
+  nouvel emplacement dans mes paramètres de Claude par défaut ». Le fichier
+  (le même sur `master` et sur `dev`, `50171bc`) est copié dans
+  `/home/jninin/Documents/WORK/DEV/GAOL/CLAUDE.md`, que Claude charge depuis les
+  clones, ses sous-dossiers ; `~/.claude/CLAUDE.md` a une section « Projet
+  GAOL » qui le dit ; la pull request #384 le retire de `master` (le mainteneur
+  la fusionne) et le même commit de registres le retire de `dev`, sans quoi la
+  fusion de `dev` l'aurait remis dans `master`. Une fusion de `dev` donne
+  l'arbre
+  de `dev` quoi que `master` ait.
+- **Réponse 2, les mesures** : « laisse les mesures actuelles » : le Mac M2 et
+le
+  Xeon ne sont pas refaits, ceux du 12 novembre restent.
+- **Réponse 3, les issues** : « ferme ce qui n'est pas utile » : #135 (musl) et
+  #137 (libieeep1788), que leurs issues recommandaient de fermer, sont fermées
+  avec un commentaire (« non planifiée »). #132, #133, #134 et #138 (« rien, ou
+  »
+  un envoi facultatif) restent ouvertes, comme #126, #127, #129 à #131, #136,
+  #175 et #125, dont l'envoi attend le mainteneur.
+- **Réponse 4, l'adresse de Goualard et la licence d'IBEX et de Codac** :
+  « laisse, n'y touche pas » : PJ.4 et la phrase de PJ.3 sur #281 ne changent
+  pas.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -10415,6 +10464,20 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   lance aucun workflow et n'annule donc pas la CI du commit de fusion
   `67f7073`, qui tournait.
 - Le clone du scratchpad est supprimé à la fin de la session.
+
+### 7.50 Le 17 novembre (`configure-clean` supprimée : les registres)
+
+- Les registres de 3.50, en un commit direct sur `dev`, depuis un clone
+  `--shared` du scratchpad : `TODO.md` (l'en-tête de PJ, PJ.3 récrit pour la
+  fusion de `dev` dans `master`, le point PJ.8), `TODO_AFTER.md` (l'en-tête et
+  2.6), `process.md` (§1, §2, §10, §12 et §13 récrit, les listes de notes), ce
+  fichier (en-tête, 1, 3.50 et 7.50) et le retrait de `.claude/CLAUDE.md`. Les
+  issues #178 et #179 sont mises à jour, #177 non.
+- Ce commit ne change que des fichiers que les cinq workflows ignorent
+  (`TODO*.md`, `process.md` et `.claude/`) : il ne lance aucun workflow.
+- La pull request #384 (`remove-claude-instructions`, un commit sur `master`)
+est
+  ouverte, le mainteneur la fusionne.
 
 ## 8. Le ménage fait
 
