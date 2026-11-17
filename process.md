@@ -14,7 +14,10 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 17 novembre 2026, au commit `a6189a0` de `dev` (la fusion
+Dernière mise à jour : 17 novembre 2026, au commit `e30d8bd` de `dev` (la fusion
+de #386, hors des points : les expressions sortent de `gaol` et de
+`gaol_ieee1788`, après les registres de #385, `c7f79f3`), et avant au commit
+`a6189a0` de `dev` (la fusion
 de #385, hors des points : la suppression d'`expr_visitor`, après les registres
 de `configure-clean`, `819e25d`), et avant au commit `67f7073` de `dev` (la
 fusion de #383, la couverture et le PDF de la préparation de PJ, après celle de
@@ -817,10 +820,12 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 - `pkg-config --libs gaol` ne donne pas `-lm` : g++ et clang++ lient eux-mêmes
   la bibliothèque mathématique, que GAOL appelle encore (`<fenv.h>`, `sqrt`,
   `floor`, `fma` sans FMA matériel...). Ne rajoute pas `-lm`.
-- Les en-têtes internes (`gaol_interval_parser.h`, `gaol_init_cleanup.h`...)
-  ne sont pas installés, et `gaol/gaol` n'inclut pas
-  `gaol_expression.h` : un programme qui construit des expressions l'inclut
-  lui-même.
+- Les en-têtes internes (`gaol_interval_parser.h`, `gaol_init_cleanup.h`,
+  `gaol_expression.h`, `gaol_expr_eval.h`, `gaol_eval_stack.h`...) ne sont pas
+  installés, et `gaol` et `gaol_ieee1788` ne nomment plus les expressions (#386) :
+  un programme lit une chaîne avec `textToInterval()`. Les tests qui incluent
+  ces en-têtes (`expressions`, `misc`, `debugging`, `ieee1788`) se construisent
+  dans l'arbre, et `tests.sh` ne construit pas `expressions`.
 - Les constantes `double` de `gaol_port.h` ne font plus partie de l'interface.
   Il reste `detail::pi_dn`, `pi_up`, `half_pi_dn` et `half_pi_up` ; le code
   utilisateur emploie `interval::pi()`, `interval::half_pi()` et
@@ -1085,8 +1090,10 @@ git ls-remote --heads origin
   (la tâche PH : trois commentaires de GAOL, `3rd/README.md`, `doc/compare/`) à
   8 h 31 UTC et #383 (PJ : la couverture, le manuel et son PDF) à 8 h 48 UTC
   (`67f7073`, 2.3, 3.49, 4 et 7.49), puis #385 (hors des points : la
-  suppression d'`expr_visitor`) à 10 h 00 UTC (`a6189a0`, 2.3, 3.51 et 7.51) ;
-  l'audit du 13 octobre a
+  suppression d'`expr_visitor`) à 10 h 00 UTC (`a6189a0`, 2.3, 3.51 et 7.51),
+  puis #386 (hors des points : les expressions sortent de `gaol` et de
+  `gaol_ieee1788`) à 12 h 12 UTC (`e30d8bd`, 2.3, 3.52 et 7.52) ; l'audit du 13
+  octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
 - **En cours** : au 17 novembre, aucune pull request n'est ouverte :
@@ -1122,9 +1129,11 @@ git ls-remote --heads origin
   et `todo-px6-ieee-basic-example`) et #379 (le reste de PX.3 ;
   `todo-px3b-test-eq-rest`) et #380 et #381 (la tâche PZ ;
   `manual-pz-review-fixes` et `synthese-pu-py`) et #382 (`todo-ph-gaol-texts`)
-  et #383 (`manual-pj-coverage`) sont fusionnées, leurs registres faits ; `dev`
-  est au commit de ces registres (7.51), après `a6189a0`, la fusion de #385,
-  `819e25d` (7.50), `5dff483`, `67f7073`, la fusion de #383,
+  et #383 (`manual-pj-coverage`) et #385 (`remove-expr-visitor`) et #386
+  (`internal-expressions`) sont fusionnées, leurs registres faits ; `dev`
+  est au commit de ces registres (7.52), après `e30d8bd`, la fusion de #386,
+  `c7f79f3` (7.51), `a6189a0`, la fusion de #385, `819e25d` (7.50), `5dff483`,
+  `67f7073`, la fusion de #383,
   `269c895`, la fusion de #382, `74409aa`, les registres de la préparation de PJ
   (7.48), `2d3b47d`, ceux de PH (7.47), `9a2a88b`, la
   fusion de #381, `5c746d7`, la fusion de #380, `3d0616e`, les registres de PX

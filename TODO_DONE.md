@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 17 novembre
-2026 (commit `a6189a0` de `dev`, la fusion de #385 ; `configure-clean`, qui
+2026 (commit `e30d8bd` de `dev`, la fusion de #386 ; `configure-clean`, qui
 était à `83e2f69`, la fusion de #321, est supprimée le 17 novembre : voir la
 section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
@@ -59,7 +59,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 ## 1. L'état au 17 novembre 2026
 
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `a6189a0` (la fusion de #385 le 17 novembre à 10 h 00 UTC, hors des
+  commit `e30d8bd` (la fusion de #386 le 17 novembre à 12 h 12 UTC, hors des
+  points : les expressions sortent de `gaol` et de `gaol_ieee1788`, après les
+  registres de #385, `c7f79f3` (7.51)), et avant au commit `a6189a0` (la fusion
+  de #385 le 17 novembre à 10 h 00 UTC, hors des
   points : la suppression d'`expr_visitor`, après les registres de
   `configure-clean`, `819e25d` (7.50)), et avant au commit `67f7073` (la fusion
   de #383 le 17 novembre à 8 h 48 UTC, la couverture
@@ -4635,6 +4638,46 @@ tournait au moment des registres.
   Le relecteur (144 000 jetons) n'a trouvé aucun défaut de code et six textes
   périmés, corrigés.
 
+- - #386 (hors des points : les expressions sortent de `gaol` et de
+  `gaol_ieee1788` ; `internal-expressions`, quatre commits, 31 fichiers, 297
+  lignes ajoutées et 604 retirées) : fusionnée le 17 novembre à 12 h 12 UTC par
+  le mainteneur (`e30d8bd`, tête `87f862e`), la CI de la tête au vert : Manual,
+  Performance, Release, Linux containers, Linux, Windows et macOS à la première
+  tentative, Autotools and meson à la deuxième (dans le job « Debian 13 armhf
+  and arm64 rounding direction », les trois étapes armhf ont fait `exec format
+  error`, le conteneur ne démarrant pas ; relancer ce seul job a suffi, 16 jobs
+  sur 16). Demande du mainteneur après #385 : « enlève les `*_node` des
+  namespace `gaol` et `gaol_ieee1788`, garde uniquement `textToInterval` ». À la
+  question de la session sur la portée, il a choisi la plus large : « Tout cela,
+  et ne plus installer les en-têtes ». `gaol_expression.h` ne déclare plus rien
+  dans `gaol` ni dans `gaol_ieee1788` (les 30 `using` des nœuds, `expression`,
+  `expr_node`, `evaluate_expr`, `evaluate_left_right`, les opérateurs et les
+  fonctions sur les expressions, `pow(e, n)` et `pown(e, n)`, 189 lignes) et
+  `gaol_expr_eval.h` perd son `using gaol_core::expr_eval` : tout reste dans
+  `gaol_core`. `gaol_expression.h`, `gaol_expr_eval.h` et `gaol_eval_stack.h` ne
+  sont plus installés par les trois constructions (`GAOL_PARSER_HEADERS`,
+  `noinst_HEADERS` de `gaol/Makefile.am` avec son `Makefile.in` régénéré,
+  `EXTRA_DIST` de `gaol/meson.build` : ils restent dans les archives),
+  `gaol_parser.h` l'est. `headers.sh` et les actions `buildsystems-meson-msvc`
+  et `linux-fetch-content` vérifient la liste installée. `tests/misc.cpp`
+  vérifie que `gaol` ne nomme plus aucune expression (les 30 nœuds,
+  `expression`, `expr_node`, `expr_eval`, `evaluate_expr`,
+  `evaluate_left_right`, `eval_stack`, `the_null_expr`, `prec_t`,
+  `gaol_pown_exp`, `gaol_pow_exp`), `tests/expressions.cpp` travaille dans
+  `gaol_core` et vérifie que `gaol::sin(e)` et `gaol_ieee1788::sin(e)` ne
+  compilent pas, `tests.sh` ne construit plus `expressions` (ses en-têtes ne
+  sont plus installés). Validé deux fois (avant et après la relecture) : CMake
+  avec GCC 15.2 et Clang 18 en `-Wall -Wextra -Werror` (70 et 66 tests),
+  intervalles FPU (67), ASan et UBSan (70), `headers.sh`, autotools (16 sur 16),
+  meson (33 réussis, 2 ignorés), les tests du GAOL installé, le manuel (zéro
+  erreur, 7 lignes « Overfull » avant et après) et `check_examples.py` (118 sur
+  118), tout au vert ; onze noms remis dans `gaol` font échouer
+  `tests/misc.cpp`. Le relecteur (173 000 jetons, plafond de 60 000 demandé) a
+  trouvé un défaut de test (`misc.cpp`, sans l'inclusion de `gaol_expr_eval.h`,
+  ne déclarait plus aucune expression : ses contrôles « absent » étaient vides)
+  et six textes périmés, corrigés ; `gaol_expression.h` inclut `gaol_ieee1788.h`
+  avant ses surcharges pour que l'ordre des inclusions ne compte pas.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -8150,6 +8193,60 @@ branche en suivant la méthodologie de `process.md` » (17 novembre).
   la synthèse ; `examples/examples.md` (ligne 601), l'histoire d'une relecture,
   nomme encore le fichier.
 
+### 3.52 Le 17 novembre : les expressions sortent de `gaol` (#386)
+
+Le mainteneur demande « enlève les `*_node` des namespace `gaol` et
+`gaol_ieee1788` / garde uniquement `textToInterval` » (17 novembre), juste après
+avoir fusionné #385, puis, à la question de la session sur la portée (les seuls
+`*_node`, ou toute l'API des expressions de ces deux espaces, avec ou sans
+l'installation de leurs en-têtes), répond « Tout cela, et ne plus installer les
+en-têtes ».
+
+- **Pourquoi** : `gaol_ieee1788` ne nommait aucun `*_node`, seulement les
+  fonctions élémentaires, `pown(e, n)` et `pow(e1, e2)` des expressions ; `gaol`
+  nommait tout, comme GAOL 4. Un programme lit une chaîne avec
+  `textToInterval()`, l'arbre n'est qu'un détail du lecteur, et le garder dans
+  `gaol` coûtait trois en-têtes installés, 30 `using`, 189 lignes de surcharges,
+  et une ambiguïté à réparer (`gaol::sin(0.5)`, la surcharge d'expression de
+  `gaol_ieee1788` selon l'ordre des inclusions). Rien dans `examples/` ni dans
+  les sources de GAOL, hors le lecteur, n'utilisait ces noms.
+- **Les choix de la session** : le test `expressions` se construit dans l'arbre
+  avec les sources, et sort de `tests.sh` ; `misc`, `debugging`, `ieee1788` et
+  `expressions` aussi prennent les en-têtes des sources ; `gaol_expression.h`
+  inclut `gaol_ieee1788.h` avant ses surcharges (point du relecteur : le
+  lecteur, `gaol_interval_parser.ypp`, incluait `gaol_expression.h` avant
+  `gaol_ieee1788.h`, et les `using` de `gaol_ieee1788` auraient nommé les
+  surcharges) ; `integer_power_exp`, le gabarit de `::gaol_detail` que seules
+  les deux surcharges `gaol::pow(expression, T)` et
+  `gaol_ieee1788::pown(expression, T)` appelaient (un `long`, un `unsigned` ou
+  un `long long` au-delà des `int`), est supprimé avec elles.
+- **La question du mainteneur sur `integer_power_exp`** (après l'ouverture de la
+  pull request) : pourquoi l'avoir enlevé. Réponse de la session : il n'était
+  pas dans `gaol_core` mais dans `::gaol_detail`, et plus rien ne l'appelait ;
+  le coût est que les quatre cas de `tests/expressions.cpp` (`pow(x, 3L)`,
+  `3000000000u`, `5000000000LL`, `pow(-x, 5000000001LL)`), les deux contrôles de
+  `pown(e, n)` au-delà de 2^53 de `tests/ieee1788.cpp` et la mutation
+  `pown-expression-beyond-rounded` de `tests/tools/pow/mutate.py` sont retirés,
+  et que les réparations de GAOL v5 de ces exposants (un `unsigned` au-delà des
+  `int` devenait un `int` négatif) n'ont plus de test. La session a proposé de
+  remettre un `integer_power_exp` dans `gaol_core` avec ces tests ; le
+  mainteneur a fusionné sans le demander : *écarté*, rien n'est reporté dans
+  `TODO_AFTER.md`.
+- **Ce qui casse** : `gaol::expression`, `expr_node` et ses 30 dérivés,
+  `expr_eval`, `evaluate_expr()`, les opérateurs et les fonctions sur les
+  expressions, `pow(e, n)` et `pow(e1, e2)` de `gaol`, `pown(e, n)` et `pow(e1,
+  e2)` de `gaol_ieee1788`, et les en-têtes `gaol/parser/gaol_expression.h`,
+  `gaol_expr_eval.h` et `gaol_eval_stack.h`, que GAOL v5 installait (le premier
+  sous `gaol/` en GAOL 4). `textToInterval()`, `parse_interval()` et les
+  intervalles ne changent pas.
+- **Reste à faire** : le rapport de couverture, le tableau 14.8 du manuel et le
+  PDF, à refaire à la version (PJ) ; `doc/differences.md`, pour la synthèse :
+  les lignes sur les en-têtes de `gaol/parser/` (installés, `-Wsuggest-override`
+  de `expr_eval`, les macros de `gaol_expression.h` et de `gaol_expr_eval.h`) et
+  sur `gaol::sin(0.5)` et `pown(e, n)` des expressions sont périmées ;
+  `examples/examples.md`, l'histoire des relectures, nomme encore ces noms et
+  reste.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -10554,6 +10651,27 @@ est
   Les issues #178 et #179 sont mises à jour, #177 non.
 - Ce commit ne change que des fichiers que les workflows ignorent. La branche
   `remove-expr-visitor` n'est plus sur GitHub (supprimée à la fusion).
+
+### 7.52 Le 17 novembre (après #386 : les registres)
+
+- Les registres de #386, en un commit direct sur `dev`, depuis un clone du
+  scratchpad (GAOL_V9, propre, avancé par un fast-forward après) : `TODO.md`
+  (l'en-tête, les pull requests, la couverture de PJ), ce fichier (en-tête, 1,
+  2.3, 3.52 et 7.52) et `process.md` (l'en-tête, §11 et §12). Les issues #178 et
+  #179 sont mises à jour (#178 : rien de changé dans `TODO_AFTER.md`), #177 non.
+- Ce commit ne change que des fichiers que les workflows ignorent. La branche
+  `internal-expressions` n'est plus sur GitHub (supprimée à la fusion) ; la
+  branche locale que le clone du scratchpad a créée dans GAOL_V9 par un push
+  vers son `origin` est supprimée.
+- Pièges : le clone du scratchpad a pour `origin` le dépôt local GAOL_V9, pas
+  GitHub : un `git push -u origin <branche>` y crée une branche locale dans
+  l'arbre partagé (supprimée aussitôt), et il faut pousser vers GitHub par `git
+  -c credential.helper= -c credential.helper='!gh auth git-credential' push
+  https://github.com/Jordan08/GAOL.git <branche>`. Un relecteur (opus) a coûté
+  173 000 jetons malgré un plafond de 60 000 écrit dans son prompt
+  (`feedback-gaol-agent-token-budget`, troisième fois) : prévoir le total avant
+  de le lancer. Le conteneur armhf de la CI n'a pas démarré (`exec format
+  error`) : un `rerun-failed-jobs` par l'API REST relance ce seul job.
 
 ## 8. Le ménage fait
 

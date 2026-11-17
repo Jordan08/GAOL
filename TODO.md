@@ -1,6 +1,9 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `a6189a0` de `dev` (la fusion de #385
+Ce qui reste à faire sur GAOL v5 au commit `e30d8bd` de `dev` (la fusion de #386
+le 17 novembre à 12 h 12 UTC, hors des points : les expressions sortent de
+`gaol` et de `gaol_ieee1788`, après les registres de #385, `c7f79f3`), et avant
+au commit `a6189a0` de `dev` (la fusion de #385
 le 17 novembre à 10 h 00 UTC, hors des points : la suppression d'`expr_visitor`,
 après les registres de `configure-clean`, `819e25d`), et avant au commit
 `67f7073` de `dev` (la fusion de #383
@@ -79,7 +82,12 @@ faits (`TODO_DONE.md` 2.3, 3.49, 4 et 7.49) : la tâche PH est faite. #385
 (hors des points : la classe `expr_visitor` et son en-tête supprimés, les
 `accept()` des nœuds prennent un `expr_eval`) est fusionnée le 17 novembre à
 10 h 00 UTC par le mainteneur, avant la fin de sa CI, ses registres faits
-(`TODO_DONE.md` 2.3, 3.51 et 7.51). Les
+(`TODO_DONE.md` 2.3, 3.51 et 7.51). #386 (hors des points : les expressions
+et leurs trois en-têtes ne sont plus dans `gaol` ni dans `gaol_ieee1788`, qui
+ne gardent que `textToInterval`) est fusionnée le 17 novembre à 12 h 12 UTC par
+le mainteneur, la CI de sa tête au vert (les huit workflows, Autotools and
+meson à la deuxième tentative), ses registres faits (`TODO_DONE.md` 2.3, 3.52 et
+7.52). Les
 signalements à d'autres projets sont dans leurs issues, #125
 à #138 sauf #128, et #175 (`TODO_AFTER.md` 2.6) : l'ancienne tâche PH est
 sortie de ce fichier le 17 novembre (`TODO_DONE.md` 3.48 et 3.49). #380 (la
@@ -223,8 +231,9 @@ de la version, une seule fois (*décidé le 16 novembre*). Fait le 17 novembre
 (`TODO_DONE.md` 3.49 et 3.50) :
 - la couverture et le PDF du manuel, par #383 (95,5 % des 6503 lignes de
   `gaol/`, le tableau du chapitre 14, le PDF) ; #385 a retiré de `gaol/` le
-  fichier `gaol_expr_visitor.h`, que ce tableau cite : à refaire à la version,
-  comme tout changement du code de `gaol/` ;
+  fichier `gaol_expr_visitor.h`, que ce tableau cite, et #386 a changé
+  `gaol_expression.h` et `gaol_expr_eval.h` : à refaire à la version, comme
+  tout changement du code de `gaol/` ;
 - les temps : une comparaison A/B de l'x86 (Clang 21, SSE2, une même séance)
   entre le code du 12 novembre (`2b5e4f9`) et celui de `dev` ne montre aucune
   différence au-delà de la dispersion (rapports de 0,96 à 1,06) ; *décidé le
