@@ -98,9 +98,10 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    `gaol/dual.h` et `gaol/affine.h` des `examples/box.h`, `examples/dual.h` et
    `examples/affine.h` (un type boîte, la différentiation directe, les formes
    affines, dont se servent les exemples 03 à 14 et qui ne sont pas installés).
-   Le plan détaillé est dans `todo-notes/orchestration/points_w4.py` (son plan
-   du 28 reprend la promotion des en-têtes, que la décision du 3 octobre écarte
-   : la décision l'emporte). Après la version.
+   Le plan détaillé était dans `points_w4.py` (son plan du 28 reprend la
+   promotion des en-têtes, que la décision du 3 octobre écarte : la décision
+   l'emporte), retiré du dépôt par #387 : `git show
+   5d07c3a2:todo-notes/orchestration/points_w4.py`. Après la version.
 4. **Les exceptions d'IEEE 1788-2015** [M] (*demandé par le mainteneur le 5
    novembre* : « Cette modif doit être dans gaol_core et exportée dans gaol et
    gaol_ieee1788 »). Une opération de la norme rend toujours une valeur, et
@@ -225,12 +226,12 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    `doc/compare/itf1788.md` et l'article 2.3.
 6. **Le ménage de la fin** : l'image Docker `i386/debian:trixie` de #111 reste
    sur la machine (`debian:trixie` et `ubuntu:24.04` ont été supprimées le 31
-   octobre : `TODO_DONE.md`, 8.1) ; `todo-notes/` (ramené de la branche
-   `todo-status`, supprimée ; ses rapports sont retirés de l'arbre, ils restent
-   au commit `16a2f60`, et ce qui en sert encore est dans
-   `todo-notes/synthese.md`) est à vider après la version, avec ce qu'il reste
-   des registres `TODO.md`, `TODO_DONE.md` et `TODO_AFTER.md` et de leurs issues
-   #177 à #179, qu'il faudra alors fermer ou garder.
+   octobre : `TODO_DONE.md`, 8.1) ; les registres `TODO.md`, `TODO_DONE.md` et
+   `TODO_AFTER.md` et leurs issues #177 à #179 sont à vider après la version,
+   qu'il faudra alors fermer ou garder. `todo-notes/` (ramené de la branche
+   `todo-status`, supprimée) est retiré du dépôt le 17 novembre par #387 : ses
+   rapports restent au commit `16a2f60` et le reste, la synthèse comprise, au
+   commit `5d07c3a2` (`git show 5d07c3a2:todo-notes/synthese.md`).
 
 ## 2. Reporté indéfiniment
 
@@ -242,7 +243,7 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    Le choix (issue #67) : les décorations d'IEEE 1788 (plus complet, mais change
    l'interface et le coût) ; un simple indicateur local au thread, positionné
    quand un argument sort du domaine (c'est le découpage prévu dans
-   `todo-notes/orchestration/points_w4.py`) ; ou seulement documenter (les
+   `points_w4.py`, retiré par #387 : article 1.3) ; ou seulement documenter (les
    pièges de « Common errors », fait par #140). Reporté le 3 octobre, après la
    version. *Décidé le 22 octobre (Q5)* : rien pour l'instant, GAOL reste un
    intervalle nu et les pièges sont documentés (#140) ; reporté indéfiniment.
@@ -727,8 +728,9 @@ qu'elle a relevées sont inscrites ici, en une fois, sans rien changer au code
    `doc/building.md` (ligne 204) n'en disent rien.
 10. **Une clause d'`atanh()` sans test** (#92) : retirer `J.right() == -1.0`
     (`gaol/core/gaol_interval_core.cpp`, ligne 5817) ne fait échouer aucun
-    test ; `todo-notes/synthese.md` (lignes 1191 à 1196) propose de la joindre à
-    R.7, qui est fait.
+    test ; la synthèse des rapports, retirée par #387 (`git show
+    5d07c3a2:todo-notes/synthese.md`, lignes 1191 à 1196), proposait de la
+    joindre à R.7, qui est fait.
 11. **Les marques de GAOL 4 dans `gaol/float/`** : 12 `TODO` et `FIXME`
     (`gaol_interval2f.cpp` 8, `gaol_intervalf.cpp` 4) et `tests/interval2f.cpp`
     1 ; les intervalles de floats sont désactivés (`GAOL_FLOAT_INTERVALS`) et

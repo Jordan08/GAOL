@@ -54,8 +54,7 @@ et de #294, de #217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #24
 à #293).
 
 Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
-`TODO_AFTER.md`, `STEP.md`, `todo-notes/`), n'est que dans la branche `dev`
-(section 1).
+`TODO_AFTER.md`, `STEP.md`), n'est que dans la branche `dev` (section 1).
 
 ## 1. Le contexte
 
@@ -73,8 +72,8 @@ Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
     et, depuis le 17 novembre, la branche des versions (*décidé le 17
     novembre* : « La branche configure-clean ne sert plus à rien. La branche
     dev a pris sa place »). Elle porte les notes de travail : `TODO.md`,
-    `TODO_DONE.md`, `TODO_AFTER.md`, `process.md`, `STEP.md` et `todo-notes/`,
-    que `.gitattributes` marque `export-ignore` : les archives des sources,
+    `TODO_DONE.md`, `TODO_AFTER.md`, `process.md` et `STEP.md`, que
+    `.gitattributes` marque `export-ignore` : les archives des sources,
     celles de la GitHub Release comprises (`git archive`), ne les ont pas, et
     la CI le contrôle (`buildsystems-dist`). `master` les aura dans son arbre
     après la version.
@@ -95,7 +94,12 @@ Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
     maintenant ») ; elles le sont depuis le 16 novembre, et la version attend
     le mot du mainteneur.
   - `todo-status`, l'ancienne branche des rapports et de l'outillage, a été
-    supprimée le 4 octobre : ce qui en sert encore est dans `todo-notes/`.
+    supprimée le 4 octobre ; le dossier `todo-notes/`, qui en gardait ce qui
+    servait encore, est supprimé le 17 novembre (#387) : ses rapports, la
+    synthèse (`synthese.md`), le plan de la tâche X (`points_w4.py`) et les
+    essais de PK restent dans l'historique de `dev` (`git show
+    5d07c3a2:todo-notes/<fichier>`), les outils sont dans `.github/scripts/`
+    et la recette de GCC 12.2 pour aarch64 dans l'issue #374.
 - **Les arbres de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V9/GAOL`
   et `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V8`, deux clones du même dépôt,
   qui se valent : travaille dans l'un ou dans l'autre (décidé le 12 octobre).
@@ -114,7 +118,9 @@ Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
 | Ce qui est fait et décidé : pull requests fusionnées, décisions par date, points faits, mesures | `TODO_DONE.md` de `dev` (l'issue #177 n'est plus mise à jour depuis le 28 octobre) |
 | Ce qui est reporté : après la version, indéfiniment, en attente de matériel | `TODO_AFTER.md` de `dev`, et l'issue #178 (même texte) |
 | Les signalements à d'autres projets, et les questions reportées | issues « À communiquer… » (#125 à #138 sauf #128, et #175 ; l'index est dans `TODO_AFTER.md` 2.6), #67 (décorations), et celles qui suivront |
-| Ce qui reste utile des rapports des agents (textes pour la synthèse, mesures, cas de test), l'outillage (`HOUSE_RULES.md`, `check_branch`, `gcore`...) | `todo-notes/` (index : `todo-notes/README.md`) ; les rapports d'origine sont dans l'historique, au commit `16a2f60` |
+| L'outillage de la procédure (`check_branch`, `gcore`) | `.github/scripts/` (décrit dans `doc/tools.md`) |
+| La recette de compilation croisée de GCC 12.2 pour aarch64 sous qemu (`cross-test`, `Dockerfile`, `README.md`) | les commentaires de l'issue #374 |
+| Ce qui restait utile des rapports des agents (textes pour la synthèse, mesures, cas de test, essais de PK), retiré le 17 novembre | l'historique de `dev`, au commit `5d07c3a2` (`git show 5d07c3a2:todo-notes/synthese.md`) ; les rapports d'origine, au commit `16a2f60` |
 | La revue d'origine (« revue n° n » dans `TODO_DONE.md`) | `examples/examples.md`, section 5 ; corrections proposées en annexe B |
 | La documentation : construire, utiliser, précision, tests, CI, écarts avec GAOL 4 | `doc/*.md`, `README.md` |
 | Les scripts du dépôt (génération, CI, tests, comparaisons) et à quoi sert chacun | `doc/tools.md` |
@@ -180,8 +186,8 @@ commits.
   `meson test --num-processes 4`. Jamais `-j$(nproc)`, ni `-j` sans nombre. La
   limite vaut pour la somme : deux builds en parallèle, ou des sous-agents qui
   compilent, se partagent ces 4 cœurs. Avec plusieurs agents, l'outil `gcore`
-  (`todo-notes/orchestration/bin/gcore`, à copier dans ton scratchpad)
-  distribue des jetons de cœur.
+  (`.github/scripts/gcore`, à copier dans ton scratchpad) distribue des jetons
+  de cœur.
 - Les répertoires de build et les fichiers temporaires vont **hors de l'arbre**,
   dans ton scratchpad, jamais dans `/tmp` directement ni dans le dépôt. Les
   chemins `/tmp/claude-1001/...` des anciennes sessions sont éphémères : ne
@@ -306,8 +312,8 @@ un est refusée, quel que soit son gain.
       apporte quelque chose : un décimal comme `"0.1"`, une expression, ou un
       test du lecteur.
     - Le code, les tests, la documentation et le manuel ne renvoient ni aux
-      notes de travail (`TODO.md`, `TODO_DONE.md`, `process.md`,
-      `todo-notes/`...), ni à leurs points (« point Q of TODO.md », « (GAOL
+      notes de travail (`TODO.md`, `TODO_DONE.md`, `process.md`...), ni à
+      leurs points (« point Q of TODO.md », « (GAOL
       v5, point AC) ») : les archives des versions ne les ont pas. On
       renvoie à une issue ou à une pull request (#NN), et l'histoire d'un
       changement va dans `doc/differences.md` et le `ChangeLog` (les renvois
@@ -479,11 +485,12 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 
 1. **Comprendre le point.** Lis-le dans `TODO.md` (sa tâche) avec ses
    sous-points, ses décisions (celles de `TODO_DONE.md` aussi) et les issues
-   qu'il cite. Lis aussi ce qui le concerne dans
-   `todo-notes/synthese.md` (et au besoin le rapport d'origine, au commit
-   `16a2f60`), la revue d'`examples/examples.md` s'il la cite, et le code
-   concerné. Reproduis le défaut avant de le corriger. S'il est déjà corrigé ou
-   ne se reproduit pas, dis-le avec la preuve, sans forcer de changement.
+   qu'il cite. Lis aussi, au besoin, ce que l'historique garde des rapports
+   d'origine (la synthèse, `git show 5d07c3a2:todo-notes/synthese.md` ; les
+   rapports, au commit `16a2f60`), la revue d'`examples/examples.md` s'il la
+   cite, et le code concerné. Reproduis le défaut avant de le corriger. S'il est
+   déjà corrigé ou ne se reproduit pas, dis-le avec la preuve, sans forcer de
+   changement.
 2. **Poser les questions qui reviennent au mainteneur avant d'écrire du code.**
    C'est le cas d'un nom d'API publique, d'un compromis que ni le TODO, ni ses
    décisions, ni la section 4 ne tranchent, ou d'un changement d'interface ou
@@ -534,11 +541,11 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
    Corrige ses points bloquants et vérifie-les. La pull request dit ce qu'il a
    trouvé et vérifié.
 8. **Contrôler et commiter.** Lance `check_branch <branche>` depuis l'arbre
-   (`todo-notes/orchestration/bin/check_branch`, à copier dans ton
-   scratchpad). Il vérifie les messages (deux lignes au plus, aucune mention
-   de Claude), l'absence des registres, du PDF et des produits de build, et les
-   espaces. Commite par fichiers nommés (section 3.1). Plusieurs commits
-   courts valent mieux qu'un fourre-tout.
+   (`.github/scripts/check_branch`, à copier dans ton scratchpad ; sa base par
+   défaut est `origin/dev`). Il vérifie les messages (deux lignes au plus,
+   aucune mention de Claude), l'absence des registres, du PDF et des produits de
+   build, et les espaces. Commite par fichiers nommés (section 3.1). Plusieurs
+   commits courts valent mieux qu'un fourre-tout.
 9. **Pousser et ouvrir la pull request.** Un push sur une branche autre que
    `master` ou `dev` ne lance **aucune** CI. Elle part
    à l'ouverture de la pull request, ou par `workflow_dispatch`
@@ -750,11 +757,11 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
     job).
 - **Le déclenchement** : sur chaque pull request (`manual.yml` et
   `performance.yml` seulement si leurs chemins changent), sur un push vers
-  `master` ou `dev` (`dev` depuis #322, le 13 novembre ; `configure-clean`, que
-  les filtres des workflows nomment encore, est supprimée ; sauf
-  `performance.yml`, qui ne tourne que sur les pull requests, et sauf un push de
-  `dev` qui ne change que les notes : `TODO*.md`, `process.md`, `STEP.md`,
-  `todo-notes/` et `.claude/` sont en `paths-ignore` des cinq workflows qui
+  `master` ou `dev` (`dev` depuis #322, le 13 novembre ; `configure-clean` est
+  supprimée le 17 novembre et les filtres des workflows ne la nomment plus
+  depuis #387 ; sauf `performance.yml`, qui ne tourne que sur les pull requests,
+  et sauf un push de `dev` qui ne change que les notes : `TODO*.md`,
+  `process.md` et `STEP.md` sont en `paths-ignore` des cinq workflows qui
   construisent GAOL depuis #347), et par `workflow_dispatch`. La `concurrency`
   annule le run en cours d'un même workflow sur la même référence : un nouveau
   push sur une de ces branches annule la CI du commit précédent. Un commit de
@@ -864,8 +871,9 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   Les binaires de Debian 12 tournent sous le QEMU de Debian 13. Les images
   créées pour un essai se suppriment ensuite (`docker rmi`), celles des sessions
   précédentes (`gaol-bookworm-cross`, `gaol-i386-build`) restent. Le script
-  `todo-notes/gcc12-aarch64/cross-test` fait cette compilation et lance un
-  programme de `tests/` (8 novembre 2026, #299).
+  `cross-test` (avec son `Dockerfile` et son `README.md`, retirés du dépôt le
+  17 novembre par #387 : ils sont dans les commentaires de l'issue #374) fait
+  cette compilation et lance un programme de `tests/` (8 novembre 2026, #299).
 - Pour montrer qu'un test échoue sans la correction, ne remets que les fichiers
   de la correction, par leur nom (`git checkout origin/dev --
   gaol/f.cpp`), jamais `git checkout origin/dev -- .`, qui efface
@@ -1020,7 +1028,8 @@ git ls-remote --heads origin
   `interval::midrad` devient `centered_form`, `centeredForm` pour
   `gaol_ieee1788`, le PDF du manuel refait), décrites dans `TODO_DONE.md` (2.3
   et 3.26) ; puis #300 à 21 h 38 UTC (`ac9f130`, hors des points : la recette de
-  compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`, 2.3)
+  compilation croisée GCC 12.2 pour aarch64, `todo-notes/gcc12-aarch64/`,
+  retirée par #387 : issue #374 ; 2.3)
   ; puis #301 (la tâche PT : `doc/accuracy.md`, deux exemples et le chapitre 11
   du manuel) à 23 h 09 UTC (`7053c74`), #303 et #304 (les registres de PT,
   `TODO.md` seul), #302 (la tâche PP : le cas N1 M de `div_rel()` en SSE2 en une

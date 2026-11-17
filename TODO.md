@@ -154,7 +154,8 @@ registres récrits, la même archive des sources) et #322 (la CI sur un push ver
 `configure-clean`, la branche des versions d'alors, supprimée le 17 novembre :
 `dev` la remplace (process.md §1 et §13). #295 (PS.2), #296 (PM),
 #297 (la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette
-de compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
+de compilation croisée GCC 12.2 pour aarch64, `todo-notes/gcc12-aarch64/`,
+retirée par #387 : issue #374) et
 #301 (la tâche PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38,
 20 h 31, 20 h 44, 21 h 38 et 23 h 09 UTC, #302 (la tâche PP : le cas N1 M de
 `div_rel()` en SSE2) le 9 novembre à 22 h 03 UTC, #305 (hors des points : six
@@ -268,7 +269,7 @@ maintenant ») ; elles le sont, et la version attend le mot du mainteneur :
    clones, et noté dans `~/.claude/CLAUDE.md` ; la pull request #384 le retire
    de `master`, et `dev` ne l'a plus (7.50), de sorte que la fusion donne
    l'arbre de `dev`. Les notes de travail (`TODO*.md`, `process.md`,
-   `STEP.md`, `todo-notes/`) sont dans l'arbre de `master` après la fusion ;
+   `STEP.md`) sont dans l'arbre de `master` après la fusion ;
    les archives des sources, celles de la Release comprises, ne les ont pas
    (`.gitattributes`, `export-ignore`, que `buildsystems-dist` contrôle).
    *Décidé le 12 novembre au soir* (`TODO_DONE.md` 3.36) : le mainteneur

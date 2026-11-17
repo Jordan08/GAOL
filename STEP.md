@@ -32,6 +32,11 @@ supprimé depuis le 8 novembre : `TODO_DONE.md` 3.25).
   au dernier (ils ne sont pas toujours consécutifs). Les commits qui ne touchent
   que les registres (`TODO*.md`, `process.md`, `todo-notes/`) ne sont pas
   listés : ils sont à l'étape 27.
+- Les noms de fichiers sont ceux du jour de l'étape : le dossier `todo-notes/`
+  (`synthese.md`, `HOUSE_RULES.md`, `check_branch`...) est retiré du dépôt le 17
+  novembre par #387. Ses fichiers sont dans l'historique de `dev` (`git show
+  5d07c3a2:todo-notes/<fichier>`), `check_branch` et `gcore` sont dans
+  `.github/scripts/` et la recette de GCC 12.2 pour aarch64 dans l'issue #374.
 - La colonne « Points » donne les lettres et les anciens numéros de
   `TODO_DONE.md` (sections 4 et 5) que l'étape contient, et les tâches (PA à
   PL) qui y ont travaillé.
