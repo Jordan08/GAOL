@@ -237,7 +237,7 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PJ | La publication de v5.0.0 (`master`, étiquette, annonce) | 34, 71 | S |
+| PJ | La publication de v5.0.0 (`master`, étiquette) | 34 | S |
 
 ## PJ. La publication de v5.0.0 (Y) [S, dans cet ordre]
 
@@ -282,13 +282,14 @@ mesures de PJ.2 et le PDF sont à refaire au commit de la version, une seule foi
   « GAOL 5.0.0: CORE-MATH bounds, IEEE 1788-2015, three alike builds, a new
   manual ») sa réponse ;
 - la version va de `dev` dans `master` (process.md §13) : *décidé le 17
-  novembre*, `configure-clean` est supprimée et `dev` prend sa place. L'essai
-  de la fusion (`git merge-tree`, `dev` à `fc8b9ac`, `master` après #384) est
-  sans conflit et donne l'arbre de `dev`.
-*Décidé le 13 novembre* : pas de fusion dans `master` tant que PU à PZ ne sont
-pas faites (« il y a encore des TODO. Donc ne fusionne pas dans master
-maintenant ») ; elles le sont, et la version attend le mot du mainteneur :
-`dev` dans `master` (PJ.3).
+  novembre*, `configure-clean` est supprimée et `dev` prend sa place. L'essai de
+  la fusion (`git merge-tree`, `dev` à `fc8b9ac`, `master` après #384) est sans
+  conflit et donne l'arbre de `dev`. *Décidé le 13 novembre* : pas de fusion
+  dans `master` tant que PU à PZ ne sont pas faites (« il y a encore des TODO.
+  Donc ne fusionne pas dans master maintenant ») ; elles le sont, et la version
+  attend le mot du mainteneur : `dev` dans `master` (PJ.3). Le point 71 (PJ.4,
+  l'annonce à Frédéric Goualard) est reporté après la version, faute d'adresse :
+  l'issue #389 et `TODO_AFTER.md` 1.7 (*décidé le 17 novembre* : 3.55).
 
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de
@@ -348,19 +349,12 @@ maintenant ») ; elles le sont, et la version attend le mot du mainteneur :
    licences sans conclure (*décidé le 2 novembre* : l'en-tête seul). *Décidé le
    5 novembre* : le mainteneur écrit aux auteurs d'IBEX et de Codac (Gilles
    Chabert, Simon Rohou) pour leur accord, et l'en-tête seul reste en attendant.
-   *À décider* à leur réponse : une ligne dans la section « Licences » du
-   `README.md`, voire un `COPYING.LESSER`.
-4. **71 et #128** : annoncer GAOL v5.0.0 à Frédéric Goualard, l'auteur de GAOL,
-   une fois l'étiquette posée : pas d'annonce publique (*décidé le 3 octobre*) ;
-   la GitHub Release que `release.yml` fait à l'étiquette remplace le « pas de
-   GitHub Release » du 3 octobre (*décidé le 12 novembre au soir* :
-   `TODO_DONE.md` 3.36). Le message est écrit,
-   en brouillon dans Gmail (objet « GAOL v5.0.0 ») ; il suppose que l'étiquette
-   existe. À faire avant l'envoi : vérifier l'adresse (celle du brouillon vient
-   d'un échange de 2014 et d'une liste de 2020 : elle peut avoir changé) ; le
-   second paragraphe (les défauts de GAOL 4) dépasse l'annonce décidée le 3
-   octobre, mais *décidé le 24 octobre* : le garder tel quel. *Vérifié le 17
-   novembre* dans Gmail : le brouillon « GAOL v5.0.0 » (13 novembre) n'a
-   toujours pas de destinataire, et l'adresse de Frédéric Goualard ne se lit
-   dans aucun message récent ; aucune réponse des auteurs d'IBEX et de Codac
-   depuis 60 jours (recherche par nom) : la licence de #281 attend toujours.
+   *Décidé le 17 novembre* : la version n'attend pas leur réponse ; ce qui reste
+   *à décider* à leur réponse (une ligne dans la section « Licences » du
+   `README.md`, voire un `COPYING.LESSER`) est dans `TODO_AFTER.md` 1.8.
+   *Décidé le 17 novembre* aussi : le message de l'étiquette annotée est « GAOL
+   5.0.0: CORE-MATH bounds, IEEE 1788-2015, three alike builds, a new manual » ;
+   si les jobs de macOS de `dev` manquent de runner (capacité des runners macOS
+   arm64 de GitHub), le mainteneur ouvre quand même la pull request vers
+   `master` et sa propre CI fait foi : le texte de la pull request dit celle-là
+   (3.55).

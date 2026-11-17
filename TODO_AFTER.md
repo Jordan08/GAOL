@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 17 novembre 2026 (commit `67f7073` de
+Tout ce qui est reporté sur GAOL v5 au 17 novembre 2026 (commit `fc8b9ac` de
 `dev`) : ce qui attend la version v5.0.0, ce que le mainteneur a reporté
 indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui attend
 du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste à
@@ -232,6 +232,30 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    `todo-status`, supprimée) est retiré du dépôt le 17 novembre par #387 : ses
    rapports restent au commit `16a2f60` et le reste, la synthèse comprise, au
    commit `5d07c3a2` (`git show 5d07c3a2:todo-notes/synthese.md`).
+7. **71 (PJ.4), l'annonce de GAOL v5.0.0 à Frédéric Goualard** [accord] (issue
+   #389, suite de #128, fermée le 18 octobre) : annoncer la version à l'auteur
+   de GAOL une fois l'étiquette `v5.0.0` posée. *Reporté le 17 novembre* («
+   Reporter (créer une issue) ») faute d'une adresse vérifiée : le brouillon
+   Gmail « GAOL v5.0.0 » (13 novembre) n'a pas de destinataire, et l'adresse de
+   #128, d'une liste de 2020 et d'un échange de 2014, ne se lit dans aucun
+   message récent. *À faire* : le mainteneur donne l'adresse ou la met dans le
+   brouillon, la session relit le brouillon contre la Release (version, noms des
+   paquets, liens), puis l'envoi, sur son accord, et les registres. Rien n'est
+   envoyé. Décidé avant : pas d'annonce publique (3 octobre), le second
+   paragraphe, les défauts de GAOL 4, gardé tel quel (24 octobre), la GitHub
+   Release à la place du « pas de Release » (12 novembre au soir :
+   `TODO_DONE.md` 3.36).
+8. **La licence des cas d'IBEX et de Codac** (#281) [accord] : `tests/
+   test_ibex_codac.cpp` reprend des cas de tests d'IBEX et de Codac sous LGPL v3
+   (leur `COPYING.LESSER`), alors que le `README.md` dit GAOL sous LGPL v2
+   (`COPYING.LIB`) ; l'en-tête du fichier donne les copyrights et les deux
+   licences sans conclure (*décidé le 2 novembre* : l'en-tête seul). Le
+   mainteneur a écrit aux auteurs (Gilles Chabert, Simon Rohou, *décidé le 5
+   novembre*) : aucune réponse depuis plus de 60 jours (recherche du 17
+   novembre). *Décidé le 17 novembre* : la version n'attend pas leur réponse
+   (« Publier sans attendre »). *À décider* à leur réponse : une ligne dans la
+   section « Licences » du `README.md`, voire un `COPYING.LESSER`, ou retirer le
+   fichier de l'archive.
 
 ## 2. Reporté indéfiniment
 
@@ -327,7 +351,7 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    - #175 newlib et Cygwin : un correctif et une remarque sur `fma()` à
      newlib@sourceware.org, un e-mail à cygwin@cygwin.com (`llistxattr()`, la
      cause du défaut du lien `README` de CPack) ; rien à CMake.
-   - #128 (l'annonce à Frédéric Goualard) : tâche PJ, point 4 de `TODO.md`.
+   - #389 (l'annonce à Frédéric Goualard, suite de #128) : article 1.7.
 
    Décisions communes, à prendre d'abord : (1) *la mention d'un outil d'IA* :
    les textes ont été préparés par une session Claude et sont envoyés sous le

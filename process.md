@@ -1227,32 +1227,32 @@ git ls-remote --heads origin
   : GitHub borne le corps d'une issue à 262 144 octets et le texte joint en fait
   plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les constats de la relecture du 13
-  novembre sont faits (PU à PZ), PH est faite par #382 (les textes de
-  GAOL que les signalements rendent faux ; les signalements eux-mêmes sont
-  dans leurs issues et `TODO_AFTER.md` 2.6, avec l'accord du mainteneur), puis
-  la version (PJ, préparée le 17 novembre, #383 fusionnée : `TODO.md`, après PU
-  à PZ,
+  novembre sont faits (PU à PZ), PH est faite par #382 (les textes de GAOL que
+  les signalements rendent faux ; les signalements eux-mêmes sont dans leurs
+  issues et `TODO_AFTER.md` 2.6, avec l'accord du mainteneur), puis la version
+  (PJ, préparée le 17 novembre, #383 fusionnée : `TODO.md`, après PU à PZ,
   *décidé le 13 novembre*, la fusion de `dev` dans `master` (section 13 ;
   `configure-clean` est supprimée le 17 novembre), que le mainteneur ouvre et
-  fusionne
-  lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur son mot
-  sur le commit de fusion et qui lance la Release de `release.yml` (*décidé le
-  12 novembre* : `TODO_DONE.md` 3.36), l'annonce à Frédéric Goualard, la licence
-  des cas d'IBEX et de Codac, sur laquelle le mainteneur écrit aux auteurs
-  (*décidé le 5 novembre* : #281) ; les points 32 et 33, le manuel, macOS 14 et
-  PJ.7 sont faits par #315 à #318 et coupés de `TODO.md`, la couverture, les
-  mesures et le PDF du manuel étant à refaire au commit de la version si le code
-  ou les textes ont changé, ce qui n'était pas le cas le 12 novembre à `0ae1840`
-  et l'est depuis PU et PV, qui ont changé le code de `gaol/`, PY, qui en a
-  retiré du code mort, et PX, qui a ajouté `==` et `!=` aux intervalles et
-  l'option de GCC 12 sur aarch64, la couverture, les mesures et le PDF étant à
-  refaire une seule fois, à la version : *décidé le 16 novembre* ; la couverture
-  et le PDF le sont par #388, les temps ne le sont pas : *décidé le 17
-  novembre*). Ce qui est
-  reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les décorations,
-  ce qui attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre
-  points sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les points un par un (« traite la
-  tâche PF », « traite le point 129 ») : ne commence pas le suivant sans lui.
+  fusionne lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur
+  son mot sur le commit de fusion et qui lance la Release de `release.yml`
+  (*décidé le 12 novembre* : `TODO_DONE.md` 3.36 ; le message de l'étiquette est
+  décidé le 17 novembre : 3.55), puis, après la version, l'annonce à Frédéric
+  Goualard (reportée, faute d'adresse : l'issue #389 et `TODO_AFTER.md` 1.7) et
+  la licence des cas d'IBEX et de Codac, que la version n'attend pas
+  (`TODO_AFTER.md` 1.8 ; *décidé le 17 novembre* : 3.55) ; les points 32 et 33,
+  le manuel, macOS 14 et PJ.7 sont faits par #315 à #318 et coupés de `TODO.md`,
+  la couverture, les mesures et le PDF du manuel étant à refaire au commit de la
+  version si le code ou les textes ont changé, ce qui n'était pas le cas le 12
+  novembre à `0ae1840` et l'est depuis PU et PV, qui ont changé le code de
+  `gaol/`, PY, qui en a retiré du code mort, et PX, qui a ajouté `==` et `!=`
+  aux intervalles et l'option de GCC 12 sur aarch64, la couverture, les mesures
+  et le PDF étant à refaire une seule fois, à la version : *décidé le 16
+  novembre* ; la couverture et le PDF le sont par #388, les temps ne le sont pas
+  : *décidé le 17 novembre*). Ce qui est reporté (le 113, le site, les traits
+  pour YalAA et VNODE-LP, les décorations, ce qui attend du matériel) est dans
+  `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
+  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PF
+  », « traite le point 129 ») : ne commence pas le suivant sans lui.
 
 ## 13. Une version : `dev` → `master`
 

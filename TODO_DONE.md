@@ -8425,6 +8425,34 @@ prépare donc ce qui se prépare :
   le message de l'étiquette ; PJ.4 (l'annonce à Frédéric Goualard, dont
   l'adresse manque) ; la licence de #281 (les auteurs d'IBEX et de Codac).
 
+### 3.55 Le 17 novembre : les réponses sur la version (PJ.3, PJ.4)
+
+Le mainteneur demande à la session si elle a des questions, avec quatre
+réponses proposées par question ; la session lui en pose quatre, que la
+préparation de la version laisse ouvertes, et il répond :
+
+- **Le message de l'étiquette `v5.0.0`** : « Ma proposition » : « GAOL 5.0.0:
+  CORE-MATH bounds, IEEE 1788-2015, three alike builds, a new manual », une
+  ligne comme `v4.3.2` (« GAOL 4.3.2: the intersection of disjoint intervals is
+  the empty set »), pour `git tag -a` sur le commit de fusion, sur son mot.
+- **La licence des cas d'IBEX et de Codac (#281)** : « Publier sans attendre » :
+  la version n'attend pas la réponse des auteurs (aucune depuis plus de 60
+  jours), l'en-tête seul reste (2 et 5 novembre) ; ce qui reste à décider à leur
+  réponse est dans `TODO_AFTER.md` 1.8.
+- **L'adresse de Frédéric Goualard (PJ.4)** : « Reporter (créer une issue) » :
+  l'annonce attend l'adresse et la version. La session crée l'issue #389, en
+  français, sans l'adresse (celle de #128 est une donnée d'un tiers, qu'une
+  nouvelle issue publique n'a pas à répéter), et non en rouvrant #128, que le
+  mainteneur a fermée le 18 octobre quand son texte est passé dans `TODO.md` ;
+  le point sort de `TODO.md` pour `TODO_AFTER.md` 1.7 (2.6 renvoie à #389).
+- **La CI de macOS de `dev`** : « Ouvrir quand même, CI de la PR » : si les jobs
+  de macOS n'ont pas de runner, le mainteneur ouvre la pull request vers
+  `master`, dont la CI (les huit workflows) fait foi, et le texte de la pull
+  request, que la session tient prêt, dit la CI de la pull request et non celle
+  de `dev` ; ses dépendances sont vides (#388 est fusionnée).
+- **Reste à faire** : la pull request vers `master` (le mainteneur), l'étiquette
+  sur son mot, PJ.4 après la version.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -10918,6 +10946,16 @@ leurs registres n'étaient pas faits :
   (`paths-ignore`) : il n'annule pas la CI du commit de fusion de #388, qui
   tournait. La branche de #388 (`manual-pj3-coverage`) n'est plus sur GitHub
   (supprimée à la fusion) ; `dev` et `master` en sont les seules.
+
+### 7.56 Le 17 novembre (après les réponses sur la version : les registres)
+
+- Les registres de ces réponses, sans pull request (*décidé le 8 novembre*), en
+  un commit direct sur `dev`, depuis le clone du scratchpad : `TODO.md` (le
+  tableau, PJ : PJ.4 sortie, le message de l'étiquette, la licence, la CI),
+  `TODO_AFTER.md` (1.7, 1.8, 2.6 et l'en-tête), ce fichier (3.55 et 7.56) et
+  `process.md` (§12). Les issues #178 et #179 sont mises à jour, #177 non.
+- Ce commit ne change que des fichiers que les workflows ignorent
+  (`paths-ignore`) : il n'annule pas la CI du commit de fusion de #388.
 
 ## 8. Le ménage fait
 
