@@ -1,10 +1,12 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `8a308a7` de `dev` (la fusion de #387
-le 17 novembre à 20 h 25 UTC, PJ.8 : les traces de `configure-clean` et le
-dossier `todo-notes/` supprimés, après les commits directs du manuel et de la
-couverture, `c46a6a2` à `5d07c3a`, et les registres de #386, `608af36`), et
-avant au commit `e30d8bd` de `dev` (la fusion de #386
+Ce qui reste à faire sur GAOL v5 au commit `fc8b9ac` de `dev` (la fusion de #388
+le 17 novembre à 21 h 21 UTC, PJ.3 : le tableau de couverture du manuel et son
+PDF, après les registres de #387, `9665f49`), et avant au commit `8a308a7` de
+`dev` (la fusion de #387 le 17 novembre à 20 h 25 UTC, PJ.8 : les traces de
+`configure-clean` et le dossier `todo-notes/` supprimés, après les commits
+directs du manuel et de la couverture, `c46a6a2` à `5d07c3a`, et les registres
+de #386, `608af36`), et avant au commit `e30d8bd` de `dev` (la fusion de #386
 le 17 novembre à 12 h 12 UTC, hors des points : les expressions sortent de
 `gaol` et de `gaol_ieee1788`, après les registres de #385, `c7f79f3`), et avant
 au commit `a6189a0` de `dev` (la fusion de #385
@@ -97,7 +99,16 @@ meson à la deuxième tentative), ses registres faits (`TODO_DONE.md` 2.3, 3.52 
 novembre à 20 h 25 UTC par le mainteneur, la CI de sa tête au vert (les huit
 workflows), ses registres faits (`TODO_DONE.md` 2.3, 3.53 et 7.54) : le point
 PJ.8 est fait. Les commits directs du 17 novembre qui précèdent (le manuel, la
-couverture sur trois machines, des tests de `misc`) sont en 7.53. Les
+couverture sur trois machines, des tests de `misc`) sont en 7.53. #388 (PJ.3 :
+le tableau de couverture du chapitre 14 du manuel, une ligne de
+`doc/differences.md` et le PDF, 97,5 % des 7 822 lignes de `gaol/`) est
+fusionnée le 17 novembre à 21 h 21 UTC par le mainteneur, avant la fin de sa CI
+(Manual, Linux, Linux containers et Windows au vert, Autotools and meson en
+cours et macOS en attente d'un runner), ses registres faits (`TODO_DONE.md` 2.3,
+3.54 et 7.55). La CI du commit de fusion de #387 (`8a308a7`) a eu deux jobs de
+macOS qui n'ont jamais eu de runner (« The job was not acquired by Runner of
+type hosted even after multiple attempts », capacité des runners macOS arm64) :
+leur relance a été annulée par le push de #388. Les
 signalements à d'autres projets sont dans leurs issues, #125
 à #138 sauf #128, et #175 (`TODO_AFTER.md` 2.6) : l'ancienne tâche PH est
 sortie de ce fichier le 17 novembre (`TODO_DONE.md` 3.48 et 3.49). #380 (la
@@ -235,12 +246,12 @@ En dernier : elle suppose les corrections faites et les études de PG faites
 `TODO_DONE.md` : le 32 (la couverture, PJ.1) par #315, le 33 (les temps, PJ.2)
 par #316 et #317, le manuel (PJ.5) par #294, les textes qui citent macOS 14
 (PJ.6) par #313, les restes de la synthèse (PJ.7) par #313, #314 et #318 et les
-traces de `configure-clean` (PJ.8) par #387 (2.3, 3.23, 3.33, 3.34, 3.35 et
-3.53). PU à PZ, faites le 16 novembre, ont changé le code
-de `gaol/` (PU, PV, PX et PY ; PZ n'y a changé que des commentaires) et les
-textes : la couverture, les mesures de PJ.2 et le PDF sont à refaire au commit
-de la version, une seule fois (*décidé le 16 novembre*). Fait le 17 novembre
-(`TODO_DONE.md` 3.49 et 3.50) :
+traces de `configure-clean` (PJ.8) par #387, la couverture et le PDF à la
+version (PJ.3, en partie) par #388 (2.3, 3.23, 3.33, 3.34, 3.35, 3.53 et 3.54).
+PU à PZ, faites le 16 novembre, ont changé le code de `gaol/` (PU, PV, PX et PY
+; PZ n'y a changé que des commentaires) et les textes : la couverture, les
+mesures de PJ.2 et le PDF sont à refaire au commit de la version, une seule fois
+(*décidé le 16 novembre*). Fait le 17 novembre (`TODO_DONE.md` 3.49 et 3.50) :
 - la couverture et le PDF du manuel, par #383 (95,5 % des 6503 lignes de
   `gaol/`, le tableau du chapitre 14, le PDF) ; #385 a retiré de `gaol/` le
   fichier `gaol_expr_visitor.h`, que ce tableau cite, et #386 a changé
@@ -250,18 +261,29 @@ de la version, une seule fois (*décidé le 16 novembre*). Fait le 17 novembre
   des 7 822 lignes de `gaol/` (192 non exécutées), les intervalles SSE2, FPU et
   NEON (Apple M2) et le chemin AVX-512 (`-DGAOL_PRESERVE_ROUNDING=ON`) réunis
   dans `coverage/` ; le tableau du chapitre 14 du manuel et le PDF gardent les
-  chiffres de #383 : à refaire à la version ;
+  chiffres de #383 jusqu'à #388, qui les met à jour (97,5 % des 7 822 lignes,
+  25 fichiers sur 42 à 100 %), avec le PDF et une ligne de `doc/differences.md`
+  (3.54) : plus rien à refaire, sauf si le code ou les textes changent encore
+  avant l'étiquette ;
 - les temps : une comparaison A/B de l'x86 (Clang 21, SSE2, une même séance)
   entre le code du 12 novembre (`2b5e4f9`) et celui de `dev` ne montre aucune
   différence au-delà de la dispersion (rapports de 0,96 à 1,06) ; *décidé le
   17 novembre* : le Mac M2 (NEON) et le Xeon (AVX-512) ne sont pas refaits, les
   mesures du 12 novembre restent ;
-- la CI de `dev` est verte à `9a2a88b` (les cinq workflows), et celle des têtes
-  de #382 et de #383 l'était (six workflows) ; celle du commit de fusion
-  `67f7073` tournait au moment des registres ;
+- la CI de `dev` : verte à `9a2a88b` (les cinq workflows), et celle des têtes
+  de #382, de #383 et de #387 l'était ; au commit de fusion de #387 (`8a308a7`),
+  cinq workflows verts et deux jobs de macOS sans runner ; celle du commit de
+  fusion de #388 (`fc8b9ac`) tournait au moment des registres : la version
+  attend qu'elle soit verte (3.54) ;
+- la préparation de la version (3.54) : l'essai de la fusion de `dev` dans
+  `master` à `fc8b9ac` est sans conflit, et le titre et le texte de la pull
+  request que le mainteneur ouvre sont prêts ; l'étiquette `v5.0.0` attend la
+  fusion et son mot, et le message de l'étiquette annotée (proposé :
+  « GAOL 5.0.0: CORE-MATH bounds, IEEE 1788-2015, three alike builds, a new
+  manual ») sa réponse ;
 - la version va de `dev` dans `master` (process.md §13) : *décidé le 17
   novembre*, `configure-clean` est supprimée et `dev` prend sa place. L'essai
-  de la fusion (`git merge-tree`, `dev` à `8a308a7`, `master` après #384) est
+  de la fusion (`git merge-tree`, `dev` à `fc8b9ac`, `master` après #384) est
   sans conflit et donne l'arbre de `dev`.
 *Décidé le 13 novembre* : pas de fusion dans `master` tant que PU à PZ ne sont
 pas faites (« il y a encore des TODO. Donc ne fusionne pas dans master

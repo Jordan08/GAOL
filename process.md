@@ -14,7 +14,9 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 17 novembre 2026, au commit `8a308a7` de `dev` (la fusion
+Dernière mise à jour : 17 novembre 2026, au commit `fc8b9ac` de `dev` (la fusion
+de #388, PJ.3 : le tableau de couverture du manuel et son PDF, après les
+registres de #387, `9665f49`), et avant au commit `8a308a7` de `dev` (la fusion
 de #387, PJ.8 : les traces de `configure-clean` et le dossier `todo-notes/`,
 après les commits directs du manuel et de la couverture, `c46a6a2` à `5d07c3a`,
 et les registres de #386, `608af36`), et avant au commit `e30d8bd` de `dev` (la
@@ -1115,7 +1117,8 @@ git ls-remote --heads origin
   `gaol_ieee1788`) à 12 h 12 UTC (`e30d8bd`, 2.3, 3.52 et 7.52), puis, avec les
   commits directs du manuel et de la couverture (7.53), #387 (PJ.8 : les traces
   de `configure-clean`, `todo-notes/` supprimé) à 20 h 25 UTC (`8a308a7`, 2.3,
-  3.53 et 7.54) ; l'audit du 13 octobre a
+  3.53 et 7.54), puis #388 (PJ.3 : le tableau de couverture du manuel et son
+  PDF) à 21 h 21 UTC (`fc8b9ac`, 2.3, 3.54 et 7.55) ; l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
 - **En cours** : au 17 novembre, aucune pull request n'est ouverte :
@@ -1152,9 +1155,10 @@ git ls-remote --heads origin
   `todo-px3b-test-eq-rest`) et #380 et #381 (la tâche PZ ;
   `manual-pz-review-fixes` et `synthese-pu-py`) et #382 (`todo-ph-gaol-texts`)
   et #383 (`manual-pj-coverage`) et #385 (`remove-expr-visitor`) et #386
-  (`internal-expressions`) et #387 (`todo-pj8-configure-clean-traces`) sont
-  fusionnées, leurs registres faits ; `dev` est au commit de ces registres
-  (7.54), après `8a308a7`, la fusion de #387, `5d07c3a`, `c46a6a2` (7.53),
+  (`internal-expressions`) et #387 (`todo-pj8-configure-clean-traces`) et #388
+  (`manual-pj3-coverage`) sont fusionnées, leurs registres faits ; `dev` est au
+  commit de ces registres (7.55), après `fc8b9ac`, la fusion de #388, `9665f49`
+  (7.54), `8a308a7`, la fusion de #387, `5d07c3a`, `c46a6a2` (7.53),
   `608af36` (7.52), `e30d8bd`, la fusion de #386, `c7f79f3` (7.51), `a6189a0`,
   la fusion de #385, `819e25d` (7.50), `5dff483`, `67f7073`, la fusion de #383,
   `269c895`, la fusion de #382, `74409aa`, les registres de la préparation de PJ
@@ -1242,7 +1246,9 @@ git ls-remote --heads origin
   et l'est depuis PU et PV, qui ont changé le code de `gaol/`, PY, qui en a
   retiré du code mort, et PX, qui a ajouté `==` et `!=` aux intervalles et
   l'option de GCC 12 sur aarch64, la couverture, les mesures et le PDF étant à
-  refaire une seule fois, à la version : *décidé le 16 novembre*). Ce qui est
+  refaire une seule fois, à la version : *décidé le 16 novembre* ; la couverture
+  et le PDF le sont par #388, les temps ne le sont pas : *décidé le 17
+  novembre*). Ce qui est
   reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les décorations,
   ce qui attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre
   points sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les points un par un (« traite la
@@ -1265,10 +1271,10 @@ tâches PU à PZ (*décidé le 13 novembre*).
    git rev-parse origin/dev^{tree}                         # le même
    ```
 
-   Essai du 17 novembre à `8a308a7` : sans conflit, et l'arbre est celui de
-   `dev` (`3755177`) ; `master` a deux commits de plus, ceux de
-   `.claude/CLAUDE.md`, que `dev` avait aussi et que la pull request #384,
-   fusionnée à 9 h 42 UTC, a retirés de `master`.
+   Essai du 17 novembre à `fc8b9ac` : sans conflit, et l'arbre est celui de
+   `dev` (`54ed853`) ; `master` a quatre commits de plus : les deux de
+   `.claude/CLAUDE.md`, que `dev` avait aussi, leur retrait et la fusion de la
+   pull request #384 (9 h 42 UTC), qui les a retirés de `master`.
 3. **La vérification.** La CI de `dev` est verte. Les trois archives (`cmake
    --build <build> --target dist`, `make dist`, `meson dist --formats gztar`)
    donnent exactement les fichiers de `git archive HEAD`, que `.gitattributes`

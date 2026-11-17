@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 17 novembre
-2026 (commit `8a308a7` de `dev`, la fusion de #387 ; `configure-clean`, qui
+2026 (commit `fc8b9ac` de `dev`, la fusion de #388 ; `configure-clean`, qui
 était à `83e2f69`, la fusion de #321, est supprimée le 17 novembre : voir la
 section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
@@ -59,7 +59,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 ## 1. L'état au 17 novembre 2026
 
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `8a308a7` (la fusion de #387 le 17 novembre à 20 h 25 UTC, PJ.8 : les
+  commit `fc8b9ac` (la fusion de #388 le 17 novembre à 21 h 21 UTC, PJ.3 : le
+  tableau de couverture du manuel et son PDF, après les registres de #387,
+  `9665f49` (7.54)), et avant au commit `8a308a7` (la fusion de #387 le 17
+  novembre à 20 h 25 UTC, PJ.8 : les
   traces de `configure-clean` et le dossier `todo-notes/`, après les commits
   directs du manuel et de la couverture, `c46a6a2` à `5d07c3a` (7.53), et les
   registres de #386, `608af36` (7.52)), et avant au commit `e30d8bd` (la fusion
@@ -4732,6 +4735,28 @@ tournait au moment des registres.
   `doc/differences.md`, `check_branch` qui lit `.gitattributes`) n'ont pas eu de
   relecteur.
 
+- #388 (PJ.3 ; `manual-pj3-coverage`, deux commits, 3 fichiers, 10 lignes
+  ajoutées et 8 retirées, plus le PDF) : fusionnée le 17 novembre à 21 h 21 UTC
+  par le mainteneur (`fc8b9ac`, tête `ef37e8e`), avant la fin de sa CI : au
+  moment des registres, Manual, Linux, Linux containers et Windows au vert,
+  Autotools and meson en cours et macOS en attente d'un runner (Performance ne
+  tourne pas : rien du code, ni de `CMakeLists.txt`, ni des outils de mesure ne
+  change). Demande du mainteneur : « Traite PJ.3 ». Le tableau 14.8 du chapitre
+  14 du manuel et son texte prennent le rapport de `coverage/` du 17 novembre (4
+  exécutions réunies : SSE2, AVX-512 et FPU sur l'i7, NEON sur l'Apple M2) :
+  GAOL 7 822 lignes, 7 630 couvertes, 192 non exécutées, 97,5 % (6 503, 6 213,
+  290 et 95,5 % avant), CORE-MATH 8 172, 6 741, 1 431 et 82,5 %, 70,1 % des
+  branches de GAOL prises dans les deux sens (69,2 % avant), les trois fichiers
+  les moins couverts `gaol_expr_eval.h` (88,2 %), `gaol_interval_avx512_impl.h`
+  (93,2 %) et `gaol_expression.cpp` (94,5 %), 25 fichiers sur 42 à 100 % (20 sur
+  36) ; « the largest file » est retiré de la phrase sur `gaol_compoundm1.h` (le
+  plus gros fichier est `gaol_expression.cpp`, 860 lignes comptées) ;
+  `doc/differences.md` (ligne 89) dit 97,5 % au lieu de 95 % ; le PDF est
+  régénéré (389 pages, 0 erreur, les 7 « Overfull » de `dev`, seul le paragraphe
+  de la couverture change dans le texte du PDF). Un script compare chaque
+  chiffre du manuel à `coverage/README.md` ; pas de relecteur indépendant (un
+  tableau et trois phrases). `check_branch` en règle.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -8354,6 +8379,52 @@ réponses étendent le point.
   les mesures, à refaire à la version (PJ) ; rien n'est reporté dans
   `TODO_AFTER.md`.
 
+### 3.54 Le 17 novembre : la préparation de la version (PJ.3, #388)
+
+Le mainteneur demande « Traite PJ.3 » (17 novembre), puis écrit « j'ai
+fusionné » une fois #388 fusionnée. PJ.3 est la fusion de `dev` dans `master`
+et l'étiquette (3.36) : la pull request vers `master` est ouverte et fusionnée
+par le mainteneur, et la session ne pose l'étiquette que sur son mot. La session
+prépare donc ce qui se prépare :
+
+- **Ce qui est refait** : la couverture et le PDF, « une seule fois, à la
+  version » (*décidé le 16 novembre*), par #388 : le rapport de `coverage/`
+  était déjà fait (7.53), il manquait le tableau 14.8 et le PDF ; les temps de
+  PJ.2 ne sont pas refaits (*décidé le 17 novembre*).
+- **L'essai de la fusion** de `dev` dans `master` (`git merge-tree`, `dev` à
+  `9665f49` puis à `fc8b9ac`) : sans conflit, l'arbre est celui de `dev`
+  (`f54f1de`, puis `54ed853`).
+- **Le texte de la pull request vers `master`** est écrit (le titre « GAOL
+  v5.0.0 : fusion de `dev` dans `master` », ce que `master` reçoit : 2 333
+  commits de `dev` et 980 fichiers changés, quatre commits de `master` que `dev`
+  n'a pas, ceux de `.claude/CLAUDE.md` ajoutés puis retirés par #384 ; les notes
+  dans l'arbre, pas dans les archives ; les workflows de `dev` qui remplacent
+  ceux de `master` ; les questions ouvertes, la licence de #281 et l'annonce de
+  PJ.4) ; la session ne l'ouvre pas (*décidé le 12 novembre*) et n'a pas rempli
+  sa ligne « CI de `dev` », qui attend un commit vert.
+- **L'étiquette** : annotée comme `v4.3.2` (de Jordan08, un message d'une ligne
+  : « GAOL 4.3.2: the intersection of disjoint intervals is the empty set »),
+  sur le commit de fusion, sur le mot du mainteneur ; `release.yml` vérifie
+  qu'elle est sur `master` et qu'elle est la version de `VERSION.txt`. Le
+  message proposé par la session, « GAOL 5.0.0: CORE-MATH bounds, IEEE
+  1788-2015, three alike builds, a new manual », attend sa réponse.
+- **La CI** : celle du commit de fusion de #387 (`8a308a7`) a eu deux jobs de
+  macOS (« macOS 26 universal, CMake and meson, and Rosetta » et « macOS 15
+  arm64 ») qui n'ont jamais eu de runner (« The job was not acquired by Runner
+  of type hosted even after multiple attempts » : aucune étape ne s'est
+  exécutée) ; la session les a relancés (tentative 2, `rerun-failed-jobs` par
+  l'API REST) et le push de #388, que le mainteneur a fusionnée aussitôt, a
+  annulé ce run (`concurrency`). La version attend une CI verte au commit de
+  fusion de #388.
+- **Pièges** : `check_branch` refuse un sujet de commit qui contient
+  « regenerated with » (il cherche `generated with`) : écrire « regenerated,
+  with » ; deux sujets de 101 et de 88 caractères, le premier refait par
+  `cherry-pick` sur le parent comme en 3.53.
+- **Reste à faire** : la CI de `dev` verte à `fc8b9ac` ; la pull request de
+  `dev` vers `master` (le mainteneur) ; l'étiquette `v5.0.0` sur son mot, avec
+  le message de l'étiquette ; PJ.4 (l'annonce à Frédéric Goualard, dont
+  l'adresse manque) ; la licence de #281 (les auteurs d'IBEX et de Codac).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -10835,6 +10906,18 @@ leurs registres n'étaient pas faits :
   (`paths-ignore`). Les branches de #387 (`todo-pj8-configure-clean-traces`) et
   de #384, #385 et #386 ne sont plus sur GitHub (supprimées à la fusion), et
   `dev` et `master` en sont les seules.
+
+### 7.55 Le 17 novembre (après #388 : les registres)
+
+- Les registres de #388, en un commit direct sur `dev`, depuis le clone du
+  scratchpad : `TODO.md` (l'en-tête, les pull requests, PJ : la couverture, la
+  CI et la préparation de la version), ce fichier (en-tête, 1, 2.3, 3.54 et
+  7.55) et `process.md` (l'en-tête, §12 et §13). L'issue #179 est mise à jour ;
+  #178 non (`TODO_AFTER.md` n'a pas changé), #177 non.
+- Ce commit ne change que des fichiers que les workflows ignorent
+  (`paths-ignore`) : il n'annule pas la CI du commit de fusion de #388, qui
+  tournait. La branche de #388 (`manual-pj3-coverage`) n'est plus sur GitHub
+  (supprimée à la fusion) ; `dev` et `master` en sont les seules.
 
 ## 8. Le ménage fait
 
