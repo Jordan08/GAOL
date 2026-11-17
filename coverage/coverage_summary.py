@@ -17,10 +17,11 @@ nothing of either.
 
 The intervals are computed by one set of files per processor family, chosen by
 the configuration: SSE2 on x86-64, NEON on 64-bit ARM, the FPU elsewhere or with
-GAOL_SIMD=OFF (and the AVX-512 path of x86-64 on request). One run compiles one
-family only, so the page has a section for the files of each family, and
-several runs can be merged first, with gcovr --add-tracefile, into the JSON this
-script reads; each --run adds a line saying what a run was:
+GAOL_SIMD=OFF (and the AVX-512 path of x86-64, which GAOL_PRESERVE_ROUNDING
+takes on a processor that has it, and which is compiled with the SSE2 files).
+One run compiles one family only, so the page has a section for the files of
+each family, and several runs can be merged first, with gcovr --add-tracefile,
+into the JSON this script reads; each --run adds a line saying what a run was:
 
     python3 coverage/coverage_summary.py merged.json coverage/README.md \\
         --run "SSE: x86-64, GCC 15.2" --run "FPU: x86-64, -DGAOL_SIMD=OFF"
@@ -186,7 +187,9 @@ def main():
             out.append("- " + run)
         out.append("")
         out.append("Each run is `cmake -S . -B <build> -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON "
-                   "-DWITH_EXAMPLES=ON -DGAOL_COVERAGE=ON` (with `-DGAOL_SIMD=OFF` for the FPU) and "
+                   "-DWITH_EXAMPLES=ON -DGAOL_COVERAGE=ON` (with `-DGAOL_SIMD=OFF` for the FPU, and "
+                   "`-DGAOL_PRESERVE_ROUNDING=ON` for the AVX-512 path, which a processor with "
+                   "AVX-512 then takes) and "
                    "`cmake --build <build> --target coverage`, which leaves `<build>/coverage.json`. "
                    "The merge is `gcovr --root . --merge-mode-functions=merge-use-line-min "
                    "--filter \"$PWD/gaol/\" --filter \"$PWD/3rd/math-core/\" "
@@ -234,7 +237,8 @@ def main():
         out.append("")
         out.append("The configuration chooses the files that compute the intervals: SSE2 on x86-64, "
                    "NEON on 64-bit ARM, the FPU elsewhere and with `-DGAOL_SIMD=OFF`, and the "
-                   "AVX-512 path of x86-64 where it is asked for. A run compiles one family, so "
+                   "AVX-512 path of x86-64 (with the SSE2 files) where the rounding direction is "
+                   "preserved. A run compiles one family, so "
                    "the files of the others are in the page only if a run of them was merged.")
         out.append("")
         out.append(family_table)
