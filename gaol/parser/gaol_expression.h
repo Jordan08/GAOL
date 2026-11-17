@@ -39,6 +39,9 @@ cannot be printed.
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_interval.h"
+// Before the overloads below, so that the using-declarations of gaol_ieee1788
+// never name them, whichever header a file includes first (GAOL v5)
+#include "gaol/gaol_ieee1788.h"
 
 namespace gaol_core {
   
@@ -398,8 +401,7 @@ namespace gaol_core {
       public:
       /*
       The power of the values of e1 and e2, which the node keeps (GAOL v5):
-      GAOL's pow, gaol_pow_hybrid(), for gaol::pow(e1, e2) and the parser, and
-      the pow of IEEE 1788-2015 for gaol_ieee1788::pow(e1, e2)
+      GAOL's pow, gaol_pow_hybrid(), that the parser gives it
       */
       typedef interval (*power_function)(const interval&, const interval&);
       pow_itv_node(const expression& e1, const expression& e2, power_function f = gaol_pow_hybrid);
@@ -847,7 +849,7 @@ namespace gaol_core {
     GAOL_NODISCARD extern GAOL_PUBLIC const expression operator-(const expression& el, const expression& er);
     GAOL_NODISCARD extern GAOL_PUBLIC const expression operator*(const expression& el, const expression& er);
     GAOL_NODISCARD extern GAOL_PUBLIC const expression operator/(const expression& el, const expression& er);
-    //! gaol_pown_exp(e, n), gaol_pow_exp(e1, e2): e^n and e1^e2, gaol::pow(e, n) and gaol::pow(e1, e2)
+    //! gaol_pown_exp(e, n), gaol_pow_exp(e1, e2): e^n and e1^e2 with GAOL's pow
     GAOL_NODISCARD extern GAOL_PUBLIC const expression gaol_pown_exp(const expression& e, int n);
     GAOL_NODISCARD extern GAOL_PUBLIC const expression gaol_pow_exp(const expression& e1, const expression& e2);
     GAOL_NODISCARD extern GAOL_PUBLIC const expression nth_root(const expression& e, unsigned int n);

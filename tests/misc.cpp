@@ -14,6 +14,11 @@
 
 // GAOL 4's unit test check/misc.cpp, run with the checks of unit_tests.h
 // rather than CppUnit (GAOL v5)
+// The expressions, with their nodes and evaluator, which gaol does not name
+// (GAOL v5): they have to be declared for the checks below to mean something.
+// Their headers are not installed, so that this test is built with the
+// sources of GAOL
+#include "gaol/parser/gaol_expr_eval.h"
 #include "unit_tests.h"
 
 using namespace gaol;
@@ -65,6 +70,7 @@ namespace gaol_names
   constexpr bool nth_root_rel_takes(...) { return false; }
 
   const interval& x();
+  const gaol_core::expression& e();
   std::ostream& out();
 
 #define GAOL_NAMES_CLASS(c) static_assert(same<gaol::c, gaol_core::c>(), "gaol::" #c)
@@ -336,10 +342,10 @@ namespace gaol_names
   GAOL_NAMES_ABSENT((gaol_pown_ll)(x(), 3LL));
   GAOL_NAMES_ABSENT((gaol_pow_real)(x(), 0.5));
   GAOL_NAMES_ABSENT((gaol_pow_hybrid)(x(), x()));
-  GAOL_NAMES_ABSENT((gaol_pown_exp)(x(), 3));
-  GAOL_NAMES_ABSENT((gaol_pow_exp)(x(), x()));
-  GAOL_NAMES_ABSENT((evaluate_expr)(x(), std::declval<gaol_core::interval&>()));
-  GAOL_NAMES_ABSENT((evaluate_left_right)(x(), std::declval<gaol_core::interval&>()));
+  GAOL_NAMES_ABSENT((gaol_pown_exp)(e(), 3));
+  GAOL_NAMES_ABSENT((gaol_pow_exp)(e(), e()));
+  GAOL_NAMES_ABSENT((evaluate_expr)(e(), std::declval<gaol_core::interval&>()));
+  GAOL_NAMES_ABSENT((evaluate_left_right)(e(), std::declval<gaol_core::interval*>()));
   GAOL_NAMES_ABSENT((gaol_sign_of)(1.0));
   GAOL_NAMES_ABSENT((rnd_reread)(1.0));
   GAOL_NAMES_ABSENT((rnd_keep)(1.0));

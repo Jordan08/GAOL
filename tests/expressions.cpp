@@ -39,10 +39,10 @@
  *--------------------------------------------------------------------------*/
 
 /* The expressions are in gaol_core, and their headers are not installed
-   (GAOL v5): this test is built with the sources of GAOL. gaol/gaol_ieee1788.h
-   is included before them, so that the checks below see what gaol_ieee1788
-   names of the expressions, which is nothing */
-#include "gaol/gaol_ieee1788.h"
+   (GAOL v5): this test is built with the sources of GAOL. It includes them
+   before gaol/gaol_ieee1788.h (gaol_tests.h), which gaol_expression.h includes
+   first all the same: the checks below see that gaol_ieee1788 names nothing of
+   the expressions */
 #include "gaol/parser/gaol_expr_eval.h"
 
 #include "gaol_tests.h"
