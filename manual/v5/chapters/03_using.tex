@@ -543,7 +543,8 @@ doubles and the rounding direction, \code{round\_downward()},
 \code{erf}, \code{fma}, \code{cancel\_minus},
 \code{round\_ties\_to\_even}\ldots), \code{restore\_rounding()} and
 \code{exact\_string()}. \code{gaol\_ieee1788} names the version as \code{gaol}
-does. The expressions, which GAOL~4 named in \code{gaol} too, are in
+does. The expressions, which GAOL~4 named in \code{gaol} too (\code{expression},
+\code{expr\_node}, \code{eval\_stack}\ldots), are in
 \code{gaol\_core} only, and their headers are not installed: a program reads
 a string with \code{textToInterval()}, and does not build an
 expression.\newinvfive
@@ -552,7 +553,7 @@ expression.\newinvfive
 Some names are in \code{gaol\_core} only, and a program names them there:
 \code{gaol\_core::rnd\_keep}, for instance.\newinvfive{} They are
 \code{rnd\_keep()} (GAOL v5 adds it; the releases 4.3.0 to 4.3.2 had it in
-\code{gaol}, Chapter~\ref{chap:changes}; GAOL~4 has none), \code{NaN\_val}, \code{eval\_stack}, and the
+\code{gaol}, Chapter~\ref{chap:changes}; GAOL~4 has none), \code{NaN\_val}, and the
 reader of strings, \code{parse\_interval()} and \code{parsing\_names}.
 
 What the code of GAOL uses for itself is in \code{gaol\_core} only too, out of
@@ -565,8 +566,7 @@ Chapter~\ref{chap:changes}; and \code{get\_flush\_modes()}\ldots), the functions
 \code{gaol} (below), and the internals GAOL~4 had in \code{gaol} without its
 manual documenting them: the functions \code{gaol\_signbit()},
 \code{modulo\_k\_pi()} and the \code{round\_*\_sse()}, the types
-\code{uintdouble}, \code{ullidouble}, \code{Interval\_struct} and
-\code{prec\_t}, and the variable \code{the\_null\_expr}. A program calling one
+\code{uintdouble}, \code{ullidouble} and \code{Interval\_struct}. A program calling one
 of them names it in \code{gaol\_core}: \code{gaol\_core::get\_rounding()},
 for instance.
 
@@ -575,8 +575,8 @@ The \code{pow} of \code{gaol} takes the integer power for an integer exponent,
 a negative base included, and the \code{pow} of IEEE 1788-2015 for any other
 exponent (\pxref{sec:powers}). In \code{gaol\_core}, its versions are named
 apart: \code{gaol\_pown()}, \code{gaol\_uipow()}, \code{gaol\_pown\_ll()},
-\code{gaol\_pow\_real()}, \code{gaol\_pow\_hybrid()}, \code{gaol\_pown\_exp()}
-and \code{gaol\_pow\_exp()}, which are not in \code{gaol}.
+\code{gaol\_pow\_real()} and \code{gaol\_pow\_hybrid()}, which are not in
+\code{gaol}.
 
 \section{The powers in the two namespaces}\label{sec:pow-namespaces}
 %%----------------------------------------

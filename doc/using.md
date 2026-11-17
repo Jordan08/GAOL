@@ -385,12 +385,12 @@ the doubles around π and π/2, `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` an
 (`exp2`, `log2`, `hypot`, `compoundm1`, `trunc`, `sinpi`, `erf`, `fma`, `cancel_minus`,
 `round_ties_to_even`...), `restore_rounding()` and `exact_string()`. `rnd_keep()` (GAOL v5 adds it, and
 had it in `gaol` in its 4.3 releases; GAOL 4 has none), `NaN_val`,
-`eval_stack`, and the reader of strings, `parse_interval()` and
+and the reader of strings, `parse_interval()` and
 `parsing_names`, are in `gaol_core` only, as `gaol_core::rnd_keep(x)`.
 `gaol_ieee1788` names the version as `gaol` does. The expressions, which GAOL 4
-named in `gaol` too (`expression`, `expr_node`, its thirty nodes, `expr_eval`,
-`evaluate_expr()` and the functions and the operators building an expression),
-are in `gaol_core` only, as the headers that declare them
+named in `gaol` too (`expression`, `expr_node`, its thirty nodes, `expr_eval`, `eval_stack`,
+`evaluate_expr()`, the functions and the operators building an expression,
+`prec_t` and `the_null_expr`), are in `gaol_core` only, as the headers that declare them
 (`gaol/parser/gaol_expression.h` and the two that go with it) are not installed
 (GAOL v5): a program reads a string with `textToInterval()`, and does not build
 an expression. What GAOL's code uses for
@@ -403,7 +403,7 @@ in `gaol` in its 4.3 releases and GAOL 4 had not, `get_flush_modes()`...), the
 functions computing the `pow` of `gaol` (below), and the internals GAOL 4 had
 in `gaol` without its manual
 documenting them (`gaol_signbit()`, `uintdouble`, `ullidouble`,
-`Interval_struct`, `the_null_expr`, `prec_t`, `modulo_k_pi()`,
+`Interval_struct`, `modulo_k_pi()`,
 `round_upward_sse()` and the other `round_*_sse()`). A program calling one of them names it in `gaol_core`, as
 `gaol_core::get_rounding()`.
 
@@ -411,9 +411,8 @@ The `pow` of `gaol` takes the integer power for an integer exponent, a negative
 base included, and the pow of IEEE 1788-2015 for any other exponent (see
 [the powers in the two namespaces](#the-powers-in-the-two-namespaces)). In
 `gaol_core`, the functions computing it are named apart from `pow`:
-`gaol_pown()`, `gaol_uipow()`, `gaol_pown_ll()`, `gaol_pow_real()`,
-`gaol_pow_hybrid()`, `gaol_pown_exp()` and `gaol_pow_exp()`, which are not in
-`gaol`.
+`gaol_pown()`, `gaol_uipow()`, `gaol_pown_ll()`, `gaol_pow_real()` and
+`gaol_pow_hybrid()`, which are not in `gaol`.
 
 ## The powers in the two namespaces
 

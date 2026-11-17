@@ -1877,18 +1877,19 @@ which `numbers` checks there too.
   `restore_rounding()`, `exact_string()` and `is_finite()`; that the
   expressions are not found through `using namespace gaol`, nor
   `evaluate_expr()` and `evaluate_left_right()`: `expression`, `expr_node`,
-  `expr_eval` and the thirty nodes, with `gaol_pown_exp()` and `gaol_pow_exp()`,
+  `expr_eval`, `eval_stack`, `prec_t`, `the_null_expr` and the thirty nodes,
+  with `gaol_pown_exp()` and `gaol_pow_exp()`,
   are in `gaol_core` only (GAOL v5), where `tests/expressions.cpp` checks that
   `gaol::sin(e)` and `gaol_ieee1788::sin(e)` of an expression do not compile;
   that the `rnd_keep()`, `NaN_val`,
-  `eval_stack`, `parse_interval()` and `parsing_names` are not found through
+  `parse_interval()` and `parsing_names` are not found through
   `using namespace gaol`, nor what
   GAOL uses for itself: the
   functions (`get_rounding()`, `get_flush_modes()`, `gaol_pown()`...), their
   name between parentheses so that argument-dependent lookup does not find
   them in `gaol_core`, lose to fallbacks that any function of GAOL
   beats, and the types and the variables (`rounding_state`, `uintdouble`,
-  `the_null_expr`, the internals GAOL 4 had in `gaol` too,
+  the internals GAOL 4 had in `gaol` too,
   `NaN_val`, the version...) to fallbacks of the same name, with which they
   would be ambiguous. `misc` checks as well that `gaol_ieee1788::operator<<`
   names the output of the intervals, and that `gaol`

@@ -1782,8 +1782,10 @@ change with its measures (Chapter~\ref{chap:changes}).
   \file{check/} are in \file{tests/}. A shared \file{libgaol} built by
   \cmd{configure} or meson did not export the classes and functions of the
   expressions, and a program building one did not link with it: the shared
-  library jobs of the three builds, whose tests link with the installed
-  \file{libgaol.so}, build \file{tests/expressions.cpp}.
+  library jobs of the three builds, whose tests link with \file{libgaol.so},
+  build \file{tests/expressions.cpp}; the tests that \file{tests.sh} links with
+  the installed one no longer include it, the headers of the expressions not
+  being installed.
 \item[$\bullet$] \textbf{Reports of the sanitizers that were suppressed at
   first}, and are fixed now: the nodes the parser did not free. Nothing is
   suppressed any more.

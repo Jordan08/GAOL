@@ -396,8 +396,8 @@ corners computed alone, against mpmath. Beyond the \code{int}s, they find
 the tightest at the powers of the tests \file{elementary} and
 \file{ieee1788} there (odd and even exponents, negative bases, exponents of
 64 and 128 bits), the tightest at 5 powers beyond $2^{53}$ where $n$ is a
-double, and within three doubles at 4 where it is none, of intervals and of
-expressions, against mpmath. They check that $x^2$ is \code{sqr(x)} over
+double, and within three doubles at 4 where it is none, of intervals,
+against mpmath. They check that $x^2$ is \code{sqr(x)} over
 400 intervals near $1$, $3$, $0.75$ and $2^{-500}$, and bit for bit, the
 sign of a zero included, in each of its forms (\code{pow(x, 2)},
 \code{2u}, \code{2.0}, \code{[2]}, \code{gaol\_ieee1788::pown(x, 2)} and
