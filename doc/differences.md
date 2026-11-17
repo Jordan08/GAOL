@@ -2566,8 +2566,9 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   generators, or `--target package_source`), `make dist` of the autotools
   build and `meson dist -C <build> --formats gztar` give `gaol-<version>.tar.gz`
   with the same files, those of the repository less the notes of the work on
-  GAOL v5 that only the development branch `dev` holds: they are
-  `export-ignore`, which `meson dist` reads, as it archives the commit with
+  GAOL v5 that the development branch `dev` holds, and `master` once a version
+  of `dev` is merged into it: they are `export-ignore`, which `meson dist`
+  reads, as it archives the commit with
   `git archive`; CMake leaves them out with
   `CPACK_SOURCE_IGNORE_FILES`, and `make dist` does not list them in the
   `EXTRA_DIST` of its `Makefile.am`. `--target package` makes an archive of
