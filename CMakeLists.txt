@@ -1652,12 +1652,13 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 
   # The archive of the sources: the files of the repository, without what git
   # ignores (.gitignore), the builds within the sources, the packages, and the
-  # notes of the work on GAOL v5 that only the development branch dev holds
-  # (TODO.md, TODO_AFTER.md, TODO_DONE.md, STEP.md, process.md, todo-notes/,
-  # and .gitattributes, which marks them export-ignore for meson dist), which
-  # serve its maintainers, not the users of a version: the EXTRA_DIST of make
-  # dist do not list them, so that the three archives hold the same files, on
-  # dev as on configure-clean, which has none of them (GAOL v5). CPack writes the CPACK_* variables into CPackConfig.cmake
+  # notes of the work on GAOL v5 that the development branch dev holds, and
+  # master once a version of dev is merged into it (TODO.md, TODO_AFTER.md,
+  # TODO_DONE.md, STEP.md, process.md, todo-notes/, and .gitattributes, which
+  # marks them export-ignore for meson dist), which serve its maintainers, not
+  # the users of a version: the EXTRA_DIST of make dist do not list them, so
+  # that the three archives hold the same files, on dev as on master (GAOL v5).
+  # CPack writes the CPACK_* variables into CPackConfig.cmake
   # and CPackSourceConfig.cmake, which it reads when it runs:
   # CPACK_VERBATIM_VARIABLES has it escape them, so that the backslashes of
   # these regular expressions reach it as they are, where CMake 3 warned of an
