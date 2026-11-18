@@ -20,7 +20,9 @@
  *   with a program or a C library holding CORE-MATH's functions too;
  * - __builtin_roundeven() where the compiler or the math library has not;
  * - __builtin_round() of gaol/math/gaol_round.h where the round() of the math
- *   library is mingw-w64's own, which is wrong;
+ *   library is mingw-w64's own, which is wrong, and __builtin_fma() of
+ *   gaol/math/gaol_fma.h where its fma() or Cygwin's is, and the build has no
+ *   fused multiply-add instruction;
  * - on a 32-bit x86 Windows, a fegetexceptflag() and a fesetexceptflag()
  *   written on MXCSR, which leave its exception masks alone;
  * - on 32-bit x86, the square root of SSE2, rounded in the direction in
@@ -188,6 +190,32 @@ rounding downward (see gaol/math/gaol_round.h, which reads the bits instead).
 #include "gaol/math/gaol_round.h"
 #define __builtin_round(x) gaol_round(x)
 #endif /* mingw-w64 whose round() is its own */
+
+/*---------------------------------------------------------------------------
+fma() of the C library, which is wrong, where the build has no instruction
+
+The sources call __builtin_fma(), which is one instruction with -mfma
+(GAOL_FMA, __FMA__) and a call of the fma() of the C library without. Where
+that library is mingw-w64's own (GAOL_MINGW_OWN_MATH, above) or Cygwin's, its
+fma() is not correctly rounded, and the bounds of the elementary functions
+that compute with it do not enclose the exact values: with GAOL_FMA=OFF, or on
+a processor without the instructions, for which the three builds do not take
+-mfma, the builtin is replaced by gaol_fma() of gaol/math/gaol_fma.h, which
+computes it with integers, rounded once in the direction in effect, and so is it
+everywhere with GAOL_FMA_FORCE_SOFTWARE=1, the way the continuous integration
+runs that function on an ordinary machine. GAOL_SOFT_FMA of gaol/gaol_config.h
+is the same test, which these C sources cannot read; tests/core_math.cpp checks
+that they agree. Everywhere else the builtin is the instruction, or the call of
+a library whose fma() is right.
+--------------------------------------------------------------------------*/
+
+#if (defined(GAOL_FMA_FORCE_SOFTWARE) && GAOL_FMA_FORCE_SOFTWARE \
+     && (!defined(_MSC_VER) || defined(__clang__))) \
+    || ((GAOL_MINGW_OWN_MATH || defined(__CYGWIN__)) && !defined(__FMA__) \
+        && (defined(__x86_64__) || defined(__i386__)))
+#include "gaol/math/gaol_fma.h"
+#define __builtin_fma(x, y, z) gaol_fma((x), (y), (z))
+#endif /* a library whose fma() is wrong, and no instruction */
 
 /*---------------------------------------------------------------------------
 fesetexceptflag() of mingw-w64 up to 12, which unmasks the exceptions

@@ -25,10 +25,12 @@
  *
  * First, the test checks the fma() and round() of the C library, which
  * CORE-MATH and GAOL call, against values computed apart: where they are
- * wrong, so are the bounds, whatever the platform. Where the round() is that of
- * mingw-w64's own math library (GAOL_MINGW_OWN_MATH), which is wrong, GAOL
- * calls gaol_round() of gaol/math/gaol_round.h, which the test checks there,
- * and on every platform, apart from the C library.
+ * wrong, so are the bounds, whatever the platform. Where the fma() and the
+ * round() are those of mingw-w64's own math library (GAOL_MINGW_OWN_MATH), which
+ * are wrong, and Cygwin's fma(), GAOL calls gaol_round() of
+ * gaol/math/gaol_round.h, and gaol_fma() of gaol/math/gaol_fma.h where the
+ * build has no fused multiply-add instruction (GAOL_SOFT_FMA), which the test
+ * checks there, and on every platform, apart from the C library.
  *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
@@ -41,7 +43,10 @@
 #include "gaol_tests.h"
 #include "gaol/math/gaol_core_math.h"
 #include "gaol/math/gaol_ldexp.h"
+#include "gaol/math/gaol_fma.h"
 #include "gaol/math/gaol_round.h"
+
+#include "fma_values.h"
 
 #include <climits>
 #include <cstring>
@@ -67,9 +72,41 @@
 #define __builtin_round(x) gaol_round(x)
 #endif /* mingw-w64 whose round() is its own */
 
+/*
+  The same for __builtin_fma(), where the library's fma() is wrong and the
+  build has no instruction, or where GAOL_FMA_FORCE_SOFTWARE says so: the
+  test is that of GAOL_SOFT_FMA (gaol/gaol_config.h), which the C sources do not
+  include and this one repeats (with the same GAOL_MINGW_OWN_MATH), the next
+  lines checking that the two agree.
+*/
+#if (defined(GAOL_FMA_FORCE_SOFTWARE) && GAOL_FMA_FORCE_SOFTWARE \
+     && (!defined(_MSC_VER) || defined(__clang__))) \
+    || ((GAOL_MINGW_OWN_MATH || defined(__CYGWIN__)) && !defined(__FMA__) \
+        && (defined(__x86_64__) || defined(__i386__)))
+#define GAOL_TESTS_PORT_HAS_SOFT_FMA 1
+#define __builtin_fma(x, y, z) gaol_fma((x), (y), (z))
+#else
+#define GAOL_TESTS_PORT_HAS_SOFT_FMA 0
+#endif /* a library whose fma() is wrong, and no instruction */
+
+#if GAOL_TESTS_PORT_HAS_SOFT_FMA != GAOL_SOFT_FMA
+#  error "the test of the __builtin_fma() of gaol/math/gaol_core_math_port.h is not the one of GAOL_SOFT_FMA in gaol/gaol_config.h"
+#endif
+
 // An expression as the text it expands to
 #define GAOL_TEST_TEXT_OF_2(x) #x
 #define GAOL_TEST_TEXT_OF(x) GAOL_TEST_TEXT_OF_2(x)
+
+// Where fma_reference() (tests/gaol_tests.h) is a reference for gaol_fma(): the
+// instruction, or the C library's where that is right, with GAOL_SOFT_FMA or
+// without it (GAOL_FMA_FORCE_SOFTWARE, on a machine that has the instruction or
+// a library that is right), and not where the build has neither
+#if defined(__FMA__) || defined(__ARM_FEATURE_FMA) || defined(__aarch64__) \
+    || !(GAOL_MINGW_OWN_MATH || defined(__CYGWIN__))
+#  define GAOL_TESTS_FMA_IS_TRUSTED 1
+#else
+#  define GAOL_TESTS_FMA_IS_TRUSTED 0
+#endif
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -497,6 +534,264 @@ namespace
         }
       }
     }
+  }
+
+  /*
+    The error of the product a*b, p being a*b rounded to nearest: a*b - p, which
+    is a double. Computed by the splitting of Veltkamp and the products of the
+    halves of Dekker, in doubles rounded to nearest, with no fma and no
+    overflow or underflow (the factors are between 2^-300 and 2^300): the exact
+    value of fma(a, b, -p), which gaol_fma() has to give in every direction.
+  */
+  double product_error(double a, double b, double p)
+  {
+    const double ta = 134217729.0 * a; // 2^27 + 1
+    const double ah = ta - (ta - a);
+    const double al = a - ah;
+    const double tb = 134217729.0 * b;
+    const double bh = tb - (tb - b);
+    const double bl = b - bh;
+    return ((ah * bh - p) + ah * bl + al * bh) + al * bl;
+  }
+
+  // A double of exponent in [lo, hi], random sign and significand
+  double random_double(std::mt19937_64& gen, int lo, int hi)
+  {
+    const std::uint64_t e = static_cast<std::uint64_t>(lo + static_cast<int>(gen() % static_cast<std::uint64_t>(hi - lo + 1)) + 1023);
+    const std::uint64_t u = ((gen() & 1) << 63) | (e << 52) | (gen() & 0x000fffffffffffffull);
+    double x;
+    std::memcpy(&x, &u, sizeof x);
+    return x;
+  }
+
+  // a, up to a few units of its last place away, in either direction
+  [[maybe_unused]] double near_double(std::mt19937_64& gen, double a)
+  {
+    double x = a;
+    for (int k = static_cast<int>(gen() % 4); k > 0; --k) {
+      x = (gen() & 1) ? next_float(x) : previous_float(x);
+    }
+    return x;
+  }
+
+  const int fma_in_effect[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+  const int fma_directed[] = {GAOL_FMA_TO_NEAREST, GAOL_FMA_UPWARD, GAOL_FMA_DOWNWARD, GAOL_FMA_TOWARD_ZERO};
+  const char* const fma_names[] = {"to nearest", "upward", "downward", "toward zero"};
+
+  // gaol_fma() in the direction in effect d, and gaol_fma_directed() in the direction d
+  // given, of a*b + c, compared with the value expected (the same bits: a zero
+  // has its sign, a NaN is compared with the NaN of the expectation)
+  void check_gaol_fma(const std::string& what, double a, double b, double c, int d, double want)
+  {
+    const bool nan = want != want;
+    const double given = gaol_fma_directed(a, b, c, fma_directed[d]);
+    check(what + ": in the direction given",
+          nan ? given != given : same_bits(given, want),
+          [&] {
+            return "gaol_fma_directed(" + show(a) + ", " + show(b) + ", " + show(c) + ") rounding "
+                 + fma_names[d] + " = " + show(given) + " rather than " + show(want);
+          });
+    // read at run time, as the fma of the C library above
+    volatile double va = a, vb = b, vc = c;
+    std::fesetround(fma_in_effect[d]);
+    const double got = gaol_core::rnd_keep(gaol_fma(va, vb, vc));
+    std::fesetround(FE_UPWARD);
+    check(what + ": in the direction in effect",
+          nan ? got != got : same_bits(got, want),
+          [&] {
+            return "gaol_fma(" + show(a) + ", " + show(b) + ", " + show(c) + ") rounding "
+                 + fma_names[d] + " = " + show(got) + " rather than " + show(want);
+          });
+  }
+
+  /*
+    gaol_fma() of gaol/math/gaol_fma.h, which GAOL calls where the fma() of the
+    C library is wrong and the build has no fused multiply-add instruction
+    (GAOL_SOFT_FMA of gaol/gaol_config.h): a*b + c rounded once, in the four
+    rounding directions, with integers. It is checked on every platform,
+    whether GAOL calls it or not, and apart from the C library:
+
+    - against the triples of tests/fma_values.py, whose results are
+      computed exactly with rational numbers: products and sums that cancel, the
+      error of a product, halfway cases of both parities and the doubles next
+      to them, a product far below c and above it at every distance, the
+      subnormal range, the edge of the overflow;
+    - against the error of a product, which the products of the halves of Dekker
+      give with no fma: fma(a, b, -rn(a*b)) is that error, exactly, whatever
+      the direction;
+    - the zeros of every sign, the infinities and the NaN written out;
+    - where the platform has the instruction, or a C library whose fma() is
+      right (also with GAOL_FMA_FORCE_SOFTWARE; not where the build has
+      neither, and gaol_fma() is what GAOL calls), against it, at 200000 triples of every magnitude, near cancellations, in
+      the subnormal range and at the edge of the overflow.
+  */
+  void gaol_fma_of_integers()
+  {
+    for (const FmaValue& t : fma_values) {
+      for (int d = 0; d < 4; ++d) {
+        check_gaol_fma("gaol_fma(): the exact value", t.a, t.b, t.c, d, t.rounded[d]);
+      }
+    }
+
+    std::mt19937_64 gen(20261118u);
+    {
+      RoundingToNearest nearest;
+      for (int i = 0; i < 20000; ++i) {
+        const double a = random_double(gen, -300, 300);
+        const double b = random_double(gen, -300, 300);
+        const double p = a * b;
+        const double error = product_error(a, b, p);
+        for (int d = 0; d < 4; ++d) {
+          const double given = gaol_fma_directed(a, b, -p, fma_directed[d]);
+          check("gaol_fma(): the error of a product, as Dekker's",
+                same_bits(given, error) || (given == 0.0 && error == 0.0),
+                [&] {
+                  return "gaol_fma_directed(" + show(a) + ", " + show(b) + ", " + show(-p) + ") rounding "
+                       + fma_names[d] + " = " + show(given) + " rather than " + show(error);
+                });
+        }
+      }
+    }
+
+    // inf is the infinity of gaol_tests (a local one hides it: C4459 of Visual C++)
+    const double largest = 0x1.fffffffffffffp+1023;
+    const double tiny = 0x1p-1074;
+    struct Special { double a, b, c; double rounded[4]; };
+    const Special specials[] = {
+      // the sign of a zero
+      {0.0, 1.0, 0.0, {0.0, 0.0, 0.0, 0.0}},
+      {-0.0, 1.0, 0.0, {0.0, 0.0, -0.0, 0.0}},
+      {-0.0, 1.0, -0.0, {-0.0, -0.0, -0.0, -0.0}},
+      {0.0, -1.0, -0.0, {-0.0, -0.0, -0.0, -0.0}},
+      {-0.0, -1.0, -0.0, {0.0, 0.0, -0.0, 0.0}},
+      {0.0, 5.0, 3.0, {3.0, 3.0, 3.0, 3.0}},
+      {5.0, -0.0, -tiny, {-tiny, -tiny, -tiny, -tiny}},
+      {1.0, 1.0, -1.0, {0.0, 0.0, -0.0, 0.0}},
+      {-1.5, 2.0, 3.0, {0.0, 0.0, -0.0, 0.0}},
+      // underflow to a zero or to the least number, by the direction and the sign
+      {tiny, tiny, 0.0, {0.0, tiny, 0.0, 0.0}},
+      {-tiny, tiny, 0.0, {-0.0, -0.0, -tiny, -0.0}},
+      {tiny, 0.5, 0.0, {0.0, tiny, 0.0, 0.0}},
+      {tiny, 0.75, 0.0, {tiny, tiny, 0.0, 0.0}},
+      // an overflow of the product that c brings back, exactly
+      {largest, 2.0, -largest, {largest, largest, largest, largest}},
+      {-largest, 2.0, largest, {-largest, -largest, -largest, -largest}},
+      // an overflow, by the direction and the sign
+      {largest, 2.0, 0.0, {inf, inf, largest, largest}},
+      {-largest, 2.0, 0.0, {-inf, -largest, -inf, -largest}},
+      // the infinities, and c alone infinite with a product that overflows
+      {inf, 2.0, 1.0, {inf, inf, inf, inf}},
+      {-inf, 2.0, 1.0, {-inf, -inf, -inf, -inf}},
+      {2.0, inf, -largest, {inf, inf, inf, inf}},
+      {1.0, 1.0, inf, {inf, inf, inf, inf}},
+      {1.0, 1.0, -inf, {-inf, -inf, -inf, -inf}},
+      {largest, 2.0, -inf, {-inf, -inf, -inf, -inf}},
+      {-largest, 2.0, inf, {inf, inf, inf, inf}},
+      {0.0, 1.0, inf, {inf, inf, inf, inf}},
+      {inf, 1.0, inf, {inf, inf, inf, inf}},
+      // the invalid operations and the NaN
+      {inf, 0.0, 1.0, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {0.0, -inf, 1.0, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {inf, 1.0, -inf, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {-inf, 1.0, inf, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {GAOL_NAN, 1.0, 1.0, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {1.0, GAOL_NAN, 1.0, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {1.0, 1.0, GAOL_NAN, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {largest, 2.0, GAOL_NAN, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+    };
+    for (const Special& t : specials) {
+      for (int d = 0; d < 4; ++d) {
+        check_gaol_fma("gaol_fma(): zeros, infinities, NaN and overflows", t.a, t.b, t.c, d, t.rounded[d]);
+      }
+    }
+
+#if GAOL_TESTS_FMA_IS_TRUSTED
+    for (int i = 0; i < 200000; ++i) {
+      double a, b, c;
+      switch (i % 9) {
+        case 0: // any double
+          a = random_double(gen, -1022, 1023);
+          b = random_double(gen, -1022, 1023);
+          c = random_double(gen, -1022, 1023);
+          break;
+        case 1: // magnitudes near one: the sum has bits of both
+          a = random_double(gen, -30, 30);
+          b = random_double(gen, -30, 30);
+          c = random_double(gen, -60, 60);
+          break;
+        case 2: // cancellation: c within a few units of -a*b
+          a = random_double(gen, -300, 300);
+          b = random_double(gen, -300, 300);
+          c = near_double(gen, -(a * b));
+          break;
+        case 3: // and the same sign, a sum of nearly equal numbers
+          a = random_double(gen, -300, 300);
+          b = random_double(gen, -300, 300);
+          c = near_double(gen, a * b);
+          break;
+        case 4: // the subnormal range, the product and c
+          a = random_double(gen, -540, -480);
+          b = random_double(gen, -600, -540);
+          c = random_double(gen, -1074, -1040);
+          break;
+        case 5: // the edge of the overflow, c bringing the sum back or not
+          a = random_double(gen, 500, 520);
+          b = random_double(gen, 500, 520);
+          c = (gen() & 1) ? -(a * b) : random_double(gen, 900, 1023);
+          break;
+        case 6: // operands of a few bits: exact sums, and halfway cases
+          a = std::ldexp(static_cast<double>(gen() % 1048576), -static_cast<int>(gen() % 30));
+          b = std::ldexp(static_cast<double>(gen() % 1048576), -static_cast<int>(gen() % 30));
+          c = std::ldexp(static_cast<double>(gen() % 1048576), -static_cast<int>(gen() % 60)) * ((gen() & 1) ? 1.0 : -1.0);
+          break;
+        case 7: { // significands of a few bits set or cleared, at every gap of 140 bits
+          static const double significands[] = {1.0, 1.0 + 0x1p-52, 2.0 - 0x1p-52, 1.5, 1.0 + 0x1p-26,
+                                                2.0 - 0x1p-26, 1.0 + 0x1p-51, 1.75};
+          const auto pick = [&gen] { return significands[gen() % 8] * ((gen() & 1) ? 1.0 : -1.0); };
+          const int gap = static_cast<int>(gen() % 281) - 140;
+          a = pick();
+          b = std::ldexp(pick(), static_cast<int>(gen() % 7) - 3);
+          c = std::ldexp(pick(), 7 + gap);
+          break;
+        }
+        default: { // the exponents of the product and of c, up to 130 bits apart
+          const int e = static_cast<int>(gen() % 261) - 130;
+          a = random_double(gen, -2, 2);
+          b = random_double(gen, -2, 2);
+          c = random_double(gen, e - 1, e + 1);
+          break;
+        }
+      }
+      for (int d = 0; d < 4; ++d) {
+        volatile double va = a, vb = b, vc = c;
+        std::fesetround(fma_in_effect[d]);
+        const double want = gaol_core::rnd_keep(fma_reference(va, vb, vc));
+        std::fesetround(FE_UPWARD);
+        const double given = gaol_fma_directed(a, b, c, fma_directed[d]);
+        check("gaol_fma(): as the instruction, at random",
+              (want != want) ? given != given : same_bits(given, want),
+              [&] {
+                return "gaol_fma_directed(" + show(a) + ", " + show(b) + ", " + show(c) + ") rounding "
+                     + fma_names[d] + " = " + show(given) + " rather than " + show(want);
+              });
+      }
+    }
+#endif
+  }
+
+  // __builtin_fma(x, y, z) as the sources of CORE-MATH call it, with the lines of
+  // gaol/math/gaol_core_math_port.h that replace it where GAOL_SOFT_FMA says so
+  // (the macro defined at the top of this file): gaol_fma() exactly there
+  void builtin_fma_of_core_math()
+  {
+    const std::string expansion = GAOL_TEST_TEXT_OF(__builtin_fma(1.0, 2.0, 3.0));
+    check("__builtin_fma(): gaol_fma() where GAOL_SOFT_FMA is 1, and only there",
+          (GAOL_SOFT_FMA != 0) == (expansion.compare(0, 9, "gaol_fma(") == 0),
+          [&] { return "__builtin_fma(1.0, 2.0, 3.0) expands to " + expansion; });
+    // and what GAOL calls, fma_as_gaol(), is that function there
+    volatile double x = 1.0 + 0x1p-30, y = 1.0 - 0x1p-30, z = -1.0;
+    check("the fma() GAOL calls: fma(1 + 2^-30, 1 - 2^-30, -1) is -2^-60, not 0",
+          same_bits(fma_as_gaol(x, y, z), -0x1p-60), [] { return std::string("fma(1 + 2^-30, 1 - 2^-30, -1)"); });
   }
 
   /*
@@ -2424,6 +2719,8 @@ int main()
   c_library_fma_and_round();
   gaol_round_of_the_bits();
   builtin_round_of_core_math();
+  gaol_fma_of_integers();
+  builtin_fma_of_core_math();
   ldexp_of_core_math();
   exact_results_raise_no_flag();
   pow_limits_raise_no_flag();

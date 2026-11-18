@@ -38,6 +38,14 @@ foreach(test arithmetic elementary rounding_direction numbers other_functions re
   if(GAOL_COMPILER_TAKES_WNO_PSABI)
     target_compile_options(gaol_test_${test} PRIVATE -Wno-psabi)
   endif()
+  if(NOT MSVC)
+    # gaol/math/gaol_fma.h, a header of the sources of GAOL that is not
+    # installed, which tests/gaol_tests.h includes where GAOL_SOFT_FMA says that
+    # gaol_fma() computes fma() (a mingw-w64 whose fma() is wrong, without the
+    # instructions: GAOL v5): searched after the installed headers, which must
+    # win, so that no header of the sources replaces one that was installed
+    target_compile_options(gaol_test_${test} PRIVATE -idirafter ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+  endif()
   if(MSVC)
     # getenv() and sscanf(), which the tests use as the C standard has them
     target_compile_definitions(gaol_test_${test} PRIVATE _CRT_SECURE_NO_WARNINGS)
