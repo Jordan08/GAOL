@@ -1936,7 +1936,10 @@ GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
   are the ones that do read it, and are not used; roundTiesToEven, which no
   function of C++ gives, is gaol/math/gaol_roundeven.h, which reads the bits.
   That header is not installed: round_ties_to_even() is defined in
-  gaol/core/gaol_interval_core.cpp.
+  gaol/core/gaol_interval_core.cpp. So is round_ties_to_away() with the
+  mingw-w64 whose round() is wrong, which does read the rounding direction
+  (GAOL_MINGW_OWN_MATH, gaol/gaol_config.h; GAOL v5): it is there
+  gaol/math/gaol_round.h, which reads the bits too.
   tests/elementary.cpp checks the four in the four rounding directions.
   std::trunc and std::round are called through gaol_detail::bound_trunc() and
   bound_round() (gaol_port.h), which round a subnormal from its bits, as
@@ -2013,7 +2016,15 @@ GAOL_NODISCARD GAOL_INLINE interval trunc(const interval &I)
   /*!
     \brief Returns an enclosure of the elements of I rounded to the nearest
            integer, halfway values away from zero
+
+    Not inline with the mingw-w64 whose round() is wrong
+    (GAOL_MINGW_OWN_MATH, gaol/gaol_config.h; GAOL v5): the function that
+    reads the bits (gaol/math/gaol_round.h) is a header of the sources, which
+    is not installed. The other toolchains call std::round() inline.
   */
+#if GAOL_MINGW_OWN_MATH
+GAOL_NODISCARD extern GAOL_PUBLIC interval round_ties_to_away(const interval &I);
+#else
 GAOL_NODISCARD GAOL_INLINE interval round_ties_to_away(const interval &I)
   {
     if (I.is_empty()) {
@@ -2021,6 +2032,7 @@ GAOL_NODISCARD GAOL_INLINE interval round_ties_to_away(const interval &I)
     }
     return interval(gaol_detail::bound_round(I.left()),gaol_detail::bound_round(I.right()));
   }
+#endif
 
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I, double d)
   {

@@ -25,7 +25,10 @@
  *
  * First, the test checks the fma() and round() of the C library, which
  * CORE-MATH and GAOL call, against values computed apart: where they are
- * wrong, so are the bounds, whatever the platform.
+ * wrong, so are the bounds, whatever the platform. Where the round() is that of
+ * mingw-w64's own math library (GAOL_MINGW_OWN_MATH), which is wrong, GAOL
+ * calls gaol_round() of gaol/math/gaol_round.h, which the test checks there,
+ * and on every platform, apart from the C library.
  *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
@@ -38,6 +41,7 @@
 #include "gaol_tests.h"
 #include "gaol/math/gaol_core_math.h"
 #include "gaol/math/gaol_ldexp.h"
+#include "gaol/math/gaol_round.h"
 
 #include <climits>
 #include <cstring>
@@ -49,6 +53,23 @@
 #  include <xmmintrin.h>
 #  define GAOL_TESTS_HAVE_MXCSR 1
 #endif
+
+/*
+  What the sources of CORE-MATH get for __builtin_round() from
+  gaol/math/gaol_core_math_port.h, which they take with `-include`, and these
+  tests do not: the same lines, so that the tests below call it as the sources
+  do, with the same GAOL_MINGW_OWN_MATH, which gaol/gaol_mingw_own_math.h
+  defines once for the header and for gaol/gaol_config.h. Visual C++ has no
+  __builtin_round() (the header gives it round()).
+*/
+#if GAOL_MINGW_OWN_MATH
+#include "gaol/math/gaol_round.h"
+#define __builtin_round(x) gaol_round(x)
+#endif /* mingw-w64 whose round() is its own */
+
+// An expression as the text it expands to
+#define GAOL_TEST_TEXT_OF_2(x) #x
+#define GAOL_TEST_TEXT_OF(x) GAOL_TEST_TEXT_OF_2(x)
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -172,6 +193,39 @@ namespace
     }
   }
 
+  struct Known { double x, value; };
+
+  // The nearest integer, halfway values away from zero, written out, with what
+  // a wrong round() gets wrong: the value expected (GAOL v5)
+  const Known known_rounds[] = {
+    {0x1.fffffffffffffp-2, 0.0}, {-0x1.fffffffffffffp-2, -0.0},
+    {0.5, 1.0}, {-0.5, -1.0}, {0x1.0000000000001p-1, 1.0}, {-0x1.0000000000001p-1, -1.0},
+    {0.3, 0.0}, {-0.3, -0.0}, {0x1.fffffffffffffp-1, 1.0}, {-0x1.fffffffffffffp-1, -1.0},
+    {0.0, 0.0}, {-0.0, -0.0}, {0x1p-1074, 0.0}, {-0x1p-1074, -0.0},
+    {0x0.fffffffffffffp-1022, 0.0}, {-0x0.fffffffffffffp-1022, -0.0},
+    {1.0, 1.0}, {-1.0, -1.0}, {0x1.fffffffffffffp+0, 2.0}, {0x1.0000000000001p+0, 1.0},
+    {1.5, 2.0}, {-1.5, -2.0}, {0x1.7ffffffffffffp+0, 1.0}, {-0x1.7ffffffffffffp+0, -1.0},
+    {2.5, 3.0}, {-2.5, -3.0}, {3.5, 4.0}, {-3.5, -4.0}, {0.5 + 0x1p+10, 0x1p+10 + 1.0},
+    {0x1p+51 + 0.5, 0x1p+51 + 1.0}, {-(0x1p+51 + 0.5), -(0x1p+51 + 1.0)},
+    {0x1p+51, 0x1p+51}, {0x1.fffffffffffffp+51, 0x1p+52}, // 2^52 - 1/2
+    {-0x1.fffffffffffffp+51, -0x1p+52},
+    {0x1p+52, 0x1p+52}, {0x1p+52 + 1.0, 0x1p+52 + 1.0}, {0x1p+53, 0x1p+53},
+    {0x1.fffffffffffffp+1023, 0x1.fffffffffffffp+1023},
+    {-0x1.fffffffffffffp+1023, -0x1.fffffffffffffp+1023},
+    {GAOL_INFINITY, GAOL_INFINITY}, {-GAOL_INFINITY, -GAOL_INFINITY},
+  };
+
+  // round(x) as GAOL computes it: gaol_round() where the round() of the C library
+  // is mingw-w64's own and wrong, that of the C library elsewhere (GAOL v5)
+  double round_as_gaol(double x)
+  {
+#if GAOL_MINGW_OWN_MATH
+    return gaol_round(x);
+#else
+    return std::round(x);
+#endif
+  }
+
   /*
     The fma() and round() of the C library, which CORE-MATH and GAOL call.
 
@@ -184,6 +238,10 @@ namespace
     checks the instruction where there is one. round() is
     roundTiesToAway (round_ties_to_away() of gaol/core/gaol_interval_core.h, and pow of
     CORE-MATH), which does not depend on the rounding direction.
+
+    round() is the one GAOL calls: that of the C library, and gaol_round() where
+    the C library's is mingw-w64's own (GAOL_MINGW_OWN_MATH, which
+    round_as_gaol() follows), the one the next function checks apart.
 
     The fma() of mingw-w64's own math library (see gaol/gaol_config.h) adds
     the products of the halves of x and y to z with four roundings. That of
@@ -245,13 +303,198 @@ namespace
       for (int d = 0; d < 4; ++d) {
         volatile double x = v.x;
         std::fesetround(directions[d]);
-        const double got = gaol_core::rnd_keep(std::round(x));
+        const double got = gaol_core::rnd_keep(round_as_gaol(x));
         std::fesetround(FE_UPWARD);
         check("the round() of the C library: the same in every rounding direction", got == v.value,
               [&] {
                 return "round(" + show(v.x) + ") rounding " + names[d] + " = " + show(got)
                      + " rather than " + show(v.value);
               });
+      }
+    }
+  }
+
+  bool same_bits(double a, double b)
+  {
+    return std::memcmp(&a, &b, sizeof a) == 0;
+  }
+
+  /*
+    gaol_round() of gaol/math/gaol_round.h, which GAOL calls where the round()
+    of the C library is that of mingw-w64 (GAOL_MINGW_OWN_MATH): the nearest
+    integer, halfway values away from zero, exactly, and the sign of a zero
+    kept, whatever the rounding direction. It is checked on every platform, with
+    the doubles round() of mingw-w64 gets wrong, 0x1.fffffffffffffp-2 and its
+    opposite (1 or -1 rather than 0 or -0 in every direction but upward), the
+    halfway values, the doubles next to them and to the integers, the subnormal
+    numbers, the limit of 2^52 where every double is an integer, the infinities
+    and the NaN, then at random doubles of every magnitude and at random
+    multiples of 1/2 and of their neighbours, against reference_round_away().
+  */
+  void gaol_round_of_the_bits()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    const char* const names[] = {"to nearest", "upward", "downward", "toward zero"};
+
+    for (const Known& k : known_rounds) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double x = k.x;
+        std::fesetround(directions[d]);
+        const double got = gaol_core::rnd_keep(gaol_round(x));
+        std::fesetround(FE_UPWARD);
+        check("gaol_round(): the nearest integer, halfway values away from zero",
+              same_bits(got, k.value),
+              [&] {
+                return "gaol_round(" + show(k.x) + ") rounding " + names[d] + " = " + show(got)
+                     + " rather than " + show(k.value);
+              });
+      }
+    }
+    {
+      volatile double nan_value = GAOL_NAN;
+      const double got = gaol_round(nan_value);
+      check("gaol_round(): a NaN stays one", got != got, [] { return std::string("gaol_round(NaN)"); });
+    }
+
+    // against the reference: every double next to a halfway value or to an
+    // integer of the first magnitudes, then random ones
+    std::vector<double> v;
+    for (int k = -4000; k <= 4000; ++k) {
+      const double h = k / 2.0;
+      v.push_back(h);
+      v.push_back(previous_float(h));
+      v.push_back(next_float(h));
+    }
+    for (int e = -1074; e <= 1023; ++e) { // each power of two and the doubles around it
+      const double p = std::ldexp(1.0, e);
+      v.push_back(p);
+      v.push_back(-p);
+      v.push_back(previous_float(p));
+      v.push_back(-previous_float(p));
+      v.push_back(next_float(p));
+      v.push_back(-next_float(p));
+    }
+    std::mt19937_64 gen(20261118u);
+    for (int i = 0; i < 200000; ++i) {
+      const std::uint64_t u = gen();
+      double x;
+      std::memcpy(&x, &u, sizeof x);
+      if (std::isfinite(x)) {
+        v.push_back(x);
+      }
+    }
+    for (int i = 0; i < 200000; ++i) {
+      // a multiple of 2^-k below 2^52, a halfway value for k = 1 and often one
+      // double next to it
+      const int k = static_cast<int>(gen() % 4);
+      const double x = static_cast<double>(static_cast<std::int64_t>(gen() % 2000001) - 1000000)
+                     / static_cast<double>(1 << k);
+      v.push_back(x);
+      v.push_back(next_float(x));
+    }
+    std::size_t index = 0;
+    for (double x : v) {
+      // the four directions at one argument in 50, and the direction in effect at the others
+      const bool all = (index++ % 50) == 0;
+      for (int d = 0; d < (all ? 4 : 1); ++d) {
+        volatile double xv = x;
+        std::fesetround(directions[d]);
+        const double got = gaol_core::rnd_keep(gaol_round(xv));
+        std::fesetround(FE_UPWARD);
+        const double want = reference_round_away(x);
+        check("gaol_round(): the nearest integer, as the reference, whatever the direction",
+              same_bits(got, want),
+              [&] {
+                return "gaol_round(" + show(x) + ") rounding " + names[d] + " = " + show(got)
+                     + " rather than " + show(want);
+              });
+      }
+    }
+  }
+
+  // __builtin_round(x) as the sources of CORE-MATH call it: the builtin of the
+  // compiler, and gaol_round() where gaol/math/gaol_core_math_port.h replaces
+  // it (the macro defined at the top of this file). Visual C++ has no such
+  // builtin: the header gives it round()
+  double core_math_round(double x)
+  {
+#if defined(__GNUC__) || defined(__clang__)
+    return __builtin_round(x);
+#else
+    return std::round(x);
+#endif
+  }
+
+  /*
+    The __builtin_round() of the sources of CORE-MATH, with the lines of
+    gaol/math/gaol_core_math_port.h that replace it where the round() of the C
+    library is that of mingw-w64 (GAOL v5). The sources call it in two ways.
+    The roundeven_finite() of fifteen of them (exp.c, sin.c...), where the
+    processor has neither AVX nor SSE4.1 nor ARMv8, takes round(x) for any x
+    and corrects the halfway values: the test calls it at the values where a
+    wrong round() fails, the doubles next to 1/2, and at those of the table
+    above, whatever the rounding direction. pow.c calls it once, in the
+    exactness test of the powers: for an odd integer m, s = round(sqrt(m)),
+    and m is a square if s * s == m: the test calls it so, at the odd squares
+    and at the odd integers two from them, which are no squares, whatever the
+    rounding direction (m < 2^53, where s * s is exact); there the argument is
+    at least 1 and a wrong round() is exact.
+  */
+  void builtin_round_of_core_math()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    const char* const names[] = {"to nearest", "upward", "downward", "toward zero"};
+
+    // the macro is gaol_round() exactly where GAOL_MINGW_OWN_MATH says so: what
+    // __builtin_round(0.5) expands to, written as text
+    const std::string expansion = GAOL_TEST_TEXT_OF(__builtin_round(0.5));
+    check("__builtin_round(): gaol_round() where GAOL_MINGW_OWN_MATH is 1, and only there",
+          (GAOL_MINGW_OWN_MATH != 0) == (expansion.compare(0, 10, "gaol_round") == 0),
+          [&] { return "__builtin_round(0.5) expands to " + expansion; });
+
+    for (const Known& k : known_rounds) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double x = k.x;
+        std::fesetround(directions[d]);
+        const double got = gaol_core::rnd_keep(core_math_round(x));
+        std::fesetround(FE_UPWARD);
+        check("__builtin_round(): the nearest integer, halfway values away from zero",
+              std::memcmp(&got, &k.value, sizeof got) == 0,
+              [&] {
+                return "__builtin_round(" + show(k.x) + ") rounding " + names[d] + " = " + show(got)
+                     + " rather than " + show(k.value);
+              });
+      }
+    }
+
+    // the exactness test of pow.c
+    std::vector<std::uint64_t> roots;
+    for (std::uint64_t k = 1; k < 4000; k += 2) {
+      roots.push_back(k);
+    }
+    std::mt19937_64 gen(20261118u);
+    for (int i = 0; i < 4000; ++i) {
+      roots.push_back((gen() % 94906265u) | 1u); // odd, below 2^26.5: k * k < 2^53
+    }
+    for (std::uint64_t k : roots) {
+      const std::uint64_t squares[] = {k * k, k * k + 2, k * k - 2}; // odd; the last two are no squares
+      for (int c = 0; c < 3; ++c) {
+        if (c == 2 && k < 3) {
+          continue; // 1 - 2 is no integer of the set
+        }
+        const std::uint64_t m = squares[c];
+        for (int d = 0; d < 4; ++d) {
+          volatile double dm = static_cast<double>(m);
+          std::fesetround(directions[d]);
+          const double s = gaol_core::rnd_keep(core_math_round(std::sqrt(dm)));
+          std::fesetround(FE_UPWARD);
+          const bool is_square = (s * s == static_cast<double>(m));
+          check("__builtin_round(): the exactness test of pow.c, whatever the direction",
+                is_square == (c == 0),
+                [&] {
+                  return "m = " + std::to_string(m) + ", s = " + show(s) + " rounding " + names[d];
+                });
+        }
       }
     }
   }
@@ -2179,6 +2422,8 @@ int main()
 {
   gaol::init();
   c_library_fma_and_round();
+  gaol_round_of_the_bits();
+  builtin_round_of_core_math();
   ldexp_of_core_math();
   exact_results_raise_no_flag();
   pow_limits_raise_no_flag();

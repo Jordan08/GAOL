@@ -325,16 +325,23 @@
 	rounding direction is not honoured on the target (Clang 14 for 64-bit
 	ARM); containers.yml and linux.yml check it for the three builds, for
 	the C compiler alone, the C++ compiler alone and both.
-	* gaol/gaol_config.h, tests/core_math.cpp: mingw-w64 is refused when
-	the program gets mingw-w64's own fma() and round(), computed in
-	doubles: that fma() is not correctly rounded, and CORE-MATH computes
-	with it where the build has no -mfma; that round() depends on the
-	rounding direction.  On x86-64, and on ARM for round() alone, those
-	before version 12 and those linked with msvcrt.dll rather than the
-	UCRT; on 32-bit x86, those before version 11 and, from 12 on, those
-	linked with msvcrt.dll where the build has no -mfma.  The test checks
-	first the fma() and round() of the C library in the four rounding
-	directions, against exact rational arithmetic.
+	* gaol/gaol_config.h, gaol/gaol_mingw_own_math.h,
+	gaol/math/gaol_round.h, tests/core_math.cpp: the mingw-w64 whose
+	program gets its own fma() and round(), computed in doubles (before
+	version 12, and from 12 on those linked with msvcrt.dll rather than
+	the UCRT), are accepted with -mfma, which GAOL_FMA gives them, and
+	refused without it: that fma() is not correctly rounded, and
+	CORE-MATH computes with it where the build has no -mfma.  That
+	round() depends on the rounding direction (round(0x1.fffffffffffffp-2)
+	is 1 except rounding upward): GAOL calls gaol_round(), which reads
+	the bits, in round_ties_to_away() and in the sources of CORE-MATH.
+	On 32-bit x86, the refusal without -mfma is of those before version
+	11 and, from 12 on, those linked with msvcrt.dll; on ARM they stay
+	refused, not tested.  The test checks first the fma() and round()
+	GAOL calls in the four rounding directions, against exact rational
+	arithmetic, and gaol_round() on every platform.
+	* .github/workflows/windows.yml: MinGW-w64 11 to 13 and MSYS2
+	MINGW64 are built and tested, and refused without -mfma.
 	* CMakeLists.txt, configure.ac, meson.build: GCC for Windows
 	(MinGW-w64, MSYS2, Cygwin), on x86-64 and on 32-bit x86, is given
 	-mfma -mprefer-vector-width=128 under the conditions of the other

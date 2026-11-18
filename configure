@@ -19069,11 +19069,12 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-# mingw-w64 is refused by gaol/gaol_config.h only, when compiling: on x86-64
-# before version 12 or linked with msvcrt.dll, whose fma() and round(), those
-# of mingw-w64's own math library, are wrong; on 32-bit x86 before 11, as the
-# mingw-w64 9 of WinLibs, whose fma() is wrong; on ARM as on x86-64, not
-# tested (see CMakeLists.txt)
+# mingw-w64 is refused by gaol/gaol_config.h only, when compiling, where the
+# build has no -mfma: on x86-64 before version 12 or linked with msvcrt.dll,
+# whose fma() and round(), those of mingw-w64's own math library, are wrong
+# (GAOL calls its own gaol_round(), and fma() is the instruction with -mfma);
+# on 32-bit x86 before 11, as the mingw-w64 9 of WinLibs, whose fma() is wrong;
+# on ARM as on x86-64, not tested (see CMakeLists.txt)
 
 # --enable-simd
 # Check whether --enable-simd was given.

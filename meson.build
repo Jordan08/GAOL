@@ -95,11 +95,12 @@ gaol_url = 'https://github.com/Jordan08/GAOL'
 cpp_comp = meson.get_compiler('cpp')
 c_comp = meson.get_compiler('c')
 
-# mingw-w64 is refused by gaol/gaol_config.h only, when compiling: on x86-64
-# before version 12 or linked with msvcrt.dll, whose fma() and round(), those
-# of mingw-w64's own math library, are wrong; on 32-bit x86 before 11, as the
-# mingw-w64 9 of WinLibs, whose fma() is wrong; on ARM as on x86-64, not
-# tested (see CMakeLists.txt)
+# mingw-w64 is refused by gaol/gaol_config.h only, when compiling, where the
+# build has no -mfma: on x86-64 before version 12 or linked with msvcrt.dll,
+# whose fma() and round(), those of mingw-w64's own math library, are wrong
+# (GAOL calls its own gaol_round(), and fma() is the instruction with -mfma);
+# on 32-bit x86 before 11, as the mingw-w64 9 of WinLibs, whose fma() is wrong;
+# on ARM as on x86-64, not tested (see CMakeLists.txt)
 
 msvc = cpp_comp.get_argument_syntax() == 'msvc'
 # The standard library of Visual C++ needs C++14 (GAOL v5): Clang with the

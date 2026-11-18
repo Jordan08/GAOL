@@ -67,20 +67,26 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   - mingw-w64 is no longer refused for its version alone. Both former reasons
     are gone: the hyperbolic functions of its math library, which GAOL no
     longer uses, and the cost of its `fesetround()`, which GAOL no longer calls
-    for its elementary functions. MinGW-w64 GCC 12 to 15 are built and tested
-    again on 32-bit x86, GCC 14 and 15 on x86-64, and so are MSYS2 UCRT64 and
-    CLANG64. Still refused (`gaol/gaol_config.h`) are the mingw-w64 whose
-    `fma()` or `round()` is wrong, those of its own math library, computed in
-    doubles: that `fma()` is not correctly rounded (10.7 % of the error-free
-    products `fma(a, b, -a*b)` were wrong with mingw-w64 11 on x86-64), and
-    CORE-MATH computes with it wherever the compiler has no `-mfma`; that
-    `round()` depends on the rounding direction. On x86-64 these are the
-    mingw-w64 before version 12 and those linked with `msvcrt.dll` rather than
-    the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on
-    32-bit x86, those before version 11 and, from 12 on, those linked with
-    `msvcrt.dll` where the build has no `-mfma` (MSYS2 MINGW32); on ARM, as on
-    x86-64 but for `round()` alone (`fma()` is an instruction there), a refusal
-    that is not tested.
+    for its elementary functions. MinGW-w64 GCC 11 to 15 are built and tested
+    on x86-64 and on 32-bit x86, and so are MSYS2 MINGW64, UCRT64 and CLANG64.
+    The mingw-w64 whose `fma()` and `round()` are wrong, those of its own math
+    library, computed in doubles, are the ones before version 12 and, from 12
+    on, those linked with `msvcrt.dll` rather than the UCRT (MSYS2 MINGW64 and
+    MINGW32, the cross compilers of Debian and Ubuntu; `GAOL_MINGW_OWN_MATH`).
+    That `fma()` is not correctly rounded (10.7 % of the error-free products
+    `fma(a, b, -a*b)` were wrong with mingw-w64 11 on x86-64), and CORE-MATH
+    computes with it wherever the compiler has no `-mfma`; that `round()`
+    depends on the rounding direction (`round(0x1.fffffffffffffp-2)` is 1
+    except rounding upward). GAOL takes neither from that library: `fma()` is
+    the instruction, with the `-mfma` that `GAOL_FMA` gives GCC and Clang for
+    Windows on a processor that has it, and `round()` is its own
+    `gaol_round()` (`gaol/math/gaol_round.h`, which reads the bits), in
+    `round_ties_to_away()` and in the sources of CORE-MATH. These toolchains
+    are therefore accepted with `-mfma` and still refused without it
+    (`gaol/gaol_config.h`): on x86-64; on 32-bit x86, those before version 11
+    and, from 12 on, those linked with `msvcrt.dll` (the mingw-w64 11 is
+    accepted without it); on ARM, with or without it, a refusal that is not
+    tested.
   - `tests/core_math.cpp` checks the `fma()` and `round()` of the C library in
     the four rounding directions, against exact rational arithmetic, then the
     bounds against CORE-MATH called in the downward and the upward rounding,

@@ -19,6 +19,8 @@
  * - the names gaol_cr_<f>() rather than cr_<f>(), so that GAOL does not clash
  *   with a program or a C library holding CORE-MATH's functions too;
  * - __builtin_roundeven() where the compiler or the math library has not;
+ * - __builtin_round() of gaol/math/gaol_round.h where the round() of the math
+ *   library is mingw-w64's own, which is wrong;
  * - on a 32-bit x86 Windows, a fegetexceptflag() and a fesetexceptflag()
  *   written on MXCSR, which leave its exception masks alone;
  * - on 32-bit x86, the square root of SSE2, rounded in the direction in
@@ -163,6 +165,29 @@ took for an undeclared function and did not link.
 #elif defined(__GNUC__) && __GNUC__ < 10
 #define __builtin_roundeven(x) gaol_roundeven(x)
 #endif /* Windows, or no __builtin_roundeven() */
+
+/*---------------------------------------------------------------------------
+round() of mingw-w64's own math library, which is wrong
+
+Fifteen sources (exp.c, sin.c...) call __builtin_round() in the
+roundeven_finite() they use where the processor has neither AVX nor SSE4.1 nor
+ARMv8 (-mfma gives GCC and Clang AVX, so not with GAOL_FMA), and there the
+round() of mingw-w64 is wrong for the doubles next to 1/2; pow.c calls it to
+take the integer nearest to the square root of an odd integer, which is at
+least 1, where it is exact. The calls are replaced, with the toolchains whose
+fma() and round() are those of mingw-w64's own math library
+(GAOL_MINGW_OWN_MATH, defined once for this header and for gaol/gaol_config.h
+by gaol/gaol_mingw_own_math.h), so that GAOL calls no round() of that library:
+it is wrong for the doubles next to 1/2, and gives the sign of a zero wrong
+rounding downward (see gaol/math/gaol_round.h, which reads the bits instead).
+--------------------------------------------------------------------------*/
+
+#include "gaol/gaol_mingw_own_math.h"
+
+#if GAOL_MINGW_OWN_MATH
+#include "gaol/math/gaol_round.h"
+#define __builtin_round(x) gaol_round(x)
+#endif /* mingw-w64 whose round() is its own */
 
 /*---------------------------------------------------------------------------
 fesetexceptflag() of mingw-w64 up to 12, which unmasks the exceptions

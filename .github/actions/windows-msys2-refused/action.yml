@@ -1,10 +1,13 @@
 # MSYS2 MINGW64 links msvcrt.dll rather than the UCRT: its mingw-w64, 12 or
 # later, still gives the programs the fma() and round() of mingw-w64's own
-# math library, which gaol/gaol_config.h refuses, with GCC and with Clang
-# (_UCRT undefined). MINGW32 links it too: its fma() is refused where the
-# build has no -mfma (GAOL_FMA OFF here; with it, the default, MINGW32 is
-# built and tested in build-systems.yml). UCRT64, CLANG64 and CLANGARM64 are
-# built and tested by the configurations of windows-msys2.
+# math library (GAOL_MINGW_OWN_MATH of gaol/gaol_config.h; _UCRT undefined),
+# with GCC and with Clang. gaol/gaol_config.h refuses it where the build has no
+# -mfma (GAOL_FMA OFF here, given by the jobs with -DGAOL_FMA=OFF), the fma()
+# of that library being what CORE-MATH then computes with, and so MINGW32; with
+# -mfma, the default, GAOL calls the instruction and its own gaol_round(), and
+# MINGW64 and MINGW32 are built and tested (windows.yml, build-systems.yml).
+# UCRT64, CLANG64 and CLANGARM64 are built and tested by the configurations of
+# windows-msys2.
 # The steps of the job msys2-refused of windows.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
 name: windows-msys2-refused

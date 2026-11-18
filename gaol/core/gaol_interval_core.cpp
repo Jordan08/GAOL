@@ -37,6 +37,12 @@
 #include "gaol/math/gaol_ldexp.h"
 // The nearest integer, halfway values to the even one, from the bits (GAOL v5)
 #include "gaol/math/gaol_roundeven.h"
+// The nearest integer, halfway values away from zero, from the bits, for the
+// mingw-w64 whose round() is wrong (GAOL v5); only there, an unused static
+// function being a warning with Visual C++ at /W4
+#if GAOL_MINGW_OWN_MATH
+#  include "gaol/math/gaol_round.h"
+#endif
 
 /*
   The operations of the intervals: the members of interval, +, -, *, / and
@@ -1291,6 +1297,25 @@ namespace gaol_core {
     }
     return interval(gaol_roundeven(I.left()), gaol_roundeven(I.right()));
   }
+
+#if GAOL_MINGW_OWN_MATH
+  /*
+    The round() of mingw-w64's own math library depends on the rounding
+    direction (gaol/gaol_config.h, gaol/math/gaol_round.h): gaol_round() reads
+    the bits, as gaol_roundeven() above, and is exact whatever the direction,
+    which this function does not change. The other toolchains have it inline in
+    gaol_interval_core.h, with std::round(). The rounding to the nearest
+    integer being non-decreasing, the bounds of the result are those of I
+    rounded (GAOL v5).
+  */
+  interval round_ties_to_away(const interval& I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    return interval(gaol_round(I.left()), gaol_round(I.right()));
+  }
+#endif
 
 
   double interval::smig(void) const
