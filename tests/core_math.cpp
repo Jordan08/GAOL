@@ -58,14 +58,11 @@
   What the sources of CORE-MATH get for __builtin_round() from
   gaol/math/gaol_core_math_port.h, which they take with `-include`, and these
   tests do not: the same lines, so that the tests below call it as the sources
-  do. The test is that of GAOL_MINGW_OWN_MATH (gaol/gaol_config.h), which the C
-  sources do not include and this one repeats; the next lines check that this
-  copy and the macro agree, and the copy of the header, which no test sees, is
-  kept like them by hand. Visual C++ has no __builtin_round() (the header gives
-  it round()).
+  do, with the same GAOL_MINGW_OWN_MATH, which gaol/gaol_mingw_own_math.h
+  defines once for the header and for gaol/gaol_config.h. Visual C++ has no
+  __builtin_round() (the header gives it round()).
 */
-#if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
-    && (__MINGW64_VERSION_MAJOR < 12 || !defined(_UCRT))
+#if GAOL_MINGW_OWN_MATH
 #include "gaol/math/gaol_round.h"
 #define __builtin_round(x) gaol_round(x)
 #endif /* mingw-w64 whose round() is its own */
@@ -73,11 +70,6 @@
 // An expression as the text it expands to
 #define GAOL_TEST_TEXT_OF_2(x) #x
 #define GAOL_TEST_TEXT_OF(x) GAOL_TEST_TEXT_OF_2(x)
-
-#if ((defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
-      && (__MINGW64_VERSION_MAJOR < 12 || !defined(_UCRT))) ? 1 : 0) != GAOL_MINGW_OWN_MATH
-#  error "the test of the __builtin_round() of gaol/math/gaol_core_math_port.h is not the one of GAOL_MINGW_OWN_MATH in gaol/gaol_config.h"
-#endif
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -456,7 +448,7 @@ namespace
     // the macro is gaol_round() exactly where GAOL_MINGW_OWN_MATH says so: what
     // __builtin_round(0.5) expands to, written as text
     const std::string expansion = GAOL_TEST_TEXT_OF(__builtin_round(0.5));
-    check("__builtin_round(): the macro of this file is gaol_round() where GAOL_MINGW_OWN_MATH is 1, and only there",
+    check("__builtin_round(): gaol_round() where GAOL_MINGW_OWN_MATH is 1, and only there",
           (GAOL_MINGW_OWN_MATH != 0) == (expansion.compare(0, 10, "gaol_round") == 0),
           [&] { return "__builtin_round(0.5) expands to " + expansion; });
 
