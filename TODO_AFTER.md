@@ -1,17 +1,18 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 17 novembre 2026 (commit `fc8b9ac` de
-`dev`) : ce qui attend la version v5.0.0, ce que le mainteneur a reporté
-indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui attend
-du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste à
-faire avant la version est dans `TODO.md` (issue #179), ce qui est fait et
-décidé dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour). Ce que la
-relecture du 4 novembre a relevé sans suite dans aucun registre est réparti,
-depuis le 8 novembre, entre les trois registres (`TODO_DONE.md` 3.25 ;
-`TODO_fin.md`, qui le contenait, est supprimé), et ce qui sortait d'ici, fait,
-est dans `TODO_DONE.md` (3.19).
+Tout ce qui est reporté sur GAOL v5 au 18 novembre 2026 (v5.0.0 est publiée :
+`TODO_DONE.md` 3.57) : ce qui vient après la version v5.0.0, ce que le
+mainteneur a reporté indéfiniment, ce qu'il a écarté en laissant une porte
+ouverte, et ce qui attend du matériel. Ce fichier et l'issue #178 ont le même
+contenu. Ce qui restait à faire avant la version était dans `TODO.md` (issue
+#179, vide depuis la version), ce qui est fait et décidé dans `TODO_DONE.md`
+(l'issue #177 n'est plus mise à jour). Ce que la relecture du 4 novembre a
+relevé sans suite dans aucun registre est réparti, depuis le 8 novembre, entre
+les trois registres (`TODO_DONE.md` 3.25 ; `TODO_fin.md`, qui le contenait, est
+supprimé), et ce qui sortait d'ici, fait, est dans `TODO_DONE.md` (3.19).
 
-Rien de ce fichier n'est à faire avant v5.0.0, ni sans l'accord du mainteneur.
+Rien de ce fichier n'était à faire avant v5.0.0, et rien ne l'est sans
+l'accord du mainteneur.
 Après v5.0.0, le développement continue dans `dev` (*décidé le 12 novembre*,
 `process.md` §13) : `master` ne reçoit que les versions de `dev`
 (*décidé le 17 novembre* : `configure-clean` est supprimée). La
@@ -227,24 +228,24 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
 6. **Le ménage de la fin** : l'image Docker `i386/debian:trixie` de #111 reste
    sur la machine (`debian:trixie` et `ubuntu:24.04` ont été supprimées le 31
    octobre : `TODO_DONE.md`, 8.1) ; les registres `TODO.md`, `TODO_DONE.md` et
-   `TODO_AFTER.md` sont à vider après la version, et leurs issues #177 à #179 à
-   fermer ou à garder alors. `todo-notes/` (ramené de la branche
-   `todo-status`, supprimée) est retiré du dépôt le 17 novembre par #387 : ses
-   rapports restent au commit `16a2f60` et le reste, la synthèse comprise, au
-   commit `5d07c3a2` (`git show 5d07c3a2:todo-notes/synthese.md`).
+   `TODO_AFTER.md` sont à vider après la version (publiée le 18 novembre), et
+   leurs issues #177 à #179 à fermer ou à garder alors. `todo-notes/` (ramené de
+   la branche `todo-status`, supprimée) est retiré du dépôt le 17 novembre par
+   #387 : ses rapports restent au commit `16a2f60` et le reste, la synthèse
+   comprise, au commit `5d07c3a2` (`git show 5d07c3a2:todo-notes/synthese.md`).
 7. **71 (PJ.4), l'annonce de GAOL v5.0.0 à Frédéric Goualard** [accord] (issue
    #389, suite de #128, fermée le 18 octobre) : annoncer la version à l'auteur
-   de GAOL une fois l'étiquette `v5.0.0` posée. *Reporté le 17 novembre* («
-   Reporter (créer une issue) ») faute d'une adresse vérifiée : le brouillon
-   Gmail « GAOL v5.0.0 » (13 novembre) n'a pas de destinataire, et l'adresse de
-   #128, d'une liste de 2020 et d'un échange de 2014, ne se lit dans aucun
-   message récent. *À faire* : le mainteneur donne l'adresse ou la met dans le
-   brouillon, la session relit le brouillon contre la Release (version, noms des
-   paquets, liens), puis l'envoi, sur son accord, et les registres. Rien n'est
-   envoyé. Décidé avant : pas d'annonce publique (3 octobre), le second
-   paragraphe, les défauts de GAOL 4, gardé tel quel (24 octobre), la GitHub
-   Release à la place du « pas de Release » (12 novembre au soir :
-   `TODO_DONE.md` 3.36).
+   de GAOL une fois l'étiquette `v5.0.0` posée (le 18 novembre). *Reporté le 17
+   novembre* (« Reporter (créer une issue) ») faute d'une adresse vérifiée : le
+   brouillon Gmail « GAOL v5.0.0 » (13 novembre) n'a pas de destinataire, et
+   l'adresse de #128, d'une liste de 2020 et d'un échange de 2014, ne se lit
+   dans aucun message récent. *À faire* : le mainteneur donne l'adresse ou la
+   met dans le brouillon, la session relit le brouillon contre la Release
+   (version, noms des paquets, liens), puis l'envoi, sur son accord, et les
+   registres. Rien n'est envoyé. Décidé avant : pas d'annonce publique (3
+   octobre), le second paragraphe, les défauts de GAOL 4, gardé tel quel (24
+   octobre), la GitHub Release à la place du « pas de Release » (12 novembre au
+   soir : `TODO_DONE.md` 3.36).
 8. **La licence des cas d'IBEX et de Codac** (#281) [accord] : `tests/
    test_ibex_codac.cpp` reprend des cas de tests d'IBEX et de Codac sous LGPL v3
    (leur `COPYING.LESSER`), alors que le `README.md` dit GAOL sous LGPL v2

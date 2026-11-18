@@ -1,8 +1,10 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `313ef2d` de `master` (la fusion de
-#390 le 17 novembre à 22 h 20 UTC : `dev`, à `c38417e`, entre dans `master`, la
-version 5.0.0 attend son étiquette), et avant au commit `fc8b9ac` de `dev` (la
+Ce qui reste à faire sur GAOL v5 au commit de fusion de #391 dans `master` (le
+18 novembre : les registres de la version, de `dev` dans `master` ; PJ est faite
+et l'étiquette `v5.0.0` est posée sur ce commit), et avant au commit `313ef2d`
+de `master` (la fusion de #390 le 17 novembre à 22 h 20 UTC : `dev`, à
+`c38417e`, entre dans `master`), et avant au commit `fc8b9ac` de `dev` (la
 fusion de #388 le 17 novembre à 21 h 21 UTC, PJ.3 : le tableau de couverture du
 manuel et son PDF, après les registres de #387, `9665f49`), et avant au commit
 `8a308a7` de
@@ -63,8 +65,8 @@ des points, de #307 et de #306, hors des points, de #305, hors des points, de
 #302, la tâche PP, de #304 et de #303, les registres de la tâche PT, de #301, la
 tâche PT, de #300, hors des points, de #298, de #299, de #297, de #296 et de
 #295, de #294, le manuel dans le style de la thèse, et de #292, de #293, #291,
-#290 et #289), en tâche PJ (PA à PH, PI, PL, PP, PQ, PS, PT, PU, PV, PW, PX, PY
-et PZ sont faites, PK et PM sont closes sans code : voir
+#290 et #289), il ne reste aucune tâche (PA à PH, PI, PJ, PL, PP, PQ, PS, PT,
+PU, PV, PW, PX, PY et PZ sont faites, PK et PM sont closes sans code : voir
 `TODO_DONE.md`).
 Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est
 dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté
@@ -80,9 +82,15 @@ l'intervalle contient des solutions (PU.1, #323), et deux threads qui
 affichaient la même expression `-x` plantaient (PU.2, #324) ; une borne est
 peut-être fausse encore pour un programme qui met lui-même `FPCR.AH` sur arm64
 (issue #198 : `x / y` des intervalles NEON, cause non trouvée). Rien n'est à
-envoyer à un autre projet ni à publier sans l'accord du mainteneur. La seule
-pull request ouverte à ce commit est #391 (les registres de la version, de `dev`
-dans `master`). #382 (la tâche PH : trois commentaires de GAOL, `3rd/README.md`
+envoyer à un autre projet ni à publier sans l'accord du mainteneur. Aucune pull
+request n'est ouverte à ce commit. #391 (les registres de la version :
+`TODO.md`, `TODO_DONE.md` et `process.md`, de `dev` dans `master`, pour que
+`master` les ait avant l'étiquette) est fusionnée le 18 novembre par le
+mainteneur, la CI de sa tête au vert (les cinq workflows qu'une pull request
+lance sur ce changement), et l'étiquette `v5.0.0`, annotée, est posée par la
+session sur son commit de fusion : la version 5.0.0 est publiée, PJ est faite
+(`TODO_DONE.md` 2.3, 3.57 et 7.58).
+#382 (la tâche PH : trois commentaires de GAOL, `3rd/README.md`
 et deux fichiers de `doc/compare/`, que les vérifications des signalements
 rendent faux) et #383 (PJ : le rapport de couverture du 17 novembre, 95,5 % des
 lignes de `gaol/`, le manuel et son PDF, les temps de l'x86 vérifiés) sont
@@ -229,9 +237,9 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
   programme ou rompt une promesse écrite avant ce qui ne fait que ralentir ; le
   petit et sans dépendance avant le gros ; la version (PJ) en dernier. La lettre
   PR n'est pas une tâche : le sigle dit déjà « pull request ».
-- PJ suit PH, PI, PS, PQ, PP, PT, PU, PV, PW, PX, PY, PZ et les études
-  de PG, qui sont faites : la version en dernier, les corrections faites,
-  *décidé le 19 octobre*.
+- PJ, la version, suivait PH, PI, PS, PQ, PP, PT, PU, PV, PW, PX, PY, PZ et les
+  études de PG : en dernier, les corrections faites (*décidé le 19 octobre*) ;
+  elle est faite le 18 novembre.
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
   `TODO_DONE.md` (section 4 pour les lettres, section 5 pour les numéros faits).
@@ -246,135 +254,13 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 
 ## Les tâches restantes
 
-| Tâche | Contenu | Points | Taille |
-| --- | --- | --- | --- |
-| PJ | La publication de v5.0.0 (l'étiquette `v5.0.0`) | 34 | S |
+Aucune : PJ, la dernière, est faite le 18 novembre (la fusion de `dev` dans
+`master` par #390, les registres par #391, puis l'étiquette `v5.0.0` :
+`TODO_DONE.md` 3.56 et 3.57). Le texte de son point 34 est dans `TODO_DONE.md`
+(section 5, point Y).
 
-## PJ. La publication de v5.0.0 (Y) [S, dans cet ordre]
-
-En dernier : elle suppose les corrections faites et les études de PG faites
-(*décidé le 19 octobre*). Les points faits sont coupés d'ici et sont dans
-`TODO_DONE.md` : le 32 (la couverture, PJ.1) par #315, le 33 (les temps, PJ.2)
-par #316 et #317, le manuel (PJ.5) par #294, les textes qui citent macOS 14
-(PJ.6) par #313, les restes de la synthèse (PJ.7) par #313, #314 et #318 et les
-traces de `configure-clean` (PJ.8) par #387, la couverture et le PDF à la
-version (PJ.3, en partie) par #388, et la fusion de `dev` dans `master` (PJ.3,
-en partie) par #390 (2.3, 3.23, 3.33, 3.34, 3.35, 3.53, 3.54 et 3.56). PU à PZ,
-faites le 16 novembre, ont changé le code de `gaol/` (PU, PV, PX et PY ; PZ n'y
-a changé que des commentaires) et les textes : la couverture, les mesures de
-PJ.2 et le PDF sont à refaire au commit de la version, une seule fois (*décidé
-le 16 novembre*). Fait le 17 novembre (`TODO_DONE.md` 3.49 et 3.50) :
-- la couverture et le PDF du manuel, par #383 (95,5 % des 6503 lignes de
-  `gaol/`, le tableau du chapitre 14, le PDF) ; #385 a retiré de `gaol/` le
-  fichier `gaol_expr_visitor.h`, que ce tableau cite, et #386 a changé
-  `gaol_expression.h` et `gaol_expr_eval.h` : à refaire à la version, comme
-  tout changement du code de `gaol/` ;
-- la couverture refaite le même jour, directement dans `dev` (7.53) : 97,5 %
-  des 7 822 lignes de `gaol/` (192 non exécutées), les intervalles SSE2, FPU et
-  NEON (Apple M2) et le chemin AVX-512 (`-DGAOL_PRESERVE_ROUNDING=ON`) réunis
-  dans `coverage/` ; le tableau du chapitre 14 du manuel et le PDF gardent les
-  chiffres de #383 jusqu'à #388, qui les met à jour (97,5 % des 7 822 lignes,
-  25 fichiers sur 42 à 100 %), avec le PDF et une ligne de `doc/differences.md`
-  (3.54) : plus rien à refaire, sauf si le code ou les textes changent encore
-  avant l'étiquette ;
-- les temps : une comparaison A/B de l'x86 (Clang 21, SSE2, une même séance)
-  entre le code du 12 novembre (`2b5e4f9`) et celui de `dev` ne montre aucune
-  différence au-delà de la dispersion (rapports de 0,96 à 1,06) ; *décidé le
-  17 novembre* : le Mac M2 (NEON) et le Xeon (AVX-512) ne sont pas refaits, les
-  mesures du 12 novembre restent ;
-- la CI de `dev` : verte à `9a2a88b` (les cinq workflows), et celle des têtes
-  de #382, de #383 et de #387 l'était ; au commit de fusion de #387 (`8a308a7`),
-  cinq workflows verts et deux jobs de macOS sans runner ; celle du commit de
-  fusion de #388 (`fc8b9ac`) tournait au moment des registres : la version
-  attend qu'elle soit verte (3.54) ;
-- la préparation de la version (3.54) : l'essai de la fusion de `dev` dans
-  `master` à `fc8b9ac` est sans conflit, et le titre et le texte de la pull
-  request que le mainteneur ouvre sont prêts ; l'étiquette `v5.0.0` attend la
-  fusion et son mot, et le message de l'étiquette annotée (proposé :
-  « GAOL 5.0.0: CORE-MATH bounds, IEEE 1788-2015, three alike builds, a new
-  manual ») sa réponse ;
-- la version va de `dev` dans `master` (process.md §13) : *décidé le 17
-  novembre*, `configure-clean` est supprimée et `dev` prend sa place. L'essai de
-  la fusion (`git merge-tree`, `dev` à `fc8b9ac`, `master` après #384) est sans
-  conflit et donne l'arbre de `dev`. *Décidé le 13 novembre* : pas de fusion
-  dans `master` tant que PU à PZ ne sont pas faites (« il y a encore des TODO.
-  Donc ne fusionne pas dans master maintenant ») ; elles le sont, et la version
-  attend le mot du mainteneur : `dev` dans `master` (PJ.3). Le point 71 (PJ.4,
-  l'annonce à Frédéric Goualard) est reporté après la version, faute d'adresse :
-  l'issue #389 et `TODO_AFTER.md` 1.7 (*décidé le 17 novembre* : 3.55).
-- la fusion de `dev` dans `master`, par #390 (`313ef2d`, le 17 novembre à 22 h
-  20 UTC) : l'arbre de `master` est celui de `dev` (`77b9f27`), la pull request
-  est ouverte par la session sur la demande du mainteneur et fusionnée par lui
-  (3.56). Reste l'étiquette `v5.0.0` : *décidé le 17 novembre*, les registres
-  sont aussi dans `master` avant l'étiquette (par la pull request #391, `master`
-  n'acceptant que des pull requests), et l'étiquette n'est posée que quand toute
-  la CI est verte (celle du commit de fusion de #390 sur `master` et celle de la
-  pull request #391), les jobs qui n'ont pas eu de runner relancés.
-
-3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
-   manuel et `tests/fetch_content` prennent la branche `master` de
-   `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par
-   défaut. `master` est GAOL 4.3.2, avec lequel les programmes de la
-   documentation ne compilent pas, et il n'y a pas d'étiquette `v5.0.0`. *Décidé
-   le 12 novembre* (à la place du chemin du 3 octobre, par `MATH-CORE`, que
-   le mainteneur a supprimée sur GitHub le 11 novembre) : fusionner la branche
-   des versions dans `master`, puis étiqueter `v5.0.0` ; *décidé le 17
-   novembre*, cette branche est `dev` : `configure-clean`, supprimée, ne sert
-   plus à rien. C'est une vraie fusion : `master` a deux commits de plus,
-   `577c850` et `406d850`, ceux de `.claude/CLAUDE.md`, que `dev` a par
-   `68fe887` et `195e4a2`. *Décidé le 17 novembre* : ce fichier sort du dépôt,
-   pour `master` comme pour `dev` ; il est dans
-   `/home/jninin/Documents/WORK/DEV/GAOL/CLAUDE.md`, dossier parent des
-   clones, et noté dans `~/.claude/CLAUDE.md` ; la pull request #384 l'a retiré
-   de `master` (fusionnée le 17 novembre à 9 h 42 UTC), et `dev` ne l'a plus
-   (7.50), de sorte que la fusion donne l'arbre de `dev`. Les notes de travail
-   (`TODO*.md`, `process.md`, `STEP.md`) sont dans l'arbre de `master` après la
-   fusion ;
-   les archives des sources, celles de la Release comprises, ne les ont pas
-   (`.gitattributes`, `export-ignore`, que `buildsystems-dist` contrôle).
-   *Décidé le 12 novembre au soir* (`TODO_DONE.md` 3.36) : le mainteneur
-   ouvre et fusionne lui-même cette pull request, la session ne l'ouvre pas ;
-   une fois la fusion faite, et sur son mot seulement, la session pose sur le
-   commit de fusion l'étiquette `v5.0.0`, annotée comme `v4.3.2`, qui lance
-   `release.yml` : la GitHub Release, avec les notes que génère GitHub et les
-   trois paquets (`.deb`, `.pkg` de macOS, `.exe` de Windows) ; aucune date ne
-   change, et rien n'est gardé de l'ancien `master` (pas de branche `gaol-4`,
-   les étiquettes `v4.*` suffisent). *Décidé le 12
-   novembre* : les recettes FetchContent (`doc/using.md`, le manuel,
-   `tests/fetch_content`) et le `git clone` de `doc/building.md` visent `master`
-   tout le temps, avant comme après l'étiquette, pour avoir la dernière version
-   de GAOL ; elles ne citent donc jamais `v5.0.0`, et rien n'est à y changer
-   à la publication (elles disent déjà `GIT_TAG master`). *Vérifié le 8
-   novembre* par l'API de GitHub (lecture seule) : `master`, la branche par
-   défaut, n'a pas de protection classique, mais le jeu
-   de règles « master verif » (18 octobre, actif, sans contournement, même pour
-   le mainteneur) interdit de la supprimer et d'y pousser autre chose qu'une
-   avance rapide, et exige une pull request (0 approbation, fusion, squash et
-   rebase permis) ; aucun contrôle d'état n'est exigé, donc aucun job de macOS
-   14 ; rien ne vise les étiquettes (les quatre `v4.*` existent). La fusion de
-   `dev` dans `master` passe donc par une pull request, non par un push
-   direct. La CI de `master` échoue sans rapport avec GAOL : ses workflows d'avant
-   la version demandent « Visual Studio 2022 » à l'image `windows-11-arm`, qui ne
-   l'a plus (les deux jobs arm64 de Windows échouent depuis le 30 septembre), et
-   des runners de macOS 14 ; ceux de `dev` les remplacent à la fusion (pull
-   request #384 : 3.50). Après v5.0.0, le développement continue dans `dev`
-   (*décidé le 12 novembre*, process.md §13) et `master` ne reçoit que les
-   versions de `dev`.
-   Les commits à ligne de crédit (123) restent (*décidé le 19 octobre*). La
-   licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section
-   « Licences » de `README.md` et dans le manuel : fait. Pour #281, les cas de
-   `tests/test_ibex_codac.cpp` viennent de tests d'IBEX et de Codac sous LGPL v3
-   (leur `COPYING.LESSER`), alors que le `README.md` dit GAOL sous LGPL v2
-   (`COPYING.LIB`) ; l'en-tête du fichier donne les copyrights et les deux
-   licences sans conclure (*décidé le 2 novembre* : l'en-tête seul). *Décidé le
-   5 novembre* : le mainteneur écrit aux auteurs d'IBEX et de Codac (Gilles
-   Chabert, Simon Rohou) pour leur accord, et l'en-tête seul reste en attendant.
-   *Décidé le 17 novembre* : la version n'attend pas leur réponse ; ce qui reste
-   *à décider* à leur réponse (une ligne dans la section « Licences » du
-   `README.md`, voire un `COPYING.LESSER`) est dans `TODO_AFTER.md` 1.8.
-   *Décidé le 17 novembre* aussi : le message de l'étiquette annotée est « GAOL
-   5.0.0: CORE-MATH bounds, IEEE 1788-2015, three alike builds, a new manual » ;
-   si les jobs de macOS de `dev` manquent de runner (capacité des runners macOS
-   arm64 de GitHub), le mainteneur ouvre quand même la pull request vers
-   `master` et sa propre CI fait foi : le texte de la pull request dit celle-là
-   (3.55).
+Ce qui vient après la version est dans `TODO_AFTER.md` (issue #178) : l'annonce
+à Frédéric Goualard, faute d'adresse (1.7, issue #389), la licence des cas
+d'IBEX et de Codac (1.8, #281), et le ménage de la fin, dont ces registres à
+vider (1.6). Le mainteneur donne les tâches ou les points un par un : ne
+commence rien sans lui.

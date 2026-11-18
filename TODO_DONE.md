@@ -1,11 +1,12 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 17 novembre
-2026 (commit `313ef2d` de `master`, la fusion de #390 ; `configure-clean`, qui
-était à `83e2f69`, la fusion de #321, est supprimée le 17 novembre : voir la
-section 1). Ce fichier n'est que
-dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
-plus mise à jour depuis le 28 octobre (voir 7.8).
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 18 novembre
+2026 (le commit de fusion de #391 dans `master`, celui de l'étiquette `v5.0.0` ;
+`configure-clean`, qui était à `83e2f69`, la fusion de #321, est supprimée le 17
+novembre : voir la section 1). Ce fichier est dans `dev` et dans `master`
+(depuis #390), non dans les archives des sources. Ce fichier fait foi : l'issue
+#177, qui avait le même contenu, n'est plus mise à jour depuis le 28 octobre
+(voir 7.8).
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -13,7 +14,8 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH et PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire (rien depuis le 18 novembre :
+  PJ, la dernière tâche, est faite) ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -44,24 +46,26 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PH et PJ
-  dans `TODO.md`.
+  classement. Ce qui restait à faire était classé en tâches dans
+  `TODO.md`, où il n'en reste aucune depuis le 18 novembre.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
   ; la procédure suivie pour chaque point est dans `process.md`.
 
-Sommaire : 1. L'état au 17 novembre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 18 novembre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 17 novembre 2026
+## 1. L'état au 18 novembre 2026
 
-- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit `313ef2d` (la
-  fusion de #390 le 17 novembre à 22 h 20 UTC : `dev`, à `c38417e`, y entre, 2
-  338 commits et 980 fichiers ; l'arbre de `master` est celui de `dev`) ;
-  l'étiquette `v5.0.0` n'est pas encore posée (3.56).
+- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #391
+  (le 18 novembre : les registres de la version, de `dev` dans `master`), celui
+  de l'étiquette `v5.0.0` (3.57) : la version 5.0.0 est publiée. Avant, il était
+  au commit `313ef2d` (la fusion de #390 le 17 novembre à 22 h 20 UTC : `dev`, à
+  `c38417e`, y entre, 2 338 commits et 980 fichiers ; l'arbre de `master` est
+  celui de `dev`).
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
   commit `fc8b9ac` (la fusion de #388 le 17 novembre à 21 h 21 UTC, PJ.3 : le
   tableau de couverture du manuel et son PDF, après les registres de #387,
@@ -4779,6 +4783,18 @@ tournait au moment des registres.
   tourne pas sur un push), tournait au moment des registres. Le texte de la
   pull request (3 412 caractères) dit ce que `master` reçoit, ce qui est
   vérifié, l'explication de Performance et les questions ouvertes.
+- #391 (PJ.3 ; les registres de la version, de `dev` dans `master`) : ouverte
+  par la session le 17 novembre sur la demande du mainteneur (« fait la modif
+  des registres sur master également avant de poser l'étiquette »), avec trois
+  fichiers de notes (`TODO.md`, `TODO_DONE.md`, `process.md`) et aucun fichier
+  du code, des tests, de la documentation ni du manuel ; le 18 novembre, sur sa
+  demande (« met à jours les registre comme si PJ est fini directement dans la
+  PR #391 »), un commit de plus (7.58) y dit la tâche PJ faite. Fusionnée par le
+  mainteneur le 18 novembre ; la CI de sa tête est verte, les cinq workflows
+  qu'une pull request lance sur un changement de notes (Linux, Linux containers,
+  Windows, Autotools and meson, macOS), alors que Manual, Release et Performance
+  ne tournent pas (leurs chemins ne changent pas). L'étiquette `v5.0.0` est
+  posée sur son commit de fusion (3.57).
 
 ### 2.4 Fermées sans fusion
 
@@ -8498,18 +8514,63 @@ nécessaire. »
 - **L'étiquette** : annotée, de Jordan08, « GAOL 5.0.0: CORE-MATH bounds, IEEE
   1788-2015, three alike builds, a new manual » (3.55), seulement quand toute la
   CI est verte : celle du commit de fusion de #390 sur `master` (six workflows)
-  et celle de #391 (les huit, Performance comprise, qui a maintenant une base
-  avec `gaol_performance`) ; les jobs qui n'ont pas eu de runner sont relancés
+  et celle de #391 (les cinq workflows qu'une pull request lance sur un
+  changement de notes ; Manual, Release et Performance ne tournent pas, leurs
+  chemins ne changeant pas) ; les jobs qui n'ont pas eu de runner sont relancés
   par `rerun-failed-jobs` (API REST) ; une vraie erreur est remontée, jamais
   affaiblie. Un push sur `master` qui ne change que `TODO*.md` et `process.md`
-  ne lance rien (`paths-ignore`), mais la pull request relance les huit
+  ne lance rien (`paths-ignore`), mais la pull request relance cinq
   workflows, les `paths-ignore` ne couvrant que `push`.
 - **Pièges** : tant que #391 est ouverte, la tête étant `dev`, aucun push sur
   `dev` (il relancerait sa CI) ; Performance de #390 est rouge par construction
   (2.3).
-- **Reste à faire** : la CI verte, la fusion de #391 par le mainteneur, puis
-  l'étiquette, le suivi de `release.yml` (le job `tag`, puis les trois paquets,
-  la Release) et les registres de l'étiquette ; PJ.4 après la version (#389).
+- **Reste à faire** (le 17 novembre au soir) : la CI verte, la fusion de #391
+  par le mainteneur, puis l'étiquette, le suivi de `release.yml` (le job `tag`,
+  puis les trois paquets, la Release) et les registres de l'étiquette ; PJ.4
+  après la version (#389). Fait le 18 novembre : 3.57.
+
+### 3.57 Le 18 novembre : PJ faite, l'étiquette `v5.0.0`
+
+Le mainteneur, la CI de #391 étant verte, demande : « met à jours les registre
+comme si PJ est fini directement dans la PR #391. Pour que tout soit bon dès la
+fusion du master, vu que l'on ne peux pas faire de push directe dans le master
+».
+
+- **Les registres écrits d'avance** : `master` n'accepte que des pull requests
+  (3.56), donc rien ne peut y entrer après l'étiquette sans une pull request de
+  plus. La session pousse sur `dev`, la tête de #391, un commit (7.58) qui dit
+  la tâche PJ faite : #391 fusionnée, l'étiquette `v5.0.0` posée sur son commit
+  de fusion, la Release lancée par `release.yml`. Elle écrit ces faits avant
+  qu'ils soient vrais : la fusion par le mainteneur, la CI verte de la nouvelle
+  tête et l'étiquette viennent après le commit. Ce commit relance la CI de #391
+  (cinq workflows), qui reste la condition de l'étiquette (3.56). Les issues
+  #179 et #178 ne sont mises à jour qu'après l'étiquette.
+- **Ce que disent les registres** : `TODO.md` n'a plus de tâche (le tableau et
+  la tâche PJ sont retirés, le texte du point 34 est dans la section 5, point
+  Y) ; `TODO_AFTER.md` garde ce qui vient après la version (1.6 le ménage de la
+  fin, 1.7 l'annonce à Frédéric Goualard, 1.8 la licence de #281) ; `process.md`
+  (§1, §12 et §13) dit la version publiée.
+- **Ce que porte l'étiquette** : le code, les tests, la documentation et le
+  manuel de `fc8b9ac` (#388 : le tableau de couverture, 97,5 % des 7 822 lignes
+  de `gaol/`, et le PDF de 389 pages) ; les trois commits de notes qui suivent
+  (`b2f04bf`, `c38417e`, `5b4cb29`), puis celui de 7.58, n'ont changé que
+  `TODO*.md` et `process.md`, que `.gitattributes` prive des archives. La
+  couverture et le PDF ne sont pas refaits ; les temps de PJ.2 non plus
+  (*décidé le 17 novembre*, 3.55). Les trois archives des sources valent donc
+  `git archive HEAD`, que `buildsystems-dist` contrôle.
+- **L'étiquette** : annotée, de Jordan08, « GAOL 5.0.0: CORE-MATH bounds, IEEE
+  1788-2015, three alike builds, a new manual » (3.55), posée par la session sur
+  le commit de fusion de #391 quand toute la CI est verte (celle de `master` à
+  `313ef2d`, six workflows, et celle de #391), les jobs sans runner relancés par
+  `rerun-failed-jobs`. Elle lance `release.yml` : le job `tag` (le commit est
+  sur `master`, l'étiquette vaut `VERSION.txt`), les trois paquets (le `.deb`,
+  le `.pkg` de macOS, l'installateur `.exe` de Windows) et la GitHub Release
+  (3.36).
+- **Après la version** : `dev` reste la branche du développement, `master` ne
+  reçoit que les versions (process.md §13). Restent l'annonce à Frédéric
+  Goualard (#389, `TODO_AFTER.md` 1.7), la licence des cas d'IBEX et de Codac
+  (1.8, #281) et le ménage de la fin (1.6) : rien n'y est fait sans le
+  mainteneur.
 
 ## 4. Les points faits, par lettre
 
@@ -8771,10 +8832,13 @@ leur partie faite.
   à #274, avec #275 pour les phrases hors de `doc/differences.md` et du
   `ChangeLog` et #280 pour leurs restes ; dans la tâche PJ, le 32 (#315), le 33
   (#316 et #317), le manuel (#294), macOS 14 (#313) et les restes de la synthèse
-  (#313, #314 et #318) sont faits (3.34 et 3.35) ; il reste la publication (PJ.3
-  et PJ.4, décidées le 12 novembre au soir : 3.36), qui attendait PU à PZ,
-  faites le 16 novembre (*décidé le 13 novembre* : 3.38) : elle attend le mot du
-  mainteneur.
+  (#313, #314 et #318) sont faits (3.34 et 3.35), puis la publication (PJ.3,
+  décidée le 12 novembre au soir : 3.36), qui attendait PU à PZ, faites le 16
+  novembre (*décidé le 13 novembre* : 3.38) : la fusion de `dev` dans `master`
+  par #390 le 17 novembre, les registres par #391 et l'étiquette `v5.0.0` le 18
+  (3.56 et 3.57) ; le texte du point 34 est dans la section 5, point Y. PJ.4
+  (l'annonce à Frédéric Goualard) est reportée après la version (#389,
+  `TODO_AFTER.md` 1.7).
 
 - **PX.3, le reste.** Les `TEST_EQ` à 1e-8 que PX.3 nomme sont remplacés par
   #353 (`TEST_HULL`, `hull_values.py`) ; les 57 autres
@@ -9152,6 +9216,76 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   (#140) ; reporté indéfiniment.
 - Les décisions à prendre des sections 1 à 3 : 121 (fait par #164, décidé le 22
   octobre, Q2) et 125 (clos le 22 octobre, Q3).
+
+### Y. La publication de v5.0.0 (34, PJ.3)
+
+Le texte du point 34 de `TODO.md` quand PJ est faite (18 novembre), coupé de ce
+fichier-là ; les décisions sont en 3.32, 3.33, 3.36, 3.55 à 3.57. La pull
+request de `dev` dans `master` est #390, que la session a ouverte sur la demande
+du mainteneur, contre ce que dit le texte plus bas (3.56).
+
+- **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
+  manuel et `tests/fetch_content` prennent la branche `master` de
+  `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par défaut.
+  `master` est GAOL 4.3.2, avec lequel les programmes de la documentation ne
+  compilent pas, et il n'y a pas d'étiquette `v5.0.0`. *Décidé le 12 novembre*
+  (à la place du chemin du 3 octobre, par `MATH-CORE`, que le mainteneur a
+  supprimée sur GitHub le 11 novembre) : fusionner la branche des versions dans
+  `master`, puis étiqueter `v5.0.0` ; *décidé le 17 novembre*, cette branche est
+  `dev` : `configure-clean`, supprimée, ne sert plus à rien. C'est une vraie
+  fusion : `master` a deux commits de plus, `577c850` et `406d850`, ceux de
+  `.claude/CLAUDE.md`, que `dev` a par `68fe887` et `195e4a2`. *Décidé le 17
+  novembre* : ce fichier sort du dépôt, pour `master` comme pour `dev` ; il est
+  dans `/home/jninin/Documents/WORK/DEV/GAOL/CLAUDE.md`, dossier parent des
+  clones, et noté dans `~/.claude/CLAUDE.md` ; la pull request #384 l'a retiré
+  de `master` (fusionnée le 17 novembre à 9 h 42 UTC), et `dev` ne l'a plus
+  (7.50), de sorte que la fusion donne l'arbre de `dev`. Les notes de travail
+  (`TODO*.md`, `process.md`, `STEP.md`) sont dans l'arbre de `master` après la
+  fusion ; les archives des sources, celles de la Release comprises, ne les ont
+  pas (`.gitattributes`, `export-ignore`, que `buildsystems-dist` contrôle).
+  *Décidé le 12 novembre au soir* (`TODO_DONE.md` 3.36) : le mainteneur ouvre et
+  fusionne lui-même cette pull request, la session ne l'ouvre pas ; une fois la
+  fusion faite, et sur son mot seulement, la session pose sur le commit de
+  fusion l'étiquette `v5.0.0`, annotée comme `v4.3.2`, qui lance `release.yml` :
+  la GitHub Release, avec les notes que génère GitHub et les trois paquets
+  (`.deb`, `.pkg` de macOS, `.exe` de Windows) ; aucune date ne change, et rien
+  n'est gardé de l'ancien `master` (pas de branche `gaol-4`, les étiquettes
+  `v4.*` suffisent). *Décidé le 12 novembre* : les recettes FetchContent
+  (`doc/using.md`, le manuel, `tests/fetch_content`) et le `git clone` de
+  `doc/building.md` visent `master` tout le temps, avant comme après
+  l'étiquette, pour avoir la dernière version de GAOL ; elles ne citent donc
+  jamais `v5.0.0`, et rien n'est à y changer à la publication (elles disent déjà
+  `GIT_TAG master`). *Vérifié le 8 novembre* par l'API de GitHub (lecture seule)
+  : `master`, la branche par défaut, n'a pas de protection classique, mais le
+  jeu de règles « master verif » (18 octobre, actif, sans contournement, même
+  pour le mainteneur) interdit de la supprimer et d'y pousser autre chose qu'une
+  avance rapide, et exige une pull request (0 approbation, fusion, squash et
+  rebase permis) ; aucun contrôle d'état n'est exigé, donc aucun job de macOS 14
+  ; rien ne vise les étiquettes (les quatre `v4.*` existent). La fusion de `dev`
+  dans `master` passe donc par une pull request, non par un push direct. La CI
+  de `master` échoue sans rapport avec GAOL : ses workflows d'avant la version
+  demandent « Visual Studio 2022 » à l'image `windows-11-arm`, qui ne l'a plus
+  (les deux jobs arm64 de Windows échouent depuis le 30 septembre), et des
+  runners de macOS 14 ; ceux de `dev` les remplacent à la fusion (pull request
+  #384 : 3.50). Après v5.0.0, le développement continue dans `dev` (*décidé le
+  12 novembre*, process.md §13) et `master` ne reçoit que les versions de `dev`.
+  Les commits à ligne de crédit (123) restent (*décidé le 19 octobre*). La
+  licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section «
+  Licences » de `README.md` et dans le manuel : fait. Pour #281, les cas de
+  `tests/test_ibex_codac.cpp` viennent de tests d'IBEX et de Codac sous LGPL v3
+  (leur `COPYING.LESSER`), alors que le `README.md` dit GAOL sous LGPL v2
+  (`COPYING.LIB`) ; l'en-tête du fichier donne les copyrights et les deux
+  licences sans conclure (*décidé le 2 novembre* : l'en-tête seul). *Décidé le 5
+  novembre* : le mainteneur écrit aux auteurs d'IBEX et de Codac (Gilles
+  Chabert, Simon Rohou) pour leur accord, et l'en-tête seul reste en attendant.
+  *Décidé le 17 novembre* : la version n'attend pas leur réponse ; ce qui reste
+  *à décider* à leur réponse (une ligne dans la section « Licences » du
+  `README.md`, voire un `COPYING.LESSER`) est dans `TODO_AFTER.md` 1.8. *Décidé
+  le 17 novembre* aussi : le message de l'étiquette annotée est « GAOL 5.0.0:
+  CORE-MATH bounds, IEEE 1788-2015, three alike builds, a new manual » ; si les
+  jobs de macOS de `dev` manquent de runner (capacité des runners macOS arm64 de
+  GitHub), le mainteneur ouvre quand même la pull request vers `master` et sa
+  propre CI fait foi : le texte de la pull request dit celle-là (3.55).
 
 ## 6. Les questions ouvertes des pull requests, tranchées
 
@@ -11026,6 +11160,20 @@ leurs registres n'étaient pas faits :
   (`paths-ignore`) : il n'annule pas la CI du commit de fusion de #390 sur
   `master`. Il est ensuite dans `master` par la pull request #391, avant
   l'étiquette (3.56).
+
+### 7.58 Le 18 novembre (PJ faite : les registres dans #391)
+
+- Les registres de la demande du mainteneur (3.57), en un commit direct sur
+  `dev`, depuis le clone du scratchpad, poussé alors que #391 était ouverte : sa
+  tête étant `dev`, il y entre et passe dans `master` à la fusion. `TODO.md`
+  (l'en-tête, le tableau vide, la tâche PJ et son point 34 coupés),
+  `TODO_AFTER.md` (l'en-tête, 1.6, 1.7), ce fichier (l'en-tête, 1, 2.3, 3.56,
+  3.57, 4, 5 et 7.58) et `process.md` (§1, l'en-tête, §12 et §13). Les issues
+  #179 et
+  #178 sont mises à jour après l'étiquette, #177 non.
+- Ce commit ne change que des fichiers que les workflows ignorent sur un push
+  (`paths-ignore`) : aucun workflow ne tourne sur `dev` ; la pull request #391
+  relance ses cinq workflows, dont la CI verte précède l'étiquette (3.57).
 
 ## 8. Le ménage fait
 
