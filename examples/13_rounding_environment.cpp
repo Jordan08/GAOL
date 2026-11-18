@@ -225,8 +225,9 @@ namespace {
     it rounds, so p + e is the product exactly when std::fma(a, b, -p) gives
     e back. The check runs to nearest, whatever the direction of the pair.
     (With GCC, std::fma is a call of the C library without optimization: with
-    a library whose fma() is not correctly rounded, as Cygwin's, this check is
-    wrong there; __builtin_fma is the instruction with -mfma.)
+    a library whose fma() is not correctly rounded, as Cygwin's, or the one of
+    the MinGW-w64 before version 12 or linked with msvcrt.dll without -mfma,
+    this check is wrong there; __builtin_fma is the instruction with -mfma.)
   */
   bool is_exact_product(double a, double b, double p, double e)
   {

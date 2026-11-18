@@ -1239,9 +1239,15 @@ rounded product), and is exact in every direction when it is computed with
 `std::fma` instead: the error of a rounded product is a double, which
 `std::fma` computes however it rounds (provided it is correctly rounded: the
 instruction, or a call of a C library whose `fma()` is; with GCC, `std::fma`
-without optimization is a call of the library, and the `fma()` of Cygwin is not
-correctly rounded, where `__builtin_fma` is the instruction with `-mfma`, which
-GAOL calls itself). Compensated sums, and the
+without optimization is a call of the library, and the `fma()` of Cygwin, and
+that of the MinGW-w64 before version 12 or linked with `msvcrt.dll` (MSYS2
+MINGW64 and MINGW32), are not correctly rounded, where `__builtin_fma` is the
+instruction with `-mfma`, which GAOL calls itself, and `gaol_fma()`, which is
+not part of the interface, where the build has none: a program of yours that
+computes with `std::fma` on those toolchains needs `-mfma`, which `gaol.pc` and
+`gaol::gaol` give it where the processor has the instructions, and the example
+`13_rounding_environment.cpp` reports a wrong error of a product without it).
+Compensated sums, and the
 double-double arithmetic built on such algorithms, lose their accuracy the
 same way. Built with `GAOL_PRESERVE_ROUNDING`, the program computes the right-hand
 column all the time.
