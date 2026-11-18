@@ -33,6 +33,9 @@
 # Checks that the objects GCC for Windows builds on x64 and x86 hold the fused
 # multiply-add instructions GAOL_FMA gives them (-mfma) and no 256-bit
 # instruction (-mprefer-vector-width=128; GCC bug 54412, GAOL v5).
+# Builds GAOL with llvm-mingw 20230320 on arm64 (Clang 16, mingw-w64 11, whose
+# own fma() and round() GAOL does not call: its fma() is the instruction fmadd
+# there, and the job checks the code of it, GAOL v5).
 #
 # A job is a group of configurations that run one after the other on the
 # same image of runner, each one an action of .github/actions/ called
@@ -1372,6 +1375,34 @@ jobs:
             [ "${kv#*=}" = success ] || status=1
           done
           exit $status
+
+  # mingw-w64 for 64-bit ARM before version 12 (GAOL v5): llvm-mingw 20230320,
+  # Clang 16 and mingw-w64 11, whose libmingwex holds its own fma() and round()
+  # as that of x86 does (GAOL_MINGW_OWN_MATH of gaol/gaol_config.h). On 64-bit ARM
+  # that fma() is the instruction fmadd, and GAOL takes the instruction and its
+  # own gaol_round() (gaol/math/gaol_round.h): the job reads in the code, not in a
+  # comment, that the fma() of libmingwex is one fmadd, that the objects of the
+  # library hold fused instructions and none calls fma() or round()
+  # (.github/scripts/check-arm64-fma.sh), and tests/core_math.cpp calls the fma()
+  # of the library as a function against exact values; then it runs the tests,
+  # installs GAOL and builds the tests again with it. The toolchain is the
+  # release of llvm-mingw for Windows on arm64, checked against its SHA-256
+  w17:
+    name: 'llvm-mingw 20230320 arm64, mingw-w64 11 (1 configuration)'
+    runs-on: windows-11-vs2026-arm
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'llvm-mingw 20230320 Clang 16 arm64, mingw-w64 11'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-llvm-mingw
+        timeout-minutes: 90
+        with:
+          desc: 'llvm-mingw 20230320 Clang 16 arm64, mingw-w64 11'
+          version: '20230320'
+          sha256: 'dbfe4c28e14cfc00a61b8789a6e4724db76d7d524587d68603ae6404ec708e24'
+          mingw_major: '11'
 
   # Cygwin, GCC for x86-64 (GAOL v5). GAOL_FMA gives it -mfma
   # -mprefer-vector-width=128 as the MinGW-w64 and MSYS2 above (CMakeLists.txt:

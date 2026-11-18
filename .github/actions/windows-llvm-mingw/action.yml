@@ -1,0 +1,152 @@
+# The steps of the job llvm-mingw of windows.yml: GAOL built for 64-bit ARM
+# with llvm-mingw, the Clang of mingw-w64 (GAOL v5). The toolchain is a release
+# of the repository of llvm-mingw whose mingw-w64 is before version 12, the
+# ones whose fma() and round() are mingw-w64's own (GAOL_MINGW_OWN_MATH of
+# gaol/gaol_config.h): 20230320 says 11, and the releases of June 2023 on say
+# 12 (the libmingwex of 20231128 and 20240130 has neither fma.o nor round.o,
+# those two taking the ones of ucrtbase.dll as MSYS2 CLANGARM64 does, which
+# the other jobs of arm64 build).
+name: windows-llvm-mingw
+description: GAOL built for 64-bit ARM with llvm-mingw, mingw-w64 before version 12
+inputs:
+  desc:
+    description: The configuration, for the summary of the job
+    default: ''
+  mingw_major:
+    description: The version of mingw-w64 that the toolchain has to be (__MINGW64_VERSION_MAJOR)
+    default: ''
+  opts:
+    description: Options of CMake
+    default: ''
+  sha256:
+    description: The SHA-256 of the archive of llvm-mingw for Windows on arm64
+    default: ''
+  version:
+    description: The release of llvm-mingw, a date such as 20230320
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    # The archive of the release, checked against its SHA-256 (a release of a
+    # repository can be replaced), and its two directories of programs first
+    # in PATH: the compilers and tools in bin, and the libc++.dll and
+    # libunwind.dll that the programs it builds load in aarch64-w64-mingw32/bin
+    - name: llvm-mingw, from the releases of its repository
+      shell: pwsh
+      env:
+        LLVM_MINGW_VERSION: ${{ inputs.version }}
+        LLVM_MINGW_SHA256: ${{ inputs.sha256 }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $name = "llvm-mingw-$env:LLVM_MINGW_VERSION-ucrt-aarch64"
+        $dir = Join-Path $env:RUNNER_TEMP 'llvm-mingw'
+        $zip = Join-Path $env:RUNNER_TEMP "$name.zip"
+        $root = Join-Path $dir $name
+        if (-not (Test-Path $root)) {
+          Invoke-WebRequest -Uri "https://github.com/mstorsjo/llvm-mingw/releases/download/$env:LLVM_MINGW_VERSION/$name.zip" -OutFile $zip
+          $hash = (Get-FileHash -Algorithm SHA256 -Path $zip).Hash.ToLower()
+          if ($hash -ne $env:LLVM_MINGW_SHA256) {
+            throw "The SHA-256 of $name.zip is $hash, not $env:LLVM_MINGW_SHA256"
+          }
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          if (Get-Command 7z -ErrorAction SilentlyContinue) {
+            7z x -y "-o$dir" $zip | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "7z failed on $zip" }
+          } else {
+            Expand-Archive -Path $zip -DestinationPath $dir
+          }
+          Remove-Item $zip
+        }
+        Add-Content -Path $env:GITHUB_ENV -Value "LLVM_MINGW=$root"
+        Add-Content -Path $env:GITHUB_PATH -Value "$root\bin"
+        Add-Content -Path $env:GITHUB_PATH -Value "$root\aarch64-w64-mingw32\bin"
+    # The toolchain of this configuration is the one of PATH, and its mingw-w64
+    # is the version asked for (the headers say it)
+    - name: The llvm-mingw asked for is the one of PATH
+      shell: bash
+      env:
+        MINGW_MAJOR: ${{ inputs.mingw_major }}
+      run: |
+        aarch64-w64-mingw32-clang++ --version
+        which aarch64-w64-mingw32-clang aarch64-w64-mingw32-clang++ cmake ninja
+        machine=$(aarch64-w64-mingw32-clang++ -dumpmachine)
+        echo "machine: $machine"
+        case "$machine" in aarch64-*) ;; *) echo "not 64-bit ARM"; exit 1 ;; esac
+        major=$(printf '#include <stdlib.h>\n__MINGW64_VERSION_MAJOR\n' | aarch64-w64-mingw32-clang++ -E -P -x c++ - | tail -n 1)
+        echo "__MINGW64_VERSION_MAJOR: $major, asked for: $MINGW_MAJOR"
+        test "$major" = "$MINGW_MAJOR"
+    - name: Configure
+      shell: bash
+      run: |
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=aarch64-w64-mingw32-clang -DCMAKE_CXX_COMPILER=aarch64-w64-mingw32-clang++ -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ inputs.opts }}
+    # The NEON intervals, as MSYS2 CLANGARM64 takes them
+    - name: The intervals
+      shell: bash
+      run: sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h neon
+    - name: Build
+      shell: bash
+      run: cmake --build build -j 4
+    # mingw-w64 before version 12: fma() and round() are those of mingw-w64's own
+    # math library (GAOL_MINGW_OWN_MATH of gaol/gaol_config.h, which the flags of
+    # gaol.pc, the ones the code using GAOL is compiled with, say), and GAOL
+    # takes the instruction, which on 64-bit ARM it does not need a flag
+    # for, and its own gaol_round(): GAOL_SOFT_FMA is 0 (gaol_fma() is for x86),
+    # and what the code is, not what a comment says, is read: the fma() of
+    # libmingwex is one fmadd, the objects of the library hold fused
+    # instructions, and none calls fma() or round() (GAOL v5)
+    - name: fma() is the fused instruction, and round() is not called
+      shell: bash
+      run: |
+        flags=$(sed -n 's/^Cflags: //p' build/gaol.pc | tr ' ' '\n' | grep -E '^-[mf]' | tr '\n' ' ')
+        probe() { printf '#include <stdlib.h>\n#include "gaol/gaol_config.h"\n%s\n' "$1" | aarch64-w64-mingw32-clang++ $flags -I. -Ibuild -E -P -x c++ - | tail -n 1; }
+        own=$(probe GAOL_MINGW_OWN_MATH)
+        soft=$(probe GAOL_SOFT_FMA)
+        echo "GAOL_MINGW_OWN_MATH $own, GAOL_SOFT_FMA $soft, flags of gaol.pc: $flags"
+        if [ "$own" != 1 ]; then
+          echo "GAOL_MINGW_OWN_MATH is $own, and 1 was expected: this mingw-w64 has its own fma() and round()"
+          exit 1
+        fi
+        if [ "$soft" != 0 ]; then
+          echo "GAOL_SOFT_FMA is $soft, and 0 was expected: gaol_fma() is for x86, the instruction is here"
+          exit 1
+        fi
+        lib=$(aarch64-w64-mingw32-clang++ -print-file-name=libmingwex.a)
+        echo "libmingwex: $lib"
+        NM=llvm-nm AR=llvm-ar OBJDUMP=llvm-objdump sh .github/scripts/check-arm64-fma.sh "$lib" build/CMakeFiles/gaol.dir build/CMakeFiles/gaol_core_math.dir
+        # and the test that calls the fma() of the library as a function, against
+        # exact values, ran (tests/core_math.cpp: ctest shows the output of a
+        # test that passes nowhere) and passed, its checks counted and none failed
+        build/tests/gaol_test_core_math.exe > build/core_math.log
+        grep -a -F "the fma() of the C library, called as a function" build/core_math.log
+        grep -a -F "the fma() of the C library, called as a function" build/core_math.log | grep -a -F " 0 failed"
+    - name: Tests (make test)
+      shell: bash
+      run: cmake --build build --target test
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash
+      run: sh .github/scripts/comma-locale.sh check build
+    - name: Performance
+      shell: bash
+      run: build/tests/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"
+    - name: Install
+      shell: bash
+      run: cmake --install build
+    - name: Tests built with the installed GAOL
+      shell: bash
+      run: |
+        cmake -S tests/find_package -B build-find-package -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=aarch64-w64-mingw32-clang++ -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
+        cmake --build build-find-package -j 4
+        cmake --build build-find-package --target test
