@@ -29,11 +29,15 @@
  *
  * - round_ties_to_away(I) of intervals (gaol/core/gaol_interval_core.cpp),
  *   where the defect above shows;
- * - the sources of CORE-MATH, which call __builtin_round() in pow.c, to take
+ * - the sources of CORE-MATH, which call __builtin_round() in the
+ *   roundeven_finite() of fifteen of them (exp.c, sin.c...), their fallback
+ *   where the processor has neither AVX nor SSE4.1 nor ARMv8 (with GAOL_FMA
+ *   off, for instance), where the defect above shows, and in pow.c, to take
  *   the integer nearest to the square root of an odd integer, that is at
- *   least 1, where the round() of mingw-w64 is exact: it is replaced all the
- *   same by gaol/math/gaol_core_math_port.h, which the three builds give to
- *   those C sources, so that GAOL calls no round() of that library.
+ *   least 1, where the round() of mingw-w64 is exact:
+ *   gaol/math/gaol_core_math_port.h, which the three builds give to those C
+ *   sources, replaces the builtin with this function, so that GAOL calls no
+ *   round() of that library.
  *
  * This header is C, and is included both by GAOL's C++ sources and by
  * gaol/math/gaol_core_math_port.h, which is why it has C comments only, and

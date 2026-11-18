@@ -169,15 +169,19 @@ took for an undeclared function and did not link.
 /*---------------------------------------------------------------------------
 round() of mingw-w64's own math library, which is wrong
 
-pow.c calls __builtin_round() to take the integer nearest to the square root of
-an odd integer, which is at least 1, where the round() of mingw-w64 is exact:
-it is the one place of the sources of CORE-MATH that calls it. The call is
-replaced all the same, with the toolchains whose fma() and round() are those
-of mingw-w64's own math library (GAOL_MINGW_OWN_MATH, gaol/gaol_config.h, whose
-test this repeats, as the C sources do not include that header), so that GAOL
-calls no round() of that library: it is wrong for the doubles next to 1/2,
-and gives the sign of a zero wrong rounding downward (see
-gaol/math/gaol_round.h, which reads the bits instead).
+Fifteen sources (exp.c, sin.c...) call __builtin_round() in the
+roundeven_finite() they use where the processor has neither AVX nor SSE4.1 nor
+ARMv8 (-mfma gives GCC and Clang AVX, so not with GAOL_FMA), and there the
+round() of mingw-w64 is wrong for the doubles next to 1/2; pow.c calls it to
+take the integer nearest to the square root of an odd integer, which is at
+least 1, where it is exact. The calls are replaced, with the toolchains whose
+fma() and round() are those of mingw-w64's own math library
+(GAOL_MINGW_OWN_MATH, gaol/gaol_config.h, whose test this repeats, as the C
+sources do not include that header; tests/core_math.cpp repeats it too, and
+<math.h>, which gaol_roundeven.h included above, defines
+__MINGW64_VERSION_MAJOR), so that GAOL calls no round() of that library: it is
+wrong for the doubles next to 1/2, and gives the sign of a zero wrong rounding
+downward (see gaol/math/gaol_round.h, which reads the bits instead).
 --------------------------------------------------------------------------*/
 
 #if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \

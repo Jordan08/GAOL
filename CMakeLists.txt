@@ -358,8 +358,9 @@ endif()
 # The continuous integration builds GAOL with the MinGW-w64 GCC 11.2.0 to
 # 15.2.0 of Chocolatey on x86-64 and on 32-bit x86, and with MSYS2 UCRT64,
 # CLANG64, CLANGARM64 and MINGW64 (GCC and Clang), runs the tests with them, and
-# checks that GCC 11.2.0 and 13.2.0 on x86-64, GCC 11.2.0 on 32-bit x86 and
-# MSYS2 MINGW64 are refused without -mfma (.github/workflows/windows.yml).
+# checks that GCC 13.2.0 on x86-64, GCC 11.2.0 on 32-bit x86, MSYS2 MINGW64
+# (GCC) and MSYS2 MINGW32 are refused without -mfma
+# (.github/workflows/windows.yml).
 
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)

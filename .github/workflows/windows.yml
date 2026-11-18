@@ -266,7 +266,7 @@ jobs:
         name: 'MSYS2 MINGW64 GCC x64 without FMA, refused'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2-refused
-        timeout-minutes: 30
+        timeout-minutes: 20
         with:
           desc: 'MSYS2 MINGW64 GCC x64 without FMA, refused'
           msystem: 'MINGW64'
@@ -280,7 +280,7 @@ jobs:
         name: 'MSYS2 MINGW32 GCC x86 without FMA, refused'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2-refused
-        timeout-minutes: 30
+        timeout-minutes: 20
         with:
           desc: 'MSYS2 MINGW32 GCC x86 without FMA, refused'
           msystem: 'MINGW32'
@@ -474,8 +474,9 @@ jobs:
       # of mingw-w64's own math library, which are wrong (GAOL_MINGW_OWN_MATH
       # of gaol/gaol_config.h): GAOL calls its own gaol_round(), and fma() is
       # the instruction, with -mfma, which GAOL_FMA gives GCC for Windows.
-      # Without it these toolchains are refused on x86-64 and, GCC 11, on
-      # 32-bit x86 (the configurations ending in ", refused"). GCC 11.2.0 is
+      # Without it these toolchains are refused on x86-64 (GCC 13 below) and,
+      # GCC 11, on 32-bit x86 (the configuration ending in ", refused" here).
+      # GCC 11.2.0 is
       # WinLibs, mingw-w64 9 and msvcrt.dll; GCC 12.2.0 and 13.2.0 are
       # MinGW-Builds, mingw-w64 11 and the UCRT
       - id: c1
