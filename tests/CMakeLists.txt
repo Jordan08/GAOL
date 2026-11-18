@@ -129,8 +129,8 @@ foreach(test ${GAOL_TESTS})
   list(APPEND GAOL_CHECK_TARGETS gaol_test_${test})
 endforeach()
 # u128_select, a program in C, as the sources of CORE-MATH are: the choice
-# between two 128-bit integers, which the GCC 14.2 for 32-bit x86 compiles
-# wrongly with the `_BitInt(128)` that gaol_u128.h gave it (GAOL v5). Not
+# between two 128-bit integers, which the GCC 14.2, 15.3 and 16.2 for 32-bit
+# x86 compile wrongly with the `_BitInt(128)` that gaol_u128.h gave it (GAOL v5). Not
 # linked with GAOL: it only includes gaol/math/gaol_u128.h
 add_executable(gaol_test_u128_select u128_select.c)
 target_include_directories(gaol_test_u128_select PRIVATE "${PROJECT_SOURCE_DIR}")

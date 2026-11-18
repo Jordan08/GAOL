@@ -122,10 +122,10 @@ GAOL_FMA_INLINE int gaol_fma_clz64(uint64_t x)
 /* A 128-bit unsigned integer, as two 64-bit halves: the arithmetic below is
    written on these, and not on gaol_u128 of gaol/math/gaol_u128.h, which is
    the `_BitInt(128)` of GCC 14 and Clang for the C sources, on 32-bit targets
-   too, and two halves for the C++ ones. The GCC 14.2 for 32-bit x86 (the i386
-   image of the continuous integration, Debian 13) miscompiles, from -O1, the
-   choice between two `_BitInt(128)` values that this function makes to find the
-   larger operand: with
+   too, and two halves for the C++ ones. The GCC 14.2, 15.3 and 16.2 for 32-bit
+   x86 (the i386 images of the continuous integration, Debian 13 and 14)
+   miscompile, from -O1, the choice between two `_BitInt(128)` values that this
+   function makes to find the larger operand: with
        if (swap) { larger = y; smaller = x; } else { larger = x; smaller = y; }
    `larger` and `smaller` are not what the branch gives, whatever follows. The
    pass is -ftree-coalesce-vars, and -fno-tree-coalesce-vars cures it. Here it

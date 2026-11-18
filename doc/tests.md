@@ -1550,7 +1550,8 @@ which `numbers` checks there too.
   it is itself checked by the same comparison.
 - **`u128_select`:** a program in C, as the sources of CORE-MATH are, which
   includes `gaol/math/gaol_u128.h` and links nothing of GAOL (GAOL v5). The GCC
-  14.2 for 32-bit x86 (Debian 13 i386) miscompiles, from `-O1`, with
+  14.2, 15.3 and 16.2 for 32-bit x86 (Debian 13 and 14 i386, where the
+  continuous integration runs the first two) miscompile, from `-O1`, with
   `-ftree-coalesce-vars`, the choice between two `_BitInt(128)` values (`if
   (swap) { larger = y; smaller = x; } else { larger = x; smaller = y; }` gave
   both wrong when `swap` was 0), which the first version of `gaol_fma()` made:
@@ -1559,9 +1560,10 @@ which `numbers` checks there too.
   `gaol_u128_shl()` and `gaol_u128_sub()` of the two values, at 20 000 pairs
   with high halves small or zero as often as not (the values of the products
   of `gaol_fma()`), and compares with two `uint64_t` halves: with the earlier
-  `gaol_u128.h` it gives 20 000 failures of 40 000 with that compiler at `-O1`,
-  `-O2` and `-O3`, none at `-O0`, and none with the exclusion. It runs for every
-  compiler, which are all right but that one.
+  `gaol_u128.h` it gives 20 000 failures of 40 000 with these compilers at
+  `-O1`, `-O2` and `-O3`, none at `-O0`, and none with the exclusion. It runs
+  for every compiler, which are all right but GCC for 32-bit x86 (Clang 21 for
+  it is right).
 - **`extended_precision`:** the results that doubles computed in extended
   precision, on the x87 unit of an x86 processor, round wrongly, which is why
   `gaol/gaol_config.h` refuses that unit. CORE-MATH in the four rounding

@@ -12,7 +12,7 @@
  * GCC and Clang have a 128-bit integer type on 64-bit targets
  * (`unsigned __int128`), and Clang 14 and GCC 14 have `_BitInt(128)`, which
  * Clang provides on 32-bit targets too, and GCC where the ABI of the target
- * defines it, but 32-bit x86, where the GCC 14.2 compiles it wrongly (below).
+ * defines it, but 32-bit x86, where GCC compiles it wrongly (below).
  * Visual C++ has neither, whatever the architecture, and so has GCC for the
  * 32-bit targets: there GAOL computes with
  * the structure of two 64-bit halves below, and the sources of CORE-MATH call
@@ -55,10 +55,10 @@ typedef unsigned __int128 gaol_u128;
 typedef __int128 gaol_s128; /* the signed type, for gaol_u128_imul64() and gaol_u128_sar() */
 /* `_BitInt(128)` of C23: Clang 14 has it on 32-bit targets too, GCC 14 only
    where the ABI defines it, which `__BITINT_MAXWIDTH__` tells, and not for
-   32-bit x86: the GCC 14.2 for it miscompiles, from -O1, the choice between two
-   such values (-ftree-coalesce-vars: `if (c) { u = y; v = x; } else { u = x;
-   v = y; }` gives u and v wrong), which tests/u128_select.c checks, and the two
-   halves are used there. */
+   32-bit x86: the GCC 14.2, 15.3 and 16.2 for it miscompile, from -O1, the
+   choice between two such values (-ftree-coalesce-vars: `if (c) { u = y; v = x;
+   } else { u = x; v = y; }` gives u and v wrong), which tests/u128_select.c
+   checks, and the two halves are used there. */
 #elif (defined(__clang__) && __clang_major__ >= 14) \
    || (defined(__GNUC__) && __GNUC__ >= 14 && !defined(__i386__) \
        && defined(__BITINT_MAXWIDTH__) && __BITINT_MAXWIDTH__ >= 128)

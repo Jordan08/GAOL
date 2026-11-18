@@ -357,9 +357,9 @@
 	* .github/scripts/check-no-fma-call.sh, windows.yml, linux.yml: no
 	object of the library calls the fma() of the C library.
 	* gaol/math/gaol_u128.h, tests/u128_select.c: 32-bit x86 with GCC takes
-	the two halves of 64 bits, not _BitInt(128): the GCC 14.2 for it
-	compiled the choice between two such values wrongly from -O1
-	(-ftree-coalesce-vars).  u128_select, a program in C, makes that
+	the two halves of 64 bits, not _BitInt(128): the GCC 14.2, 15.3 and
+	16.2 for it compile the choice between two such values wrongly from
+	-O1 (-ftree-coalesce-vars).  u128_select, a program in C, makes that
 	choice (issue #394).
 	* CMakeLists.txt, configure.ac, meson.build: GCC for Windows
 	(MinGW-w64, MSYS2, Cygwin), on x86-64 and on 32-bit x86, is given

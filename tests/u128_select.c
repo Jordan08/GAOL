@@ -6,9 +6,9 @@
  * The sources of CORE-MATH are C, and take the 128-bit integer of
  * gaol/math/gaol_u128.h that the C compiler gives: `unsigned __int128` on
  * 64-bit targets, `_BitInt(128)` of GCC 14 and Clang on 32-bit ones, and two
- * halves elsewhere. The GCC 14.2 for 32-bit x86 (Debian 13 i386) miscompiles
- * from -O1, with -ftree-coalesce-vars, the choice between two `_BitInt(128)`
- * values,
+ * halves elsewhere. The GCC 14.2, 15.3 and 16.2 for 32-bit x86 (Debian 13 and
+ * 14 i386) miscompile from -O1, with -ftree-coalesce-vars, the choice between
+ * two `_BitInt(128)` values,
  *
  *     if (swap) { larger = y; smaller = x; } else { larger = x; smaller = y; }
  *
@@ -19,7 +19,7 @@
  * see it: this program is the same choice as C, on the values of every kind, in
  * a function that is not inlined, and has to give what two 64-bit halves give.
  * It is a program for every compiler: the choice is right with all of them but
- * that one.
+ * GCC for 32-bit x86 (Clang 21 for it is right).
  *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
