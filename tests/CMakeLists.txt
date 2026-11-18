@@ -128,6 +128,15 @@ foreach(test ${GAOL_TESTS})
   set_tests_properties(${test} PROPERTIES LABELS unit SKIP_RETURN_CODE 77)
   list(APPEND GAOL_CHECK_TARGETS gaol_test_${test})
 endforeach()
+# u128_select, a program in C, as the sources of CORE-MATH are: the choice
+# between two 128-bit integers, which the GCC 14.2 for 32-bit x86 compiles
+# wrongly with the `_BitInt(128)` that gaol_u128.h gave it (GAOL v5). Not
+# linked with GAOL: it only includes gaol/math/gaol_u128.h
+add_executable(gaol_test_u128_select u128_select.c)
+target_include_directories(gaol_test_u128_select PRIVATE "${PROJECT_SOURCE_DIR}")
+add_test(NAME u128_select COMMAND gaol_test_u128_select)
+set_tests_properties(u128_select PROPERTIES LABELS unit)
+list(APPEND GAOL_CHECK_TARGETS gaol_test_u128_select)
 set(GAOL_CHECK_TARGETS ${GAOL_CHECK_TARGETS} PARENT_SCOPE)
 # bad_snprintf: the calls to snprintf() and to __snprintf_chk(), which the
 # fortified calls of the C library of GNU reach, go to the functions of the

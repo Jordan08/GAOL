@@ -114,9 +114,10 @@ log10p1, atan2pi, hypot, rsqrt and asinpi compute with a 128-bit unsigned intege
 which their sources name u128, and asinpi with a signed one too, i128, held
 in a u128 in two's complement. GCC and Clang have one on 64-bit targets, and
 _BitInt(128) on 32-bit targets too: Clang from 14 on, and GCC from 14 on
-where the ABI of the target defines it, as for x86, which
-__BITINT_MAXWIDTH__ tells. Visual C++ has none, on no architecture, and
-neither has GCC for the 32-bit targets whose ABI defines no _BitInt(128).
+where the ABI of the target defines it, which __BITINT_MAXWIDTH__ tells, but
+for 32-bit x86, where the GCC 14.2 compiles the choice between two such values
+wrongly (tests/u128_select.c). Visual C++ has none, on no architecture, and
+neither has GCC for the 32-bit targets.
 There the sources take the structure of two 64-bit halves of
 gaol/math/gaol_u128.h, which tests/u128.cpp checks against the native type.
 

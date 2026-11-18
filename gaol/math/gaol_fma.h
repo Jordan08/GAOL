@@ -123,9 +123,10 @@ GAOL_FMA_INLINE int gaol_fma_clz64(uint64_t x)
    in ten), in C only: as C++, or with GAOL_U128_FORCE_EMULATION, the type is
    two halves. The accurate phases of CORE-MATH, which compute with that type,
    passed their tests with this compiler, which is no proof that none of them
-   takes that choice. These helpers are the textbook ones that gaol_u128.h has
-   for Visual C++ and the 32-bit targets, which tests/u128.cpp checks against
-   the native type. */
+   takes that choice. gaol_u128.h takes the two halves for 32-bit x86 with GCC
+   since (tests/u128_select.c). These helpers are the textbook ones that
+   gaol_u128.h has for Visual C++ and the 32-bit targets, which tests/u128.cpp
+   checks against the native type. */
 typedef struct { uint64_t hi; uint64_t lo; } gaol_fma_u128;
 
 GAOL_FMA_INLINE gaol_fma_u128 gaol_fma_make(uint64_t hi, uint64_t lo)

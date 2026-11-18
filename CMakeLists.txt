@@ -1357,7 +1357,8 @@ endif()
 # The 128-bit integer of the accurate phases of CORE-MATH and of GAOL's exact
 # products (gaol/math/gaol_u128.h): the type of the compiler where it has one
 # (`unsigned __int128` of GCC and Clang on the 64-bit targets, `_BitInt(128)` of
-# Clang 14 and later and of GCC 14 and later where the ABI defines it), else two
+# Clang 14 and later and of GCC 14 and later where the ABI defines it, but 32-bit
+# x86, where the GCC 14.2 compiles it wrongly: tests/u128_select.c), else two
 # 64-bit halves, which is what Visual C++ and the 32-bit targets of GCC take.
 # GAOL_U128_EMULATION is no option (GAOL v5): it is on where the header finds no
 # type, the header being the one that decides, compiled by a program that asks
