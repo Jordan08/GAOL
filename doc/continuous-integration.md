@@ -20,8 +20,9 @@ GAOL v5 (`TODO*.md`, `process.md` and `STEP.md`: `paths-ignore` of the five
 workflows that build GAOL), which would otherwise
 cancel the checks of the commit before it; `workflow_dispatch` runs them on any
 branch. `performance.yml`
-is an exception: it runs for the pull requests that change what it measures
-only (see [The speed of a pull request](#the-speed-of-a-pull-request)); so is
+is an exception: it runs for the pull requests into `dev` that change what it
+measures only (see
+[The speed of a pull request](#the-speed-of-a-pull-request)); so is
 `manual.yml`, which runs for the pushes and the pull requests that change
 `manual/` or itself; and so is `release.yml`, which runs for every tag of a commit of `master`: it builds
 the three packages of the version, tests them installed, and attaches them to
@@ -374,9 +375,11 @@ several passes would not help: a pull request is to be compared with its base,
 which is not measured at the same moment.
 
 `performance.yml` measures two builds in turn, in the same job, so that what the
-runner does between two moments reaches both. It runs for a pull request that
-changes what is measured, not for one that changes the documentation: `gaol/`,
-`3rd/` (CORE-MATH), `tests/performance.cpp`, the files of the benchmark
+runner does between two moments reaches both. It runs for a pull request into
+`dev` that changes what is measured, not for one that changes the documentation
+and not for the one that brings `dev` into `master`, which receives the versions
+only, and whose changes the pull requests into `dev` have measured one by one:
+`gaol/`, `3rd/` (CORE-MATH), `tests/performance.cpp`, the files of the benchmark
 `doc/compare/code/bench*` and `doc/compare/code/run_perf.sh`, the files
 `CMakeLists.txt` and `cmake/`, and the scripts and the workflow themselves. A
 job:
