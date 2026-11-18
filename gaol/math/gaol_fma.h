@@ -68,6 +68,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#if defined(_MSC_VER) && !defined(__clang__) && defined(_M_X64)
+#  include <intrin.h>
+#endif
+
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
 #  include <xmmintrin.h>
 #else
@@ -96,9 +100,14 @@
 #define GAOL_FMA_DOWNWARD 2
 #define GAOL_FMA_TOWARD_ZERO 3
 
-/* The number of zero bits above the leading bit of x, for x not 0 */
+/* The number of zero bits above the leading bit of x, for x not 0: the
+   instruction where the compiler has a builtin for it (GCC and Clang, whatever
+   the target), the search of the bit by halves elsewhere */
 GAOL_FMA_INLINE int gaol_fma_clz64(uint64_t x)
 {
+#if defined(__GNUC__)
+  return __builtin_clzll(x);
+#else
   int n = 0;
   if ((x >> 32) == 0) { n += 32; x <<= 32; }
   if ((x >> 48) == 0) { n += 16; x <<= 16; }
@@ -107,6 +116,7 @@ GAOL_FMA_INLINE int gaol_fma_clz64(uint64_t x)
   if ((x >> 62) == 0) { n += 2; x <<= 2; }
   if ((x >> 63) == 0) { n += 1; }
   return n;
+#endif
 }
 
 /* A 128-bit unsigned integer, as two 64-bit halves: the arithmetic below is
@@ -137,9 +147,22 @@ GAOL_FMA_INLINE gaol_fma_u128 gaol_fma_make(uint64_t hi, uint64_t lo)
   return r;
 }
 
-/* The 128-bit product of two 64-bit values, with four products of 32 bits */
+/* The 128-bit product of two 64-bit values: the multiplication of the
+   processor where the compiler has a type for it (`unsigned __int128` of GCC
+   and Clang on 64-bit targets, _umul128 of Visual C++ for x64), four products
+   of 32 bits elsewhere. Only that product is computed with the type of the
+   compiler: it is one multiplication, and no choice between two 128-bit values
+   (see above) */
 GAOL_FMA_INLINE gaol_fma_u128 gaol_fma_mul64(uint64_t a, uint64_t b)
 {
+#if defined(__SIZEOF_INT128__) && !defined(GAOL_U128_FORCE_EMULATION)
+  const unsigned __int128 p = GAOL_FMA_CAST(unsigned __int128, a) * b;
+  return gaol_fma_make(GAOL_FMA_CAST(uint64_t, p >> 64), GAOL_FMA_CAST(uint64_t, p));
+#elif defined(_MSC_VER) && !defined(__clang__) && defined(_M_X64) && !defined(GAOL_U128_FORCE_EMULATION)
+  uint64_t hi;
+  const uint64_t lo = _umul128(a, b, &hi);
+  return gaol_fma_make(hi, lo);
+#else
   const uint64_t a0 = a & 0xffffffffull, a1 = a >> 32;
   const uint64_t b0 = b & 0xffffffffull, b1 = b >> 32;
   const uint64_t p00 = a0 * b0, p01 = a0 * b1, p10 = a1 * b0, p11 = a1 * b1;
@@ -147,6 +170,7 @@ GAOL_FMA_INLINE gaol_fma_u128 gaol_fma_mul64(uint64_t a, uint64_t b)
   const uint64_t mid = (p00 >> 32) + (p01 & 0xffffffffull) + (p10 & 0xffffffffull);
   return gaol_fma_make(p11 + (p01 >> 32) + (p10 >> 32) + (mid >> 32),
                        (mid << 32) | (p00 & 0xffffffffull));
+#endif
 }
 
 GAOL_FMA_INLINE gaol_fma_u128 gaol_fma_add(gaol_fma_u128 a, gaol_fma_u128 b)
