@@ -1130,8 +1130,18 @@ which `numbers` checks there too.
   `round()` the same in every direction at ±0x1.fffffffffffffp-2, ±0.5, ±2.5
   and 2<sup>52</sup> − 1/2, against values computed with exact rational
   arithmetic. The `fma()` and `round()` of mingw-w64's own math library on
-  x64, which `gaol/gaol_config.h` refuses there, fail 21 and 6 of these checks
-  under wine (GAOL v5). The `ldexp()` CORE-MATH rounds the subnormal values
+  x64 fail 21 and 6 of these checks under wine (GAOL v5): where the library is
+  that one (`GAOL_MINGW_OWN_MATH` of `gaol/gaol_config.h`), GAOL calls the
+  instruction (`-mfma`, without which it refuses the toolchain) and its own
+  `gaol_round()` of `gaol/math/gaol_round.h`, which the `round()` check then
+  calls, and which a second function checks on every platform: the nearest
+  integer, halfway values away from zero, with the sign of a zero, in the four
+  rounding directions, at 41 values (±0x1.fffffffffffffp-2, ±0.5 and the
+  double above it, the doubles next to 1, the halfway values, 2<sup>51</sup> + 1/2,
+  2<sup>52</sup> − 1/2, the subnormal numbers, the infinities) and, against a
+  reference that calls no `round()`, at the doubles around every power of two
+  and every halfway value from −2000 to 2000 and at random ones of every
+  magnitude and of the first ones (GAOL v5). The `ldexp()` CORE-MATH rounds the subnormal values
   of `erfc` with, `gaol_ldexp()` of `gaol/math/gaol_ldexp.h` with every compiler
   (the `ldexp()` of the UCRT of Windows and of macOS do not always round in
   the direction in effect), has to be x·2<sup>n</sup> rounded
