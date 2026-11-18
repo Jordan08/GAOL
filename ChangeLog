@@ -330,18 +330,32 @@
 	program gets its own fma() and round(), computed in doubles (before
 	version 12, and from 12 on those linked with msvcrt.dll rather than
 	the UCRT), are accepted with -mfma, which GAOL_FMA gives them, and
-	refused without it: that fma() is not correctly rounded, and
-	CORE-MATH computes with it where the build has no -mfma.  That
+	without it, where gaol_fma() computes fma() (see below): that fma()
+	is not correctly rounded, and CORE-MATH computes with it where the
+	build has no -mfma.  That
 	round() depends on the rounding direction (round(0x1.fffffffffffffp-2)
 	is 1 except rounding upward): GAOL calls gaol_round(), which reads
 	the bits, in round_ties_to_away() and in the sources of CORE-MATH.
-	On 32-bit x86, the refusal without -mfma is of those before version
-	11 and, from 12 on, those linked with msvcrt.dll; on ARM they stay
-	refused, not tested.  The test checks first the fma() and round()
+	On ARM they stay refused, not tested.  The test checks first the
+	fma() and round()
 	GAOL calls in the four rounding directions, against exact rational
 	arithmetic, and gaol_round() on every platform.
 	* .github/workflows/windows.yml: MinGW-w64 11 to 13 and MSYS2
-	MINGW64 are built and tested, and refused without -mfma.
+	MINGW64 are built and tested, with -mfma and without it (see below).
+	* gaol/math/gaol_fma.h, gaol/gaol_config.h (GAOL_SOFT_FMA),
+	gaol/math/gaol_core_math_port.h, gaol/core/gaol_interval_internal.h,
+	tests/core_math.cpp, tests/fma_values.py: where the fma() of the C
+	library is mingw-w64's own or Cygwin's and the build has no -mfma
+	(GAOL_FMA=OFF, or a processor without the instruction), GAOL
+	computes fma() with gaol_fma(), a*b + c rounded once in the
+	direction in effect, with integers, instead of refusing the
+	toolchain: __builtin_fma() of CORE-MATH and fma_once() call it.  It
+	costs 28 ns, against 1.1 for the instruction.  The test checks it
+	against exact rational arithmetic, the error of products, and the
+	instruction where there is one.  GAOL_FMA_FORCE_SOFTWARE=1
+	(-DGAOL_FMA_SOFTWARE=ON of CMake) has it called on any machine.
+	* .github/scripts/check-no-fma-call.sh, windows.yml, linux.yml: no
+	object of the library calls the fma() of the C library.
 	* CMakeLists.txt, configure.ac, meson.build: GCC for Windows
 	(MinGW-w64, MSYS2, Cygwin), on x86-64 and on 32-bit x86, is given
 	-mfma -mprefer-vector-width=128 under the conditions of the other
@@ -354,11 +368,12 @@
 	12 ns rather than 70, log 82 rather than 266 and cos 138 rather than
 	490.  The library and the programs using it need a processor with the
 	fused multiply-add instructions (Intel Haswell, AMD Piledriver and
-	later); GAOL_FMA=OFF leaves them out, but MSYS2 MINGW32, which links
-	msvcrt.dll, is then refused.
-	* gaol/gaol_config.h: Cygwin is refused without -mfma, the fma() of
-	its C library not being correctly rounded; the three builds give it
-	-mfma, as they do to the other GCC for Windows.
+	later); GAOL_FMA=OFF leaves them out, and gaol_fma() computes fma()
+	for the MinGW-w64 and Cygwin whose C library has a wrong one.
+	* gaol/gaol_config.h: Cygwin, whose C library does not correctly
+	round fma(), takes the instruction with -mfma, which the three
+	builds give it as they do to the other GCC for Windows, and
+	gaol_fma() without it.
 	* gaol/core/gaol_interval_core.cpp, CMakeLists.txt, configure.ac,
 	meson.build: the exact products and the test of the machine that
 	runs -mfma call __builtin_fma, the instruction with -mfma at every

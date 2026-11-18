@@ -79,14 +79,16 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     depends on the rounding direction (`round(0x1.fffffffffffffp-2)` is 1
     except rounding upward). GAOL takes neither from that library: `fma()` is
     the instruction, with the `-mfma` that `GAOL_FMA` gives GCC and Clang for
-    Windows on a processor that has it, and `round()` is its own
-    `gaol_round()` (`gaol/math/gaol_round.h`, which reads the bits), in
-    `round_ties_to_away()` and in the sources of CORE-MATH. These toolchains
-    are therefore accepted with `-mfma` and still refused without it
-    (`gaol/gaol_config.h`): on x86-64; on 32-bit x86, those before version 11
-    and, from 12 on, those linked with `msvcrt.dll` (the mingw-w64 11 is
-    accepted without it); on ARM, with or without it, a refusal that is not
-    tested.
+    Windows on a processor that has it, and, where the build has none
+    (`GAOL_FMA=OFF`, or a processor without the instruction), `gaol_fma()`
+    (`gaol/math/gaol_fma.h`), which computes `a*b + c` rounded once with
+    integers (`GAOL_SOFT_FMA`); and `round()` is its own `gaol_round()`
+    (`gaol/math/gaol_round.h`, which reads the bits), in `round_ties_to_away()`
+    and in the sources of CORE-MATH. These toolchains are therefore accepted
+    with `-mfma` and without it, on x86-64 and on 32-bit x86, and the `fma()` of
+    their library is never called, that of the mingw-w64 11 on the x87 unit
+    included (125 results of 400,000 were one double off); on ARM they are
+    refused, with or without it, a refusal that is not tested.
   - `tests/core_math.cpp` checks the `fma()` and `round()` of the C library in
     the four rounding directions, against exact rational arithmetic, then the
     bounds against CORE-MATH called in the downward and the upward rounding,
@@ -2517,16 +2519,18 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   library, and the code using it through `gaol::gaol` or `gaol.pc`, then need a
   processor with the FMA and AVX instructions (Intel Haswell, AMD Piledriver,
   2012-2013, and later), as with the other x86 compilers; `-DGAOL_FMA=OFF`, a
-  setting of the developers, builds for any x86 processor with a MinGW-w64 that
-  links the UCRT (MSYS2 MINGW32, which links `msvcrt.dll`, is refused without
-  the instructions). The 256-bit intrinsics a program writes itself stay exposed
-  to the defect.
+  setting of the developers, builds for any x86 processor, with the MinGW-w64
+  whose `fma()` is wrong too (MSYS2 MINGW32 and MINGW64, which link
+  `msvcrt.dll`, and those before version 12), where `gaol_fma()` computes
+  `fma()` (about 28 ns, against 1.1 for the instruction). The 256-bit
+  intrinsics a program writes itself stay exposed to the defect.
 - **Cygwin on x86-64 is built and tested**, with GCC, by the three builds in the
-  continuous integration, and **it is refused without the fused multiply-add
-  instructions**: the `fma()` of its C library is not correctly rounded
-  (`fma(1 + 2^-30, 1 - 2^-30, -1)` is 0 rather than -2^-60) and CORE-MATH
-  computes with `fma()`, so `gaol/gaol_config.h` stops the compilation without
-  `-mfma`, which the builds give it as they do to the other GCC for Windows. The
+  continuous integration, and **it calls `gaol_fma()` without the fused
+  multiply-add instructions**: the `fma()` of its C library is not correctly
+  rounded (`fma(1 + 2^-30, 1 - 2^-30, -1)` is 0 rather than -2^-60) and
+  CORE-MATH computes with `fma()`, so GAOL takes the instruction, `-mfma`, which
+  the builds give it as they do to the other GCC for Windows, and
+  `gaol/math/gaol_fma.h` computes it with integers where there is none. The
   exact products of GAOL (`fma_once()`) and the program that the configuration
   runs to know whether the machine runs `-mfma` call `__builtin_fma`, the
   instruction at every level of optimization, where `std::fma` without
