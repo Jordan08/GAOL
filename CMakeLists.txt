@@ -315,20 +315,24 @@ if(GAOL_TARGET_IS_ARM32)
 endif()
 
 # mingw-w64 is refused by gaol/gaol_config.h only, when compiling, where the
-# fma() or round() of the programs is wrong. On x86-64, before version 12 (the
-# MinGW-w64 GCC 11 to 13 of Chocolatey) and linked with msvcrt.dll rather than
-# the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu), they are
-# those of mingw-w64's own math library, computed in doubles: that fma() is not
-# correctly rounded, and CORE-MATH's functions compute with it where the
-# compiler has no -mfma (GAOL_FMA OFF, GCC for 32-bit Windows, see below);
-# that round() depends on the rounding direction. On 32-bit x86, where
-# mingw-w64 computes them on the x87 unit, before version 11, as the
-# mingw-w64 9 of WinLibs (GCC 11), whose fma() rounds each of its partial sums
-# to a double (the one of mingw-w64 11, accepted, keeps them in extended
-# precision and passes the tests, though not correctly rounded), nor, without
-# -mfma, the one of mingw-w64 12 or later linked with msvcrt.dll (MSYS2
-# MINGW32). On ARM, as on
-# x86-64, before version 12 or linked with msvcrt.dll, the refusal not being
+# fma() of the programs is wrong and the build has no -mfma. On x86-64, before
+# version 12 (the MinGW-w64 GCC 11 to 13 of Chocolatey) and linked with
+# msvcrt.dll rather than the UCRT (MSYS2 MINGW64, the cross compilers of Debian
+# and Ubuntu), the fma() and round() of the programs are those of mingw-w64's
+# own math library, computed in doubles: that fma() is not correctly rounded,
+# and CORE-MATH's functions compute with it where the compiler has no -mfma
+# (GAOL_FMA OFF, see below); that round() depends on the rounding direction.
+# GAOL calls neither (GAOL v5): gaol_round() of gaol/math/gaol_round.h, which
+# reads the bits, takes the place of round() wherever GAOL_MINGW_OWN_MATH of
+# gaol/gaol_config.h is 1, and with -mfma, which GAOL_FMA gives GCC and Clang
+# for Windows on a processor that has the instructions, fma() is one of them.
+# On 32-bit x86, where mingw-w64 computes them on the x87 unit, the same holds
+# before version 11, as the mingw-w64 9 of WinLibs (GCC 11), whose fma() rounds
+# each of its partial sums to a double (the one of mingw-w64 11, accepted,
+# keeps them in extended precision and passes the tests, though not correctly
+# rounded, and is accepted without -mfma too), and, without -mfma, for the one
+# of mingw-w64 12 or later linked with msvcrt.dll (MSYS2 MINGW32). On ARM, as
+# on x86-64, before version 12 or linked with msvcrt.dll, the refusal not being
 # tested there (MSYS2 CLANGARM64, which links the UCRT, is built and tested).
 # From version 12 on, a toolchain linking the UCRT takes those of
 # ucrtbase.dll, which pass the tests.
@@ -351,11 +355,11 @@ endif()
 #   GAOL calls them in the upward rounding it keeps
 #   (gaol/math/gaol_double_op.h).
 #
-# The continuous integration builds GAOL with the MinGW-w64 GCC 14.2.0 and
-# 15.2.0 of Chocolatey on x86-64, and 12.2.0 to 15.2.0 on 32-bit x86, and with
-# MSYS2 UCRT64, CLANG64 and CLANGARM64, runs the tests with them, and checks that GCC
-# 11.2.0 to 13.2.0 and MSYS2 MINGW64 are refused on x86-64 and GCC 11.2.0 on
-# 32-bit x86 (.github/workflows/windows.yml).
+# The continuous integration builds GAOL with the MinGW-w64 GCC 11.2.0 to
+# 15.2.0 of Chocolatey on x86-64 and on 32-bit x86, and with MSYS2 UCRT64,
+# CLANG64, CLANGARM64 and MINGW64 (GCC and Clang), runs the tests with them, and
+# checks that GCC 11.2.0 and 13.2.0 on x86-64, GCC 11.2.0 on 32-bit x86 and
+# MSYS2 MINGW64 are refused without -mfma (.github/workflows/windows.yml).
 
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)
@@ -1511,7 +1515,7 @@ install(TARGETS gaol EXPORT gaolTargets
 # core/gaol_interval_core.cpp includes, and their kernels that the other
 # sources take inline, core/*_kernels.h), what
 # CORE-MATH's sources need to compile within GAOL (math/gaol_core_math_port.h,
-# math/gaol_ldexp.h, math/gaol_roundeven.h), the bounds
+# math/gaol_ldexp.h, math/gaol_roundeven.h, math/gaol_round.h), the bounds
 # at doubles, *_dn() and *_up(), which are not part of GAOL's interface
 # (math/gaol_double_op.h), and the intervals of floats, which only a developer
 # of GAOL compiles (see gaol/gaol_config.h)
