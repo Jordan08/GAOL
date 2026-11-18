@@ -123,6 +123,7 @@ EXTRA_DIST = \
 	.github/actions/macos-warnings/action.yml \
 	.github/actions/macos-xcode/action.yml \
 	.github/actions/windows-clang-msvc/action.yml \
+	.github/actions/windows-llvm-mingw/action.yml \
 	.github/actions/windows-mingw/action.yml \
 	.github/actions/windows-msys2/action.yml \
 	.github/actions/windows-visual-studio/action.yml \
@@ -135,6 +136,7 @@ EXTRA_DIST = \
 	.github/audit/make_probe.py \
 	.github/audit/probe_build.py \
 	.github/audit/test_compare.py \
+	.github/scripts/check-arm64-fma.sh \
 	.github/scripts/check-gcc-windows-fma.sh \
 	.github/scripts/check-intervals.sh \
 	.github/scripts/check-no-fma-call.sh \
