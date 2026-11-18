@@ -30,7 +30,12 @@
  * are wrong, and Cygwin's fma(), GAOL calls gaol_round() of
  * gaol/math/gaol_round.h, and gaol_fma() of gaol/math/gaol_fma.h where the
  * build has no fused multiply-add instruction (GAOL_SOFT_FMA), which the test
- * checks there, and on every platform, apart from the C library.
+ * checks there, and on every platform, apart from the C library. Where that
+ * library's fma() is mingw-w64's own on a 64-bit ARM processor, which GAOL does
+ * not replace with a function of its own (it is the instruction fmadd, which
+ * the objects of the library show: .github/scripts/check-arm64-fma.sh), the
+ * test calls it as a function and compares it with the exact values of
+ * tests/fma_values.py in the four directions.
  *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
@@ -106,6 +111,21 @@
 #  define GAOL_TESTS_FMA_IS_TRUSTED 1
 #else
 #  define GAOL_TESTS_FMA_IS_TRUSTED 0
+#endif
+
+// Where the test calls the fma() of the C library as a function and checks it
+// against the exact values of tests/fma_values.py: the toolchains whose own
+// math library has an fma() that GAOL does not replace, mingw-w64 before version
+// 12 for 64-bit ARM (the instruction fmadd, which is what __builtin_fma() is
+// there, and what std::fma calls without optimization). Defining
+// GAOL_TESTS_CHECK_LIBRARY_FMA to 1 asks for the test anywhere, which is how it
+// is shown to fail on an fma() that is not fused (GAOL v5)
+#if !defined(GAOL_TESTS_CHECK_LIBRARY_FMA)
+#  if GAOL_MINGW_OWN_MATH && !defined(__x86_64__) && !defined(__i386__)
+#    define GAOL_TESTS_CHECK_LIBRARY_FMA 1
+#  else
+#    define GAOL_TESTS_CHECK_LIBRARY_FMA 0
+#  endif
 #endif
 
 using namespace gaol;
@@ -603,6 +623,41 @@ namespace
                  + fma_names[d] + " = " + show(got) + " rather than " + show(want);
           });
   }
+
+#if GAOL_TESTS_CHECK_LIBRARY_FMA
+  /*
+    The fma() of the C library, called as a function, against the exact values
+    of tests/fma_values.py (a*b + c rounded once, in each of the four
+    directions): where it is the fused multiply-add instruction it gives
+    them all, and where it computes a product and then a sum, each rounded, as
+    the fma() of mingw-w64 does for 32-bit ARM and x86, it fails the error-free
+    products, the halfway cases and the cancellations. The function is read
+    through a pointer at run time, so that the compiler can neither replace the
+    call with the instruction, as it does for __builtin_fma() and for std::fma
+    with optimization, nor compute the value: it is the fma() that std::fma calls
+    without optimization, and that code linked with GAOL may call.
+  */
+  void c_library_fma_function()
+  {
+    double (*volatile library_fma)(double, double, double) =
+      static_cast<double (*)(double, double, double)>(std::fma);
+    for (const FmaValue& t : fma_values) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double a = t.a, b = t.b, c = t.c;
+        std::fesetround(fma_in_effect[d]);
+        const double got = gaol_core::rnd_keep(library_fma(a, b, c));
+        std::fesetround(FE_UPWARD);
+        const bool nan = t.rounded[d] != t.rounded[d];
+        check("the fma() of the C library, called as a function: the exact value in the direction in effect",
+              nan ? got != got : same_bits(got, t.rounded[d]),
+              [&] {
+                return "fma(" + show(t.a) + ", " + show(t.b) + ", " + show(t.c) + ") rounding "
+                     + fma_names[d] + " = " + show(got) + " rather than " + show(t.rounded[d]);
+              });
+      }
+    }
+  }
+#endif
 
   /*
     gaol_fma() of gaol/math/gaol_fma.h, which GAOL calls where the fma() of the
@@ -2721,6 +2776,9 @@ int main()
   builtin_round_of_core_math();
   gaol_fma_of_integers();
   builtin_fma_of_core_math();
+#if GAOL_TESTS_CHECK_LIBRARY_FMA
+  c_library_fma_function();
+#endif
   ldexp_of_core_math();
   exact_results_raise_no_flag();
   pow_limits_raise_no_flag();
