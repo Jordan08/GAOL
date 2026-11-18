@@ -112,16 +112,20 @@ GAOL_FMA_INLINE int gaol_fma_clz64(uint64_t x)
 /* A 128-bit unsigned integer, as two 64-bit halves: the arithmetic below is
    written on these, and not on gaol_u128 of gaol/math/gaol_u128.h, which is
    the `_BitInt(128)` of GCC 14 and Clang for the C sources, on 32-bit targets
-   too, and two halves for the C++ ones. With the GCC 14.2 for 32-bit x86 (the
-   i386 image of the continuous integration, Debian 13) this function gave wrong
-   results at -O1 and above when compiled as C with that type, and none with the
-   two halves, as C++ or with GAOL_U128_FORCE_EMULATION: 3 million random triples,
-   about one in ten wrong. Each of the operations of gaol_u128 it calls is right
-   alone (tests/core_math.cpp does not see it, as C++, and the accurate phases
-   of CORE-MATH, which compute with that type in other combinations, are right),
-   and the cause was not isolated: these helpers are the textbook ones that
-   gaol_u128.h has for Visual C++ and the 32-bit targets, which
-   tests/u128.cpp checks against the native type. */
+   too, and two halves for the C++ ones. The GCC 14.2 for 32-bit x86 (the i386
+   image of the continuous integration, Debian 13) miscompiles, from -O1, the
+   choice between two `_BitInt(128)` values that this function makes to find the
+   larger operand: with
+       if (swap) { larger = y; smaller = x; } else { larger = x; smaller = y; }
+   `larger` and `smaller` are not what the branch gives, whatever follows. The
+   pass is -ftree-coalesce-vars, and -fno-tree-coalesce-vars cures it. Here it
+   gave a wrong result for each triple whose c is the larger operand (a triple
+   in ten), in C only: as C++, or with GAOL_U128_FORCE_EMULATION, the type is
+   two halves. The accurate phases of CORE-MATH, which compute with that type,
+   passed their tests with this compiler, which is no proof that none of them
+   takes that choice. These helpers are the textbook ones that gaol_u128.h has
+   for Visual C++ and the 32-bit targets, which tests/u128.cpp checks against
+   the native type. */
 typedef struct { uint64_t hi; uint64_t lo; } gaol_fma_u128;
 
 GAOL_FMA_INLINE gaol_fma_u128 gaol_fma_make(uint64_t hi, uint64_t lo)
