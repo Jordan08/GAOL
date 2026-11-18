@@ -33,6 +33,10 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+// the system headers that gaol/gaol_config.h includes: those of macOS stop at
+// an architecture that they do not know (machine/limits.h)
+#include <limits.h>
+#include <math.h>
 
 #if defined(GAOL_TEST_MINGW_ARM_BITS) && defined(GAOL_TEST_MINGW_MAJOR)
 #  undef __x86_64__
