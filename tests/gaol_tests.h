@@ -340,6 +340,26 @@ namespace gaol_tests
       const int saved_;
   };
 
+  /*
+    The nearest integer to x, halfway values away from zero, with no round() of
+    the C library (GAOL v5): |x| is cut at its integer part by floor() and a
+    difference that are both exact (0 <= |x| - floor(|x|) < 1), compared with
+    1/2, then given its sign by copysign(), so that a zero keeps it. None of
+    these operations is rounded, so the result does not depend on the rounding
+    direction, and the round() of mingw-w64's own math library, which does,
+    is not the reference of what checks it.
+  */
+  inline double reference_round_away(double x)
+  {
+    if (!(std::fabs(x) < 0x1p52)) {
+      return x; // an integer already, or an infinity or a NaN
+    }
+    const double a = std::fabs(x);
+    const double f = std::floor(a);
+    const double d = a - f; // exact
+    return std::copysign(d >= 0.5 ? f + 1.0 : f, x); // f + 1 <= 2^52, exact
+  }
+
   // fma(a, b, c) as CORE-MATH and GAOL compute it (GAOL v5): __builtin_fma, the
   // instruction with -mfma at every level of optimization, where std::fma is a
   // call of the fma() of the C library without optimization, and that of Cygwin

@@ -57,10 +57,12 @@
 /*
   What the sources of CORE-MATH get for __builtin_round() from
   gaol/math/gaol_core_math_port.h, which they take with `-include`, and these
-  tests do not: the same lines, so that the tests below call it as pow.c does.
-  The test is that of GAOL_MINGW_OWN_MATH (gaol/gaol_config.h), which the C
-  sources do not include and this one repeats; the next lines check that the
-  two agree. Visual C++ has no __builtin_round() (the header gives it round()).
+  tests do not: the same lines, so that the tests below call it as the sources
+  do. The test is that of GAOL_MINGW_OWN_MATH (gaol/gaol_config.h), which the C
+  sources do not include and this one repeats; the next lines check that this
+  copy and the macro agree, and the copy of the header, which no test sees, is
+  kept like them by hand. Visual C++ has no __builtin_round() (the header gives
+  it round()).
 */
 #if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
     && (__MINGW64_VERSION_MAJOR < 12 || !defined(_UCRT))
@@ -208,7 +210,7 @@ namespace
     {0.5, 1.0}, {-0.5, -1.0}, {0x1.0000000000001p-1, 1.0}, {-0x1.0000000000001p-1, -1.0},
     {0.3, 0.0}, {-0.3, -0.0}, {0x1.fffffffffffffp-1, 1.0}, {-0x1.fffffffffffffp-1, -1.0},
     {0.0, 0.0}, {-0.0, -0.0}, {0x1p-1074, 0.0}, {-0x1p-1074, -0.0},
-    {0x1.fffffffffffffp-1023, 0.0}, {-0x1.fffffffffffffp-1023, -0.0},
+    {0x0.fffffffffffffp-1022, 0.0}, {-0x0.fffffffffffffp-1022, -0.0},
     {1.0, 1.0}, {-1.0, -1.0}, {0x1.fffffffffffffp+0, 2.0}, {0x1.0000000000001p+0, 1.0},
     {1.5, 2.0}, {-1.5, -2.0}, {0x1.7ffffffffffffp+0, 1.0}, {-0x1.7ffffffffffffp+0, -1.0},
     {2.5, 3.0}, {-2.5, -3.0}, {3.5, 4.0}, {-3.5, -4.0}, {0.5 + 0x1p+10, 0x1p+10 + 1.0},
@@ -318,25 +320,6 @@ namespace
               });
       }
     }
-  }
-
-  /*
-    The nearest integer to x, halfway values away from zero, with no round() of
-    the C library: |x| is cut at its integer part by floor() and a difference
-    that are both exact (0 <= |x| - floor(|x|) < 1), compared with 1/2, then
-    given its sign by copysign(), so that a zero keeps it. None of these
-    operations is rounded, so the result does not depend on the rounding
-    direction (GAOL v5).
-  */
-  double reference_round_away(double x)
-  {
-    if (!(std::fabs(x) < 0x1p52)) {
-      return x; // an integer already, or an infinity or a NaN
-    }
-    const double a = std::fabs(x);
-    const double f = std::floor(a);
-    const double d = a - f; // exact
-    return std::copysign(d >= 0.5 ? f + 1.0 : f, x); // f + 1 <= 2^52, exact
   }
 
   bool same_bits(double a, double b)
@@ -453,14 +436,17 @@ namespace
   /*
     The __builtin_round() of the sources of CORE-MATH, with the lines of
     gaol/math/gaol_core_math_port.h that replace it where the round() of the C
-    library is that of mingw-w64 (GAOL v5). pow.c calls it once, in the
+    library is that of mingw-w64 (GAOL v5). The sources call it in two ways.
+    The roundeven_finite() of fifteen of them (exp.c, sin.c...), where the
+    processor has neither AVX nor SSE4.1 nor ARMv8, takes round(x) for any x
+    and corrects the halfway values: the test calls it at the values where a
+    wrong round() fails, the doubles next to 1/2, and at those of the table
+    above, whatever the rounding direction. pow.c calls it once, in the
     exactness test of the powers: for an odd integer m, s = round(sqrt(m)),
-    and m is a square if s * s == m. The test calls it so, at the odd squares
+    and m is a square if s * s == m: the test calls it so, at the odd squares
     and at the odd integers two from them, which are no squares, whatever the
-    rounding direction (m < 2^53, where s * s is exact); and at the values
-    where a wrong round() fails, the doubles next to 1/2, where it must give
-    the nearest integer too. The next lines check that the macro of this file
-    is that of GAOL_MINGW_OWN_MATH.
+    rounding direction (m < 2^53, where s * s is exact); there the argument is
+    at least 1 and a wrong round() is exact.
   */
   void builtin_round_of_core_math()
   {
@@ -470,7 +456,7 @@ namespace
     // the macro is gaol_round() exactly where GAOL_MINGW_OWN_MATH says so: what
     // __builtin_round(0.5) expands to, written as text
     const std::string expansion = GAOL_TEST_TEXT_OF(__builtin_round(0.5));
-    check("__builtin_round(): gaol_round() where GAOL_MINGW_OWN_MATH is 1, and only there",
+    check("__builtin_round(): the macro of this file is gaol_round() where GAOL_MINGW_OWN_MATH is 1, and only there",
           (GAOL_MINGW_OWN_MATH != 0) == (expansion.compare(0, 10, "gaol_round") == 0),
           [&] { return "__builtin_round(0.5) expands to " + expansion; });
 

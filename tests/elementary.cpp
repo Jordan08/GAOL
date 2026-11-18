@@ -971,23 +971,6 @@ namespace
     return (std::fmod(f, 2.0) == 0.0) ? f : f + 1.0;
   }
 
-  /* roundTiesToAway, computed without round() and without reading the
-     rounding direction: |x| - floor(|x|) is exact, whatever the direction, and
-     compared with 1/2; copysign() gives the sign back, a zero's included.
-     std::round was the reference at first, but the round() of mingw-w64's own
-     math library depends on the direction (gaol/gaol_config.h), and a
-     reference is not the function it checks (GAOL v5). */
-  double reference_ties_to_away(double x)
-  {
-    if (!(std::fabs(x) < 0x1p52)) {
-      return x; // an integer already, or an infinity
-    }
-    const double a = std::fabs(x);
-    const double f = std::floor(a);
-    const double d = a - f; // exact, and 0 <= d < 1
-    return std::copysign(d >= 0.5 ? f + 1.0 : f, x);
-  }
-
   void integer_functions()
   {
     const std::vector<double> v = integer_arguments();
@@ -1025,7 +1008,7 @@ namespace
       // 0x1.fffffffffffffp-2 for one of the arguments, the double below 1/2,
       // that the round() of mingw-w64's own math library sends to 1 in every
       // direction but upward (round_ties_to_away() calls gaol_round() there)
-      const double a = reference_ties_to_away(x);
+      const double a = reference_round_away(x);
       check("roundTiesToAway: the nearest integer, ties away from zero",
             round_ties_to_away(I).left() == a && round_ties_to_away(I).right() == a,
             [&] { return "round_ties_to_away(" + hex(x) + ") = " + hex(round_ties_to_away(I).left())
