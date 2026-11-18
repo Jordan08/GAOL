@@ -38,8 +38,11 @@
 // The nearest integer, halfway values to the even one, from the bits (GAOL v5)
 #include "gaol/math/gaol_roundeven.h"
 // The nearest integer, halfway values away from zero, from the bits, for the
-// mingw-w64 whose round() is wrong (GAOL v5)
-#include "gaol/math/gaol_round.h"
+// mingw-w64 whose round() is wrong (GAOL v5); only there, an unused static
+// function being a warning with Visual C++ at /W4
+#if GAOL_MINGW_OWN_MATH
+#  include "gaol/math/gaol_round.h"
+#endif
 
 /*
   The operations of the intervals: the members of interval, +, -, *, / and
