@@ -176,16 +176,15 @@ round() of mingw-w64 is wrong for the doubles next to 1/2; pow.c calls it to
 take the integer nearest to the square root of an odd integer, which is at
 least 1, where it is exact. The calls are replaced, with the toolchains whose
 fma() and round() are those of mingw-w64's own math library
-(GAOL_MINGW_OWN_MATH, gaol/gaol_config.h, whose test this repeats, as the C
-sources do not include that header; tests/core_math.cpp repeats it too, and
-<math.h>, which gaol_roundeven.h included above, defines
-__MINGW64_VERSION_MAJOR), so that GAOL calls no round() of that library: it is
-wrong for the doubles next to 1/2, and gives the sign of a zero wrong rounding
-downward (see gaol/math/gaol_round.h, which reads the bits instead).
+(GAOL_MINGW_OWN_MATH, defined once for this header and for gaol/gaol_config.h
+by gaol/gaol_mingw_own_math.h), so that GAOL calls no round() of that library:
+it is wrong for the doubles next to 1/2, and gives the sign of a zero wrong
+rounding downward (see gaol/math/gaol_round.h, which reads the bits instead).
 --------------------------------------------------------------------------*/
 
-#if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
-    && (__MINGW64_VERSION_MAJOR < 12 || !defined(_UCRT))
+#include "gaol/gaol_mingw_own_math.h"
+
+#if GAOL_MINGW_OWN_MATH
 #include "gaol/math/gaol_round.h"
 #define __builtin_round(x) gaol_round(x)
 #endif /* mingw-w64 whose round() is its own */

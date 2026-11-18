@@ -122,6 +122,7 @@ gaol_HEADERS = [
   'gaol_fpu_fenv.h',
   'gaol_ieee1788.h',
   'gaol_interval.h',
+  'gaol_mingw_own_math.h',
   'gaol_port.h',
   'gaol_version.h',
 ]

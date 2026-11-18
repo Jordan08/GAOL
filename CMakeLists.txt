@@ -1525,6 +1525,7 @@ set(GAOL_HEADERS
   gaol/gaol_config.h
   gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h
   gaol/gaol_ieee1788.h gaol/gaol_interval.h
+  gaol/gaol_mingw_own_math.h
   gaol/gaol_port.h
   gaol/gaol_version.h)
 # The headers of the intervals, which gaol/gaol_interval.h includes: installed
