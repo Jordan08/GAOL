@@ -336,7 +336,13 @@
 	round() depends on the rounding direction (round(0x1.fffffffffffffp-2)
 	is 1 except rounding upward): GAOL calls gaol_round(), which reads
 	the bits, in round_ties_to_away() and in the sources of CORE-MATH.
-	On ARM they stay refused, not tested.  The test checks first the
+	On 64-bit ARM, mingw-w64 before version 12 is accepted too: its
+	fma() is the instruction fmadd, GAOL calls that instruction and
+	gaol_round(), llvm-mingw 20230320 (Clang 16, mingw-w64 11) is built
+	and tested (windows.yml, check-arm64-fma.sh), and the test calls
+	that fma() as a function against exact values.  32-bit ARM (its
+	fma() is not fused) and 64-bit ARM of mingw-w64 12 or later linked
+	with msvcrt.dll stay refused, not tested.  The test checks first the
 	fma() and round()
 	GAOL calls in the four rounding directions, against exact rational
 	arithmetic, and gaol_round() on every platform.
@@ -350,7 +356,7 @@
 	computes fma() with gaol_fma(), a*b + c rounded once in the
 	direction in effect, with integers, instead of refusing the
 	toolchain: __builtin_fma() of CORE-MATH and fma_once() call it.  It
-	costs 28 ns, against 1.1 for the instruction.  The test checks it
+	costs 21 ns, against 1.1 for the instruction.  The test checks it
 	against exact rational arithmetic, the error of products, and the
 	instruction where there is one.  GAOL_FMA_FORCE_SOFTWARE=1
 	(-DGAOL_FMA_SOFTWARE=ON of CMake) has it called on any machine.

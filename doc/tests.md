@@ -1049,6 +1049,14 @@ which `numbers` checks there too.
   double below, and to be the tightest ones where the sources of the intervals
   (`gaol/core/`) give the exact value themselves (`log(1)`, `sin(0)`, the
   bounds of π/2 at `asin(1)`...).
+  Where the `fma()` of the C library is mingw-w64's own on a 64-bit ARM
+  processor (llvm-mingw, before mingw-w64 12), which GAOL does not replace
+  because it is the instruction `fmadd`, the test calls that function through a
+  pointer read at run time, so that the compiler cannot make it the instruction
+  itself, and checks it against the 1 384 exact triples of `tests/fma_values.py`
+  in the four rounding directions; `-DGAOL_TESTS_CHECK_LIBRARY_FMA=1` asks for
+  it anywhere, which shows that it fails on an `fma()` that adds the products
+  of the halves with a rounding each, as that of mingw-w64 for x86 does (GAOL v5).
   Each function is tried at the ends of its domain and next to them, at the
   values GAOL treats apart, at the powers of two and their neighbours, at the
   subnormals, and at random doubles of every magnitude. `pow(x, y)` has to be
@@ -1764,6 +1772,23 @@ which `numbers` checks there too.
   suite is the test: the SSE2 intervals crash without the option, and
   `test_heap_alignment` of `misc` (below) tells which allocation is wrong (GAOL
   v5).
+- **`refused_mingw_arm32`, `refused_mingw_arm64_msvcrt`,
+  `mingw_arm64_before_12_accepted` and `mingw_arm64_ucrt_accepted`** (CMake
+  build, on an x86 system that is not Windows, with GCC or Clang), and the end of
+  **`refused_options.sh`** and **`refused_options`** (autotools and meson
+  builds): mingw-w64 for ARM, which `gaol/gaol_config.h` accepts for 64-bit ARM
+  before version 12 (llvm-mingw, whose `fma()` is the instruction `fmadd`) and
+  refuses for 32-bit ARM (its `fma()` is not fused) and for 64-bit ARM of
+  version 12 or later linked with `msvcrt.dll`, which no job builds (GAOL v5).
+  `tests/refused_mingw_arm.cpp` includes that header alone, after the system
+  headers, and says what the headers of such a toolchain say (`__MINGW32__`,
+  `__MINGW64_VERSION_MAJOR`, `_UCRT`, `__aarch64__` or `__arm__`, and no
+  `__x86_64__`): 32-bit ARM with mingw-w64 11 and 64-bit ARM with mingw-w64 12
+  without `_UCRT` have to fail with the message of the header; 64-bit ARM with
+  mingw-w64 11, and with 12 saying `_UCRT` (the `fma()` and `round()` of
+  `ucrtbase.dll`), have to compile. The job of `windows.yml` that builds
+  llvm-mingw 20230320 on the arm64 runners is the test of the second case, with
+  the toolchain itself (GAOL v5).
 - **`cpack_stale_configure`** (CMake build, on a Unix system that builds for
   itself, where the tree has a `configure`): a script, not a program
   (`tests/cpack_stale_configure.cmake`). CPack puts `configure` in the archive

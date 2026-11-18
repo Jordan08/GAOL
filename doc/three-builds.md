@@ -446,7 +446,7 @@ it alone refuses, when compiling:
 |---|---|
 | Clang for 32-bit ARM processors | It does not honour the rounding direction there: built by Clang 21, 4556 of 16000 random products, squares and cubes did not enclose their exact values. GCC does. |
 | A compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target", as Clang 14 for 64-bit ARM | Bounds of `pow()` and `nth_root()` did not enclose the exact values. Clang 18 honours the rounding direction there. |
-| MinGW-w64 for ARM, before version 12 or linked with `msvcrt.dll` rather than the UCRT (the refusal is not tested there; MSYS2 CLANGARM64, which links the UCRT, is built and tested) | Its `fma()` and `round()` are those of mingw-w64's own math library, which are wrong on x86 (below), and `round()` depends on the rounding direction there too, computed in doubles. GAOL v5 calls its own `gaol_round()` and, for `fma()`, the instruction on x86; it was not tested on ARM (the `fma()` of 32-bit ARM is not fused). |
+| MinGW-w64 for 32-bit ARM, and for 64-bit ARM of version 12 or later linked with `msvcrt.dll` rather than the UCRT (the refusal is not tested there; mingw-w64 for 64-bit ARM before version 12 is accepted, below, and MSYS2 CLANGARM64, which links the UCRT, is built and tested) | Its `fma()` and `round()` are those of mingw-w64's own math library, which are wrong on x86 (below), and `round()` depends on the rounding direction there too, computed in doubles. GAOL v5 calls its own `gaol_round()`; the `fma()` of 32-bit ARM is not fused (`fmacd`, which is `vmla.f64`, a product and a sum each rounded) and Clang for 32-bit ARM is refused anyway, and no toolchain for 64-bit ARM links `msvcrt.dll`, so that this case was not built. |
 | `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. `-Ofast` is not refused where `-fno-fast-math` turns its fast-math optimizations off (below). Linking with them, or with `-funsafe-math-optimizations`, is a matter of its own (below). |
 | `-ffinite-math-only`, which `-ffast-math` and `-Ofast` turn on | The compiler then takes NaN and infinities never to occur, in GAOL's inline functions too: the empty interval has NaN bounds, and `([1, 2] & [3, 4]).is_empty()` is false (GCC 9.4 and 13 at `-O0`, `-O2` and `-O3`; Clang 18 at `-O0`, and at `-O2` and `-O3` when the bounds are `volatile`). |
 | Visual C++, and clang-cl from Clang 16, without `/fp:strict` (`/fp:precise`, their default) | They then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly (clang-cl compiles with `-fno-rounding-math -ffp-contract=on`; GAOL v5 did not refuse it at first): no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](differences.md)). |
@@ -609,6 +609,28 @@ mingw-w64 9 of WinLibs, compiled without optimization, rounds each of them to a
 double; that of a mingw-w64 12 or later linking `msvcrt.dll` (MSYS2 MINGW32) is
 that of mingw-w64 too. GAOL calls none of them: the instruction, or
 `gaol_fma()`.
+
+On 64-bit ARM, mingw-w64 before version 12 is accepted (GAOL v5): the `fma()`
+of its `libmingwex` is not the code above but the instruction. In the
+`libmingwex.a` of llvm-mingw 20230320 (Clang 16, mingw-w64 11) it is `fmadd d2,
+d0, d1, d2`, a move and a return, which is the instruction that `__builtin_fma()`
+of Clang is at every level of optimization; its `round()` is the code above,
+computed in doubles. GAOL calls `gaol_round()` and the instruction, and
+`gaol_fma()` is for x86 only (`GAOL_SOFT_FMA` is 0), a processor for 64-bit ARM
+having the instruction. That is read in the code, not taken from a comment:
+`.github/scripts/check-arm64-fma.sh` reads the disassembly of the `fma()` of
+the library and requires one `fmadd` and nothing else that computes, requires
+fused instructions in the objects of the library, and fails on an object that
+calls `fma()` or `round()`; `tests/core_math.cpp` calls the `fma()` of the
+library as a function, through a pointer read at run time, against the exact
+values of `tests/fma_values.py` in the four rounding directions, which a
+product and a sum each rounded fails (the error-free products, the halfway
+cases, the cancellations); and a job of `windows.yml` builds and tests GAOL with
+that toolchain on the arm64 runners. The releases of llvm-mingw from June 2023
+on call themselves mingw-w64 12, and the `libmingwex` of 20231128 and 20240130
+has neither `fma.o` nor `round.o`: they take those of `ucrtbase.dll`. A toolchain
+for 32-bit ARM, and one for 64-bit ARM of version 12 or later linking
+`msvcrt.dll`, which no job builds, stay refused.
 
 ### Linking with `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations`
 

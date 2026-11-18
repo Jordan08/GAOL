@@ -87,8 +87,15 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     and in the sources of CORE-MATH. These toolchains are therefore accepted
     with `-mfma` and without it, on x86-64 and on 32-bit x86, and the `fma()` of
     their library is never called, that of the mingw-w64 11 on the x87 unit
-    included (125 results of 400,000 were one double off); on ARM they are
-    refused, with or without it, a refusal that is not tested.
+    included (125 results of 400,000 were one double off). On 64-bit ARM,
+    mingw-w64 before version 12 is accepted too, with llvm-mingw 20230320
+    (Clang 16, mingw-w64 11) built and tested in the continuous integration:
+    its `fma()` is there the instruction `fmadd` (one instruction in the
+    library, which the job reads in the code, and `__builtin_fma()` of Clang is
+    the same instruction in the objects of GAOL), so that GAOL calls the
+    instruction, and `gaol_round()` for `round()`. Refused, not tested: 32-bit
+    ARM, whose `fma()` is not fused, and mingw-w64 12 or later linked with
+    `msvcrt.dll` on 64-bit ARM, which no toolchain does.
   - `tests/core_math.cpp` checks the `fma()` and `round()` of the C library in
     the four rounding directions, against exact rational arithmetic, then the
     bounds against CORE-MATH called in the downward and the upward rounding,
@@ -2522,7 +2529,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   setting of the developers, builds for any x86 processor, with the MinGW-w64
   whose `fma()` is wrong too (MSYS2 MINGW32 and MINGW64, which link
   `msvcrt.dll`, and those before version 12), where `gaol_fma()` computes
-  `fma()` (about 28 ns, against 1.1 for the instruction). The 256-bit
+  `fma()` (about 21 ns, against 1.1 for the instruction). The 256-bit
   intrinsics a program writes itself stay exposed to the defect.
 - **Cygwin on x86-64 is built and tested**, with GCC, by the three builds in the
   continuous integration, and **it calls `gaol_fma()` without the fused
