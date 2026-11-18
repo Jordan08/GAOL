@@ -137,6 +137,8 @@ EXTRA_DIST = \
 	extended_precision_values.h \
 	extended_precision_values.py \
 	fetch_content/CMakeLists.txt \
+	fma_values.h \
+	fma_values.py \
 	find_package/CMakeLists.txt \
 	fp_strict/CMakeLists.txt \
 	gaol_tests.h \
