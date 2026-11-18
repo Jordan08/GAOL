@@ -133,7 +133,8 @@ builds, which a program does not use (see [The namespaces](#the-namespaces)),
 `gaol_init_cleanup.h`,
 `gaol/math/gaol_core_math.h`, `gaol/math/gaol_u128.h`,
 `gaol/math/gaol_compoundm1.h`, `gaol/math/gaol_roundeven.h`,
-`gaol/math/gaol_ldexp.h`, `gaol/math/gaol_core_math_port.h`,
+`gaol/math/gaol_round.h`, `gaol/math/gaol_ldexp.h`,
+`gaol/math/gaol_core_math_port.h`,
 `gaol/math/gaol_double_op.h`, `gaol/float/gaol_intervalf.h` and
 `gaol/float/gaol_interval2f.h`. Headers of GAOL 4 are gone: `gaol_parameters.h`,
 which declared nothing, `gaol_double_op_apmathlib.h` and

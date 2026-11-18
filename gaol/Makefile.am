@@ -108,7 +108,8 @@ noinst_HEADERS = math/gaol_core_math.h \
 	core/gaol_interval_fpu_impl.h core/gaol_interval_avx512_impl.h \
 	math/gaol_double_op.h float/gaol_intervalf.h float/gaol_interval2f.h \
 	float/gaol_intervalf_impl.h float/gaol_interval2f_impl.h \
-	math/gaol_ldexp.h math/gaol_roundeven.h math/gaol_compoundm1.h
+	math/gaol_ldexp.h math/gaol_roundeven.h math/gaol_round.h \
+	math/gaol_compoundm1.h
 
 tags: TAGS
 	etags --language=c++ *.cpp *.h *.c core/*.cpp core/*.h math/*.h
