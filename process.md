@@ -14,7 +14,10 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 18 novembre 2026, au commit de fusion de #391 dans
+Dernière mise à jour : 18 novembre 2026, au commit `cb2474b` de `dev` (la
+fusion de #392, hors des points : les mingw-w64 dont le `fma()` et le `round()`
+sont ceux de leur bibliothèque sont acceptés avec `-mfma`, après les registres
+de PJ écrits d'avance, `2166289`), et avant au commit de fusion de #391 dans
 `master` (les registres de la version : PJ est faite, l'étiquette `v5.0.0` est
 posée sur ce commit), et avant au commit `313ef2d` de `master` (la fusion de
 #390 : `dev`, à `c38417e`, y entre), et avant au commit `fc8b9ac` de `dev` (la
@@ -1129,11 +1132,16 @@ git ls-remote --heads origin
   21 h 21 UTC (`fc8b9ac`, 2.3, 3.54 et 7.55), puis #390 (PJ.3 : `dev` dans
   `master`) à 22 h 20 UTC (`313ef2d`, 2.3, 3.56 et 7.57), puis, le 18 novembre,
   #391 (PJ.3 : les registres de la version, de `dev` dans `master`) et
-  l'étiquette `v5.0.0`, posée sur son commit de fusion (2.3, 3.57 et 7.58) ;
-  l'audit du 13 octobre a vérifié dans `configure-clean` ce qu'annonçaient alors
+  l'étiquette `v5.0.0`, posée sur son commit de fusion (2.3, 3.57 et 7.58),
+  puis #392 (hors des points : les mingw-w64 dont le `fma()` et le `round()`
+  sont ceux de leur bibliothèque, acceptés avec `-mfma`) à 11 h 56 UTC
+  (`cb2474b`, 2.3, 3.58 et 7.59) ; l'audit du 13 octobre a vérifié dans
+  `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
-- **En cours** : au 18 novembre, aucune pull request n'est ouverte :
-  #373 (le diagnostic d'un échec sous Rosetta ; `todo-rosetta-diagnostic-pow2`)
+- **En cours** : au 18 novembre, #393 (hors des points : `gaol_fma()`, le
+  `fma()` calculé avec des entiers ; `mingw-soft-fma`) est ouverte et attend la
+  décision du mainteneur (`TODO_DONE.md` 3.58), aucune autre : #373 (le
+  diagnostic d'un échec sous Rosetta ; `todo-rosetta-diagnostic-pow2`)
   est fermée sans fusion, son contenu étant dans `dev` (`TODO_DONE.md` 2.4), et
   #351 à #355 et #372 (la tâche PX) sont fusionnées, leurs registres faits, ceux
   de #350 (une suite de PW.6 ; `todo-pw6b-audit-mingw32`) ne l'étant pas ; #295
@@ -1167,9 +1175,10 @@ git ls-remote --heads origin
   `manual-pz-review-fixes` et `synthese-pu-py`) et #382 (`todo-ph-gaol-texts`)
   et #383 (`manual-pj-coverage`) et #385 (`remove-expr-visitor`) et #386
   (`internal-expressions`) et #387 (`todo-pj8-configure-clean-traces`) et #388
-  (`manual-pj3-coverage`), #390 (`dev` dans `master`) et #391 (les registres de
-  la version, de `dev` dans `master`) sont fusionnées, leurs registres faits ;
-  `dev` est au commit de ces registres (7.58), après `5b4cb29` (7.57),
+  (`manual-pj3-coverage`), #390 (`dev` dans `master`), #391 (les registres de
+  la version, de `dev` dans `master`) et #392 (`mingw-round`) sont fusionnées,
+  leurs registres faits ; `dev` est au commit de ces registres (7.59), après
+  `cb2474b`, la fusion de #392, `2166289` (7.58), `5b4cb29` (7.57),
   `313ef2d`, la fusion de #390 dans `master`, `c38417e` (7.56), `fc8b9ac`, la
   fusion de #388, `9665f49` (7.54), `8a308a7`, la fusion de #387, `5d07c3a`,
   `c46a6a2` (7.53), `608af36` (7.52), `e30d8bd`, la fusion de #386, `c7f79f3`
@@ -1295,7 +1304,10 @@ novembre, après les tâches PU à PZ (*décidé le 13 novembre*).
    registres qui suivent la fusion y entrent par une pull request de `dev`,
    avant l'étiquette, que le mainteneur fusionne aussi (#391) ; pendant qu'elle
    est ouverte, aucun push sur `dev` sans son accord (il relance la CI de la
-   pull request). Pour v5.0.0, il a demandé que ces registres disent la version
+   pull request), et une pull request fusionnée dans `dev` pendant ce temps
+   entre aussi dans `master` et dans l'étiquette (#392, le 18 novembre :
+   `TODO_DONE.md` 3.58). Pour v5.0.0, il a demandé que ces registres disent la
+   version
    publiée avant même l'étiquette (*décidé le 18 novembre* : `TODO_DONE.md`
    3.57), pour que `master` n'ait rien à rattraper après elle. Les notes sont
    alors dans l'arbre de `master`, non dans ses archives.

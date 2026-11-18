@@ -67,7 +67,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `c38417e`, y entre, 2 338 commits et 980 fichiers ; l'arbre de `master` est
   celui de `dev`).
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `fc8b9ac` (la fusion de #388 le 17 novembre à 21 h 21 UTC, PJ.3 : le
+  commit `cb2474b` (la fusion de #392 le 18 novembre à 11 h 56 UTC, hors des
+  points : les mingw-w64 dont le `fma()` et le `round()` sont ceux de leur
+  bibliothèque sont acceptés avec `-mfma` (3.58), après les registres de PJ
+  écrits d'avance, `2166289` (7.58)), et avant au commit `fc8b9ac` (la fusion
+  de #388 le 17 novembre à 21 h 21 UTC, PJ.3 : le
   tableau de couverture du manuel et son PDF, après les registres de #387,
   `9665f49` (7.54)), et avant au commit `8a308a7` (la fusion de #387 le 17
   novembre à 20 h 25 UTC, PJ.8 : les
@@ -4796,6 +4800,64 @@ tournait au moment des registres.
   ne tournent pas (leurs chemins ne changent pas). L'étiquette `v5.0.0` est
   posée sur son commit de fusion (3.57).
 
+- #392 (hors des points : GAOL appelle son propre `round()` et l'instruction FMA
+  là où le `fma()` et le `round()` de la bibliothèque sont ceux de mingw-w64 ;
+  `mingw-round`, douze commits, 27 fichiers, 858 lignes ajoutées et 199
+  retirées) : fusionnée le 18 novembre à 11 h 56 UTC par le mainteneur
+  (`cb2474b`, tête `af4bb06`), la CI de la tête au vert : les sept workflows
+  (Linux, Linux containers, Windows, macOS, Autotools and meson, Performance,
+  Release) à la première tentative, sauf un job de macOS (« macOS 15 arm64 »)
+  qui n'a pas eu de runner (« The job was not acquired by Runner of type hosted
+  even after multiple attempts ») et a passé à la relance ; à la tête d'avant
+  (`039acc9`), cinq jobs (quatre de MinGW-w64 de Windows et celui de Visual C++
+  de Release) avaient échoué à l'installation de Chocolatey (503 et 504 de
+  `community.chocolatey.org`) et ont passé à la relance (`rerun-failed-jobs`).
+  Demande du mainteneur, après l'explication du défaut de mingw-w64 11 (3.58) :
+  « fait une PR avec la proposition de contournement de round() », puis « ce
+  contournement ne doit être fait que pour les versions de mingw-w64 qui posent
+  problème », « ajoute des tests avec `__builtin_round` » dans
+  `tests/core_math.cpp` et « fait en sorte que le correctif ne soit activé que
+  sur les versions de mingw-w64 qui posent problème (...) toutes les versions
+  d'avant 12 (il me semble, vérifie) ». Le contournement :
+  `gaol/math/gaol_round.h` (nouveau, non installé), `gaol_round(x)`, le plus
+  proche entier, les demi-valeurs en s'éloignant de zéro, lu dans les bits ;
+  `GAOL_MINGW_OWN_MATH`, défini une fois dans `gaol/gaol_mingw_own_math.h`
+  (nouveau, **installé**, en C : `gaol_config.h` l'inclut, et
+  `gaol_core_math_port.h` pour les sources C de CORE-MATH), vaut 1 pour
+  mingw-w64 avant la version 12 et, de la 12 à la suite, sans `_UCRT` ; là
+  seulement, `round_ties_to_away()` n'est plus en ligne (`extern GAOL_PUBLIC`,
+  définie dans `gaol_interval_core.cpp` avec `gaol_round()`, comme
+  `round_ties_to_even()`) et `__builtin_round(x)` devient `gaol_round(x)` pour
+  les sources de CORE-MATH ; `gaol_config.h` n'y refuse plus que le build sans
+  `-mfma` (x86-64 ; x86 32 bits avant la version 11, ou 12 et plus liée à
+  `msvcrt.dll` ; ARM inchangé, refusé, non testé) et le `fma()` est
+  l'instruction, avec le `-mfma` que `GAOL_FMA` donne à GCC et à Clang pour
+  Windows. Les tests : `gaol_round()` sur 41 valeurs dans les quatre sens, un
+  NaN et 674 675 comparaisons bit à bit avec une référence sans `round()`
+  (`reference_round_away()` de `tests/gaol_tests.h`, que `elementary` utilise
+  aussi), les lignes du port pour `__builtin_round()` reprises dans
+  `core_math.cpp` avec le test de `pow.c` (71 996 vérifications) ; les dents :
+  `>=` changé en `>`, le code de `math/round.c` de mingw-w64 à la place de
+  `bound_round()` et de `__builtin_round()` (les tests échouent à
+  ±0x1.fffffffffffffp-2), et la construction forcée à 1 sur Linux (70 tests). La
+  CI : `w5` (MinGW-w64 11.2 x64 et x86, 12.2 x64 et x86), `w6` (13.2 x64, x86,
+  et x86 sans FMA) et `w3` (MSYS2 MINGW64 avec GCC et Clang) construisent et
+  testent ces toolchains, que `windows.yml` ne faisait que refuser, et vérifient
+  le refus sans FMA (13.2 x64, 11.2 x86, MINGW64 GCC, MINGW32).
+  `doc/differences.md` et le `ChangeLog`, corrigés dans la branche sur la
+  décision du mainteneur (3.58). Validé : CMake avec GCC 15.2 et Clang 18 en
+  `-Wall -Wextra -Werror` (70, 67 et 66 tests), `headers.sh`, autotools (33
+  tests, 16 exemples, `make distclean`), meson (33), les listes d'en-têtes
+  installés des trois builds identiques. Le relecteur (190 000 jetons, 25
+  appels) n'a trouvé aucun défaut de correction dans `gaol_round.h` et huit
+  points de texte, de test ou de CI, dont sept corrigés : `gaol_round.h` inclus
+  seulement où il sert (C4505 de Visual C++), `roundeven_finite()` de quinze
+  sources qui appelle aussi `__builtin_round()`, deux commentaires faux sur les
+  refus de la CI, le texte du refus d'ARM, un « sous-normal » qui n'en était
+  pas, les délais de `w3` à 340 minutes, les registres devenus faux et la copie
+  du prédicat (3.58) ; le huitième, la comparaison par `==` de `elementary`, qui
+  ne voit pas le signe d'un zéro au niveau des intervalles, n'est pas retenu.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -8552,9 +8614,12 @@ fusion du master, vu que l'on ne peux pas faire de push directe dans le master
   (§1, §12 et §13) dit la version publiée.
 - **Ce que porte l'étiquette** : le code, les tests, la documentation et le
   manuel de `fc8b9ac` (#388 : le tableau de couverture, 97,5 % des 7 822 lignes
-  de `gaol/`, et le PDF de 389 pages) ; les trois commits de notes qui suivent
-  (`b2f04bf`, `c38417e`, `5b4cb29`), puis celui de 7.58, n'ont changé que
-  `TODO*.md` et `process.md`, que `.gitattributes` prive des archives. La
+  de `gaol/`, et le PDF de 389 pages), et ceux de #392, que le mainteneur a
+  fusionnée dans `dev` le 18 novembre à 11 h 56 UTC (`cb2474b`), après la
+  rédaction de ces registres et avant la fusion de #391, dont la tête est `dev`
+  (3.58) ; les trois commits de notes qui suivent `fc8b9ac` (`b2f04bf`,
+  `c38417e`, `5b4cb29`), puis celui de 7.58, n'ont changé que `TODO*.md` et
+  `process.md`, que `.gitattributes` prive des archives. La
   couverture et le PDF ne sont pas refaits ; les temps de PJ.2 non plus
   (*décidé le 17 novembre*, 3.55). Les trois archives des sources valent donc
   `git archive HEAD`, que `buildsystems-dist` contrôle.
@@ -8571,6 +8636,69 @@ fusion du master, vu que l'on ne peux pas faire de push directe dans le master
   Goualard (#389, `TODO_AFTER.md` 1.7), la licence des cas d'IBEX et de Codac
   (1.8, #281) et le ménage de la fin (1.6) : rien n'y est fait sans le
   mainteneur.
+
+### 3.58 Le 18 novembre : les mingw-w64 dont la bibliothèque est fausse (#392)
+
+Le mainteneur demande si GAOL v5 fonctionnera sur toutes les CI actuelles de
+Codac et d'IBEX, puis quelles versions de MinGW-w64 de Chocolatey conviennent,
+leurs dates, « explique en détail le problème de mingw-w64 11 » et « est-ce
+qu'il y aurait un moyen de contourner le bug de fma et de round ? » ; la session
+propose `gaol_round()` et l'exigence de `-mfma`, et il répond « fait une PR avec
+la proposition de contournement de round() » (18 novembre).
+
+- **La réponse sur IBEX et Codac** : non en l'état, sans rien avoir construit
+  (process.md §4.11) : ni IBEX (`ibex-lib`, `master`) ni Codac 2 n'utilisent
+  GAOL v5 dans leur CI, ils embarquent GAOL 4.2.3alpha0 et mathlib (IBEX dans
+  `interval_lib_wrapper/gaol/3rd/`, Codac par le fork `lebarsfa/ibex-lib`,
+  étiquette `ibex-2.8.9.20260819`, `GAOL-master.zip` et `mathlib-master.zip`),
+  et le CMake d'IBEX ne cherche un GAOL externe que si mathlib est trouvé. Les
+  configurations de Codac (`unixmatrix.yml`) que GAOL v5 refusait : MinGW-w64
+  11.2, 12.2 et 13.2 de Chocolatey en x64 et 11.2 en x86. Rien n'a été envoyé à
+  ces projets ni vérifié sur eux.
+- **Le défaut** : `math/fma.c` et `math/round.c` de mingw-w64, le même code des
+  versions 9 à 13, sont dans `src_libmingwex` des versions 9, 10 et 11
+  (`mingw-w64-crt/Makefile.am`), que tout programme lie, UCRT compris, et dans
+  `src_msvcrt_common` à partir de la 12, la bibliothèque de `msvcrt.dll`
+  seulement : une toolchain UCRT de la 12 ou plus prend ceux de `ucrtbase.dll`,
+  une toolchain liée à `msvcrt.dll` (MSYS2 MINGW64 et MINGW32, les compilateurs
+  croisés) garde ceux de mingw-w64. Ce `round()` est `ceil(x)` moins 1 si la
+  différence, calculée en doubles, dépasse 1/2 : il est faux pour
+  ±0x1.fffffffffffffp-2 dans tous les sens sauf vers le haut, et donne le
+  mauvais signe d'un zéro vers le bas. Ce `fma()` additionne les quatre produits
+  des moitiés avec quatre arrondis. Les paquets de Chocolatey :
+  `11.2.0.07112021` est WinLibs (GCC 11.2, mingw-w64 9, msvcrt) ;
+  `12.2.0.03042023` est MinGW-Builds `rt_v10-rev2` mais ses en-têtes disent la
+  version 11 ; `13.2.0` est `rt_v11-rev0`, la version 11 aussi ; les dates de
+  Chocolatey sont celles de la mise en ligne, non de la sortie de GCC.
+  `__builtin_round` est appelé par `pow.c` (argument au moins 1 : le `round()`
+  de mingw-w64 y est exact) et par le repli `roundeven_finite()` de quinze
+  sources de CORE-MATH, utilisé sans AVX ni SSE4.1 ni ARMv8 (avec `GAOL_FMA` à
+  OFF) : là le défaut se voit.
+- **Les décisions du mainteneur** (les questions de la session, le 18 novembre)
+  : mingw-w64 12 et plus lié à `msvcrt.dll` (MSYS2 MINGW64, les compilateurs
+  croisés) reste **accepté** avec `-mfma`, la cause étant la même que pour les
+  versions avant 12 ; **pas de `fma()` logicielle** dans cette session (« Ne pas
+  la faire ») ; `doc/differences.md` et le `ChangeLog` sont **corrigés dans #392
+  même**, une exception à la procédure (§7.5), comme #290 ; **un seul en-tête C
+  partagé**, installé, pour le prédicat (`gaol/gaol_mingw_own_math.h`), à la
+  place de trois copies (`gaol_config.h`, le port de CORE-MATH, le test),
+  qu'aucun test ne rapprochait.
+- **Ce qui reste ouvert** : #393 (hors des points : `gaol_fma()`, le `fma()`
+  calculé avec des entiers, pour les mingw-w64 avant 12 et Cygwin sans FMA ;
+  `mingw-soft-fma`) a été ouverte par la session « mingw FMA » sur une demande
+  explicite du mainteneur dans sa session (« fait une PR avec la proposition de
+  contournement avec un FMA logiciel, part de mingw-round »), alors qu'il avait
+  répondu « Ne pas la faire » dans celle-ci ; la session lui a transmis cette
+  réponse pour qu'il tranche, et #392 ne dépend pas de #393. La question de #205
+  (`TODO_AFTER.md`, mingw-w64 11 accepté sans FMA sur x86 32 bits) n'est pas
+  touchée. Le rapport de couverture (`coverage/README.md`) ne compte pas
+  `gaol_round.h` ni `gaol_mingw_own_math.h` : à refaire à la prochaine version.
+- **L'étiquette `v5.0.0`** : #392 est entrée dans `dev` le 18 novembre à 11 h 56
+  UTC pendant que #391, dont la tête est `dev`, était ouverte : à la fusion de
+  #391, `master` et l'étiquette reçoivent aussi le code, les tests et les textes
+  de #392 ; les registres écrits d'avance en 3.57 le disaient autrement (trois
+  commits de notes seulement après `fc8b9ac`), corrigés ici. La CI de la tête de
+  #391 (`cb2474b`) se relance.
 
 ## 4. Les points faits, par lettre
 
@@ -11174,6 +11302,17 @@ leurs registres n'étaient pas faits :
 - Ce commit ne change que des fichiers que les workflows ignorent sur un push
   (`paths-ignore`) : aucun workflow ne tourne sur `dev` ; la pull request #391
   relance ses cinq workflows, dont la CI verte précède l'étiquette (3.57).
+
+### 7.59 Le 18 novembre (après #392 : les registres)
+
+- Les registres de #392, en un commit direct sur `dev` : `TODO.md` (l'en-tête et
+  les pull requests), ce fichier (en-tête de la section 1, 1, 2.3, 3.57, 3.58 et
+  7.59) et `process.md` (l'en-tête, §12 et §13). `TODO_AFTER.md` n'a pas changé.
+  Les issues #179 et #178 ne sont pas mises à jour : elles ne le sont qu'après
+  l'étiquette (3.57) ; #177 non.
+- Ce commit ne change que des fichiers que les workflows ignorent sur un push
+  (`paths-ignore`) : aucun workflow ne tourne sur `dev` ; la pull request #391,
+  dont `dev` est la tête, relance ses workflows (3.57).
 
 ## 8. Le ménage fait
 
