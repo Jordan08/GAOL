@@ -298,6 +298,30 @@ if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   gaol_refused_test(refused_arm64ec -D_M_ARM64EC=1 "GAOL cannot be compiled for ARM64EC")
 endif()
 
+# mingw-w64 for ARM, which gaol/gaol_config.h accepts for 64-bit ARM before
+# version 12 (llvm-mingw, whose fma() is the instruction fmadd) and refuses for
+# 32-bit ARM and for 64-bit ARM of version 12 or later linked with msvcrt.dll,
+# which no job builds (GAOL v5): refused_mingw_arm.cpp, which includes that
+# header alone, says on an x86 system of GCC or Clang what the headers of the
+# toolchain say (tests/refused_mingw_arm.cpp), and the compilation has to fail
+# with the message of the refusal for the first two tests, and to succeed for
+# the last two. Not on Windows, whose headers already say mingw-w64, nor on an
+# ARM system, which would not be told apart from the target. The autotools and
+# meson builds run the same checks with tests/refused_options.sh.
+if(NOT WIN32 AND NOT CYGWIN AND NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"
+   AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64|i[3-6]86|x86)$")
+  function(gaol_mingw_arm_test name message bits major)
+    gaol_compile_test(${name} refused_mingw_arm.cpp "${message}")
+    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS})
+    target_compile_definitions(gaol_${name} PRIVATE GAOL_TEST_MINGW_ARM_BITS=${bits}
+                               GAOL_TEST_MINGW_MAJOR=${major} ${ARGN})
+  endfunction()
+  gaol_mingw_arm_test(refused_mingw_arm32 "GAOL cannot be compiled with this mingw-w64 for ARM" 32 11)
+  gaol_mingw_arm_test(refused_mingw_arm64_msvcrt "GAOL cannot be compiled with this mingw-w64 for ARM" 64 12)
+  gaol_mingw_arm_test(mingw_arm64_before_12_accepted "" 64 11)
+  gaol_mingw_arm_test(mingw_arm64_ucrt_accepted "" 64 12 GAOL_TEST_MINGW_UCRT=1)
+endif()
+
 # The compilers that built GAOL, for the tests below that configure it again,
 # on a system that builds for itself. They are passed with their arguments,
 # which CMake keeps apart: with CC="ccache gcc", CMAKE_C_COMPILER is ccache and

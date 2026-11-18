@@ -138,4 +138,50 @@ case $output in
     status=1 ;;
 esac
 
+# mingw-w64 for ARM (GAOL v5), which gaol/gaol_config.h accepts for 64-bit ARM
+# before version 12 and refuses for 32-bit ARM and for 64-bit ARM of version 12
+# or later linked with msvcrt.dll, as the tests refused_mingw_arm32,
+# refused_mingw_arm64_msvcrt, mingw_arm64_before_12_accepted and
+# mingw_arm64_ucrt_accepted of tests/CMakeLists.txt check it: refused_mingw_arm.cpp,
+# which includes that header alone, says on an x86 system what the headers of
+# the toolchain say. Not on a system of Windows, nor on an ARM one.
+mingw_source=$(dirname "$0")/refused_mingw_arm.cpp
+mingw_message="GAOL cannot be compiled with this mingw-w64 for ARM"
+mingw_arm_refused() # bits major [flag]
+{
+  output=$($GAOL_CXX $GAOL_CXXFLAGS -DGAOL_TEST_MINGW_ARM_BITS="$1" -DGAOL_TEST_MINGW_MAJOR="$2" $3 -fsyntax-only "$mingw_source" 2>&1)
+  case $output in
+    *"$mingw_message"*)
+      echo "PASS: mingw-w64 $2 for $1-bit ARM $3 refused" ;;
+    *)
+      printf '%s\n' "$output"
+      echo "FAIL: mingw-w64 $2 for $1-bit ARM $3 not refused"
+      status=1 ;;
+  esac
+}
+mingw_arm_accepted() # bits major [flag]
+{
+  if output=$($GAOL_CXX $GAOL_CXXFLAGS -DGAOL_TEST_MINGW_ARM_BITS="$1" -DGAOL_TEST_MINGW_MAJOR="$2" $3 -fsyntax-only "$mingw_source" 2>&1); then
+    echo "PASS: mingw-w64 $2 for $1-bit ARM $3 accepted"
+  else
+    printf '%s\n' "$output"
+    echo "FAIL: mingw-w64 $2 for $1-bit ARM $3 refused"
+    status=1
+  fi
+}
+case $(uname -s 2>/dev/null) in
+  MINGW*|MSYS*|CYGWIN*|Windows*)
+    echo "SKIP: mingw-w64 for ARM, on a system of Windows" ;;
+  *)
+    if printf '#if !defined(__x86_64__) && !defined(__i386__)\n#error not an x86 system\n#endif\n' \
+         | $GAOL_CXX $GAOL_CXXFLAGS -x c++ -fsyntax-only - > /dev/null 2>&1; then
+      mingw_arm_refused 32 11
+      mingw_arm_refused 64 12
+      mingw_arm_accepted 64 11
+      mingw_arm_accepted 64 12 -DGAOL_TEST_MINGW_UCRT=1
+    else
+      echo "SKIP: mingw-w64 for ARM, not an x86 system"
+    fi ;;
+esac
+
 exit $status

@@ -524,18 +524,26 @@
    replaces the x87 fma() that the mingw-w64 11 was accepted with (GAOL v5; the
    job "no FMA" of windows.yml runs it).
 
-   On ARM, mingw-w64 before version 12 or linked with msvcrt.dll is refused
-   (GAOL v5; mingw-w64 before 11 only was refused before), though GAOL would
-   call its own gaol_round() there, as on x86, and the instruction for fma()
-   (gaol_fma() is for x86 only): no job builds it, and the refusal is not
-   tested either (MSYS2 CLANGARM64,
-   which links the UCRT, is built and tested). Its fma() is an
-   instruction: fmadd, fused, on 64-bit ARM; fmacd, which is vmla.f64, a
-   product and a sum each rounded, on 32-bit ARM, where Clang, the only
-   compiler of mingw-w64 there, is refused above. Its round() is the code
-   above, computed in doubles, though Clang 18 for 64-bit ARM computes round()
-   with the instruction frinta, even without optimization; a toolchain linking
-   the UCRT takes the round() of ucrtbase.dll. */
+   On ARM the fma() of mingw-w64's own math library is an instruction, not the
+   code above: fmadd, fused, on 64-bit ARM (the fma.o of the libmingwex of
+   llvm-mingw 20230320, mingw-w64 11, is that one instruction and a return;
+   tests/core_math.cpp calls it as a function and checks it against exact
+   values, and .github/scripts/check-arm64-fma.sh reads the object); fmacd,
+   which is vmla.f64, a product and a sum each rounded, on 32-bit ARM, where
+   Clang, the only compiler of mingw-w64 there, is refused above. Its round() is
+   the code above, computed in doubles, though Clang 18 for 64-bit ARM computes
+   round() with the instruction frinta, even without optimization; a toolchain
+   linking the UCRT takes the round() of ucrtbase.dll, the libmingwex of
+   llvm-mingw 20231128 and 20240130 (they call themselves mingw-w64 12) having
+   neither fma.o nor round.o. So mingw-w64 for 64-bit ARM before version 12 is
+   accepted (GAOL v5; it was refused before): GAOL calls its own gaol_round()
+   there, as on x86, and takes fma() as the instruction, __builtin_fma() of Clang
+   being fmadd at every level of optimization (gaol_fma() is for x86 only, an
+   ARM64 having the instruction); no object of the library calls fma() or
+   round(), which the job "llvm-mingw 20230320" of windows.yml checks, and runs
+   the tests of GAOL with that Clang (MSYS2 CLANGARM64, which links the UCRT,
+   is tested too). Refused: 32-bit ARM, whose fma() is not fused, and 64-bit
+   ARM with mingw-w64 12 or later linked with msvcrt.dll, which no job builds. */
 /* 1 where fma() is gaol_fma() of gaol/math/gaol_fma.h, which computes it with
    integers (GAOL v5): the C library's fma() is wrong (GAOL_MINGW_OWN_MATH, which
    gaol/gaol_mingw_own_math.h gives: mingw-w64 before version 12, and the later
@@ -563,8 +571,9 @@
 #  define GAOL_SOFT_FMA 0
 #endif
 #if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
-    && !defined(__x86_64__) && !defined(__i386__) && GAOL_MINGW_OWN_MATH
-#  error "GAOL cannot be compiled with this mingw-w64 for ARM: before version 12, or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library, which GAOL v5 replaces with the instruction and its own gaol_round() on x86 but was not tested with on ARM (the fma() of 32-bit ARM is not fused). Build GAOL with a mingw-w64 of version 12 or later linking the UCRT, or with Visual Studio"
+    && !defined(__x86_64__) && !defined(__i386__) && GAOL_MINGW_OWN_MATH \
+    && !(defined(__aarch64__) && __MINGW64_VERSION_MAJOR < 12)
+#  error "GAOL cannot be compiled with this mingw-w64 for ARM: its fma() and round() are those of mingw-w64's own math library, whose round() GAOL v5 replaces with its own gaol_round(). On 32-bit ARM its fma() is not fused (fmacd is vmla.f64, a product and a sum each rounded); on 64-bit ARM only mingw-w64 before version 12 is tested (llvm-mingw 20230320), not 12 or later linked with msvcrt.dll rather than the UCRT. Build GAOL with a mingw-w64 of version 12 or later linking the UCRT, with mingw-w64 11 for 64-bit ARM, or with Visual Studio"
 #endif
 
 #endif /* GAOL_CONFIG_H */

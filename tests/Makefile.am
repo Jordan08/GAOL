@@ -155,6 +155,7 @@ EXTRA_DIST = \
 	pow_rel_values.h \
 	pow_rel_values.py \
 	refused_aligned_new.cpp \
+	refused_mingw_arm.cpp \
 	refused_options.cpp \
 	refused_options.sh \
 	release_flags.py \
