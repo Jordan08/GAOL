@@ -19,6 +19,8 @@
  * - the names gaol_cr_<f>() rather than cr_<f>(), so that GAOL does not clash
  *   with a program or a C library holding CORE-MATH's functions too;
  * - __builtin_roundeven() where the compiler or the math library has not;
+ * - __builtin_round() of gaol/math/gaol_round.h where the round() of the math
+ *   library is mingw-w64's own, which is wrong;
  * - on a 32-bit x86 Windows, a fegetexceptflag() and a fesetexceptflag()
  *   written on MXCSR, which leave its exception masks alone;
  * - on 32-bit x86, the square root of SSE2, rounded in the direction in
@@ -163,6 +165,26 @@ took for an undeclared function and did not link.
 #elif defined(__GNUC__) && __GNUC__ < 10
 #define __builtin_roundeven(x) gaol_roundeven(x)
 #endif /* Windows, or no __builtin_roundeven() */
+
+/*---------------------------------------------------------------------------
+round() of mingw-w64's own math library, which is wrong
+
+pow.c calls __builtin_round() to take the integer nearest to the square root of
+an odd integer, which is at least 1, where the round() of mingw-w64 is exact:
+it is the one place of the sources of CORE-MATH that calls it. The call is
+replaced all the same, with the toolchains whose fma() and round() are those
+of mingw-w64's own math library (GAOL_MINGW_OWN_MATH, gaol/gaol_config.h, whose
+test this repeats, as the C sources do not include that header), so that GAOL
+calls no round() of that library: it is wrong for the doubles next to 1/2,
+and gives the sign of a zero wrong rounding downward (see
+gaol/math/gaol_round.h, which reads the bits instead).
+--------------------------------------------------------------------------*/
+
+#if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
+    && (__MINGW64_VERSION_MAJOR < 12 || !defined(_UCRT))
+#include "gaol/math/gaol_round.h"
+#define __builtin_round(x) gaol_round(x)
+#endif /* mingw-w64 whose round() is its own */
 
 /*---------------------------------------------------------------------------
 fesetexceptflag() of mingw-w64 up to 12, which unmasks the exceptions
