@@ -568,15 +568,16 @@ MinGW-w64 were refused for the reason of the third row only, the `fma()` and
 `round()` that CORE-MATH and GAOL took from the C library, and they are now
 refused only where the build has no `-mfma`: GAOL calls its own `gaol_round()`
 (`gaol/math/gaol_round.h`) where `round()` is that of mingw-w64
-(`GAOL_MINGW_OWN_MATH` of `gaol/gaol_config.h`), and `fma()` is the instruction,
-which `GAOL_FMA` gives GCC and Clang for Windows on a processor that has it.
-Before mingw-w64 12 they are those of mingw-w64 in every program; from 12 on,
-only in the library of `msvcrt.dll`, so that a toolchain linking the UCRT
-takes those of `ucrtbase.dll`, which pass the tests. `gaol/gaol_config.h` tells
-the two runtimes apart by `_UCRT`, which the headers of a UCRT toolchain
-define, with GCC and Clang alike, and `tests/core_math.cpp` checks the two
-functions first, on every platform: that of the C library, and `gaol_round()`
-where GAOL calls it. On 32-bit x86, mingw-w64 computes them on the x87 unit:
+(`GAOL_MINGW_OWN_MATH`, which `gaol/gaol_mingw_own_math.h` defines once for
+`gaol/gaol_config.h` and for the C sources of CORE-MATH), and `fma()` is the
+instruction, which `GAOL_FMA` gives GCC and Clang for Windows on a processor
+that has it. Before mingw-w64 12 they are those of mingw-w64 in every program;
+from 12 on, only in the library of `msvcrt.dll`, so that a toolchain linking
+the UCRT takes those of `ucrtbase.dll`, which pass the tests.
+`gaol/gaol_mingw_own_math.h` tells the two runtimes apart by `_UCRT`, which the
+headers of a UCRT toolchain define, with GCC and Clang alike, and
+`tests/core_math.cpp` checks the two functions first, on every platform: that
+of the C library, and `gaol_round()` where GAOL calls it. On 32-bit x86, mingw-w64 computes them on the x87 unit:
 there its `round()` is right, and the `fma()` of mingw-w64 11 (MinGW-Builds
 GCC 12 and 13), accepted and called only with `GAOL_FMA` off (the default gives
 GCC for Windows `-mfma` there too), keeps its partial sums in extended
