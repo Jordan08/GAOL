@@ -67,7 +67,8 @@ itself. With GCC and Clang, each where the compiler takes it:
   with `-mavx`, and so is one built with `-mavx512f` or a `-march` that turns on
   wider registers, which the option may not always undo (same section). Cygwin
   and MSYS get them as the other GCC for Windows (Cygwin is built and tested by
-  a job of the continuous integration, and refused without them).
+  a job of the continuous integration, with `gaol_fma()` in place of them where
+  the build has none).
 
 With Visual C++ and clang-cl, `/fp:strict`, `/arch:AVX2` for x64 with
 `GAOL_FMA`, and `-msse2` with clang-cl for 32-bit x86, which computes doubles
@@ -133,7 +134,7 @@ builds, which a program does not use (see [The namespaces](#the-namespaces)),
 `gaol_init_cleanup.h`,
 `gaol/math/gaol_core_math.h`, `gaol/math/gaol_u128.h`,
 `gaol/math/gaol_compoundm1.h`, `gaol/math/gaol_roundeven.h`,
-`gaol/math/gaol_round.h`, `gaol/math/gaol_ldexp.h`,
+`gaol/math/gaol_round.h`, `gaol/math/gaol_fma.h`, `gaol/math/gaol_ldexp.h`,
 `gaol/math/gaol_core_math_port.h`,
 `gaol/math/gaol_double_op.h`, `gaol/float/gaol_intervalf.h` and
 `gaol/float/gaol_interval2f.h`. Headers of GAOL 4 are gone: `gaol_parameters.h`,

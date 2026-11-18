@@ -1132,8 +1132,9 @@ which `numbers` checks there too.
   arithmetic. The `fma()` and `round()` of mingw-w64's own math library on
   x64 fail 21 and 6 of these checks under wine (GAOL v5): where the library is
   that one (`GAOL_MINGW_OWN_MATH` of `gaol/gaol_config.h`), GAOL calls the
-  instruction (`-mfma`, without which it refuses the toolchain) and its own
-  `gaol_round()` of `gaol/math/gaol_round.h`, which the `round()` check then
+  instruction (`-mfma`) or its own `gaol_fma()` of `gaol/math/gaol_fma.h`
+  without it, which the `fma()` check then calls, and its own `gaol_round()` of
+  `gaol/math/gaol_round.h`, which the `round()` check then
   calls, and which a second function checks on every platform: the nearest
   integer, halfway values away from zero, with the sign of a zero, in the four
   rounding directions, at 41 values (±0x1.fffffffffffffp-2, ±0.5 and the
@@ -1141,7 +1142,24 @@ which `numbers` checks there too.
   2<sup>52</sup> − 1/2, the subnormal numbers, the infinities) and, against a
   reference that calls no `round()`, at the doubles around every power of two
   and every halfway value from −2000 to 2000 and at random ones of every
-  magnitude and of the first ones (GAOL v5). The `ldexp()` CORE-MATH rounds the subnormal values
+  magnitude and of the first ones (GAOL v5). A third checks `gaol_fma()` on
+  every platform, apart from the C library (GAOL v5): `a*b + c` rounded once, in
+  the four rounding directions, by the direction given and by the one in effect
+  (MXCSR on x86, `fegetround()` elsewhere), at the triples of
+  `fma_values.py` (`tests/fma_values.h`; exact rational arithmetic: errors of
+  products, products that cancel, halfway cases of both parities, a product far
+  below `c` and above it at every distance, significands of a few bits set or
+  cleared at every gap of 140 bits, products whose dropped bits are just under a
+  half with `c` the size of what is missing, products below the least
+  subnormal number, the subnormal range, the edge of the overflow), at the error
+  of 20 000 products that the products of the halves of
+  Dekker give with no fma, at the zeros of every sign, the infinities, the NaN
+  and the overflows written out, and, where the platform has the instruction or a
+  C library whose `fma()` is right, at 200 000 random triples of every kind
+  against it (cancellations, the subnormal range, the edge of the overflow,
+  operands of a few bits, a product and `c` up to 130 bits apart); the lines of
+  the port header that give the sources `gaol_fma()` are repeated, and checked
+  against `GAOL_SOFT_FMA`. The `ldexp()` CORE-MATH rounds the subnormal values
   of `erfc` with, `gaol_ldexp()` of `gaol/math/gaol_ldexp.h` with every compiler
   (the `ldexp()` of the UCRT of Windows and of macOS do not always round in
   the direction in effect), has to be x·2<sup>n</sup> rounded
@@ -1772,7 +1790,8 @@ which `numbers` checks there too.
   (GAOL v5): the fused multiply-add instructions, the AVX-512 path, the 128-bit
   integer, the debugging and the vector intervals have no option, and the
   settings of the developers (`GAOL_FMA=OFF`, `GAOL_PREFER_AVX512`,
-  `GAOL_U128_EMULATION=ON`, `GAOL_DEBUG=ON`, `GAOL_EXCEPTIONS_ENABLED=OFF`,
+  `GAOL_U128_EMULATION=ON`, `GAOL_FMA_SOFTWARE=ON`, `GAOL_DEBUG=ON`,
+  `GAOL_EXCEPTIONS_ENABLED=OFF`,
   `GAOL_VERBOSE_MODE=ON`, `GAOL_MACHINE_RUNS_FMA` and
   `GAOL_MACHINE_RUNS_AVX512`) are read where they apply, without being in the
   cache unless they were given. The script configures GAOL as the project built,
@@ -1792,7 +1811,9 @@ which `numbers` checks there too.
   `-UGAOL_PREFER_AVX512`, and asked for by `=ON`, which is an error where the
   compiler has no path; the Debug build type, which sets `GAOL_DEBUGGING` and
   nothing else does (`-DGAOL_DEBUGGING=ON` is overwritten); `-DGAOL_FMA=OFF` and
-  `-DGAOL_U128_EMULATION=ON`; `-DGAOL_EXCEPTIONS_ENABLED=OFF` and
+  `-DGAOL_U128_EMULATION=ON`; `-DGAOL_FMA_SOFTWARE=ON`, which the configuration
+  says, with and without the instructions, and no other does;
+  `-DGAOL_EXCEPTIONS_ENABLED=OFF` and
   `-DGAOL_VERBOSE_MODE=ON`, which are taken out of the cache by the next
   configuration; and a cross-compilation (`CMAKE_SYSTEM_NAME` given), where no
   program can be run, which leaves the fused multiply-add instructions and the
