@@ -66,7 +66,11 @@ GAOL v5). The badges of
   the library's `fma()` is right, with every source of CORE-MATH compiled with
   the macro and no object of the library calling `fma()`.
 - **Linux containers:**
-  - Debian 12 and 13 on amd64, arm64 and armhf, and Debian 12 on i386;
+  - Debian 12 and 13 on amd64, arm64 and armhf, and Debian 12 and 13 on i386,
+    with the GCC 14.2 of the second and, on Debian 14 (forky), the GCC 15: the
+    GCC 14.2, 15.3 and 16.2 for 32-bit x86 miscompile the choice between two
+    `_BitInt(128)` values, which `gaol/math/gaol_u128.h` does not give them, as
+    `tests/u128_select.c` checks (issue #394);
   - manylinux_2_28 on x86_64 and aarch64;
   - Alpine (musl) on x86_64 and aarch64;
   - Debian 13 under qemu on s390x, ppc64le and riscv64, and Ubuntu 24.04

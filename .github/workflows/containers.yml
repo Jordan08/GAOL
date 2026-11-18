@@ -57,7 +57,7 @@ env:
 jobs:
 
   c1:
-    name: 'Containers x86_64 and i386, Debian, Alpine, manylinux (8 configurations)'
+    name: 'Containers x86_64 and i386, Debian, Alpine, manylinux (10 configurations)'
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
@@ -148,12 +148,39 @@ jobs:
           platform: 'linux/amd64'
           image: 'quay.io/pypa/manylinux_2_28_x86_64'
           tools: 'none'
+      # The GCC 14.2, 15.3 and 16.2 for 32-bit x86 compile wrongly the choice
+      # between two _BitInt(128) values, which gaol/math/gaol_u128.h does not
+      # give them (tests/u128_select.c, issue #394): Debian 13 has the first,
+      # and Debian 14 (forky, which Docker has for i386, as Debian 12 and 13)
+      # the second as gcc-15 and the third as g++. Bookworm, c4, has GCC 12,
+      # which has no _BitInt
+      - id: c9
+        name: 'Debian 13 Trixie i386 (GCC 14.2)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 13 Trixie i386 (GCC 14.2)'
+          platform: 'linux/386'
+          image: 'debian:trixie'
+          tools: 'apt'
+      - id: c10
+        name: 'Debian 14 Forky i386 (GCC 15)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 14 Forky i386 (GCC 15)'
+          platform: 'linux/386'
+          image: 'debian:forky'
+          tools: 'apt'
+          gcc: '15'
       - name: Results of the configurations
         if: ${{ always() }}
         shell: bash
         env:
           OUTCOMES: >-
-            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }} c7=${{ steps.c7.outcome }} c8=${{ steps.c8.outcome }}
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }} c7=${{ steps.c7.outcome }} c8=${{ steps.c8.outcome }} c9=${{ steps.c9.outcome }} c10=${{ steps.c10.outcome }}
         run: |
           status=0
           printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Containers x86_64 and i386, Debian, Alpine, manylinux' >> "$GITHUB_STEP_SUMMARY"
@@ -167,6 +194,8 @@ jobs:
               c6) name='Debian 12 Bookworm armel (floating point in software), GAOL stops' ;;
               c7) name='Alpine 3.22 x86_64 (musl)' ;;
               c8) name='manylinux_2_28 x86_64' ;;
+              c9) name='Debian 13 Trixie i386 (GCC 14.2)' ;;
+              c10) name='Debian 14 Forky i386 (GCC 15)' ;;
             esac
             printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
             [ "${kv#*=}" = success ] || status=1
