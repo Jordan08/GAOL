@@ -369,9 +369,10 @@
 	and c of the size of the product or below it, down to 73 binades,
 	whose sum, cancellations included, is exact on 128 bits and rounded
 	once.  It costs under 10 ns a call, against 1.1 for the instruction
-	and 21 before the fast paths: a tan of an interval takes 255 ns,
-	against 30 with the instruction and 490 before, a log 170 against 30
-	and 290, a pow(x, 3) 38 against 11 and 78.  The test checks gaol_fma()
+	and 21 before the fast paths: a tan of an interval takes 253 ns,
+	against 29 with the instruction and 484 before, a log 169 against 29
+	and 278, a pow(x, 3) 37 against 11 and 76 (GAOL 4: 77, 66 and 10.5;
+	the table of doc/differences.md has every operation).  The test checks gaol_fma()
 	against exact rational arithmetic, the error of products, and the
 	instruction where there is one, and the fast paths against the
 	general path on 900000 triples of their kinds; the tests that call CORE-MATH in

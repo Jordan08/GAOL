@@ -2533,10 +2533,10 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   whose `fma()` is wrong too (MSYS2 MINGW32 and MINGW64, which link
   `msvcrt.dll`, and those before version 12), where `gaol_fma_upward()` computes
   `fma()` (under 10 ns a call, against 1.1 for the instruction: a `tan` of an
-  interval takes 255 ns, against 30 with the instruction and 490 before the
-  fast paths of that function, a `log` 170 ns, against 30 and 290, a `pow(x, 3)`
-  38 ns, against 11 and 78). The 256-bit
-  intrinsics a program writes itself stay exposed to the defect.
+  interval takes 253 ns, against 29 with the instruction and 484 before the
+  fast paths of that function, a `log` 169 ns, against 29 and 278, a `pow(x, 3)`
+  37 ns, against 11 and 76; the table below has every operation, and GAOL 4).
+  The 256-bit intrinsics a program writes itself stay exposed to the defect.
 - **`gaol_fma(a, b, c)`**, in `gaol` and in `gaol_ieee1788`, is `a*b + c` of
   three doubles rounded once in the direction in effect, the same on every
   platform, so that a program need not know which `fma()` it has: the
@@ -2547,6 +2547,48 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   library built without the instruction). It is not called `fma`, which would
   be ambiguous with `std::fma` for a program with `using namespace gaol;` and
   `using namespace std;`; `fma` stays the function of the intervals.
+- **What `fma()` computed by GAOL costs, against GAOL 4 and against the
+  instruction** (i7-1185G7, GCC 15, `-O3`; ns per operation on the interval
+  [x, 1.001 x], operands drawn at random, median of 6 alternating runs on one
+  core). GAOL 4 is the 4.2.3 of Frédéric Goualard with mathlib 2.1.1, built
+  without `-mfma`: it never calls `fma()`, so that the defect of the MinGW-w64
+  does not touch it. "GAOL 5 with FMA" is the default build, with `-mfma`. The
+  three last columns are built with `-DGAOL_FMA=OFF -DGAOL_FMA_SOFTWARE=ON`,
+  where GAOL computes `fma()` itself: before its fast paths
+  (`gaol_fma()` alone), with the first two, and with the three of this version.
+
+  | operation | GAOL 4 | GAOL 5 with FMA | GAOL 5 without FMA: before | 2 paths | 3 paths | before -> 3 paths | 3 paths / GAOL 4 |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | `tan` | 77.4 | 29.1 | 484 | 304 | **253** | -48 % | 3.27 |
+  | `pow(x, 3)` | 10.5 | 10.6 | 75.8 | 45.0 | **37.3** | -51 % | 3.55 |
+  | `log` | 66.0 | 28.6 | 278 | 173 | **169** | -39 % | 2.56 |
+  | `sinh` | 50.4 | 19.2 | 39.9 | 27.1 | 26.6 | -33 % | 0.53 |
+  | `tanh` | 53.2 | 21.9 | 54.4 | 35.9 | 39.0 | -28 % | 0.73 |
+  | `atan` | 58.4 | 30.4 | 69.3 | 51.7 | 52.3 | -25 % | 0.90 |
+  | `cos` | 64.5 | 22.0 | 59.0 | 46.8 | 44.9 | -24 % | 0.70 |
+  | `exp` | 42.4 | 16.8 | 29.7 | 22.3 | 23.1 | -22 % | 0.54 |
+  | `sin` | 84.6 | 24.5 | 60.4 | 48.1 | 47.0 | -22 % | 0.56 |
+  | `asin` | 47.7 | 19.3 | 44.6 | 36.2 | 34.9 | -22 % | 0.73 |
+  | `exp2` | n/a | 16.1 | 29.6 | 22.1 | 22.0 | -25 % | n/a |
+  | `log2` | n/a | 34.3 | 58.8 | 43.1 | 44.0 | -25 % | n/a |
+  | `expm1` | n/a | 19.3 | 32.7 | 25.0 | 24.5 | -25 % | n/a |
+  | `x + y` | 2.9 | 2.4 | 2.2 | 2.2 | 2.2 | +1 % | 0.76 |
+  | `x * y` | 12.6 | 6.0 | 6.0 | 5.8 | 6.1 | +2 % | 0.48 |
+  | `x / y` | 12.8 | 5.5 | 5.1 | 5.1 | 5.1 | 0 % | 0.40 |
+  | `sqr` | 6.1 | 7.6 | 6.4 | 6.3 | 6.4 | -1 % | 1.04 |
+  | `sqrt` | 5.4 | 5.5 | 5.7 | 6.0 | 5.7 | +1 % | 1.05 |
+  | `roundTiesToAway` | n/a | 10.5 | 9.4 | 9.6 | 9.5 | +1 % | n/a |
+
+  GAOL 4 has no `exp2`, `log2`, `expm1` nor `roundTiesToAway` (n/a). The
+  dispersion between the runs is 11 % at the median for GAOL 5 (29 % at most),
+  and 32 % for the session of GAOL 4: a difference of less than 10 % means
+  nothing. With the instruction, GAOL 5 is faster than GAOL 4 on every
+  function, by 1.2 to 3.2 times. With the fma() computed by GAOL and the three
+  fast paths, it still is for `x * y`, `x / y`, `exp`, `sin`, `cos`, `sinh`,
+  `tanh` and `asin`, as fast for `atan`, `sqr` and `sqrt`, and slower for `tan`
+  (3.3 times), `pow(x, 3)` (3.6) and `log` (2.6), the three functions that call
+  `fma()` most (6.3, 7.2 and 4.2 times before the fast paths). One machine,
+  x86-64 with a 128-bit integer; the fast paths are not there without it.
 - **Cygwin on x86-64 is built and tested**, with GCC, by the three builds in the
   continuous integration, and **it calls `gaol_fma()` without the fused
   multiply-add instructions**: the `fma()` of its C library is not correctly
