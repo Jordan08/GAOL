@@ -900,7 +900,7 @@ namespace
 
   /*
     gaol_fma_upward() of gaol/math/gaol_fma.h, which GAOL calls where
-    GAOL_SOFT_FMA says so, and its two fast paths (x86-64 with a 128-bit
+    GAOL_SOFT_FMA says so, and its three fast paths (x86-64 with a 128-bit
     integer), in the upward direction, the only one it is right in:
 
     - against the triples of tests/fma_values.py, upward;
@@ -916,7 +916,9 @@ namespace
         anything, the zeros, the infinities and the NaN included,
         c near the ends of its exponent range, and a*b near those of the window
           of the paths (the exponent of the product from -900 to 1000),
-        products of a few bits, exact, and c of the same size or just above;
+        products of a few bits, exact, and c of the same size or just above,
+        c of the size of the product or below it down to 80 binades, and the
+          near cancellations, which the third path takes;
     - the fast paths are taken by most of the triples that are theirs: a bug that
       sends every call to the general path would pass the comparisons.
   */
@@ -982,7 +984,7 @@ namespace
     };
     Kind kinds[] = {{"the error of a product", 0, 0, 70}, {"c above the product", 0, 0, 85},
                     {"anything", 0, 0, 0}, {"c near the ends of its range", 0, 0, 0},
-                    {"products of a few bits", 0, 0, 80}};
+                    {"products of a few bits", 0, 0, 80}, {"c near and below the product", 0, 0, 60}};
     const auto compare_triple = [&](Kind& kind, double a, double b, double c) {
       const double general = gaol_fma_directed(a, b, c, GAOL_FMA_UPWARD);
       const double got = gaol_fma_upward(a, b, c);
@@ -1072,6 +1074,29 @@ namespace
         const int fc = clamp_field(fa + fb - 2046 + 1023 + range(-2, 60));
         compare_triple(kinds[4], make(fa, ma, sign()), make(fb, mb, sign()),
                        make(fc, (gen() & 1) ? mantissa() : (gen() & 1), sign()));
+      }
+      { // c of the size of the product or below it, down to 80 binades, and the near cancellations
+        int fa, fb;
+        fields(fa, fb);
+        const double a = make(fa, mantissa(), sign()), b = make(fb, mantissa(), sign());
+        volatile double p = a * b; // rounded upward by the processor
+        double c;
+        switch (gen() % 5) {
+          case 0:
+          case 1: {
+            c = (gen() & 1) ? -static_cast<double>(p) : static_cast<double>(p);
+            for (int j = static_cast<int>(gen() % 4); j > 0; --j) {
+              c = (gen() & 1) ? next_float(c) : previous_float(c);
+            }
+            break;
+          }
+          default: {
+            const int fc = fa + fb - 2046 + 1023 + range(-80, 5);
+            c = (fc >= 1 && fc <= 2046) ? make(fc, mantissa(), sign()) : -static_cast<double>(p);
+            break;
+          }
+        }
+        compare_triple(kinds[5], a, b, c);
       }
     }
 #if GAOL_FMA_FAST

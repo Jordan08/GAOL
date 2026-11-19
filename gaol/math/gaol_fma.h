@@ -52,14 +52,16 @@
  * gaol_fma_upward() is what GAOL calls: GAOL's intervals run in the upward
  * direction (the one of MXCSR, which the lower bounds reflect), CORE-MATH and the
  * exact products included, so that the function takes that direction for
- * granted: it does not read MXCSR, and its two fast paths (x86-64 with
+ * granted: it does not read MXCSR, and its three fast paths (x86-64 with
  * unsigned __int128) need no decision of direction. Called in another
  * direction it is wrong (a debug build checks it); gaol_fma() and
- * gaol_fma_directed() are right in the four. The fast paths are the two
- * kinds of call that the double-double arithmetic of CORE-MATH makes most:
+ * gaol_fma_directed() are right in the four. The fast paths are the kinds of
+ * call that the double-double arithmetic of CORE-MATH makes most:
  * the error of a product, c = -rn(a*b), which is exact and is a difference of
- * two 64-bit integers; and c far above the product (|a*b| < |c|/2), a sum on
- * 64 bits with one bit for what the shift loses. tan calls the function 26
+ * two 64-bit integers; c far above the product (|a*b| < |c|/2), a sum on
+ * 64 bits with one bit for what the shift loses; and c of the size of the
+ * product or below it, down to 73 binades, whose sum, cancellations included,
+ * is exact on 128 bits and rounded once. tan calls the function 26
  * times, log 14, pow(x, 3) 3: the other calls, and every operand that is
  * zero, subnormal, not finite or near the ends of the exponent range, go to
  * gaol_fma_directed(), which tests/core_math.cpp compares with the fast paths
@@ -481,7 +483,7 @@ GAOL_FMA_INLINE double gaol_fma_pow2(int s)
   return gaol_fma_double(GAOL_FMA_CAST(uint64_t, s + 1023) << 52);
 }
 
-/* 1 and *r = a*b + c rounded upward when one of the two fast paths handles the
+/* 1 and *r = a*b + c rounded upward when one of the three fast paths handles the
    call, 0 and nothing else. The operands are finite, normal, and a*b is far
    from the ends of the exponent range (the exponent of the product, ep, is
    from -900 to 1000): a = ma 2^(fa - 1075), b = mb 2^(fb - 1075), the product
@@ -551,6 +553,54 @@ GAOL_FMA_INLINE int gaol_fma_fast_upward(double a, double b, double c, double* r
         *r = gaol_fma_double(((GAOL_FMA_CAST(uint64_t, fc + q - 11) << 52) + mant)
                              | (GAOL_FMA_CAST(uint64_t, sign_c) << 63));
         return 1;
+      }
+    }
+    /* c of the size of the product, or below it down to 73 binades (which the
+       two paths above did not take): the sum or the difference is exact on 128
+       bits, c = mc 2^(s + k) being the product's unit 2^s up by k bits, the
+       product up by -k bits when k is negative (k = ec - ep + 52, from -21 to
+       54: below 2^127 whatever the signs, cancellations included). It is
+       rounded once, to 53 bits, from its leading bit: the bits that go are
+       q = m - 53, and the result is the exact value when m <= 53. ep >= -890 keeps
+       the unit above 2^-1015, and the result normal */
+    {
+      const int k = fc - fa - fb + 1075;
+      if (ep >= -890 && GAOL_FMA_CAST(unsigned, fc - 1) < 2044u && k >= -21 && k <= 54) {
+        const uint64_t mc = (uc & mant_mask) | implicit;
+        const int sign_c = GAOL_FMA_CAST(int, uc >> 63);
+        const unsigned __int128 big = (GAOL_FMA_CAST(unsigned __int128, ma) * mb) << (k < 0 ? -k : 0);
+        const unsigned __int128 small = GAOL_FMA_CAST(unsigned __int128, mc) << (k > 0 ? k : 0);
+        unsigned __int128 value;
+        int sign_r;
+        if (sign_p == sign_c) {
+          value = big + small;
+          sign_r = sign_p;
+        } else if (big >= small) {
+          value = big - small;
+          sign_r = sign_p;
+        } else {
+          value = small - big;
+          sign_r = sign_c;
+        }
+        if (value == 0) {
+          *r = 0.0; /* a*b = -c exactly: +0 upward */
+          return 1;
+        }
+        {
+          const uint64_t high = GAOL_FMA_CAST(uint64_t, value >> 64);
+          const int m = high != 0 ? 128 - gaol_fma_clz64(high) : 64 - gaol_fma_clz64(GAOL_FMA_CAST(uint64_t, value));
+          const int q = m - 53;
+          const int go = q > 0 ? q : 0;   /* the bits that go */
+          const int up_shift = q < 0 ? -q : 0; /* an exact value of fewer than 53 bits goes up to 53 */
+          const unsigned __int128 kept = value >> go;
+          /* upward: a positive value that is not exact goes up, a negative one, rounded toward zero, does not */
+          const uint64_t up = value != (kept << go) && sign_r == 0;
+          const uint64_t mant = (GAOL_FMA_CAST(uint64_t, kept) << up_shift) + up;
+          const int unit = s + (k < 0 ? k : 0);
+          *r = gaol_fma_double(((GAOL_FMA_CAST(uint64_t, unit + q + 1074) << 52) + mant)
+                               | (GAOL_FMA_CAST(uint64_t, sign_r) << 63));
+          return 1;
+        }
       }
     }
   }
