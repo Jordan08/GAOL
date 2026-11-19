@@ -771,8 +771,37 @@ library, which CORE-MATH calls: \code{fma()} correctly rounded in the four
 directions at six triples, and \code{round()} at
 $\pm$\code{0x1.fffffffffffffp-2}, $\pm0.5$, $\pm2.5$ and $2^{52}-1/2$;
 the \code{fma()} and \code{round()} of
-mingw-w64's own math library on x64, which GAOL refuses, fail 21 and 6 of
-these checks under wine.\newinvfive{} The \code{gaol\_ldexp()} CORE-MATH
+mingw-w64's own math library on x64 fail 21 and 6 of these checks under
+wine:\newinvfive{} where the library is that one (\code{GAOL\_MINGW\_OWN\_MATH}
+of \file{gaol/gaol\_config.h}), GAOL calls the instruction (\option{-mfma}) or
+its own \code{gaol\_fma\_upward()} of \file{gaol/math/gaol\_fma.h} without it
+(the \code{fma()} check calls \code{gaol\_fma()}, right in the four directions),
+and its own \code{gaol\_round()}, which the \code{round()} check then calls and
+a second function checks on every platform, in the four directions, at 41
+values and at the doubles around every power of two and every halfway value from
+$-2000$ to 2000. A third checks \code{gaol\_fma()} on every platform, apart
+from the C library: $a\times b + c$ rounded once in the four directions, given
+or in effect, at the triples of \file{fma\_values.py} (exact rational
+arithmetic: errors of products, products that cancel, halfway cases of both
+parities, a product far below $c$ and above it at every distance, the
+subnormal range, the edge of the overflow), at the error of 20\,000 products
+that Dekker's splitting gives with no fma, at the zeros, the infinities, the NaN
+and the overflows, and, where the platform has the instruction or a C library
+whose \code{fma()} is right, at 200\,000 random triples of every kind against
+it. A fourth checks \code{gaol\_fma\_upward()}, which GAOL calls where
+\code{GAOL\_SOFT\_FMA} is 1 and which is right in the upward direction alone (a
+debug build checks the direction): at the triples of \file{fma\_values.py}, then
+at 900\,000 triples of the kinds its three fast paths are for and of their edges
+(the error of a product, $c$ far above the product, $c$ of the size of the
+product or below it), against \code{gaol\_fma\_directed()} and the instruction;
+the fast paths have to take most of the triples that are theirs. CORE-MATH
+computes with \code{gaol\_fma\_upward()} there, so that the checks that call it
+in another direction (the four roundings of the hard cases of \code{sin},
+\code{cos}, \code{cbrt} and \code{rsqrt}, the exception flags, \code{pow} at the
+limits) are not run, and those that compare a lower bound with the value rounded
+downward compare it with the value rounded upward, which a lower bound is or is
+the double below: the builds with the instruction, or with a library
+\code{fma()} that is right, run them all. The \code{gaol\_ldexp()} CORE-MATH
 rounds the subnormal values of \code{erfc} with has to be $x\cdot2^n$
 rounded once in the four directions at 20\,000 random pairs. \code{pow} at
 the corners where the base is 0 or $+\infty$ or the exponent infinite has to
@@ -1385,10 +1414,28 @@ which upstream CORE-MATH tests to read the rounding direction, and on x86
 GAOL gives it \option{-msse2}, without which it computes doubles on the x87
 unit. MinGW-w64 15 builds x86 and x64, Release and Debug, with the SSE2
 intervals on both and \option{-faligned-new=8} on x86, which a step checks;
-14 builds x86 and x64, 12 and 13 x86; on x86, GCC 15.2 builds with
-\option{GAOL\_PRESERVE\_ROUNDING} and \option{-mfma}, and GCC 13.2 with
-\option{GAOL\_FMA=OFF}, the \code{fma()} of mingw-w64 11 on the x87 unit.
-MSYS2 builds UCRT64 (GCC, and GCC again with
+14 builds x86 and x64, and, in Release, 11, 12 and 13 build x86 and x64
+(the mingw-w64 before 12 give their programs the \code{fma()} and \code{round()}
+of mingw-w64's own math library, which GAOL does not call: \code{fma()} is the
+instruction, with the \option{-mfma} that \option{GAOL\_FMA} gives them, and
+\code{gaol\_fma()} without it, and \code{round()} is \code{gaol\_round()}); with
+\option{GAOL\_FMA=OFF} and \code{gaol\_fma()}, GCC 13.2 builds x64 and x86 and GCC
+11.2 x86; on x86, GCC 15.2 builds with \option{GAOL\_PRESERVE\_ROUNDING} and
+\option{-mfma}. For each of them a step checks that no object of the library
+calls the \code{fma()} of the C library
+(\file{.github/scripts/check-no-fma-call.sh}) and that \code{GAOL\_SOFT\_FMA} is
+what the flags of \file{gaol.pc} say. On Ubuntu x86-64, GCC with \option{-mfma}
+and Clang with \option{GAOL\_FMA=OFF} build with
+\option{-DGAOL\_FMA\_SOFTWARE=ON}, which has GAOL call \code{gaol\_fma\_upward()}
+where the library's \code{fma()} is right, so that \code{core\_math} compares the
+two. MSYS2 MINGW64 (GCC and Clang) and MINGW32, which link \file{msvcrt.dll},
+are built and tested with \option{-mfma} and, for MINGW64 (GCC) and MINGW32,
+with \option{GAOL\_FMA=OFF}, where \code{gaol\_fma()} computes \code{fma()}.
+llvm-mingw 20230320 (Clang~16, mingw-w64~11) is built and tested on the arm64
+runners, whose \code{libmingwex} holds its own \code{fma()} and \code{round()}:
+GAOL calls \code{gaol\_round()} and the instruction, which a script reads in the
+code of the library (\file{.github/scripts/check-arm64-fma.sh}). MSYS2 builds
+UCRT64 (GCC, and GCC again with
 \option{GAOL\_PRESERVE\_ROUNDING}, with and without \option{GAOL\_FMA}: with
 \option{-mfma}, the rounding direction goes through MXCSR alone, which
 Linux, clang-cl and Visual C++ x64 with \option{/arch:AVX2} run), CLANG64
@@ -1399,8 +1446,8 @@ builds GCC for x86-64, Release and Debug, with
 \option{-mfma -mprefer-vector-width=128}, all the tests passing but those skipped there (\code{intervalf} and
 \code{interval2f}, which no build compiles, and \code{cpack\_stale\_configure},
 the CPack of Cygwin making no archive), and a configuration with
-\option{GAOL\_FMA=OFF} that \file{gaol/gaol\_config.h} has to
-refuse.\newinvfive{} Clang with the target of Visual C++ and the driver of
+\option{GAOL\_FMA=OFF}, where \code{gaol\_fma()} computes
+\code{fma()}.\newinvfive{} Clang with the target of Visual C++ and the driver of
 GCC (\cmd{clang++}, not clang-cl) builds in the environment of Visual Studio
 with CMake and meson for x64 and x86, and with autotools for x64, the
 library in C++14 there, the standard library of Visual C++ needing it. With
@@ -1648,27 +1695,25 @@ September 2026, building it past its refusal.
     Clang 18 honours it. & Refused by the three builds; a job checks it for
     the C compiler alone, the C++ compiler alone and both. Ubuntu 22.04
     arm64 is built with GCC only.\\
-  MinGW-w64 whose \code{fma()} or \code{round()} is wrong: on x64, GCC 11 to
-    13 of Chocolatey (mingw-w64 before 12) and the mingw-w64 linked with
-    \file{msvcrt.dll} (MSYS2 MINGW64, the cross compilers of Debian and
-    Ubuntu); on 32-bit x86, GCC 11 of WinLibs (mingw-w64 9) and, without
-    \option{-mfma}, mingw-w64 12 or later linked with \file{msvcrt.dll}
-    (MSYS2 MINGW32); on ARM, as on x64 & Wrong bounds. On x64 the
-    \code{fma()} of mingw-w64's own math library adds the products of the
-    halves of its arguments with four roundings (10.7\,\% of the error-free
-    products and 25 to 73\,\% of other triples wrong), and CORE-MATH
-    computes with it wherever the compiler has no \option{-mfma}; its
-    \code{round()} depends on the direction. GAOL v5 fails
-    \code{elementary}, \code{reverse} and \code{core\_math}: bounds of
-    \code{tan()}, \code{asin()}, \code{atan()}, \code{sinh()}, \code{cosh()},
-    \code{atanh()} and \code{atan2()} of small arguments do not enclose the
-    exact values. From mingw-w64 12 on, a toolchain linking the UCRT takes
-    the \code{fma()} and \code{round()} of \file{ucrtbase.dll}. & Refused by
-    \file{gaol/gaol\_config.h}; seven jobs check the refusal, three of them
-    MSYS2. MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on 32-bit x86 (13 also
-    with \option{GAOL\_FMA=OFF}), MSYS2 UCRT64 and CLANG64 are built and
-    tested; \code{core\_math} checks \code{fma()} and \code{round()}
-    first.\\
+  MinGW-w64 for 32-bit ARM, and for 64-bit ARM of version 12 or later linked
+    with \file{msvcrt.dll} rather than the UCRT & Not built. Its \code{fma()}
+    and \code{round()} are those of mingw-w64's own math library, which are
+    wrong on x86 (\pxref{sec:refused}): the \code{round()} is computed in
+    doubles and depends on the rounding direction there too, and the
+    \code{fma()} of 32-bit ARM is not fused (a product and a sum each
+    rounded). On 64-bit ARM the \code{fma()} is the instruction \code{fmadd};
+    no toolchain links \file{msvcrt.dll} there (llvm-mingw has none), so that
+    the case is not built. & Refused by \file{gaol/gaol\_config.h}. The refusal
+    is tested with the macros of such a toolchain defined by hand on an x86
+    system that is not Windows (\code{refused\_mingw\_arm32} and
+    \code{refused\_mingw\_arm64\_msvcrt}, and the end of
+    \file{refused\_options.sh} for the autotools and meson builds): that checks
+    the logic of the refusal, not a real toolchain for ARM, which no job
+    builds. mingw-w64 for 64-bit ARM before version 12 is accepted:
+    llvm-mingw 20230320 (Clang~16, mingw-w64~11) is built and tested, with the
+    instruction and \code{gaol\_round()}; MSYS2 CLANGARM64, which links the
+    UCRT, is built and tested too. On x86 the same toolchains are built and
+    tested, with the instruction and with \code{gaol\_fma()}.\\
   Visual C++, and clang-cl from Clang 16, without \option{/fp:strict}
     (\option{/fp:precise}, their default) & Bounds not certified: they then
     assume rounding to nearest, and may evaluate or rewrite floating-point
@@ -1698,14 +1743,6 @@ September 2026, building it past its refusal.
     before, and \file{gaol/gaol\_config.h} stops the compilation of NEON
     intervals elsewhere; the Visual Studio and MSYS2 CLANGARM64 jobs check
     the NEON intervals on arm64, and the armhf jobs the FPU ones.\\
-  Cygwin without the fused multiply-add instructions
-    (\option{GAOL\_FMA=OFF}, or a processor without them) & Bounds not
-    certified: the \code{fma()} of the C library of Cygwin is not correctly
-    rounded, \code{fma(1 + 2\textasciicircum{}-30, 1 - 2\textasciicircum{}-30, -1)} giving 0 instead of
-    $-2^{-60}$, and CORE-MATH computes with \code{fma()}. & Refused by
-    \file{gaol/gaol\_config.h}; the Cygwin job checks the refusal, and
-    builds and tests Cygwin with \option{-mfma} (GCC 14.4, Release, three
-    tests skipped).\\
   Doubles computed on the x87 unit of 32-bit x86 & Wrong results rounded to
     nearest, and wrong bounds: the x87 unit computes with 64-bit
     significands, and CORE-MATH assumes every operation on doubles rounded
@@ -1881,6 +1918,8 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
   \file{scripts/\allowbreak check-intervals.sh} & Fails unless the build computes with
     the expected intervals (NEON, SSE2 or FPU)\\
   \file{scripts/\allowbreak check-gcc-windows-fma.sh} & Checks that the objects of \file{gaol\_interval\_core.cpp} and of the \code{cos} of CORE-MATH built by GCC for Windows hold fused multiply-add instructions, and that no object names a 256-bit or 512-bit register (an error on x64, GCC bug 54412; a notice on x86)\\
+  \file{scripts/\allowbreak check-no-fma-call.sh} & Fails if an object of the library calls the \code{fma()} of the C library, which GAOL does not call where that is mingw-w64's own or Cygwin's: the instruction, or \code{gaol\_fma()}, takes its place; it counts the undefined symbols too, so that a count of zero is no mere failure to read the objects\\
+  \file{scripts/\allowbreak check-arm64-fma.sh} & On 64-bit ARM with the mingw-w64 whose math library is its own (before version 12), reads in the code that \code{fma()} is the fused instruction: the \code{fma()} of \file{libmingwex.a} is one \code{fmadd} and nothing else that computes, the objects of the library hold fused instructions, and none calls \code{fma()} or \code{round()}\\
   \file{scripts/comma-locale.sh} & Generates \code{fr\_FR.UTF-8} with \cmd{localedef} before the tests (\code{generate}), and checks after them that \code{numbers} ran checks under a locale writing a
 decimal comma (\code{check}), so that \code{numbers} does not pass without having tried a locale writing a decimal comma\\
   \file{scripts/sde-tests.sh} & Runs the tests that compute with intervals (all
@@ -2076,8 +2115,8 @@ Some checks are deferred or left out, for the reasons the documentation
 gives: the reading of a text of 512~MiB, which found a 32-bit exponent
 overflow, has no test, since the text is read through two more copies of
 it; the checks of several threads reading or writing at once are commented
-out, the tests running no thread; the refusal of the mingw-w64 of ARM whose
-\code{fma()} is wrong is not tested; Debian 11 is left out of the
+out, the tests running no thread; the refusal of the mingw-w64 of ARM is tested with macros defined by
+hand on an x86 system, not with a toolchain for ARM, which no job builds; Debian 11 is left out of the
 continuous integration, and the intervals of floats are compiled by none of
 the builds. The next chapter turns to the programs written for GAOL~4: how
 to compile and link them with GAOL v5, which results change, and the

@@ -227,7 +227,7 @@ and checks it.
     \code{TwoSum(1e20, 1e-20)}, the error of a sum & $s+e\neq a+b$ & $s+e=a+b$\\
     \code{TwoSum(a, b)}, 50\,000 pairs of doubles of exponents from $-60$ to 60 & $s+e\neq a+b$ for 10\,717 pairs & none\\
     \code{TwoProd(a, b)}, Dekker's splitting, 50\,000 pairs of doubles of $[1,2)$ & $p+e\neq ab$ for 1\,888 pairs & none\\
-    \code{TwoProd(a, b)}, \code{e = std::fma(a, b, -a*b)}, the same pairs & none & none\\
+    \code{TwoProd(a, b)}, \code{e = gaol::gaol\_fma(a, b, -a*b)}, the same pairs & none & none\\
     \hline
   \end{tabular}
 
@@ -266,8 +266,16 @@ the error of a rounded product is a double, which \code{std::fma} computes
 however it rounds, provided it is correctly rounded, by the instruction or by
 a call of a C library whose \code{fma()} is (with GCC, \code{std::fma} without
 optimization is a call of the C library, whose \code{fma()} is wrong on
-Cygwin; \code{\_\_builtin\_fma}, which GAOL calls itself, is the instruction
-with \option{-mfma}). Compensated sums, and the
+Cygwin and the older MinGW-w64; \code{\_\_builtin\_fma}, which GAOL calls
+itself, is the instruction with \option{-mfma}). \code{gaol::gaol\_fma(a, b, c)},
+which \code{gaol\_ieee1788} has too, spares a program that trouble: it is
+$a\times b + c$ rounded once in the direction in effect, the same on every
+platform, the instruction where the program has it (\option{-mfma}, any 64-bit
+ARM), the \code{fma()} of the C library where that is right, and GAOL's own
+computation with integers where it is not (those toolchains, without
+\option{-mfma}). It is not called \code{fma}, which would be ambiguous with
+\code{std::fma} for a program with \code{using namespace gaol;} and
+\code{using namespace std;}. Compensated sums, and the
 double-double arithmetic built on such algorithms, lose their accuracy the
 same way. Built with \option{GAOL\_PRESERVE\_ROUNDING}, the program computes
 the right-hand column of the table all the time.
