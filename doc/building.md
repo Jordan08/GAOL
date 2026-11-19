@@ -319,12 +319,19 @@ the tag, which it makes if there is none, with the notes GitHub generates
 (GAOL v5): `libgaol-dev_<version>_amd64.deb` (Ubuntu 26.04 x86_64, the GCC of
 the system), `gaol-<version>-macos-arm64.pkg` (macOS 26 arm64, AppleClang) and
 `gaol-<version>-windows-x64.exe` (Windows Server 2025, Visual C++ 2026 x64,
-`/MD`), in Release, with `-DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF` on x86-64.
-Each job runs the unit tests, makes the package, installs it on the runner,
-and builds and runs the unit tests again with the installed GAOL
-(`tests/find_package`). A pull request that changes the workflow,
-`CMakeLists.txt` or `cmake/` builds the three and keeps them as artifacts of
-the run.
+`/MD`), in Release, with `-DGAOL_PREFER_AVX512=OFF` on x86-64. The two
+packages for x86-64 take the fused multiply-add instructions (`-mfma` for the
+`.deb`, `/arch:AVX2` for the `.exe`, which the code using them is compiled
+with too: `gaol.pc`, the CMake package), and the job fails if the
+configuration leaves them out. Only the processors that have them run these
+two: Intel Haswell and AMD Piledriver (2012-2013) and later ones for the
+`.deb`, Intel Haswell and AMD Excavator (2013-2015) and later ones,
+`/arch:AVX2` taking AVX2 too, for the `.exe`. A package for any processor is
+built as above, with `-DGAOL_FMA=OFF`. Each job runs the unit tests, makes the
+package, installs it on the runner, and builds and runs the unit tests again
+with the installed GAOL (`tests/find_package`). A pull request that changes
+the workflow, `CMakeLists.txt` or `cmake/` builds the three and keeps them as
+artifacts of the run.
 
 The archive takes its name from the version CMake read when it configured, and
 CMake warns of a `configure` generated for another version at that moment.
