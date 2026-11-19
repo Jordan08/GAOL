@@ -183,6 +183,7 @@ namespace gaol {
   using gaol_core::expm1;
   using gaol_core::floor_rel;
   using gaol_core::fma;
+  using gaol_core::gaol_fma;
   using gaol_core::hull;
   using gaol_core::hypot;
   using gaol_core::intersect;

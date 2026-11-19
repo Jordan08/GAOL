@@ -373,7 +373,7 @@ namespace gaol_tests
   inline double fma_as_gaol(double a, double b, double c)
   {
 #if GAOL_SOFT_FMA
-    return gaol_fma(a, b, c);
+    return ::gaol_fma(a, b, c);
 #elif defined(__GNUC__)
     return __builtin_fma(a, b, c);
 #else

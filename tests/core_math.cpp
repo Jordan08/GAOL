@@ -678,7 +678,7 @@ namespace
     // read at run time, as the fma of the C library above
     volatile double va = a, vb = b, vc = c;
     std::fesetround(fma_in_effect[d]);
-    const double got = gaol_core::rnd_keep(gaol_fma(va, vb, vc));
+    const double got = gaol_core::rnd_keep(::gaol_fma(va, vb, vc));
     std::fesetround(FE_UPWARD);
     check(what + ": in the direction in effect",
           nan ? got != got : same_bits(got, want),
@@ -1084,6 +1084,71 @@ namespace
             });
     }
 #endif
+  }
+
+  /*
+    gaol_fma() of gaol/core/gaol_interval_core.h, the function of three doubles
+    that a program calls, in gaol and in gaol_ieee1788 (GAOL v5): a*b + c
+    rounded once in the direction in effect, the same on every platform
+    whichever fma() the C library has and whether the code has the instruction or
+    not (the instruction with -mfma, fma_exact() of the library otherwise, which
+    is the fma() of the C library where that is right and GAOL's own computation
+    where it is not): at the triples of tests/fma_values.py in the four
+    directions, and, against gaol_fma_directed() of gaol/math/gaol_fma.h, the
+    function that is right in the four directions whatever the platform, at 40 000
+    random triples, the errors of products among them, in each direction.
+  */
+  void gaol_fma_exported()
+  {
+    const auto same = [](double x, double y) { return (x != x) ? y != y : same_bits(x, y); };
+    for (const FmaValue& t : fma_values) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double a = t.a, b = t.b, c = t.c;
+        std::fesetround(fma_in_effect[d]);
+        const double in_gaol = gaol_core::rnd_keep(gaol::gaol_fma(a, b, c));
+        const double in_ieee1788 = gaol_core::rnd_keep(gaol_ieee1788::gaol_fma(a, b, c));
+        const double out_of_line = gaol_core::rnd_keep(gaol_core::fma_exact(a, b, c));
+        std::fesetround(FE_UPWARD);
+        const auto message = [&](const char* name, double got) {
+          return std::string(name) + "(" + show(t.a) + ", " + show(t.b) + ", " + show(t.c) + ") rounding "
+               + fma_names[d] + " = " + show(got) + " rather than " + show(t.rounded[d]);
+        };
+        check("gaol::gaol_fma(): the exact value, in the direction in effect", same(in_gaol, t.rounded[d]),
+              [&] { return message("gaol::gaol_fma", in_gaol); });
+        check("gaol_ieee1788::gaol_fma(): the exact value, in the direction in effect",
+              same(in_ieee1788, t.rounded[d]), [&] { return message("gaol_ieee1788::gaol_fma", in_ieee1788); });
+        check("gaol_core::fma_exact(): the exact value, in the direction in effect",
+              same(out_of_line, t.rounded[d]), [&] { return message("gaol_core::fma_exact", out_of_line); });
+      }
+    }
+    std::mt19937_64 gen(20261120u);
+    for (int i = 0; i < 10000; ++i) {
+      const double a = random_double(gen, -300, 300);
+      const double b = random_double(gen, -300, 300);
+      for (int d = 0; d < 4; ++d) {
+        double c;
+        if (i % 2 == 0) {
+          c = random_double(gen, -600, 600);
+        } else {
+          // the error of the product in the direction d: c = -rounded(a*b)
+          volatile double va = a, vb = b;
+          std::fesetround(fma_in_effect[d]);
+          const double p = gaol_core::rnd_keep(va * vb);
+          std::fesetround(FE_UPWARD);
+          c = -p;
+        }
+        const double want = ::gaol_fma_directed(a, b, c, fma_directed[d]);
+        volatile double va = a, vb = b, vc = c;
+        std::fesetround(fma_in_effect[d]);
+        const double got = gaol_core::rnd_keep(gaol::gaol_fma(va, vb, vc));
+        std::fesetround(FE_UPWARD);
+        check("gaol::gaol_fma(): as the function right in the four directions, at random", same(got, want),
+              [&] {
+                return "gaol::gaol_fma(" + show(a) + ", " + show(b) + ", " + show(c) + ") rounding "
+                     + fma_names[d] + " = " + show(got) + " rather than " + show(want);
+              });
+      }
+    }
   }
 
   // __builtin_fma(x, y, z) as the sources of CORE-MATH call it, with the lines of
@@ -3079,6 +3144,7 @@ int main()
   builtin_round_of_core_math();
   gaol_fma_of_integers();
   gaol_fma_upward_fast_paths();
+  gaol_fma_exported();
   builtin_fma_of_core_math();
 #if GAOL_TESTS_CHECK_LIBRARY_FMA
   c_library_fma_function();

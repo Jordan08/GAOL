@@ -1317,6 +1317,23 @@ namespace gaol_core {
   }
 #endif
 
+  /*
+    gaol_fma() of gaol_interval_core.h where the code of the program has no
+    instruction: the fma() of the C library where it is right (fma_once(), the
+    instruction where this library has it), and the gaol_fma() of
+    gaol/math/gaol_fma.h, which computes with integers and is right in the four
+    directions, where the C library's is wrong and this library has no
+    instruction (GAOL_SOFT_FMA) (GAOL v5).
+  */
+  double fma_exact(double a, double b, double c)
+  {
+#if GAOL_SOFT_FMA
+    return ::gaol_fma(a, b, c);
+#else
+    return fma_once(a, b, c);
+#endif
+  }
+
 
   double interval::smig(void) const
   {

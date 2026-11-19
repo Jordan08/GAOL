@@ -1768,6 +1768,30 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval compoundm1(const interval& X, const
   */
 GAOL_NODISCARD extern GAOL_PUBLIC   interval fma(const interval& X, const interval& Y, const interval& Z);
   /*!
+    \brief gaol_fma(a, b, c): a*b + c of three doubles rounded once, in the
+    rounding direction in effect, with the same value on every platform (GAOL v5)
+
+    The fused multiply-add instruction where the code has it (-mfma with GCC and
+    Clang for x86, any 64-bit ARM), and else fma_exact(), which gives the
+    value of the instruction too: the fma() of the C library where that is
+    correctly rounded, and GAOL's own computation with integers where it is not
+    (the mingw-w64 before version 12 or linked with msvcrt.dll, and Cygwin) and
+    the library has no instruction. A program calls gaol_fma() without knowing
+    which: the instruction may be there or not, the C library's fma() right or
+    not, the value is the correctly rounded one. It is not called fma: a program
+    with `using namespace gaol;` and `using namespace std;` would find two
+    functions of three doubles. In gaol and in gaol_ieee1788.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   double fma_exact(double a, double b, double c);
+GAOL_NODISCARD GAOL_INLINE double gaol_fma(double a, double b, double c)
+{
+#if (defined(__GNUC__) || defined(__clang__)) && (defined(__FMA__) || defined(__aarch64__) || defined(__ARM_FEATURE_FMA))
+  return __builtin_fma(a, b, c);
+#else
+  return fma_exact(a, b, c);
+#endif
+}
+  /*!
     \brief cancelMinus and cancelPlus of IEEE 1788-2015 (10.5.6, 12.12.5)
     (GAOL v5)
 

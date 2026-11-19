@@ -168,6 +168,9 @@ namespace gaol_ieee1788 {
   using ::gaol_core::sqr;
   using ::gaol_core::sqrt;
   using ::gaol_core::fma;
+  //! gaol_fma(a, b, c): a*b + c of three doubles, rounded once, the instruction where there is one and
+  //! right, GAOL's own computation where there is not (GAOL v5)
+  using ::gaol_core::gaol_fma;
   
   /*!
   pown(x, p): gaol_pown(x, p), x^p for an int p, defined for x < 0 too. The
