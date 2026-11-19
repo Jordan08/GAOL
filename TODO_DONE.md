@@ -8817,7 +8817,8 @@ la proposition de contournement de round() » (18 novembre).
 - **Ce qui reste ouvert** : la mesure de Boulot6 ; le manuel ; des chemins rapides
   pour x86 32 bits (MSYS2 MINGW32 et les mingw-w64 32 bits, sans `__int128`,
   restent à 21 ns par appel) ; `tan` reste à 253 ns contre 29 avec l'instruction ;
-  la question de #205 est close par #393 (`TODO_AFTER.md` 4.5).
+  la question ouverte de #205 (une pull request fusionnée le 27 octobre) est
+  close par #393 (`TODO_AFTER.md` 3.5).
 - **#391** : #393 est entrée dans `dev` le 19 novembre à 9 h 58 UTC pendant que
   #391, dont la tête est `dev`, est ouverte : à sa fusion, `master` reçoit aussi
   le code, les tests et les textes de #393 ; les registres de 3.57 et 3.58 le
@@ -11443,10 +11444,12 @@ leurs registres n'étaient pas faits :
 
 - Les registres de #393, en un commit direct sur `dev` (la demande du mainteneur,
   3.59) : `TODO.md` (l'en-tête et les pull requests), `TODO_AFTER.md` (l'en-tête,
-  le point 5, la question de #205, et le nouveau point 20), ce fichier (l'en-tête de la section 1, 1, 2.3, 3.58, 3.59 et
-  7.60) et `process.md` (l'en-tête et §12). Les issues #179 et #178 ne sont
-  pas mises à jour : elles ne le sont qu'après l'étiquette (3.57) ; #177 non. #205,
-  close par #393, est commentée et fermée.
+  le point 3.5, la question ouverte de #205, et le nouveau point 20), ce fichier
+  (l'en-tête de la section 1, 1, 2.3, 3.58, 3.59 et 7.60) et `process.md`
+  (l'en-tête et §12). Les issues #179 et #178 ne sont pas mises à jour : elles ne
+  le sont qu'après l'étiquette (3.57) ; #177 non. #205 est une pull request
+  fusionnée le 27 octobre : il n'y a rien à fermer, la question est close dans
+  `TODO_AFTER.md` seulement.
 - Ce commit ne change que des fichiers que les workflows ignorent sur un push
   (`paths-ignore`) : aucun workflow ne tourne sur `dev` pour lui ; la CI de `push`
   du commit de fusion de #393 (`53db490`) continue.
