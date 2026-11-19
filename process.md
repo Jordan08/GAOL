@@ -14,7 +14,11 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 18 novembre 2026, au commit `cb2474b` de `dev` (la
+Dernière mise à jour : 19 novembre 2026, au commit `53db490` de `dev` (la
+fusion de #393, hors des points : `gaol_fma()`, le `fma()` calculé avec des
+entiers pour les mingw-w64 avant 12 et Cygwin sans FMA, ses trois chemins
+rapides et `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788`, après les
+registres de #392, `137c990`), et avant au commit `cb2474b` de `dev` (la
 fusion de #392, hors des points : les mingw-w64 dont le `fma()` et le `round()`
 sont ceux de leur bibliothèque sont acceptés avec `-mfma`, après les registres
 de PJ écrits d'avance, `2166289`), et avant au commit de fusion de #391 dans
@@ -1135,12 +1139,16 @@ git ls-remote --heads origin
   l'étiquette `v5.0.0`, posée sur son commit de fusion (2.3, 3.57 et 7.58),
   puis #392 (hors des points : les mingw-w64 dont le `fma()` et le `round()`
   sont ceux de leur bibliothèque, acceptés avec `-mfma`) à 11 h 56 UTC
-  (`cb2474b`, 2.3, 3.58 et 7.59) ; l'audit du 13 octobre a vérifié dans
+  (`cb2474b`, 2.3, 3.58 et 7.59), puis, le 19 novembre, #393 (hors des points :
+  `gaol_fma()`, le `fma()` calculé avec des entiers, et `gaol_fma()` exporté) à
+  9 h 58 UTC (`53db490`, 2.3, 3.59 et 7.60) ; l'audit du 13 octobre a vérifié dans
   `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
-- **En cours** : au 18 novembre, #393 (hors des points : `gaol_fma()`, le
-  `fma()` calculé avec des entiers ; `mingw-soft-fma`) est ouverte et attend la
-  décision du mainteneur (`TODO_DONE.md` 3.58), aucune autre : #373 (le
+- **En cours** : au 19 novembre, aucune pull request n'est ouverte hors de #391
+  (les registres de la version, de `dev` dans `master`, écrits d'avance :
+  `TODO_DONE.md` 3.57) : #393 (hors des points : `gaol_fma()`, le `fma()` calculé
+  avec des entiers ; `mingw-soft-fma`) est fusionnée, ses registres faits
+  (`TODO_DONE.md` 2.3, 3.59 et 7.60) ; #373 (le
   diagnostic d'un échec sous Rosetta ; `todo-rosetta-diagnostic-pow2`)
   est fermée sans fusion, son contenu étant dans `dev` (`TODO_DONE.md` 2.4), et
   #351 à #355 et #372 (la tâche PX) sont fusionnées, leurs registres faits, ceux

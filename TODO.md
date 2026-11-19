@@ -1,10 +1,14 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `cb2474b` de `dev` (la fusion de
-#392 le 18 novembre à 11 h 56 UTC, hors des points : les mingw-w64 dont le
-`fma()` et le `round()` sont ceux de leur bibliothèque sont acceptés avec
-`-mfma`, après les registres de PJ écrits d'avance, `2166289`), et avant au
-commit de fusion de #391 dans `master` (le 18 novembre : les registres de la
+Ce qui reste à faire sur GAOL v5 au commit `53db490` de `dev` (la fusion de
+#393 le 19 novembre à 9 h 58 UTC, hors des points : `gaol_fma()`, le `fma()`
+calculé avec des entiers pour les mingw-w64 avant 12 et Cygwin sans FMA, ses
+trois chemins rapides et `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788`,
+après les registres de #392, `137c990`), et avant au commit `cb2474b` de `dev`
+(la fusion de #392 le 18 novembre à 11 h 56 UTC, hors des points : les
+mingw-w64 dont le `fma()` et le `round()` sont ceux de leur bibliothèque sont
+acceptés avec `-mfma`, après les registres de PJ écrits d'avance, `2166289`), et
+avant au commit de fusion de #391 dans `master` (le 18 novembre : les registres de la
 version, de `dev` dans `master` ; PJ est faite et l'étiquette `v5.0.0` est
 posée sur ce commit), et avant au commit `313ef2d`
 de `master` (la fusion de #390 le 17 novembre à 22 h 20 UTC : `dev`, à
@@ -88,10 +92,19 @@ peut-être fausse encore pour un programme qui met lui-même `FPCR.AH` sur arm64
 (issue #198 : `x / y` des intervalles NEON, cause non trouvée). Rien n'est à
 envoyer à un autre projet ni à publier sans l'accord du mainteneur. #393 (hors
 des points : `gaol_fma()`, le `fma()` calculé avec des entiers, pour
-les mingw-w64 avant 12 et Cygwin sans FMA ; `mingw-soft-fma`) est ouverte à ce
-commit, par la session « mingw FMA » sur la demande du mainteneur, qui avait
-répondu « Ne pas la faire » dans la session de #392 : elle attend sa décision
-(`TODO_DONE.md` 3.58). #392 (hors des points : GAOL appelle son propre `round()`
+les mingw-w64 avant 12 et Cygwin sans FMA ; `mingw-soft-fma`, ouverte par la
+session « mingw FMA » sur la demande du mainteneur, qui avait répondu « Ne pas
+la faire » dans la session de #392) est fusionnée le 19 novembre à 9 h 58 UTC par
+le mainteneur, la CI de sa tête au vert (les sept workflows), ses registres faits
+(`TODO_DONE.md` 2.3, 3.59 et 7.60) ; elle est entrée dans `dev` alors que #391,
+dont la tête est `dev`, est ouverte : `master` et l'étiquette `v5.0.0` portent
+son code à la fusion de #391 (`TODO_DONE.md` 3.59). Il reste, sur la demande du
+mainteneur du 19 novembre : la correction des sources du manuel (`02_installation.tex`,
+`04_rounding.tex`, `14_tests_ci.tex` disent encore que le refus de mingw-w64 pour
+ARM n'est pas testé, que les toolchains sans FMA sont refusées, et citent
+`std::fma`) dans une pull request vers `dev`, le PDF restant à la version, et la
+mesure du `fma()` logiciel sur le Xeon de la session Boulot6 (le banc est envoyé, le
+résultat attendu ; `TODO_DONE.md` 3.59). #392 (hors des points : GAOL appelle son propre `round()`
 et l'instruction FMA là où le `fma()` et le `round()` de la bibliothèque sont
 ceux de mingw-w64) est fusionnée le 18 novembre à 11 h 56 UTC par le mainteneur,
 la CI de sa tête au vert (les sept workflows), ses registres faits

@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 18 novembre 2026 (v5.0.0 est publiée :
+Tout ce qui est reporté sur GAOL v5 au 19 novembre 2026 (v5.0.0 est publiée :
 `TODO_DONE.md` 3.57) : ce qui vient après la version v5.0.0, ce que le
 mainteneur a reporté indéfiniment, ce qu'il a écarté en laissant une porte
 ouverte, et ce qui attend du matériel. Ce fichier et l'issue #178 ont le même
@@ -420,7 +420,11 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    n'avait pas AVX : une tranche compilée avec `-mfma` s'y arrêtait sur une
    instruction illégale. macOS 14 a quitté la CI (#276) ; le Rosetta de macOS
    15 et 26, où tournent les jobs universels, n'est pas vérifié sur ce point.
-5. **mingw-w64 11 lié à `msvcrt.dll`, sans FMA, sur x86 32 bits** (#205). Son
+5. **mingw-w64 11 lié à `msvcrt.dll`, sans FMA, sur x86 32 bits** (#205) :
+   **close par #393** (19 novembre) : GAOL ne l'appelle plus, il calcule `fma()`
+   avec `gaol_fma()` sans l'instruction (le `fma()` x87 de la 11 compris), et les
+   mingw-w64 d'avant 12 sont acceptés avec ou sans `-mfma` (`TODO_DONE.md` 2.3 et
+   3.59). Ce qui suit est l'ancien état. Son
    `fma()` est le même code (`math/fma.c`, inchangé de la version 9 à la 13) que
    celui que `gaol_config.h` refuse depuis #205 pour la version 12 ou plus ; la
    11 reste acceptée sans FMA parce que le job « MinGW-w64 13.2.0 x86 Release,
@@ -788,3 +792,11 @@ qu'elle a relevées sont inscrites ici, en une fois, sans rien changer au code
     définie dans `gaol/core/gaol_interval_core.cpp` depuis #283, et le coût de
     l'appel n'est mesuré par aucun banc de `tests/performance.cpp`. Mineur.
     *À rouvrir* si un programme réel l'appelle dans une boucle chaude.
+20. **Les chemins rapides de `gaol_fma_upward()` pour x86 32 bits** (#393) : les
+    trois chemins rapides (l'erreur d'un produit, `c` loin au-dessus du produit, `c`
+    de la taille du produit ou en dessous) ont besoin de `unsigned __int128`, que
+    MSYS2 MINGW32 et les mingw-w64 32 bits n'ont pas : ils restent au chemin
+    général, 21 ns par appel (`tan` d'un intervalle à environ 480 ns avec lui seul).
+    Un chemin en deux moitiés de 64 bits est possible, avec ses tests. *À rouvrir*
+    si une mesure sur un x86 32 bits sans FMA montre que le coût gêne ; la mesure du
+    Xeon de la session Boulot6 (`TODO_DONE.md` 3.59) est celle de l'x86-64.

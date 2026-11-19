@@ -58,7 +58,7 @@ par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 18 novembre 2026
+## 1. L'état au 19 novembre 2026
 
 - **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #391
   (le 18 novembre : les registres de la version, de `dev` dans `master`), celui
@@ -67,7 +67,12 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `c38417e`, y entre, 2 338 commits et 980 fichiers ; l'arbre de `master` est
   celui de `dev`).
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `cb2474b` (la fusion de #392 le 18 novembre à 11 h 56 UTC, hors des
+  commit `53db490` (la fusion de #393 le 19 novembre à 9 h 58 UTC, hors des
+  points : `gaol_fma()`, le `fma()` calculé avec des entiers pour les mingw-w64
+  avant 12 et Cygwin sans FMA, `gaol_fma_upward()` et ses trois chemins rapides,
+  `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788` (3.59), après les
+  registres de #392, `137c990` (7.59)), et avant au commit `cb2474b` (la fusion
+  de #392 le 18 novembre à 11 h 56 UTC, hors des
   points : les mingw-w64 dont le `fma()` et le `round()` sont ceux de leur
   bibliothèque sont acceptés avec `-mfma` (3.58), après les registres de PJ
   écrits d'avance, `2166289` (7.58)), et avant au commit `fc8b9ac` (la fusion
@@ -4858,6 +4863,70 @@ tournait au moment des registres.
   du prédicat (3.58) ; le huitième, la comparaison par `==` de `elementary`, qui
   ne voit pas le signe d'un zéro au niveau des intervalles, n'est pas retenu.
 
+- #393 (hors des points : `gaol_fma()`, le `fma()` calculé avec des entiers
+  pour les mingw-w64 avant 12 et Cygwin sans FMA ; `mingw-soft-fma`, 27 commits,
+  59 fichiers, 6 242 lignes ajoutées et 497 retirées) : fusionnée le 19 novembre
+  à 9 h 58 UTC par le mainteneur (`53db490`, tête `cede00b`), la CI de la tête au
+  vert : les sept workflows (Linux 10 jobs, Linux containers 8, Windows 18,
+  macOS 8, Autotools and meson 16, Performance 22, Release 3 dont 2 sautés),
+  `mergeable_state` clean ; celle de `e1884192` de même, et celle de `7e7abb1`,
+  de `c3f47a6` et de `90904b9` avant elle (le job « macOS 26, Xcode universal and
+  arm64 » de `90904b9` a été annulé sans runner à la première tentative, et a
+  passé à la relance). Ouverte le 18 novembre sur une demande explicite du
+  mainteneur dans la session « mingw FMA » (« fait une PR avec la proposition de
+  contournement avec un FMA logiciel, part de mingw-round »), basée sur
+  `mingw-round` puis reportée sur `dev` à la fusion de #392. Ce qu'elle fait :
+  `gaol/math/gaol_fma.h` (nouveau, non installé, en C), `gaol_fma_directed()`
+  (`a*b + c` arrondi une fois dans le sens donné, avec des entiers, produit exact
+  sur 106 bits, deux moitiés de 64 bits et non `gaol_u128`) et `gaol_fma()` (le
+  sens courant) ; `GAOL_SOFT_FMA` (`gaol_config.h`) vaut 1 là où le `fma()` de la
+  bibliothèque est faux (`GAOL_MINGW_OWN_MATH` ou Cygwin) et où la construction
+  n'a pas l'instruction (x86), ou avec `-DGAOL_FMA_SOFTWARE=ON`
+  (`GAOL_FMA_FORCE_SOFTWARE=1`) ; les `#error` de #392 qui refusaient ces
+  toolchains sans `-mfma` sont retirés ; `check-no-fma-call.sh` ; le CI construit
+  et teste MinGW-w64 11.2 à 13.2, MSYS2 MINGW64 et MINGW32 et Cygwin sans FMA, et
+  deux configurations de Linux avec `gaol_fma()` forcé. mingw-w64 pour ARM 64 bits
+  avant la version 12 est accepté (llvm-mingw 20230320, le job `w17` de
+  `windows.yml`, `check-arm64-fma.sh`, le `fma()` de la bibliothèque appelé comme
+  une fonction contre les 1 384 triplets exacts) ; restent refusés l'ARM 32 bits et
+  l'ARM 64 bits de mingw-w64 12 ou plus lié à `msvcrt.dll`, dont le refus est
+  testé avec les macros d'une telle toolchain définies à la main sur x86
+  (`refused_mingw_arm32`, `refused_mingw_arm64_msvcrt`, `tests/refused_mingw_arm.cpp`),
+  ce qui vérifie sa logique et non une vraie toolchain pour ARM (texte corrigé
+  dans `e1884192`). Le défaut de GCC 14.2, 15.3 et 16.2 pour i386 (`_BitInt(128)`
+  mal compilé avec `-ftree-coalesce-vars`, issue #394) : `gaol_u128.h` prend les
+  deux moitiés pour x86 32 bits avec GCC, `tests/u128_select.c` (en C) le
+  vérifie, deux configurations i386 de `containers.yml` (Debian 13, GCC 14.2 ;
+  forky, GCC 15). Le 19 novembre, sur la demande du mainteneur (3.59) :
+  `gaol_fma_upward()`, que GAOL appelle (la macro `__builtin_fma` de CORE-MATH et
+  `fma_once()`), suppose le sens vers le haut et ne lit pas MXCSR (assertion en
+  debug), avec trois chemins rapides sur x86-64 avec `unsigned __int128` (l'erreur
+  d'un produit, `c` loin au-dessus du produit, `c` de la taille du produit ou en
+  dessous jusqu'à 73 binades) ; `gaol_fma(a, b, c)` exporté dans `gaol` et
+  `gaol_ieee1788` (l'instruction si le code l'a, sinon `fma_exact()` de la
+  bibliothèque) ; l'exemple 13 l'utilise ; une vingtaine d'endroits de
+  `tests/core_math.cpp` et un de `tests/extended_precision.cpp` qui appelaient
+  CORE-MATH dans un autre sens ne tournent plus, ou comparent la borne inférieure
+  à la valeur arrondie vers le haut, là où `GAOL_SOFT_FMA` vaut 1. Les tests :
+  1 384 triplets exacts dans les quatre sens, 900 000 triplets de six sortes
+  contre le chemin général et l'instruction, 40 000 triplets pour `gaol_fma()`
+  exporté ; les dents : onze mutations du premier jet, puis, sur le test du dépôt,
+  cinq des sept mutants des deux premiers chemins tués (les deux autres sont
+  équivalents) et les sept du troisième ; hors du dépôt, 360 millions de
+  comparaisons avec l'instruction. Le coût (i7-1185G7, GCC 15, `-O3`, ns par
+  opération d'intervalle) : `tan` 484 -> 253 ns (instruction 29, GAOL 4 77),
+  `log` 278 -> 169 (29 ; 66), `pow(x, 3)` 76 -> 37 (11 ; 10,5) ; le tableau de
+  toutes les opérations, avec GAOL 4, est dans `doc/differences.md`. Relue par un
+  sous-agent sans contexte (`ff3bfa5`, 340 millions de triplets comparés à
+  l'instruction) : deux défauts bloquants corrigés (`gaol_fma.h` inclus sans
+  condition dans `gaol_interval_internal.h`, C4505 de Visual C++ ; les tests
+  construits contre un GAOL installé qui incluaient un en-tête non installé),
+  des tests sans dents, des textes. Autres corrections de la CI : C4459 de Visual
+  Studio (un `inf` local), l'archive de `make dist` (deux fichiers de
+  `.github`), `<limits.h>` avant les macros simulées (macOS x86_64).
+  `doc/differences.md` et le `ChangeLog` corrigés dans la branche, sur la
+  décision du mainteneur (3.58 et 3.59).
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -8689,9 +8758,10 @@ la proposition de contournement de round() » (18 novembre).
   explicite du mainteneur dans sa session (« fait une PR avec la proposition de
   contournement avec un FMA logiciel, part de mingw-round »), alors qu'il avait
   répondu « Ne pas la faire » dans celle-ci ; la session lui a transmis cette
-  réponse pour qu'il tranche, et #392 ne dépend pas de #393. La question de #205
-  (`TODO_AFTER.md`, mingw-w64 11 accepté sans FMA sur x86 32 bits) n'est pas
-  touchée. Le rapport de couverture (`coverage/README.md`) ne compte pas
+  réponse pour qu'il tranche, et #392 ne dépend pas de #393. #393 est fusionnée le
+  19 novembre (3.59) ; la question de #205 (`TODO_AFTER.md`, mingw-w64 11
+  accepté sans FMA sur x86 32 bits) n'est pas touchée par #392, et close par
+  #393. Le rapport de couverture (`coverage/README.md`) ne compte pas
   `gaol_round.h` ni `gaol_mingw_own_math.h` : à refaire à la prochaine version.
 - **L'étiquette `v5.0.0`** : #392 est entrée dans `dev` le 18 novembre à 11 h 56
   UTC pendant que #391, dont la tête est `dev`, était ouverte : à la fusion de
@@ -8699,6 +8769,61 @@ la proposition de contournement de round() » (18 novembre).
   de #392 ; les registres écrits d'avance en 3.57 le disaient autrement (trois
   commits de notes seulement après `fc8b9ac`), corrigés ici. La CI de la tête de
   #391 (`cb2474b`) se relance.
+
+### 3.59 Les 18 et 19 novembre : le `fma()` logiciel (#393)
+
+- **La demande** (le 18 novembre, la session « mingw FMA ») : « fait une PR avec
+  la proposition de contournement avec un FMA logiciel, part de mingw-round »,
+  alors que la session de #392 avait entendu « Ne pas la faire » ; le mainteneur
+  tranche en demandant la pull request. #392 ne dépend pas de #393.
+- **Les réponses du 18 novembre** : le job « macOS 26, Xcode universal and arm64 »,
+  annulé sans runner par un GitHub saturé, est relancé jusqu'à la troisième
+  tentative (« Attendre la tentative 3 ») ; deux configurations i386 de plus
+  dans `containers.yml` (« Ajouter aussi GCC 15 i386 ») ; essayer GCC 15 sur i386
+  et compléter l'issue #394, sans rien envoyer à GCC ; #393 laissée ouverte
+  (« La laisser ouverte »). Puis, sur sa demande, lever le refus de mingw-w64 pour
+  ARM 64 bits avant la version 12 : un job de CI sur un runner Windows 11 ARM avec
+  llvm-mingw (la 20230320 : mingw-w64 11, dont le `fma()` est l'instruction
+  `fmadd` : lu, et vérifié par un test), un test qui prouve que c'est
+  l'instruction fusionnée, et le `#error` restreint à l'ARM 32 bits et aux
+  cibles non testées.
+- **Les mesures et les décisions du 19 novembre** : « implémente la piste 1+2+3
+  plafond » (les deux premiers chemins rapides et `gaol_fma_upward()` qui suppose
+  le sens vers le haut) ; la variante qui lit MXCSR et garde le code général hors
+  ligne, juste dans les quatre sens, a été proposée (-21 % pour `tan`, -50 % pour
+  `log` contre -37 % et -38 %), et le mainteneur a choisi le **plafond littéral**,
+  sachant qu'il fait sauter une vingtaine de vérifications de CORE-MATH dans un
+  autre sens là où `GAOL_SOFT_FMA` vaut 1 (annoncées huit). La lecture de MXCSR
+  coûte environ 2 à 3 ns par appel pour `tan` et `pow(x, 3)`, rien pour `exp`,
+  `sinh` et `log` (estimation, `stmxcsr` seule non isolée). « Un troisième chemin
+  pour `tan` » (grandeurs voisines sans annulation, exact sur 128 bits) : `tan`
+  304 -> 253 ns, `pow(x, 3)` 45 -> 37. « Exporte `gaol_fma()` dans le namespace
+  `gaol` et `gaol_ieee1788` » : le nom `gaol_fma` (non `fma`, ambigu avec `std::fma`
+  sous `using namespace gaol; using namespace std;`), et l'exemple 13 le passe de
+  `std::fma` à `gaol::gaol_fma`, dans cette PR. Le refus de mingw-w64 pour ARM est
+  testé avec des macros simulées sur x86, non avec une vraie toolchain : les
+  textes qui disaient « non testé » sont corrigés. Le tableau de coût, avec GAOL
+  4 et GAOL 5 avec FMA, est dans `doc/differences.md` et la description de la PR.
+  Des mutants sont essayés sur le test du dépôt : sept sur sept du troisième chemin
+  tués.
+- **La suite, tranchée par le mainteneur le 19 novembre** : les registres
+  directement dans un commit sur `dev` (7.60) ; une mesure sur le Xeon de la session
+  Boulot6, plus proche d'un processeur ancien (le banc et les instructions envoyés,
+  le résultat à venir) ; les sources `.tex` du manuel corrigées maintenant
+  (`02_installation.tex`, `04_rounding.tex`, `14_tests_ci.tex` disent encore que le
+  refus n'est pas testé, que ces toolchains sont refusées sans FMA, et citent
+  `std::fma`), le PDF à la version ; le défaut de GCC pour i386 laissé dans #394
+  seulement (aucun rapport à la Bugzilla de GCC).
+- **Ce qui reste ouvert** : la mesure de Boulot6 ; le manuel ; des chemins rapides
+  pour x86 32 bits (MSYS2 MINGW32 et les mingw-w64 32 bits, sans `__int128`,
+  restent à 21 ns par appel) ; `tan` reste à 253 ns contre 29 avec l'instruction ;
+  la question de #205 est close par #393 (`TODO_AFTER.md` 4.5).
+- **#391** : #393 est entrée dans `dev` le 19 novembre à 9 h 58 UTC pendant que
+  #391, dont la tête est `dev`, est ouverte : à sa fusion, `master` reçoit aussi
+  le code, les tests et les textes de #393 ; les registres de 3.57 et 3.58 le
+  disent pour #392. Sur la demande du mainteneur, la CI de la pull request #391
+  (les workflows de l'évènement `pull_request`, relancés par la fusion de #393)
+  est annulée, et celle de `dev` (les workflows de `push`) est laissée.
 
 ## 4. Les points faits, par lettre
 
@@ -11313,6 +11438,18 @@ leurs registres n'étaient pas faits :
 - Ce commit ne change que des fichiers que les workflows ignorent sur un push
   (`paths-ignore`) : aucun workflow ne tourne sur `dev` ; la pull request #391,
   dont `dev` est la tête, relance ses workflows (3.57).
+
+### 7.60 Le 19 novembre (après #393 : les registres)
+
+- Les registres de #393, en un commit direct sur `dev` (la demande du mainteneur,
+  3.59) : `TODO.md` (l'en-tête et les pull requests), `TODO_AFTER.md` (l'en-tête,
+  le point 5, la question de #205, et le nouveau point 20), ce fichier (l'en-tête de la section 1, 1, 2.3, 3.58, 3.59 et
+  7.60) et `process.md` (l'en-tête et §12). Les issues #179 et #178 ne sont
+  pas mises à jour : elles ne le sont qu'après l'étiquette (3.57) ; #177 non. #205,
+  close par #393, est commentée et fermée.
+- Ce commit ne change que des fichiers que les workflows ignorent sur un push
+  (`paths-ignore`) : aucun workflow ne tourne sur `dev` pour lui ; la CI de `push`
+  du commit de fusion de #393 (`53db490`) continue.
 
 ## 8. Le ménage fait
 
