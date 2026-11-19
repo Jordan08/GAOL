@@ -543,7 +543,10 @@
    round(), which the job "llvm-mingw 20230320" of windows.yml checks, and runs
    the tests of GAOL with that Clang (MSYS2 CLANGARM64, which links the UCRT,
    is tested too). Refused: 32-bit ARM, whose fma() is not fused, and 64-bit
-   ARM with mingw-w64 12 or later linked with msvcrt.dll, which no job builds. */
+   ARM with mingw-w64 12 or later linked with msvcrt.dll, which no job builds:
+   tests/refused_mingw_arm.cpp checks the refusal with the macros of such a
+   toolchain defined by hand on x86, which tests its logic, not a real
+   toolchain. */
 /* 1 where fma() is gaol_fma_upward() of gaol/math/gaol_fma.h, which computes it with
    integers, rounded upward, the direction GAOL runs in (GAOL v5): the C library's fma() is wrong (GAOL_MINGW_OWN_MATH, which
    gaol/gaol_mingw_own_math.h gives: mingw-w64 before version 12, and the later

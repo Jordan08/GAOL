@@ -94,9 +94,11 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     its `fma()` is there the instruction `fmadd` (one instruction in the
     library, which the job reads in the code, and `__builtin_fma()` of Clang is
     the same instruction in the objects of GAOL), so that GAOL calls the
-    instruction, and `gaol_round()` for `round()`. Refused, not tested: 32-bit
-    ARM, whose `fma()` is not fused, and mingw-w64 12 or later linked with
-    `msvcrt.dll` on 64-bit ARM, which no toolchain does.
+    instruction, and `gaol_round()` for `round()`. Refused, with no toolchain
+    built: 32-bit ARM, whose `fma()` is not fused, and mingw-w64 12 or later
+    linked with `msvcrt.dll` on 64-bit ARM, which no toolchain does; the refusal
+    is tested with the macros of such a toolchain defined by hand on x86, which
+    checks its logic and not a real toolchain.
   - `tests/core_math.cpp` checks the `fma()` and `round()` of the C library in
     the four rounding directions, against exact rational arithmetic, then the
     bounds against CORE-MATH called in the downward and the upward rounding,

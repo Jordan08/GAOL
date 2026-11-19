@@ -342,7 +342,10 @@
 	and tested (windows.yml, check-arm64-fma.sh), and the test calls
 	that fma() as a function against exact values.  32-bit ARM (its
 	fma() is not fused) and 64-bit ARM of mingw-w64 12 or later linked
-	with msvcrt.dll stay refused, not tested.  The test checks first the
+	with msvcrt.dll stay refused (no toolchain is built; the refusal
+	is tested with the macros of such a toolchain defined by hand on
+	x86, which checks its logic, not a real toolchain).  The test
+	checks first the
 	fma() and round()
 	GAOL calls in the four rounding directions, against exact rational
 	arithmetic, and gaol_round() on every platform.

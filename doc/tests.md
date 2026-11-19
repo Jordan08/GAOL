@@ -1806,7 +1806,9 @@ which `numbers` checks there too.
   `__x86_64__`): 32-bit ARM with mingw-w64 11 and 64-bit ARM with mingw-w64 12
   without `_UCRT` have to fail with the message of the header; 64-bit ARM with
   mingw-w64 11, and with 12 saying `_UCRT` (the `fma()` and `round()` of
-  `ucrtbase.dll`), have to compile. The job of `windows.yml` that builds
+  `ucrtbase.dll`), have to compile. Those macros are defined by hand on an x86
+  system: the tests check the logic of the refusal, not a real toolchain for
+  ARM, which no job builds for the two refused cases. The job of `windows.yml` that builds
   llvm-mingw 20230320 on the arm64 runners is the test of the second case, with
   the toolchain itself (GAOL v5).
 - **`cpack_stale_configure`** (CMake build, on a Unix system that builds for

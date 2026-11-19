@@ -446,7 +446,7 @@ it alone refuses, when compiling:
 |---|---|
 | Clang for 32-bit ARM processors | It does not honour the rounding direction there: built by Clang 21, 4556 of 16000 random products, squares and cubes did not enclose their exact values. GCC does. |
 | A compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target", as Clang 14 for 64-bit ARM | Bounds of `pow()` and `nth_root()` did not enclose the exact values. Clang 18 honours the rounding direction there. |
-| MinGW-w64 for 32-bit ARM, and for 64-bit ARM of version 12 or later linked with `msvcrt.dll` rather than the UCRT (the refusal is not tested there; mingw-w64 for 64-bit ARM before version 12 is accepted, below, and MSYS2 CLANGARM64, which links the UCRT, is built and tested) | Its `fma()` and `round()` are those of mingw-w64's own math library, which are wrong on x86 (below), and `round()` depends on the rounding direction there too, computed in doubles. GAOL v5 calls its own `gaol_round()`; the `fma()` of 32-bit ARM is not fused (`fmacd`, which is `vmla.f64`, a product and a sum each rounded) and Clang for 32-bit ARM is refused anyway, and no toolchain for 64-bit ARM links `msvcrt.dll`, so that this case was not built. |
+| MinGW-w64 for 32-bit ARM, and for 64-bit ARM of version 12 or later linked with `msvcrt.dll` rather than the UCRT (no job builds these toolchains; the refusal is tested with the macros of such a toolchain defined by hand on an x86 system, by `refused_mingw_arm32` and `refused_mingw_arm64_msvcrt`, which check the logic of the refusal and not a real toolchain for ARM; mingw-w64 for 64-bit ARM before version 12 is accepted, below, and MSYS2 CLANGARM64, which links the UCRT, is built and tested) | Its `fma()` and `round()` are those of mingw-w64's own math library, which are wrong on x86 (below), and `round()` depends on the rounding direction there too, computed in doubles. GAOL v5 calls its own `gaol_round()`; the `fma()` of 32-bit ARM is not fused (`fmacd`, which is `vmla.f64`, a product and a sum each rounded) and Clang for 32-bit ARM is refused anyway, and no toolchain for 64-bit ARM links `msvcrt.dll`, so that this case was not built. |
 | `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. `-Ofast` is not refused where `-fno-fast-math` turns its fast-math optimizations off (below). Linking with them, or with `-funsafe-math-optimizations`, is a matter of its own (below). |
 | `-ffinite-math-only`, which `-ffast-math` and `-Ofast` turn on | The compiler then takes NaN and infinities never to occur, in GAOL's inline functions too: the empty interval has NaN bounds, and `([1, 2] & [3, 4]).is_empty()` is false (GCC 9.4 and 13 at `-O0`, `-O2` and `-O3`; Clang 18 at `-O0`, and at `-O2` and `-O3` when the bounds are `volatile`). |
 | Visual C++, and clang-cl from Clang 16, without `/fp:strict` (`/fp:precise`, their default) | They then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly (clang-cl compiles with `-fno-rounding-math -ffp-contract=on`; GAOL v5 did not refuse it at first): no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](differences.md)). |
@@ -635,7 +635,10 @@ that toolchain on the arm64 runners. The releases of llvm-mingw from June 2023
 on call themselves mingw-w64 12, and the `libmingwex` of 20231128 and 20240130
 has neither `fma.o` nor `round.o`: they take those of `ucrtbase.dll`. A toolchain
 for 32-bit ARM, and one for 64-bit ARM of version 12 or later linking
-`msvcrt.dll`, which no job builds, stay refused.
+`msvcrt.dll`, which no job builds, stay refused. The refusal is tested with the
+macros of such a toolchain defined by hand on an x86 system
+(`tests/refused_mingw_arm.cpp`): that checks the logic of the refusal, not a
+real toolchain for ARM.
 
 ### Linking with `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations`
 
