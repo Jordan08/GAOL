@@ -17,9 +17,12 @@
 # for x86-64 take the fused multiply-add instructions, which the build takes
 # where its runner runs them (-mfma for the .deb, /arch:AVX2 for the .exe), so
 # that only the processors that have them run these two: Intel Haswell and AMD
-# Piledriver, 2012-2013, and later ones for the .deb; Intel Haswell and AMD
-# Excavator, 2013-2015, and later ones for the .exe, /arch:AVX2 taking AVX2
-# too. Their library is not built with the AVX-512 path (GAOL_PREFER_AVX512=OFF,
+# Excavator, 2013-2015, and later ones. /arch:AVX2 takes AVX2 too, and the GCC
+# of the runner ubuntu-26.04 targets x86-64-v3 by default (AVX2, BMI and FMA:
+# the libgaol.a of the .deb built with -DGAOL_FMA=OFF on 19 November 2026 was
+# the same as the one with -mfma, byte for byte), so AMD Piledriver, which has
+# FMA without AVX2, runs neither. Their library is not built with the AVX-512
+# path (GAOL_PREFER_AVX512=OFF,
 # see doc/building.md), which would leave out the processors without those
 # instructions. Each package is built after the unit tests pass, and installed
 # on the runner, where the unit tests are built and run again with the

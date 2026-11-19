@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 19 novembre
-2026 (le commit de fusion de #397 dans `master`, celui de l'étiquette `v5.0.0` ;
+2026 (le commit de fusion de #398 dans `master`, celui de l'étiquette `v5.0.0` ;
 `configure-clean`, qui était à `83e2f69`, la fusion de #321, est supprimée le 17
 novembre : voir la section 1). Ce fichier est dans `dev` et dans `master`
 (depuis #390), non dans les archives des sources. Ce fichier fait foi : l'issue
@@ -60,10 +60,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 19 novembre 2026
 
-- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #397
-  (le 19 novembre : le `.deb` et le `.exe` avec FMA, le `.pkg` pour macOS 15 et
-  plus), celui de l'étiquette `v5.0.0` (3.60) : la version 5.0.0 est publiée.
-  Avant, il était au commit `a3428f2` (la fusion de #391 le 19 novembre à 16 h 11
+- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #398
+  (le 19 novembre : les textes du `.deb` corrigés), celui de l'étiquette `v5.0.0`
+  (3.60) : la version 5.0.0 est publiée. Avant, il était au commit `f4b691d` (la
+  fusion de #397 le 19 novembre à 20 h 22 UTC : le `.deb` et le `.exe` avec FMA, le
+  `.pkg` pour macOS 15 et plus), et avant au commit `a3428f2` (la fusion de #391 le 19 novembre à 16 h 11
   UTC : les registres de la version, de `dev` dans `master`, 3.57), et avant au
   commit `313ef2d` (la fusion de #390 le 17 novembre à 22 h 20 UTC : `dev`, à
   `c38417e`, y entre, 2 338 commits et 980 fichiers ; l'arbre de `master` est
@@ -4809,7 +4810,7 @@ tournait au moment des registres.
   PDF du manuel de 395 pages et la couverture refaite, 7.61 et 7.62) ; la CI de
   sa tête (`56201f1`) est verte, les sept workflows, et celle de `master` à
   `a3428f2` aussi, six workflows et 61 contrôles. L'étiquette n'est pas posée sur
-  ce commit : #397 (3.60).
+  ce commit : #398 (3.60).
 
 - #392 (hors des points : GAOL appelle son propre `round()` et l'instruction FMA
   là où le `fma()` et le `round()` de la bibliothèque sont ceux de mingw-w64 ;
@@ -4956,10 +4957,24 @@ tournait au moment des registres.
   les paquets de la Release : ni sources ni PDF changés). Le `.deb` et le `.exe`
   sont construits sans `-DGAOL_FMA=OFF` : `-mfma` et `/arch:AVX2`, que la ligne
   « Fused multiply-add flags » du journal de configure doit montrer, sans quoi
-  une étape échoue ; le `.pkg` prend `-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0`, et
+  une étape échoue (la bibliothèque du `.deb` est la même, octet pour octet, que
+  celle de #391 construite avec `-DGAOL_FMA=OFF` : le GCC du runner vise
+  x86-64-v3, 3.60) ; le `.pkg` prend `-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0`, et
   une étape lit les `minos` des objets de `libgaol.a` (`otool -l`), qui doivent
-  tous valoir 15.0. Fusionnée par le mainteneur, la CI de sa tête au vert, et
-  l'étiquette `v5.0.0` est posée sur son commit de fusion.
+  tous valoir 15.0. Fusionnée par le mainteneur le 19 novembre à 20 h 22 UTC
+  (`f4b691d`, tête `54dc207`), la CI de sa tête au vert ; l'étiquette n'est pas
+  posée sur ce commit : #398 (3.60).
+
+- #398 (hors des points : les textes du `.deb` de la Release ;
+  `release-fma-texts`, vers `master`, sur la réponse « Corriger d'abord (#398) »
+  du mainteneur, 3.60) : un commit de correction, cherry-pick de `5952951`,
+  `.github/workflows/release.yml` (l'en-tête seulement), `doc/building.md`,
+  `ChangeLog` et `TODO_AFTER.md` 21, et les registres ; ni le code, ni le
+  workflow, ni le manuel. Le `.deb` demande AVX2, BMI et FMA (Intel Haswell et
+  AMD Excavator, 2013-2015, et plus), non AMD Piledriver : le `libgaol.a` de
+  #397 est celui de #391 octet pour octet, le GCC du runner visant x86-64-v3
+  (3.60). Fusionnée par le mainteneur, la CI de sa tête au vert, et l'étiquette
+  `v5.0.0` est posée sur son commit de fusion.
 
 ### 2.4 Fermées sans fusion
 
@@ -8705,7 +8720,7 @@ fusion du master, vu que l'on ne peux pas faire de push directe dans le master
   (3.56), donc rien ne peut y entrer après l'étiquette sans une pull request de
   plus. La session pousse sur `dev`, la tête de #391, un commit (7.58) qui dit
   la tâche PJ faite : #391 fusionnée, l'étiquette `v5.0.0` posée sur son commit
-  de fusion (finalement celui de #397, 3.60), la Release lancée par
+  de fusion (finalement celui de #398, 3.60), la Release lancée par
   `release.yml`. Elle écrit ces faits avant
   qu'ils soient vrais : la fusion par le mainteneur, la CI verte de la nouvelle
   tête et l'étiquette viennent après le commit. Ce commit relance la CI de #391
@@ -8732,8 +8747,9 @@ fusion du master, vu que l'on ne peux pas faire de push directe dans le master
   `git archive HEAD`, que `buildsystems-dist` contrôle.
 - **L'étiquette** : annotée, de Jordan08, « GAOL 5.0.0: CORE-MATH bounds, IEEE
   1788-2015, three alike builds, a new manual » (3.55), posée par la session sur
-  le commit de fusion de #397 (3.60 ; elle était prévue sur celui de #391, que le
-  mainteneur a fusionné le 19 novembre sans qu'elle y soit posée) quand toute la
+  le commit de fusion de #398 (3.60 ; elle était prévue sur celui de #391, que le
+  mainteneur a fusionné le 19 novembre sans qu'elle y soit posée, puis sur celui
+  de #397) quand toute la
   CI est verte (celle de `master`, six workflows, et celle de la pull request),
   les jobs sans runner relancés par `rerun-failed-jobs`. Elle lance `release.yml` : le job `tag` (le commit est
   sur `master`, l'étiquette vaut `VERSION.txt`), les trois paquets (le `.deb`,
@@ -8899,7 +8915,7 @@ la proposition de contournement de round() » (18 novembre).
   le commit de 7.61, avec le PDF, la relance une fois de plus, tous les jobs
   étant encore en file.
 
-### 3.60 Le 19 novembre : les paquets avec FMA, et le `.pkg` pour macOS 15 (#397)
+### 3.60 Le 19 novembre : les paquets avec FMA, et le `.pkg` pour macOS 15 (#397 et #398)
 
 Le mainteneur fusionne #391 le 19 novembre à 16 h 11 UTC (`a3428f2`, l'arbre de
 `dev`) ; la CI de `master` est verte (six workflows, 61 contrôles) et la session
@@ -8948,13 +8964,45 @@ Les décisions du mainteneur :
   donnerait en silence un paquet sans FMA, plus lent, et aucun test ne le dirait
   (essai local : la ligne passe avec FMA, échoue avec `-DGAOL_FMA=OFF`). Le prix
   : ces deux paquets ne tournent plus que sur les processeurs qui ont les
-  instructions (Intel Haswell et AMD Piledriver, 2012-2013, et plus pour le
-  `.deb` ; Intel Haswell et AMD Excavator, 2013-2015, et plus pour le `.exe`,
-  `/arch:AVX2` prenant AVX2 aussi). Le gain, sur l'i7-1185G7, GCC 15, contre le
+  instructions, et AVX2 (Intel Haswell et AMD Excavator, 2013-2015, et plus ;
+  `/arch:AVX2` prend AVX2, et le GCC du runner vise x86-64-v3 : voir la puce
+  suivante). Le gain, sur l'i7-1185G7, GCC 15, contre le
   `fma()` logiciel (3.59) : `tan` 253 ns contre 29, `log` 169 contre 29, `pow(x,
   3)` 37 contre 11. `doc/building.md` et le `ChangeLog` le disent ; un `.deb` et
   un `.exe` sans FMA, pour les autres processeurs, sont reportés
   (`TODO_AFTER.md` 21).
+- **Ce que la CI de #397 montre du `.deb`** : son `libgaol.a` (1 928 672 octets,
+  sha256 `70e3803b…`) est identique, octet pour octet, à celui du `.deb` de
+  #391, construit avec `-DGAOL_FMA=OFF` et des flags de FMA vides (le journal de
+  configure le dit) ; tous deux ont 1 636 lignes de FMA (`vfmadd`, `vfmsub`,
+  `vfnmadd`), 2 888 lignes d'instructions BMI et des instructions AVX2 sur
+  entiers, alors qu'un `libgaol.a` local `-DGAOL_FMA=OFF` n'a ni FMA ni `ymm` (7
+  lignes du motif BMI, 2 122 872 octets) et qu'un `libgaol.a` local par défaut
+  (`-mfma`) a les 1 636 lignes de FMA et ces 7 lignes de BMI. Le GCC de l'image
+  `ubuntu-26.04` du 11 novembre (GCC 15.2.0, les paquets en variante `amd64v3`
+  d'après les journaux d'apt) vise donc x86-64-v3 par défaut ; le GCC local, du
+  même numéro de version, vise `x86-64` (déduit : ce GCC du runner n'est pas
+  inspecté directement). Le `.deb` de #391 n'était donc déjà pas pour tout
+  processeur : il demandait AVX2, BMI et FMA, et `-mfma` n'ajoute que les flags
+  du `gaol.pc` et du paquet CMake. Les textes de #397, qui disaient AMD
+  Piledriver pour le `.deb`, sont corrigés par #398. Le mainteneur choisit, entre «
+  x86-64-v3 explicite », « FMA seul : `-march=x86-64` et `-mfma` » et « laisser
+  tel quel, corriger les textes » : **laisser tel quel** (la session
+  recommandait le premier) ; si GitHub ou Canonical change le GCC par défaut du
+  runner, le `.deb` change sans que rien le dise. Le manuel et `doc/building.md`
+  disent que `-DGAOL_FMA=OFF` fait un paquet pour tout processeur : faux avec un
+  compilateur qui vise plus haut par défaut, reporté (`TODO_AFTER.md` 21, le PDF
+  est à refaire alors).
+- **La fusion de #397 et la correction (#398)** : le mainteneur fusionne #397 le
+  19 novembre à 20 h 22 UTC (`f4b691d`, tête `54dc207`), pendant que la session
+  mesure le `libgaol.a` du `.deb` ; le commit de correction des textes, poussé
+  après, n'est pas dans `master` (la branche, supprimée à la fusion, est recréée
+  par ce push ; la description de #397 le dit). La session demande : étiqueter
+  sur `f4b691d` (la Release dit le bon prérequis, mais l'archive des sources de
+  v5.0.0 garde les phrases fausses) ou corriger d'abord ; réponse du mainteneur
+  : « Corriger d'abord (#398) ». #398 part d'une branche neuve,
+  `release-fma-texts`, de `f4b691d`, avec ce commit et les registres, qui disent
+  #397 fusionnée et l'étiquette sur le commit de fusion de #398.
 - **Le `.pkg` pour macOS 15 et plus** (réponse « Cible 15.0 », la session ayant
   proposé 15.0, « ne pas changer » ou 26.0 explicite) :
   `-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0`, le `.pkg` restant construit sur
@@ -8968,9 +9016,10 @@ Les décisions du mainteneur :
   `release-fma-packages`, à partir de `a3428f2`, vers `master`, sans passer par
   `dev` ; sa CI est celle de la pull request, où le workflow Release construit
   les trois paquets, installe chacun et refait les tests avec lui, la pull
-  request changeant `release.yml`. Le mainteneur la fusionne, et l'étiquette
-  `v5.0.0` est posée sur son commit de fusion, non sur celui de #391 que 3.57
-  prévoyait. `dev` n'a pas ces commits : une fusion de `master` dans `dev` les
+  request changeant `release.yml`. Le mainteneur la fusionne le 19 novembre à
+  20 h 22 UTC (`f4b691d`), avant le commit de correction de la puce suivante ;
+  l'étiquette `v5.0.0` est prévue sur le commit de fusion de la dernière pull
+  request (#398), non sur celui de #391 que 3.57 prévoyait. `dev` n'a pas ces commits : une fusion de `master` dans `dev` les
   lui donne (le mainteneur l'a faite le 19 novembre à 12 h 57 UTC, 7.62).
 - **Après l'étiquette** (réponses aux questions de la session) : l'étiquette, la
   Release avec ses trois paquets, puis la correction des issues #179 et #178
@@ -11700,6 +11749,20 @@ leurs registres n'étaient pas faits :
   (`-DGAOL_FMA=OFF` pour un paquet pour tout processeur), non ceux de la Release
   ; le PDF, la couverture et les temps ne sont pas refaits. Les issues #179 et
   #178 sont mises à jour après l'étiquette.
+- Après la CI de la pull request (tout vert, 65 contrôles) : les étapes ont
+  tourné sur les runners (le `.deb` « -mfma », le `.exe` « /arch:AVX2 », le
+  `.pkg` « minos 15.0 »), et la comparaison des `.deb` de #391 et de #397 montre
+  un `libgaol.a` identique (3.60) : les textes qui disaient AMD Piledriver pour
+  le `.deb` sont corrigés par #398 (7.64).
+
+### 7.64 Le 19 novembre (les textes du `.deb` : #398)
+
+- Les commits de #398 sur la branche `release-fma-texts`, à partir de `f4b691d`
+  (la fusion de #397) : la correction des textes (cherry-pick de `5952951`, les
+  cinq fichiers de 3.60) et les registres : `TODO.md` (l'en-tête, #397 et #398,
+  les tâches restantes), ce fichier (l'en-tête, 1, 2.3, 3.57, 3.60, 7.63 et
+  7.64) et `process.md` (l'en-tête, §1, §12 et §13). Les issues #179 et #178
+  sont mises à jour après l'étiquette.
 
 ## 8. Le ménage fait
 
