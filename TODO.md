@@ -1,8 +1,12 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `a30f7dd` de `dev` (la fusion de
-#396 le 19 novembre à 11 h 25 UTC, hors des points : les sources du manuel pour
-#392 et #393, dont le PDF est refait, 395 pages), et avant au commit `53db490`
+Ce qui reste à faire sur GAOL v5 au commit `0173d0a` de `dev` (la fusion de
+`master` dans `dev` par le mainteneur le 19 novembre à 12 h 57 UTC, sans
+changement de fichier : l'arbre est celui de `fd1194f`, qui porte le PDF du manuel
+refait, 395 pages, et les registres de #396 ; la couverture est refaite dans le
+commit de registres qui suit, 97,6 % des 8 077 lignes de `gaol/`, 7.62), et avant
+au commit `a30f7dd` de `dev` (la fusion de #396 le 19 novembre à 11 h 25 UTC, hors
+des points : les sources du manuel pour #392 et #393), et avant au commit `53db490`
 de `dev` (la fusion de #393 le 19 novembre à 9 h 58 UTC, hors des points : `gaol_fma()`, le `fma()`
 calculé avec des entiers pour les mingw-w64 avant 12 et Cygwin sans FMA, ses
 trois chemins rapides et `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788`,

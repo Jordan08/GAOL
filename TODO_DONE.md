@@ -8710,10 +8710,9 @@ fusion du master, vu que l'on ne peux pas faire de push directe dans le master
   trois commits de notes qui suivent `fc8b9ac` (`b2f04bf`,
   `c38417e`, `5b4cb29`), puis celui de 7.58, n'ont changé que `TODO*.md` et
   `process.md`, que `.gitattributes` prive des archives. La
-  couverture n'est pas refaite (son rapport ne compte pas `gaol_round.h`,
-  `gaol_mingw_own_math.h` ni `gaol/math/gaol_fma.h`) ; le PDF l'est le 19
-  novembre, après #396 (7.61) ; les temps de PJ.2 non plus (*décidé le 17
-  novembre*, 3.55). Les trois archives des sources valent donc
+  couverture et le PDF sont refaits le 19 novembre (7.61 et 7.62 : 97,6 % des 8 077
+  lignes de `gaol/`, le manuel de 395 pages) ; les temps de PJ.2 ne le sont pas
+  (*décidé le 17 novembre*, 3.55). Les trois archives des sources valent donc
   `git archive HEAD`, que `buildsystems-dist` contrôle.
 - **L'étiquette** : annotée, de Jordan08, « GAOL 5.0.0: CORE-MATH bounds, IEEE
   1788-2015, three alike builds, a new manual » (3.55), posée par la session sur
@@ -8784,8 +8783,8 @@ la proposition de contournement de round() » (18 novembre).
   réponse pour qu'il tranche, et #392 ne dépend pas de #393. #393 est fusionnée le
   19 novembre (3.59) ; la question de #205 (`TODO_AFTER.md`, mingw-w64 11
   accepté sans FMA sur x86 32 bits) n'est pas touchée par #392, et close par
-  #393. Le rapport de couverture (`coverage/README.md`) ne compte pas
-  `gaol_round.h` ni `gaol_mingw_own_math.h` : à refaire à la prochaine version.
+  #393. Le rapport de couverture (`coverage/README.md`) ne comptait pas
+  `gaol_round.h` ni `gaol_mingw_own_math.h` : refait le 19 novembre (7.62).
 - **L'étiquette `v5.0.0`** : #392 est entrée dans `dev` le 18 novembre à 11 h 56
   UTC pendant que #391, dont la tête est `dev`, était ouverte : à la fusion de
   #391, `master` et l'étiquette reçoivent aussi le code, les tests et les textes
@@ -8861,12 +8860,12 @@ la proposition de contournement de round() » (18 novembre).
   `__builtin_roundeven`), vert à la relance ; macOS : « macOS 15 arm64 (4
   configurations) » annulé sans runner après 68 minutes en file (aucune étape),
   relancé, puis annulé de nouveau par le push de la fusion de #396 (`concurrency`).
-- **Ce qui reste ouvert** : la couverture, que `coverage/README.md` et le tableau
-  14.8 du manuel disent à `c1110ef` : le rapport ne compte pas `gaol/math/gaol_fma.h`
-  (ni `gaol_round.h` ni `gaol_mingw_own_math.h`), les trois en-têtes de #392 et
-  #393 (*à décider* : la refaire avant l'étiquette, sur la machine locale pour
-  SSE, AVX-512 et FPU, et le Mac pour NEON, dont les trois fichiers n'ont pas
-  changé, ou à la version suivante, comme #392 l'avait dit) ; des chemins rapides
+- **La couverture** : refaite le 19 novembre, sur la demande du mainteneur (« refais
+  la couverture maintenant dans la PR #391, n'oublie pas d'inclure les autres
+  archi NEON et AVX512, utilise les sessions Boulot6 et MACarm5 », 7.62) : le
+  rapport ne comptait ni `gaol/math/gaol_fma.h` ni `gaol_round.h` ni
+  `gaol_mingw_own_math.h`.
+- **Ce qui reste ouvert** : des chemins rapides
   pour x86 32 bits (MSYS2 MINGW32 et les mingw-w64 32 bits, sans `__int128`,
   restent à 21 ns par appel) ; `tan` reste à 253 ns contre 29 avec l'instruction ;
   la question ouverte de #205 (une pull request fusionnée le 27 octobre) est
@@ -11520,7 +11519,7 @@ leurs registres n'étaient pas faits :
   documentation (`doc/`, `ChangeLog`, `README.md`) disent #392 et #393 sans
   reste (aucun « non testé » pour ARM, aucun refus de mingw-w64 x64 ni de
   Cygwin) ; les registres disaient #396 ouverte ; le PDF du manuel (389 pages,
-  du 17 novembre) ne portait pas #396 ; la couverture n'est pas refaite (3.59).
+  du 17 novembre) ne portait pas #396 ; la couverture n'est pas refaite (7.62).
 - **Le PDF** : `manual/Manual_GAOLv5.pdf` refait par la cible du projet
   (`cmake -S . -B <build> -DWITH_DOC=ON`, `cmake --build <build> --target pdf`) :
   395 pages (389 avant), aucune erreur, aucune référence indéfinie ; l'édition
@@ -11528,6 +11527,47 @@ leurs registres n'étaient pas faits :
 - Les registres de ce commit : `TODO.md` (l'en-tête, #396), ce fichier (l'état de
   `dev`, 2.3, 3.57, 3.59 et cette section) et `process.md` (l'en-tête, §12 et §13).
   La description de #391 est récrite (#393 et #396 y sont).
+
+### 7.62 Le 19 novembre (la couverture refaite, #391)
+
+- Le mainteneur écrit « refais la couverture maintenant dans la PR #391 » et
+  demande d'y inclure NEON et AVX-512, avec les sessions Boulot6 et MACarm5. Il
+  fait aussi, le 19 novembre à 12 h 57 UTC, une fusion de `master` dans `dev`
+  (`0173d0a`) et demande de vérifier qu'elle est sans erreur : l'arbre est celui
+  de `fd1194f` (`daa77b1`), `master` n'a aucun commit que `dev` n'a pas, le commit
+  de fusion de #390 (`313ef2d`) entre dans l'ascendance de `dev`, la pull request
+  #391 reste fusionnable (53 commits, 72 fichiers) ; aucune erreur. Son push a
+  annulé la CI de `fd1194f` et lancé celle de `0173d0a`.
+- **Les runs** (copie privée des sources à `0173d0a`, Debug, `-DWITH_TESTS=ON
+  -DWITH_EXAMPLES=ON -DGAOL_COVERAGE=ON -DGAOL_NUMBERS_TIMEOUT=3600`, gcovr 7.2,
+  4 cœurs) : SSE sur le i7-1185G7 (GCC 15.2, 75 tests passés, 641 s : 97,1 % de
+  6 643 lignes), FPU (`-DGAOL_SIMD=OFF`, 72 tests, 792 s : 97,6 % de 6 347) et
+  AVX-512 (`-DGAOL_PRESERVE_ROUNDING=ON`, 75 tests, 813 s : 97,2 % de 6 928), aucun
+  échec, `intervalf` et `interval2f` sautés. **NEON** : MACarm5 (Apple M2, Apple
+  clang 21, `llvm-cov gcov`, gcovr 7.2, sur secteur) à `fd1194f`, 62 tests dont 60
+  passés et 2 sautés, 45 s ; sa découpe des trois fichiers `gaol_interval_neon*.h`
+  est identique octet pour octet à celle du 17 novembre (sha256 `1f608cb4…`,
+  `sha256(zlib)` `c737a9fd…`, les huit hash de blocs), les fichiers n'ayant pas
+  changé depuis `608af36` : 118/118, 222/222 et 124/125 lignes (la 413, la borne
+  NaN de `upward_access::inverse()`, jamais exécutée). Le Mac était à 6 % de
+  batterie à la première demande : il a attendu que le mainteneur le branche.
+- **Boulot6** (Xeon E3-1220 v6, GCC 13.3, gcovr 7.2, sans AVX-512) a recoupé SSE et
+  FPU à `fd1194f` : SSE 97,1 % de 6 642 lignes (75 tests, 407 s), FPU 97,6 % de
+  6 346 (72 tests, 405 s), les trois fichiers FPU à 100 %, `gaol_parser.cpp:54`
+  non couverte faute de locale turque (le i7 a `tr_TR`) ; à une ligne près des
+  runs du i7, GCC 13 et GCC 15 ne comptant pas les mêmes lignes. Son JSON n'est pas
+  fusionné.
+- **Le report fusionné** (`gcovr --add-tracefile` des quatre) : 97,6 % de 8 077
+  lignes de `gaol/` (7 881 couvertes, 196 non couvertes), contre 97,5 % de 7 822 ;
+  les branches 70,6 % (70,1 %) ; CORE-MATH 6 741 sur 8 172, 82,5 % ; 26 fichiers
+  sur 44 à 100 % ; `gaol_fma.h` 228 lignes à 98,2 %, `gaol_round.h` 23 à 100 % ;
+  les trois fichiers les moins couverts sont les mêmes (`gaol_expr_eval.h` 88,2 %,
+  `gaol_interval_avx512_impl.h` 93,2 %, `gaol_expression.cpp` 94,5 %).
+  `coverage/README.md`, `coverage/coverage.html`, le tableau 14.8 et le paragraphe
+  du chapitre 14 du manuel (`14_tests_ci.tex`), le PDF (395 pages, refait) et la
+  phrase de `doc/differences.md` sont mis à jour dans le même commit.
+- Le piège : la cible `coverage` écrit `coverage.json` dans le dossier de build,
+  non dans `coverage/` de l'arbre des sources.
 
 ## 8. Le ménage fait
 

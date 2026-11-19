@@ -2049,18 +2049,18 @@ It needs GCC or Clang, gcovr and Python~3, and the tests (\option{WITH\_TESTS});
 (\file{gaol/}) are counted apart from those of CORE-MATH
 (\file{3rd/math-core/}), whose accurate phases are reached by a handful of
 arguments in a million: counting them together would say nothing of either.
-Table~\ref{tab:coverage} gives the report of 17 November 2026, which merges four
+Table~\ref{tab:coverage} gives the report of 19 November 2026, which merges four
 runs: the SSE2 intervals, the AVX-512 path and the FPU intervals on an Intel
 Core i7, and the NEON intervals on an Apple M2.
 
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}
-  \caption{The coverage of the tests on 17 November 2026} \label{tab:coverage}
+  \caption{The coverage of the tests on 19 November 2026} \label{tab:coverage}
   \begin{tabular}{lrrrr}
     \hline
     & Lines & Covered & Not run & \%\\
     \hline\hline
-    GAOL (\file{gaol/}) & 7822 & 7630 & 192 & 97.5\\
+    GAOL (\file{gaol/}) & 8077 & 7881 & 196 & 97.6\\
     CORE-MATH (\file{3rd/math-core/}) & 8172 & 6741 & 1431 & 82.5\\
     \hline
   \end{tabular}
@@ -2068,7 +2068,7 @@ Core i7, and the NEON intervals on an Apple M2.
 \end{table}
 
 \noindent
-The tests run 97.5\,\% of the lines of GAOL, above the 80\,\% GAOL v5 aims at, and 70.1\,\% of its branches are taken both ways. The lines of CORE-MATH
+The tests run 97.6\,\% of the lines of GAOL, above the 80\,\% GAOL v5 aims at, and 70.6\,\% of its branches are taken both ways. The lines of CORE-MATH
 that are never run are its accurate phases, which a handful of arguments in
 a million reach, and the paths of the architectures the machine is not: they
 are counted among the lines not run, and are checked otherwise: the accurate
@@ -2078,7 +2078,7 @@ and that of \code{cos} with its roundings computed by mpmath
 tests of their bounds only. File by file, the least
 covered are \file{gaol/parser/gaol\_expr\_eval.h} (88.2\,\%),
 \file{gaol/core/gaol\_interval\_avx512\_impl.h} (93.2\,\%) and
-\file{gaol/parser/gaol\_expression.cpp} (94.5\,\%); \file{gaol/math/gaol\_compoundm1.h}, with 808 lines counted, is covered at 99.1\,\%, and 25 files of the 42 at 100\,\%. The page lists
+\file{gaol/parser/gaol\_expression.cpp} (94.5\,\%); \file{gaol/math/gaol\_compoundm1.h}, with 808 lines counted, is covered at 99.1\,\%, and \file{gaol/math/gaol\_fma.h}, which computes the \code{fma()} with integers, with 228 lines counted, at 98.2\,\%; 26 files of the 44 are at 100\,\%. The page lists
 the lines the tests never run, file by file.
 
 \section{Discussion}

@@ -6,7 +6,7 @@
      COPYING.LIB file for information. -->
 # Coverage of the tests
 
-*Written by `coverage/coverage_summary.py` from the report of gcovr, which `cmake --build <build> --target coverage` runs (`-DGAOL_COVERAGE=ON`). Last run: 2026-11-17.*
+*Written by `coverage/coverage_summary.py` from the report of gcovr, which `cmake --build <build> --target coverage` runs (`-DGAOL_COVERAGE=ON`). Last run: 2026-11-19.*
 
 The line-by-line report is [coverage.html](coverage.html), one page holding its own style.
 
@@ -14,10 +14,10 @@ The line-by-line report is [coverage.html](coverage.html), one page holding its 
 
 A run compiles the files of one processor family and the tests run the code of that family only. The runs below are merged (`gcovr --add-tracefile`), so that a line is covered if one of them runs it, and each file of the intervals is counted in the run that compiles it.
 
-- SSE (x86-64): GCC 15.2 on an Intel Core i7-1185G7, the SSE2 intervals, 70 tests of `dev` at `c1110ef` with the examples, none failed (`intervalf` and `interval2f` are skipped by construction), gcovr 7.2.
-- AVX-512 (x86-64): the same machine with `-DGAOL_PRESERVE_ROUNDING=ON`, which takes the AVX-512 path (`GAOL_AVX512_ARITHMETIC`) for `+`, `-`, `*`, `/`, `sqr`, `sqrt` and the integer powers, 70 tests of `dev` at `e48c106` with the examples, none failed (the same two skipped). The run compiles the SSE2 files too, and all its files are merged: the lines it adds to them are those of the preserved rounding direction.
-- FPU: the same machine with `-DGAOL_SIMD=OFF`, 67 tests of `dev` at `608af36`, none failed (the same two skipped).
-- NEON (64-bit ARM): an Apple M2 with Apple clang 21.0.0 (`llvm-cov gcov`), the NEON intervals, 61 tests of `dev` at `608af36` with the examples, none failed (the same two skipped), gcovr 7.2. Only the three files `gaol/core/gaol_interval_neon*.h` are merged: clang does not count the lines of the other files as GCC does, so their lines would not add up.
+- SSE (x86-64): GCC 15.2 on an Intel Core i7-1185G7, the SSE2 intervals, 75 tests of `dev` at `0173d0a` with the examples, none failed (`intervalf` and `interval2f` are skipped by construction), gcovr 7.2.
+- AVX-512 (x86-64): the same machine with `-DGAOL_PRESERVE_ROUNDING=ON`, which takes the AVX-512 path (`GAOL_AVX512_ARITHMETIC`) for `+`, `-`, `*`, `/`, `sqr`, `sqrt` and the integer powers, 75 tests of `dev` at `0173d0a` with the examples, none failed (the same two skipped). The run compiles the SSE2 files too, and all its files are merged: the lines it adds to them are those of the preserved rounding direction.
+- FPU: the same machine with `-DGAOL_SIMD=OFF`, 72 tests of `dev` at `0173d0a`, none failed (the same two skipped).
+- NEON (64-bit ARM): an Apple M2 with Apple clang 21.0.0 (`llvm-cov gcov`), the NEON intervals, 62 tests of `dev` at `fd1194f` (the tree of `0173d0a`) with the examples, none failed (the same two skipped), gcovr 7.2. Only the three files `gaol/core/gaol_interval_neon*.h` are merged: clang does not count the lines of the other files as GCC does, so their lines would not add up.
 
 Each run is `cmake -S . -B <build> -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DGAOL_COVERAGE=ON` (with `-DGAOL_SIMD=OFF` for the FPU, and `-DGAOL_PRESERVE_ROUNDING=ON` for the AVX-512 path, which a processor with AVX-512 then takes) and `cmake --build <build> --target coverage`, which leaves `<build>/coverage.json`. The merge is `gcovr --root . --merge-mode-functions=merge-use-line-min --filter "$PWD/gaol/" --filter "$PWD/3rd/math-core/" --add-tracefile <run1>.json --add-tracefile <run2>.json ... --html --html-self-contained --html-title "Coverage of GAOL" --output coverage/coverage.html --json merged.json`, and this page is `python3 coverage/coverage_summary.py merged.json coverage/README.md --run ...`.
 
@@ -25,12 +25,12 @@ Each run is `cmake -S . -B <build> -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON -DWI
 
 | | Lines | Covered | Not run | % | |
 |---|---:|---:|---:|---:|---|
-| **GAOL (`gaol/`)** | 7822 | 7630 | 192 | **97.5** | `████████████████████` |
+| **GAOL (`gaol/`)** | 8077 | 7881 | 196 | **97.6** | `████████████████████` |
 | CORE-MATH (`3rd/math-core/`) | 8172 | 6741 | 1431 | 82.5 | `████████████████░░░░` |
 
-**The tests run 97.5 % of the lines of GAOL, above the 80 % GAOL v5 aims at.**
+**The tests run 97.6 % of the lines of GAOL, above the 80 % GAOL v5 aims at.**
 
-Branches: 70.1 % of those of GAOL are taken both ways.
+Branches: 70.6 % of those of GAOL are taken both ways.
 
 The lines of CORE-MATH that are never run are its accurate phases, which a handful of arguments in a million reach, and the paths of the architectures the runs are not. They are counted among the lines not run, and are checked otherwise: the accurate path of `sin` is compared with the upstream sources compiled unchanged, and that of `cos` with its roundings computed by mpmath (see `doc/tests.md`); the other accurate phases are reached by the tests of their bounds only.
 
@@ -68,12 +68,13 @@ Sorted by coverage, least covered first.
 | `gaol/gaol_common.cpp` | 79 | 75 | 94.9 | 82.7 % |
 | `gaol/core/gaol_interval_sse_impl.h` | 482 | 458 | 95.0 | 66.0 % |
 | `gaol/gaol_common.h` | 21 | 20 | 95.2 | 66.7 % |
-| `gaol/core/gaol_interval_core.h` | 411 | 398 | 96.8 | 72.2 % |
+| `gaol/core/gaol_interval_core.h` | 413 | 400 | 96.9 | 72.2 % |
 | `gaol/core/gaol_interval_pow.cpp` | 550 | 533 | 96.9 | 72.0 % |
 | `gaol/parser/gaol_eval_stack.h` | 34 | 33 | 97.1 | 66.7 % |
+| `gaol/math/gaol_fma.h` | 228 | 224 | 98.2 | 97.0 % |
 | `gaol/core/gaol_interval_detail.h` | 58 | 57 | 98.3 | 80.4 % |
 | `gaol/core/gaol_interval_trig.cpp` | 380 | 375 | 98.7 | 85.8 % |
-| `gaol/core/gaol_interval_core.cpp` | 443 | 438 | 98.9 | 63.4 % |
+| `gaol/core/gaol_interval_core.cpp` | 445 | 440 | 98.9 | 63.4 % |
 | `gaol/math/gaol_compoundm1.h` | 808 | 801 | 99.1 | 88.9 % |
 | `gaol/core/gaol_interval_neon_kernels.h` | 125 | 124 | 99.2 | 98.2 % |
 | `gaol/core/gaol_interval_internal.h` | 243 | 242 | 99.6 | 80.1 % |
@@ -99,6 +100,7 @@ Sorted by coverage, least covered first.
 | `gaol/math/gaol_core_math_port.h` | 6 | 6 | 100.0 | 100.0 % |
 | `gaol/math/gaol_double_op.h` | 30 | 30 | 100.0 | -- |
 | `gaol/math/gaol_ldexp.h` | 23 | 23 | 100.0 | 100.0 % |
+| `gaol/math/gaol_round.h` | 23 | 23 | 100.0 | 100.0 % |
 | `gaol/math/gaol_roundeven.h` | 19 | 19 | 100.0 | 100.0 % |
 | `gaol/math/gaol_u128.h` | 91 | 91 | 100.0 | 100.0 % |
 | `gaol/parser/gaol_expression.h` | 91 | 91 | 100.0 | 61.5 % |
@@ -113,15 +115,16 @@ Sorted by coverage, least covered first.
 - `gaol/gaol_common.cpp`: 133, 137, 157, 162
 - `gaol/core/gaol_interval_sse_impl.h`: 47, 61, 869, 879-880, 897, 912-913, 928, 937-938, 953-954, 962-964, 979-981, 988-990, 1006-1007
 - `gaol/gaol_common.h`: 308
-- `gaol/core/gaol_interval_core.h`: 1871, 2199, 2201-2206, 2208, 2261-2262, 2264, 2286
+- `gaol/core/gaol_interval_core.h`: 1895, 2235, 2237-2242, 2244, 2297-2298, 2300, 2322
 - `gaol/core/gaol_interval_pow.cpp`: 188, 633, 672, 675, 726, 736, 781, 786, 794, 826, 836, 1027-1028, 1163, 1223, 1247, 1347
 - `gaol/parser/gaol_eval_stack.h`: 102
+- `gaol/math/gaol_fma.h`: 215, 226, 586-587
 - `gaol/core/gaol_interval_detail.h`: 321
 - `gaol/core/gaol_interval_trig.cpp`: 267, 271, 805, 844, 847
-- `gaol/core/gaol_interval_core.cpp`: 313-315, 1450, 1463
+- `gaol/core/gaol_interval_core.cpp`: 319-321, 1492, 1505
 - `gaol/math/gaol_compoundm1.h`: 189, 365-366, 1406-1407, 1460-1461
 - `gaol/core/gaol_interval_neon_kernels.h`: 413
-- `gaol/core/gaol_interval_internal.h`: 467
+- `gaol/core/gaol_interval_internal.h`: 479
 - `gaol/core/gaol_interval_relational.cpp`: 564-565
 
 ## CORE-MATH, file by file
