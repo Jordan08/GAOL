@@ -99,12 +99,13 @@ le mainteneur, la CI de sa tête au vert (les sept workflows), ses registres fai
 (`TODO_DONE.md` 2.3, 3.59 et 7.60) ; elle est entrée dans `dev` alors que #391,
 dont la tête est `dev`, est ouverte : `master` et l'étiquette `v5.0.0` portent
 son code à la fusion de #391 (`TODO_DONE.md` 3.59). Il reste, sur la demande du
-mainteneur du 19 novembre : la correction des sources du manuel (`02_installation.tex`,
-`04_rounding.tex`, `14_tests_ci.tex` disent encore que le refus de mingw-w64 pour
-ARM n'est pas testé, que les toolchains sans FMA sont refusées, et citent
-`std::fma`) dans une pull request vers `dev`, le PDF restant à la version, et la
-mesure du `fma()` logiciel sur le Xeon de la session Boulot6 (le banc est envoyé, le
-résultat attendu ; `TODO_DONE.md` 3.59). #392 (hors des points : GAOL appelle son propre `round()`
+mainteneur du 19 novembre : la pull request #396 (les sources du manuel,
+`02_installation.tex`, `04_rounding.tex`, `14_tests_ci.tex` et `15_migration.tex` :
+mingw-w64 et Cygwin acceptés avec `gaol_fma()`, le refus pour ARM testé par des
+macros, le tableau du coût), ouverte vers `dev`, qui attend la décision du
+mainteneur, le PDF restant à la version. La mesure du `fma()` logiciel sur le Xeon
+de la session Boulot6 est faite : `tan` -51 %, `log` -47 %, `pow(x, 3)` -53 %
+(`TODO_DONE.md` 3.59). #392 (hors des points : GAOL appelle son propre `round()`
 et l'instruction FMA là où le `fma()` et le `round()` de la bibliothèque sont
 ceux de mingw-w64) est fusionnée le 18 novembre à 11 h 56 UTC par le mainteneur,
 la CI de sa tête au vert (les sept workflows), ses registres faits

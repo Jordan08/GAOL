@@ -8808,13 +8808,34 @@ la proposition de contournement de round() » (18 novembre).
   tués.
 - **La suite, tranchée par le mainteneur le 19 novembre** : les registres
   directement dans un commit sur `dev` (7.60) ; une mesure sur le Xeon de la session
-  Boulot6, plus proche d'un processeur ancien (le banc et les instructions envoyés,
-  le résultat à venir) ; les sources `.tex` du manuel corrigées maintenant
-  (`02_installation.tex`, `04_rounding.tex`, `14_tests_ci.tex` disent encore que le
-  refus n'est pas testé, que ces toolchains sont refusées sans FMA, et citent
-  `std::fma`), le PDF à la version ; le défaut de GCC pour i386 laissé dans #394
-  seulement (aucun rapport à la Bugzilla de GCC).
-- **Ce qui reste ouvert** : la mesure de Boulot6 ; le manuel ; des chemins rapides
+  Boulot6, plus proche d'un processeur ancien ; les sources `.tex` du manuel
+  corrigées maintenant, le PDF à la version ; le défaut de GCC pour i386 laissé
+  dans #394 seulement (aucun rapport à la Bugzilla de GCC).
+- **La mesure du Xeon (Boulot6, 19 novembre)** : Intel Xeon E3-1220 v6 à 3,00 GHz
+  (Kaby Lake, 4 cœurs), gouverneur `powersave` (non changé, la fréquence réelle non
+  mesurée), g++ 13.3, le banc sur le cœur 0, médiane de six passes de 3000 blocs,
+  l'avant (`90904b92`) et l'après (`53db4900`) construits avec `gaol_fma()`. Le gain
+  tient : `tan` 691 -> 340 ns (-51 %, le i7 : -48 %), `log` 401 -> 212 (-47 %, -39 %),
+  `pow(x, 3)` 115 -> 54 (-53 %, -51 %) ; contre l'instruction (42, 40 et 17 ns), le
+  logiciel reste 8,1, 5,3 et 3,3 fois plus lent (le i7 : 8,7, 5,8 et 3,4). Les
+  opérations sans `fma()` varient de -5 à -14 % : l'écart de placement du code entre
+  les deux constructions, non un gain. Dispersion entre les passes : 1 % au médian,
+  14 % au plus, venu de la colonne de l'instruction (un saut à la cinquième passe de
+  `tan`, `sin` et `cos`) ; pour l'avant et l'après, 3,6 % au plus. Un processus
+  `tracker-miner-fs-3` à 98 % d'un cœur sur la machine, non surveillé en continu.
+- **La pull request #396** (les sources du manuel, `manual-fma-393`, vers `dev`, le
+  19 novembre) : `02_installation.tex`, `04_rounding.tex`, `14_tests_ci.tex` et
+  `15_migration.tex` alignés sur `doc/three-builds.md`, `continuous-integration.md`,
+  `tests.md` et `differences.md` (les refus réduits aux mingw-w64 pour ARM, le refus
+  testé par des macros, `gaol_fma()`, ses chemins rapides, le tableau du coût, les
+  jobs, les scripts `check-no-fma-call.sh` et `check-arm64-fma.sh`) ; le manuel
+  compile, le PDF n'est pas régénéré ; `11_accuracy.tex` et `12_computing.tex`
+  parlent de `std::fma` pour les noyaux, laissés. Elle attend la décision du
+  mainteneur.
+- **La CI de `dev` à `53db490`** : Linux containers, Windows verts ; Linux a échoué
+  sur un job d'infrastructure (le miroir apt d'Ubuntu, « File has unexpected size …
+  Mirror sync in progress? », GCC 9 sans `__builtin_roundeven`), relancé par l'API.
+- **Ce qui reste ouvert** : la pull request #396 ; des chemins rapides
   pour x86 32 bits (MSYS2 MINGW32 et les mingw-w64 32 bits, sans `__int128`,
   restent à 21 ns par appel) ; `tan` reste à 253 ns contre 29 avec l'instruction ;
   la question ouverte de #205 (une pull request fusionnée le 27 octobre) est
