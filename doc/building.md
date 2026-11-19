@@ -326,10 +326,14 @@ packages for x86-64 take the fused multiply-add instructions (`-mfma` for the
 `.deb`, `/arch:AVX2` for the `.exe`, which the code using them is compiled
 with too: `gaol.pc`, the CMake package), and the job fails if the
 configuration leaves them out. Only the processors that have them run these
-two: Intel Haswell and AMD Piledriver (2012-2013) and later ones for the
-`.deb`, Intel Haswell and AMD Excavator (2013-2015) and later ones,
-`/arch:AVX2` taking AVX2 too, for the `.exe`. A package for any processor is
-built as above, with `-DGAOL_FMA=OFF`. Each job runs the unit tests, makes the
+two: Intel Haswell and AMD Excavator (2013-2015) and later ones. The `.exe` is
+built with `/arch:AVX2`, which takes AVX2 as well as FMA; the `.deb` is built
+with the GCC of the runner, which targets x86-64-v3 by default (AVX2, BMI and
+FMA): measured on 19 November 2026, `-DGAOL_FMA=OFF` gave the same `libgaol.a`,
+byte for byte, so the `.deb` of that build already needed these processors, and
+AMD Piledriver, which has FMA without AVX2, runs neither package. A package for
+any processor is built as above, with `-DGAOL_FMA=OFF`, and with
+`-march=x86-64` where the default of the compiler is higher. Each job runs the unit tests, makes the
 package, installs it on the runner, and builds and runs the unit tests again
 with the installed GAOL (`tests/find_package`). A pull request that changes
 the workflow, `CMakeLists.txt` or `cmake/` builds the three and keeps them as

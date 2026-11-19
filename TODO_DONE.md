@@ -4956,7 +4956,9 @@ tournait au moment des registres.
   les paquets de la Release : ni sources ni PDF changés). Le `.deb` et le `.exe`
   sont construits sans `-DGAOL_FMA=OFF` : `-mfma` et `/arch:AVX2`, que la ligne
   « Fused multiply-add flags » du journal de configure doit montrer, sans quoi
-  une étape échoue ; le `.pkg` prend `-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0`, et
+  une étape échoue (la bibliothèque du `.deb` est la même, octet pour octet, que
+  celle de #391 construite avec `-DGAOL_FMA=OFF` : le GCC du runner vise
+  x86-64-v3, 3.60) ; le `.pkg` prend `-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0`, et
   une étape lit les `minos` des objets de `libgaol.a` (`otool -l`), qui doivent
   tous valoir 15.0. Fusionnée par le mainteneur, la CI de sa tête au vert, et
   l'étiquette `v5.0.0` est posée sur son commit de fusion.
@@ -8948,13 +8950,35 @@ Les décisions du mainteneur :
   donnerait en silence un paquet sans FMA, plus lent, et aucun test ne le dirait
   (essai local : la ligne passe avec FMA, échoue avec `-DGAOL_FMA=OFF`). Le prix
   : ces deux paquets ne tournent plus que sur les processeurs qui ont les
-  instructions (Intel Haswell et AMD Piledriver, 2012-2013, et plus pour le
-  `.deb` ; Intel Haswell et AMD Excavator, 2013-2015, et plus pour le `.exe`,
-  `/arch:AVX2` prenant AVX2 aussi). Le gain, sur l'i7-1185G7, GCC 15, contre le
+  instructions, et AVX2 (Intel Haswell et AMD Excavator, 2013-2015, et plus ;
+  `/arch:AVX2` prend AVX2, et le GCC du runner vise x86-64-v3 : voir la puce
+  suivante). Le gain, sur l'i7-1185G7, GCC 15, contre le
   `fma()` logiciel (3.59) : `tan` 253 ns contre 29, `log` 169 contre 29, `pow(x,
   3)` 37 contre 11. `doc/building.md` et le `ChangeLog` le disent ; un `.deb` et
   un `.exe` sans FMA, pour les autres processeurs, sont reportés
   (`TODO_AFTER.md` 21).
+- **Ce que la CI de #397 montre du `.deb`** : son `libgaol.a` (1 928 672 octets,
+  sha256 `70e3803b…`) est identique, octet pour octet, à celui du `.deb` de
+  #391, construit avec `-DGAOL_FMA=OFF` et des flags de FMA vides (le journal de
+  configure le dit) ; tous deux ont 1 636 lignes de FMA (`vfmadd`, `vfmsub`,
+  `vfnmadd`), 2 888 lignes d'instructions BMI et des instructions AVX2 sur
+  entiers, alors qu'un `libgaol.a` local `-DGAOL_FMA=OFF` n'a ni FMA ni `ymm` (7
+  lignes du motif BMI, 2 122 872 octets) et qu'un `libgaol.a` local par défaut
+  (`-mfma`) a les 1 636 lignes de FMA et ces 7 lignes de BMI. Le GCC de l'image
+  `ubuntu-26.04` du 11 novembre (GCC 15.2.0, les paquets en variante `amd64v3`
+  d'après les journaux d'apt) vise donc x86-64-v3 par défaut ; le GCC local, du
+  même numéro de version, vise `x86-64` (déduit : ce GCC du runner n'est pas
+  inspecté directement). Le `.deb` de #391 n'était donc déjà pas pour tout
+  processeur : il demandait AVX2, BMI et FMA, et `-mfma` n'ajoute que les flags
+  du `gaol.pc` et du paquet CMake. Les textes de #397, qui disaient AMD
+  Piledriver pour le `.deb`, sont corrigés. Le mainteneur choisit, entre «
+  x86-64-v3 explicite », « FMA seul : `-march=x86-64` et `-mfma` » et « laisser
+  tel quel, corriger les textes » : **laisser tel quel** (la session
+  recommandait le premier) ; si GitHub ou Canonical change le GCC par défaut du
+  runner, le `.deb` change sans que rien le dise. Le manuel et `doc/building.md`
+  disent que `-DGAOL_FMA=OFF` fait un paquet pour tout processeur : faux avec un
+  compilateur qui vise plus haut par défaut, reporté (`TODO_AFTER.md` 21, le PDF
+  est à refaire alors).
 - **Le `.pkg` pour macOS 15 et plus** (réponse « Cible 15.0 », la session ayant
   proposé 15.0, « ne pas changer » ou 26.0 explicite) :
   `-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0`, le `.pkg` restant construit sur
@@ -11700,6 +11724,12 @@ leurs registres n'étaient pas faits :
   (`-DGAOL_FMA=OFF` pour un paquet pour tout processeur), non ceux de la Release
   ; le PDF, la couverture et les temps ne sont pas refaits. Les issues #179 et
   #178 sont mises à jour après l'étiquette.
+- Après la CI de la pull request (tout vert, 65 contrôles) : les étapes ont
+  tourné sur les runners (le `.deb` « -mfma », le `.exe` « /arch:AVX2 », le
+  `.pkg` « minos 15.0 »), et la comparaison des `.deb` de #391 et de #397 montre
+  un `libgaol.a` identique (3.60) : les textes qui disaient AMD Piledriver pour
+  le `.deb` sont corrigés dans un commit de plus, `release.yml`,
+  `doc/building.md`, `ChangeLog`, `TODO_AFTER.md` 21 et 3.60.
 
 ## 8. Le ménage fait
 

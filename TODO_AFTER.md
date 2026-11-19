@@ -803,9 +803,14 @@ qu'elle a relevées sont inscrites ici, en une fois, sans rien changer au code
 21. **Des paquets pour tout processeur, et l'exécution du `.pkg` sur macOS 15**
     (#397) : le `.deb` et le `.exe` de la Release sont construits avec les
     instructions FMA (`-mfma`, `/arch:AVX2`) et ne tournent que sur les processeurs
-    qui les ont (Intel Haswell et AMD Piledriver ou Excavator, 2012-2015, et plus) :
-    un `.deb` et un `.exe` sans FMA, pour les autres, seraient deux paquets de plus
-    (`-DGAOL_FMA=OFF`, `gaol_fma()` : `pow(x, 3)` 37,6 ns contre 10,7). Le `.pkg`
+    qui les ont, et AVX2 : Intel Haswell et AMD Excavator, 2013-2015, et plus (le GCC
+    du runner ubuntu-26.04 vise x86-64-v3, et `/arch:AVX2` prend AVX2 aussi) : un
+    `.deb` et un `.exe` pour les autres processeurs seraient deux paquets de plus
+    (`-DGAOL_FMA=OFF`, et `-march=x86-64` pour le `.deb`, sans quoi le GCC du runner
+    garde l'AVX2 et le BMI ; `gaol_fma()` : `pow(x, 3)` 37,6 ns contre 10,7). Le
+    manuel (`02_installation.tex`) et `doc/building.md` disent que `-DGAOL_FMA=OFF` fait
+    un paquet pour tout processeur : c'est faux avec un compilateur qui vise plus
+    haut par défaut, à compléter avec ce `-march` (le PDF est à refaire alors). Le `.pkg`
     est construit pour macOS 15 et plus (`-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0`) sur
     macos-26, et ses objets sont en minos 15.0, mesuré sur un Mac M2 ; aucun Mac
     en macOS 15 ne l'a exécuté, ni `nm -u` lu. *À rouvrir* si un utilisateur d'un

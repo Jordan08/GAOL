@@ -267,8 +267,9 @@
 	gaol-<version>-windows-x64.exe (Windows Server 2025, Visual C++ 2026
 	x64, /MD); the .deb and the .exe take the fused multiply-add
 	instructions (-mfma, /arch:AVX2), so that they run only on the
-	processors that have them (Intel Haswell and AMD Piledriver, Excavator
-	for the .exe, and later ones); each job installs its package and runs
+	processors that have them (Intel Haswell and AMD Excavator, and later
+	ones: the GCC of the runner ubuntu-26.04 targets x86-64-v3, as
+	/arch:AVX2 asks for AVX2); each job installs its package and runs
 	the unit tests again with the installed GAOL.  On macOS the files are
 	in the component Development, so that productbuild makes a .pkg with
 	a package in it.
