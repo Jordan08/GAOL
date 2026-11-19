@@ -115,6 +115,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+
 # The rounding direction after the automatic cleanup of GAOL, read by a
 # function registered in a constructor of priority 101, which ELF runs before
 # GAOL initializes itself; and the bounds written with a snprintf() that
@@ -150,8 +151,9 @@ am__EXEEXT_2 = interval_ieee_basic$(EXEEXT) arithmetic$(EXEEXT) \
 	compoundm1$(EXEEXT) expressions$(EXEEXT) \
 	extended_precision$(EXEEXT) static_initialization$(EXEEXT) \
 	debugging$(EXEEXT) fast_math_link$(EXEEXT) \
-	test_ibex_codac$(EXEEXT) arithmetic_operators$(EXEEXT) \
-	assignment$(EXEEXT) constants$(EXEEXT) constructor$(EXEEXT) \
+	test_ibex_codac$(EXEEXT) u128_select$(EXEEXT) \
+	arithmetic_operators$(EXEEXT) assignment$(EXEEXT) \
+	constants$(EXEEXT) constructor$(EXEEXT) \
 	float_functions$(EXEEXT) generic_functions$(EXEEXT) \
 	input_output$(EXEEXT) interval_functions$(EXEEXT) \
 	misc$(EXEEXT) non_arithmetic$(EXEEXT) relations$(EXEEXT) \
@@ -349,6 +351,9 @@ u128_OBJECTS = u128.$(OBJEXT)
 u128_LDADD = $(LDADD)
 u128_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
 	$(am__DEPENDENCIES_1)
+am_u128_select_OBJECTS = u128_select.$(OBJEXT)
+u128_select_OBJECTS = $(am_u128_select_OBJECTS)
+u128_select_DEPENDENCIES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -385,8 +390,26 @@ am__depfiles_remade = ./$(DEPDIR)/arithmetic.Po \
 	./$(DEPDIR)/rounding_direction.Po \
 	./$(DEPDIR)/static_initialization.Po \
 	./$(DEPDIR)/test_ibex_codac.Po ./$(DEPDIR)/trigonometric.Po \
-	./$(DEPDIR)/u128.Po
+	./$(DEPDIR)/u128.Po ./$(DEPDIR)/u128_select.Po
 am__mv = mv -f
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_@AM_V@)
+am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
+am__v_CC_0 = @echo "  CC      " $@;
+am__v_CC_1 = 
+CCLD = $(CC)
+LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_@AM_V@)
+am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
+am__v_CCLD_0 = @echo "  CCLD    " $@;
+am__v_CCLD_1 = 
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
@@ -416,7 +439,8 @@ SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
 	non_arithmetic.cpp numbers.cpp other_functions.cpp \
 	relations.cpp reverse.cpp reverse_mappings.cpp \
 	rounding_direction.cpp static_initialization.cpp \
-	test_ibex_codac.cpp trigonometric.cpp u128.cpp
+	test_ibex_codac.cpp trigonometric.cpp u128.cpp \
+	$(u128_select_SOURCES)
 DIST_SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
 	automatic_cleanup.cpp bad_snprintf.cpp compoundm1.cpp \
 	constants.cpp constructor.cpp core_math.cpp debugging.cpp \
@@ -428,7 +452,8 @@ DIST_SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
 	non_arithmetic.cpp numbers.cpp other_functions.cpp \
 	relations.cpp reverse.cpp reverse_mappings.cpp \
 	rounding_direction.cpp static_initialization.cpp \
-	test_ibex_codac.cpp trigonometric.cpp u128.cpp
+	test_ibex_codac.cpp trigonometric.cpp u128.cpp \
+	$(u128_select_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -825,11 +850,15 @@ GAOL_TESTS = interval_ieee_basic arithmetic elementary \
 	rounding_direction numbers other_functions ieee1788 reverse \
 	u128 core_math compoundm1 expressions extended_precision \
 	static_initialization debugging fast_math_link test_ibex_codac \
-	arithmetic_operators assignment constants constructor \
-	float_functions generic_functions input_output \
+	u128_select arithmetic_operators assignment constants \
+	constructor float_functions generic_functions input_output \
 	interval_functions misc non_arithmetic relations \
 	reverse_mappings trigonometric intervalf interval2f \
 	$(am__append_1)
+# u128_select: a program in C, as the sources of CORE-MATH are, which only
+# includes gaol/math/gaol_u128.h and links nothing of GAOL (GAOL v5)
+u128_select_SOURCES = u128_select.c
+u128_select_LDADD = 
 @GAOL_STATIC_LIBRARY_TRUE@@HOST_LINUX_TRUE@bad_snprintf_LDFLAGS = $(AM_LDFLAGS) -Wl,--wrap=snprintf -Wl,--wrap=__snprintf_chk
 
 # fast_math_link: -ffast-math to its link only, its source being compiled as
@@ -883,6 +912,8 @@ EXTRA_DIST = \
 	extended_precision_values.h \
 	extended_precision_values.py \
 	fetch_content/CMakeLists.txt \
+	fma_values.h \
+	fma_values.py \
 	find_package/CMakeLists.txt \
 	fp_strict/CMakeLists.txt \
 	gaol_tests.h \
@@ -894,6 +925,7 @@ EXTRA_DIST = \
 	pow_rel_values.h \
 	pow_rel_values.py \
 	refused_aligned_new.cpp \
+	refused_mingw_arm.cpp \
 	refused_options.cpp \
 	refused_options.sh \
 	release_flags.py \
@@ -936,7 +968,7 @@ EXTRA_DIST = \
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .cpp .lo .log .o .obj .sh .sh$(EXEEXT) .trs
+.SUFFIXES: .c .cpp .lo .log .o .obj .sh .sh$(EXEEXT) .trs
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -1111,6 +1143,10 @@ u128$(EXEEXT): $(u128_OBJECTS) $(u128_DEPENDENCIES) $(EXTRA_u128_DEPENDENCIES)
 	@rm -f u128$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(u128_OBJECTS) $(u128_LDADD) $(LIBS)
 
+u128_select$(EXEEXT): $(u128_select_OBJECTS) $(u128_select_DEPENDENCIES) $(EXTRA_u128_select_DEPENDENCIES) 
+	@rm -f u128_select$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(u128_select_OBJECTS) $(u128_select_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -1152,12 +1188,37 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_ibex_codac.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/trigonometric.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/u128.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/u128_select.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
 	@: >>$@
 
 am--depfiles: $(am__depfiles_remade)
+
+.c.o:
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
+
+.c.obj:
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+.c.lo:
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -1554,6 +1615,13 @@ test_ibex_codac.log: test_ibex_codac$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+u128_select.log: u128_select$(EXEEXT)
+	@p='u128_select$(EXEEXT)'; \
+	b='u128_select'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 arithmetic_operators.log: arithmetic_operators$(EXEEXT)
 	@p='arithmetic_operators$(EXEEXT)'; \
 	b='arithmetic_operators'; \
@@ -1802,6 +1870,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_ibex_codac.Po
 	-rm -f ./$(DEPDIR)/trigonometric.Po
 	-rm -f ./$(DEPDIR)/u128.Po
+	-rm -f ./$(DEPDIR)/u128_select.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-local distclean-tags
@@ -1882,6 +1951,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_ibex_codac.Po
 	-rm -f ./$(DEPDIR)/trigonometric.Po
 	-rm -f ./$(DEPDIR)/u128.Po
+	-rm -f ./$(DEPDIR)/u128_select.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

@@ -67,7 +67,8 @@ itself. With GCC and Clang, each where the compiler takes it:
   with `-mavx`, and so is one built with `-mavx512f` or a `-march` that turns on
   wider registers, which the option may not always undo (same section). Cygwin
   and MSYS get them as the other GCC for Windows (Cygwin is built and tested by
-  a job of the continuous integration, and refused without them).
+  a job of the continuous integration, with `gaol_fma()` in place of them where
+  the build has none).
 
 With Visual C++ and clang-cl, `/fp:strict`, `/arch:AVX2` for x64 with
 `GAOL_FMA`, and `-msse2` with clang-cl for 32-bit x86, which computes doubles
@@ -133,7 +134,7 @@ builds, which a program does not use (see [The namespaces](#the-namespaces)),
 `gaol_init_cleanup.h`,
 `gaol/math/gaol_core_math.h`, `gaol/math/gaol_u128.h`,
 `gaol/math/gaol_compoundm1.h`, `gaol/math/gaol_roundeven.h`,
-`gaol/math/gaol_round.h`, `gaol/math/gaol_ldexp.h`,
+`gaol/math/gaol_round.h`, `gaol/math/gaol_fma.h`, `gaol/math/gaol_ldexp.h`,
 `gaol/math/gaol_core_math_port.h`,
 `gaol/math/gaol_double_op.h`, `gaol/float/gaol_intervalf.h` and
 `gaol/float/gaol_interval2f.h`. Headers of GAOL 4 are gone: `gaol_parameters.h`,
@@ -1209,7 +1210,7 @@ computes each row and checks it):
 | `TwoSum(1e20, 1e-20)`, the error of a sum | s + e ≠ a + b | s + e = a + b |
 | `TwoSum(a, b)`, 50 000 pairs of doubles of exponents from −60 to 60 | s + e ≠ a + b for 10 717 pairs | none |
 | `TwoProd(a, b)`, Dekker's splitting, 50 000 pairs of doubles of [1, 2) | p + e ≠ a·b for 1 888 pairs | none |
-| `TwoProd(a, b)`, `e = std::fma(a, b, -a*b)`, the same pairs | none | none |
+| `TwoProd(a, b)`, `e = gaol::gaol_fma(a, b, -a*b)`, the same pairs | none | none |
 
 The quotient is the double above 1/3, where the program expects the nearest.
 The C library rounds in the direction in effect too, as the C standard
@@ -1238,9 +1239,21 @@ rounded product), and is exact in every direction when it is computed with
 `std::fma` instead: the error of a rounded product is a double, which
 `std::fma` computes however it rounds (provided it is correctly rounded: the
 instruction, or a call of a C library whose `fma()` is; with GCC, `std::fma`
-without optimization is a call of the library, and the `fma()` of Cygwin is not
-correctly rounded, where `__builtin_fma` is the instruction with `-mfma`, which
-GAOL calls itself). Compensated sums, and the
+without optimization is a call of the library, and the `fma()` of Cygwin, and
+that of the MinGW-w64 before version 12 or linked with `msvcrt.dll` (MSYS2
+MINGW64 and MINGW32), are not correctly rounded, where `__builtin_fma` is the
+instruction with `-mfma`: a program of yours that computes with `std::fma` on
+those toolchains needs `-mfma`, which `gaol.pc` and `gaol::gaol` give it where
+the processor has the instructions).
+`gaol::gaol_fma(a, b, c)`, which `gaol_ieee1788` has too, spares a program that
+trouble, and is what the example `13_rounding_environment.cpp` computes the
+error of a product with: it is `a*b + c` rounded once in the direction in effect, the same on
+every platform, the instruction where the program has it (`-mfma`, any 64-bit
+ARM), the `fma()` of the C library where that is right, and GAOL's own
+computation with integers where it is not (those toolchains, without
+`-mfma`). It is not called `fma`, which would be ambiguous with `std::fma` for a
+program with `using namespace gaol;` and `using namespace std;`.
+Compensated sums, and the
 double-double arithmetic built on such algorithms, lose their accuracy the
 same way. Built with `GAOL_PRESERVE_ROUNDING`, the program computes the right-hand
 column all the time.

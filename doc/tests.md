@@ -1049,6 +1049,14 @@ which `numbers` checks there too.
   double below, and to be the tightest ones where the sources of the intervals
   (`gaol/core/`) give the exact value themselves (`log(1)`, `sin(0)`, the
   bounds of π/2 at `asin(1)`...).
+  Where the `fma()` of the C library is mingw-w64's own on a 64-bit ARM
+  processor (llvm-mingw, before mingw-w64 12), which GAOL does not replace
+  because it is the instruction `fmadd`, the test calls that function through a
+  pointer read at run time, so that the compiler cannot make it the instruction
+  itself, and checks it against the 1 384 exact triples of `tests/fma_values.py`
+  in the four rounding directions; `-DGAOL_TESTS_CHECK_LIBRARY_FMA=1` asks for
+  it anywhere, which shows that it fails on an `fma()` that adds the products
+  of the halves with a rounding each, as that of mingw-w64 for x86 does (GAOL v5).
   Each function is tried at the ends of its domain and next to them, at the
   values GAOL treats apart, at the powers of two and their neighbours, at the
   subnormals, and at random doubles of every magnitude. `pow(x, y)` has to be
@@ -1132,8 +1140,10 @@ which `numbers` checks there too.
   arithmetic. The `fma()` and `round()` of mingw-w64's own math library on
   x64 fail 21 and 6 of these checks under wine (GAOL v5): where the library is
   that one (`GAOL_MINGW_OWN_MATH` of `gaol/gaol_config.h`), GAOL calls the
-  instruction (`-mfma`, without which it refuses the toolchain) and its own
-  `gaol_round()` of `gaol/math/gaol_round.h`, which the `round()` check then
+  instruction (`-mfma`) or its own `gaol_fma_upward()` of `gaol/math/gaol_fma.h`
+  without it (the `fma()` check calls `gaol_fma()`, right in the four
+  directions), and its own `gaol_round()` of
+  `gaol/math/gaol_round.h`, which the `round()` check then
   calls, and which a second function checks on every platform: the nearest
   integer, halfway values away from zero, with the sign of a zero, in the four
   rounding directions, at 41 values (±0x1.fffffffffffffp-2, ±0.5 and the
@@ -1141,7 +1151,43 @@ which `numbers` checks there too.
   2<sup>52</sup> − 1/2, the subnormal numbers, the infinities) and, against a
   reference that calls no `round()`, at the doubles around every power of two
   and every halfway value from −2000 to 2000 and at random ones of every
-  magnitude and of the first ones (GAOL v5). The `ldexp()` CORE-MATH rounds the subnormal values
+  magnitude and of the first ones (GAOL v5). A third checks `gaol_fma()` on
+  every platform, apart from the C library (GAOL v5): `a*b + c` rounded once, in
+  the four rounding directions, by the direction given and by the one in effect
+  (MXCSR on x86, `fegetround()` elsewhere), at the triples of
+  `fma_values.py` (`tests/fma_values.h`; exact rational arithmetic: errors of
+  products, products that cancel, halfway cases of both parities, a product far
+  below `c` and above it at every distance, significands of a few bits set or
+  cleared at every gap of 140 bits, products whose dropped bits are just under a
+  half with `c` the size of what is missing, products below the least
+  subnormal number, the subnormal range, the edge of the overflow), at the error
+  of 20 000 products that the products of the halves of
+  Dekker give with no fma, at the zeros of every sign, the infinities, the NaN
+  and the overflows written out, and, where the platform has the instruction or a
+  C library whose `fma()` is right, at 200 000 random triples of every kind
+  against it (cancellations, the subnormal range, the edge of the overflow,
+  operands of a few bits, a product and `c` up to 130 bits apart); the lines of
+  the port header that give the sources `gaol_fma_upward()` are repeated, and
+  checked against `GAOL_SOFT_FMA`. A fourth checks `gaol_fma_upward()`, which
+  GAOL calls where `GAOL_SOFT_FMA` is 1 and which is right in the upward
+  direction alone (it takes for granted the direction GAOL runs in, and a debug
+  build checks it): at the triples of `fma_values.py`, upward, then at 900 000
+  triples of the kinds its three fast paths (x86-64 with a 128-bit integer) are
+  for and of their edges (the error of a product and the values next to it, `c`
+  above the product by 2<sup>3</sup> to 2<sup>143</sup> with the halfway cases of
+  products of a few bits, anything with the zeros, the infinities and the NaN,
+  `c` near the ends of its exponent range, products of a few bits, `c` of the
+  size of the product or below it down to 80 binades with the near
+  cancellations), against
+  `gaol_fma_directed()` and, where there is one, against the instruction; the
+  fast paths have to take most of the triples that are theirs. CORE-MATH
+  computes with `gaol_fma_upward()` there, so that the checks that call it in
+  another direction (the four roundings of the hard cases of `sin`, `cos`, `cbrt`
+  and `rsqrt`, the exception flags, `pow` at the limits) are not run, and
+  those that compare the lower bounds with the value rounded downward compare
+  them with the value rounded upward, which a lower bound is or is the double
+  below: the builds with the instruction, or with a library `fma()` that is
+  right, run them all. The `ldexp()` CORE-MATH rounds the subnormal values
   of `erfc` with, `gaol_ldexp()` of `gaol/math/gaol_ldexp.h` with every compiler
   (the `ldexp()` of the UCRT of Windows and of macOS do not always round in
   the direction in effect), has to be x·2<sup>n</sup> rounded
@@ -1530,6 +1576,22 @@ which `numbers` checks there too.
   type: it is the independent value for the `_umul128` and `__umulh` branches of
   Visual C++ and for the four 32-bit products, and where there is a native type
   it is itself checked by the same comparison.
+- **`u128_select`:** a program in C, as the sources of CORE-MATH are, which
+  includes `gaol/math/gaol_u128.h` and links nothing of GAOL (GAOL v5). The GCC
+  14.2, 15.3 and 16.2 for 32-bit x86 (Debian 13 and 14 i386, where the
+  continuous integration runs the first two) miscompile, from `-O1`, with
+  `-ftree-coalesce-vars`, the choice between two `_BitInt(128)` values (`if
+  (swap) { larger = y; smaller = x; } else { larger = x; smaller = y; }` gave
+  both wrong when `swap` was 0), which the first version of `gaol_fma()` made:
+  GAOL takes the two halves of `gaol_u128.h` for 32-bit x86 with GCC since. The
+  program makes that choice in a function that is not inlined, with
+  `gaol_u128_shl()` and `gaol_u128_sub()` of the two values, at 20 000 pairs
+  with high halves small or zero as often as not (the values of the products
+  of `gaol_fma()`), and compares with two `uint64_t` halves: with the earlier
+  `gaol_u128.h` it gives 20 000 failures of 40 000 with these compilers at
+  `-O1`, `-O2` and `-O3`, none at `-O0`, and none with the exclusion. It runs
+  for every compiler, which are all right but GCC for 32-bit x86 (Clang 21 for
+  it is right).
 - **`extended_precision`:** the results that doubles computed in extended
   precision, on the x87 unit of an x86 processor, round wrongly, which is why
   `gaol/gaol_config.h` refuses that unit. CORE-MATH in the four rounding
@@ -1730,6 +1792,25 @@ which `numbers` checks there too.
   suite is the test: the SSE2 intervals crash without the option, and
   `test_heap_alignment` of `misc` (below) tells which allocation is wrong (GAOL
   v5).
+- **`refused_mingw_arm32`, `refused_mingw_arm64_msvcrt`,
+  `mingw_arm64_before_12_accepted` and `mingw_arm64_ucrt_accepted`** (CMake
+  build, on an x86 system that is not Windows, with GCC or Clang), and the end of
+  **`refused_options.sh`** and **`refused_options`** (autotools and meson
+  builds): mingw-w64 for ARM, which `gaol/gaol_config.h` accepts for 64-bit ARM
+  before version 12 (llvm-mingw, whose `fma()` is the instruction `fmadd`) and
+  refuses for 32-bit ARM (its `fma()` is not fused) and for 64-bit ARM of
+  version 12 or later linked with `msvcrt.dll`, which no job builds (GAOL v5).
+  `tests/refused_mingw_arm.cpp` includes that header alone, after the system
+  headers, and says what the headers of such a toolchain say (`__MINGW32__`,
+  `__MINGW64_VERSION_MAJOR`, `_UCRT`, `__aarch64__` or `__arm__`, and no
+  `__x86_64__`): 32-bit ARM with mingw-w64 11 and 64-bit ARM with mingw-w64 12
+  without `_UCRT` have to fail with the message of the header; 64-bit ARM with
+  mingw-w64 11, and with 12 saying `_UCRT` (the `fma()` and `round()` of
+  `ucrtbase.dll`), have to compile. Those macros are defined by hand on an x86
+  system: the tests check the logic of the refusal, not a real toolchain for
+  ARM, which no job builds for the two refused cases. The job of `windows.yml` that builds
+  llvm-mingw 20230320 on the arm64 runners is the test of the second case, with
+  the toolchain itself (GAOL v5).
 - **`cpack_stale_configure`** (CMake build, on a Unix system that builds for
   itself, where the tree has a `configure`): a script, not a program
   (`tests/cpack_stale_configure.cmake`). CPack puts `configure` in the archive
@@ -1772,7 +1853,8 @@ which `numbers` checks there too.
   (GAOL v5): the fused multiply-add instructions, the AVX-512 path, the 128-bit
   integer, the debugging and the vector intervals have no option, and the
   settings of the developers (`GAOL_FMA=OFF`, `GAOL_PREFER_AVX512`,
-  `GAOL_U128_EMULATION=ON`, `GAOL_DEBUG=ON`, `GAOL_EXCEPTIONS_ENABLED=OFF`,
+  `GAOL_U128_EMULATION=ON`, `GAOL_FMA_SOFTWARE=ON`, `GAOL_DEBUG=ON`,
+  `GAOL_EXCEPTIONS_ENABLED=OFF`,
   `GAOL_VERBOSE_MODE=ON`, `GAOL_MACHINE_RUNS_FMA` and
   `GAOL_MACHINE_RUNS_AVX512`) are read where they apply, without being in the
   cache unless they were given. The script configures GAOL as the project built,
@@ -1792,7 +1874,9 @@ which `numbers` checks there too.
   `-UGAOL_PREFER_AVX512`, and asked for by `=ON`, which is an error where the
   compiler has no path; the Debug build type, which sets `GAOL_DEBUGGING` and
   nothing else does (`-DGAOL_DEBUGGING=ON` is overwritten); `-DGAOL_FMA=OFF` and
-  `-DGAOL_U128_EMULATION=ON`; `-DGAOL_EXCEPTIONS_ENABLED=OFF` and
+  `-DGAOL_U128_EMULATION=ON`; `-DGAOL_FMA_SOFTWARE=ON`, which the configuration
+  says, with and without the instructions, and no other does;
+  `-DGAOL_EXCEPTIONS_ENABLED=OFF` and
   `-DGAOL_VERBOSE_MODE=ON`, which are taken out of the cache by the next
   configuration; and a cross-compilation (`CMAKE_SYSTEM_NAME` given), where no
   program can be run, which leaves the fused multiply-add instructions and the

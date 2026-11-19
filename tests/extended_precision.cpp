@@ -123,6 +123,11 @@ namespace
       {FE_TOWARDZERO, "toward zero", v.above > 0 ? v.below : v.above},
     };
     for (const auto& d : directions) {
+#if GAOL_SOFT_FMA
+      if (d.mode != FE_UPWARD) {
+        continue; // CORE-MATH computes with gaol_fma_upward() there, right in the upward direction alone
+      }
+#endif
       std::fesetround(d.mode);
       const double got = core_math(v);
       std::fesetround(FE_UPWARD);

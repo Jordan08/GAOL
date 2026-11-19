@@ -18,7 +18,10 @@
 # where the build took the fused multiply-add instructions. Without it the
 # fma() of arithmetic.cpp and core_math.cpp was the one of the C library, which
 # is not correctly rounded with MSYS2 MINGW32 (msvcrt), and 44 of the 100000
-# checks of fma failed there (GAOL v5).
+# checks of fma failed there (GAOL v5): gaol_fma() of gaol/math/gaol_fma.h, a
+# header of the sources that is not installed (-I., after the installed
+# headers, which are found first), takes its place where gaol_config.h says so
+# (GAOL_SOFT_FMA).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -58,7 +61,7 @@ status=0
 # intervals (GAOL v5). Not expressions, which builds the expressions of
 # gaol_core with the headers of the sources of GAOL, that are not installed
 for test in arithmetic elementary numbers other_functions reverse rounding_direction test_ibex_codac; do
-  ${CXX:-c++} $flags $psabi -I"$prefix/include" -Itests tests/$test.cpp $libs -o $test
+  ${CXX:-c++} $flags $psabi -I"$prefix/include" -I. -Itests tests/$test.cpp $libs -o $test
   # The checks that failed, which the last lines do not show
   if ./$test > $test.log 2>&1; then
     tail -1 $test.log
@@ -83,7 +86,7 @@ if command -v pkg-config > /dev/null; then
     export PATH="$prefix/bin:$prefix/lib:$PATH"
   fi
   echo "pkg-config --cflags --libs gaol: $(pkg-config --cflags --libs gaol)"
-  ${CXX:-c++} -std=c++17 -O2 $psabi $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) \
+  ${CXX:-c++} -std=c++17 -O2 $psabi $(pkg-config --cflags gaol) -I. -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) \
     -Wl,-rpath,"$prefix/lib" -o rounding_direction_pc
   if ./rounding_direction_pc > rounding_direction_pc.log 2>&1; then
     echo "with pkg-config: $(tail -1 rounding_direction_pc.log)"

@@ -128,6 +128,15 @@ foreach(test ${GAOL_TESTS})
   set_tests_properties(${test} PROPERTIES LABELS unit SKIP_RETURN_CODE 77)
   list(APPEND GAOL_CHECK_TARGETS gaol_test_${test})
 endforeach()
+# u128_select, a program in C, as the sources of CORE-MATH are: the choice
+# between two 128-bit integers, which the GCC 14.2, 15.3 and 16.2 for 32-bit
+# x86 compile wrongly with the `_BitInt(128)` that gaol_u128.h gave it (GAOL v5). Not
+# linked with GAOL: it only includes gaol/math/gaol_u128.h
+add_executable(gaol_test_u128_select u128_select.c)
+target_include_directories(gaol_test_u128_select PRIVATE "${PROJECT_SOURCE_DIR}")
+add_test(NAME u128_select COMMAND gaol_test_u128_select)
+set_tests_properties(u128_select PROPERTIES LABELS unit)
+list(APPEND GAOL_CHECK_TARGETS gaol_test_u128_select)
 set(GAOL_CHECK_TARGETS ${GAOL_CHECK_TARGETS} PARENT_SCOPE)
 # bad_snprintf: the calls to snprintf() and to __snprintf_chk(), which the
 # fortified calls of the C library of GNU reach, go to the functions of the
@@ -287,6 +296,30 @@ endif()
 # makes the same check in the autotools and meson builds.
 if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   gaol_refused_test(refused_arm64ec -D_M_ARM64EC=1 "GAOL cannot be compiled for ARM64EC")
+endif()
+
+# mingw-w64 for ARM, which gaol/gaol_config.h accepts for 64-bit ARM before
+# version 12 (llvm-mingw, whose fma() is the instruction fmadd) and refuses for
+# 32-bit ARM and for 64-bit ARM of version 12 or later linked with msvcrt.dll,
+# which no job builds (GAOL v5): refused_mingw_arm.cpp, which includes that
+# header alone, says on an x86 system of GCC or Clang what the headers of the
+# toolchain say (tests/refused_mingw_arm.cpp), and the compilation has to fail
+# with the message of the refusal for the first two tests, and to succeed for
+# the last two. Not on Windows, whose headers already say mingw-w64, nor on an
+# ARM system, which would not be told apart from the target. The autotools and
+# meson builds run the same checks with tests/refused_options.sh.
+if(NOT WIN32 AND NOT CYGWIN AND NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"
+   AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64|i[3-6]86|x86)$")
+  function(gaol_mingw_arm_test name message bits major)
+    gaol_compile_test(${name} refused_mingw_arm.cpp "${message}")
+    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS})
+    target_compile_definitions(gaol_${name} PRIVATE GAOL_TEST_MINGW_ARM_BITS=${bits}
+                               GAOL_TEST_MINGW_MAJOR=${major} ${ARGN})
+  endfunction()
+  gaol_mingw_arm_test(refused_mingw_arm32 "GAOL cannot be compiled with this mingw-w64 for ARM" 32 11)
+  gaol_mingw_arm_test(refused_mingw_arm64_msvcrt "GAOL cannot be compiled with this mingw-w64 for ARM" 64 12)
+  gaol_mingw_arm_test(mingw_arm64_before_12_accepted "" 64 11)
+  gaol_mingw_arm_test(mingw_arm64_ucrt_accepted "" 64 12 GAOL_TEST_MINGW_UCRT=1)
 endif()
 
 # The compilers that built GAOL, for the tests below that configure it again,
