@@ -2535,6 +2535,16 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   fast paths of that function, a `log` 175 ns, against 30 and 290, a `pow(x, 3)`
   45 ns, against 11 and 78). The 256-bit
   intrinsics a program writes itself stay exposed to the defect.
+- **`gaol_fma(a, b, c)`**, in `gaol` and in `gaol_ieee1788`, is `a*b + c` of
+  three doubles rounded once in the direction in effect, the same on every
+  platform, so that a program need not know which `fma()` it has: the
+  instruction where the program has it (`-mfma` for GCC and Clang on x86, any
+  64-bit ARM), else the `fma()` of the C library where that is correctly
+  rounded, and GAOL's own computation with integers where it is not (the
+  MinGW-w64 before version 12 or linked with `msvcrt.dll`, and Cygwin, on a
+  library built without the instruction). It is not called `fma`, which would
+  be ambiguous with `std::fma` for a program with `using namespace gaol;` and
+  `using namespace std;`; `fma` stays the function of the intervals.
 - **Cygwin on x86-64 is built and tested**, with GCC, by the three builds in the
   continuous integration, and **it calls `gaol_fma()` without the fused
   multiply-add instructions**: the `fma()` of its C library is not correctly

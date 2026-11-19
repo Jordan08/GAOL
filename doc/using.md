@@ -1242,11 +1242,17 @@ instruction, or a call of a C library whose `fma()` is; with GCC, `std::fma`
 without optimization is a call of the library, and the `fma()` of Cygwin, and
 that of the MinGW-w64 before version 12 or linked with `msvcrt.dll` (MSYS2
 MINGW64 and MINGW32), are not correctly rounded, where `__builtin_fma` is the
-instruction with `-mfma`, which GAOL calls itself, and `gaol_fma()`, which is
-not part of the interface, where the build has none: a program of yours that
-computes with `std::fma` on those toolchains needs `-mfma`, which `gaol.pc` and
-`gaol::gaol` give it where the processor has the instructions, and the example
+instruction with `-mfma`: a program of yours that computes with `std::fma` on
+those toolchains needs `-mfma`, which `gaol.pc` and `gaol::gaol` give it where
+the processor has the instructions, and the example
 `13_rounding_environment.cpp` reports a wrong error of a product without it).
+`gaol::gaol_fma(a, b, c)`, which `gaol_ieee1788` has too, spares a program that
+trouble: it is `a*b + c` rounded once in the direction in effect, the same on
+every platform, the instruction where the program has it (`-mfma`, any 64-bit
+ARM), the `fma()` of the C library where that is right, and GAOL's own
+computation with integers where it is not (those toolchains, without
+`-mfma`). It is not called `fma`, which would be ambiguous with `std::fma` for a
+program with `using namespace gaol;` and `using namespace std;`.
 Compensated sums, and the
 double-double arithmetic built on such algorithms, lose their accuracy the
 same way. Built with `GAOL_PRESERVE_ROUNDING`, the program computes the right-hand

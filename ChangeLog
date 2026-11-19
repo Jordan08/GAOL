@@ -377,6 +377,18 @@
 	double below (tests/core_math.cpp, tests/extended_precision.cpp).
 	GAOL_FMA_FORCE_SOFTWARE=1 (-DGAOL_FMA_SOFTWARE=ON of CMake) has it
 	called on any machine.
+	* gaol/core/gaol_interval_core.h, gaol/core/gaol_interval_core.cpp,
+	gaol/gaol_interval.h, gaol/gaol_ieee1788.h, tests/core_math.cpp:
+	gaol_fma(a, b, c), in gaol and in gaol_ieee1788, is a*b + c of
+	three doubles rounded once in the direction in effect, the same on
+	every platform: the instruction where the program has it (-mfma,
+	any 64-bit ARM), else fma_exact() of the library, which is the
+	fma() of the C library where that is right and GAOL's own
+	computation with integers where it is not.  A program need not
+	know which fma() it has.  It is not called fma: std::fma would be
+	ambiguous with it under using namespace gaol and using namespace
+	std.  The test checks it in the four directions at the triples of
+	fma_values.py and at random.
 	* .github/scripts/check-no-fma-call.sh, windows.yml, linux.yml: no
 	object of the library calls the fma() of the C library.
 	* gaol/math/gaol_u128.h, tests/u128_select.c: 32-bit x86 with GCC takes
