@@ -19,6 +19,10 @@
  * - the names gaol_cr_<f>() rather than cr_<f>(), so that GAOL does not clash
  *   with a program or a C library holding CORE-MATH's functions too;
  * - __builtin_roundeven() where the compiler or the math library has not;
+ * - __builtin_round() of gaol/math/gaol_round.h where the round() of the math
+ *   library is mingw-w64's own, which is wrong, and __builtin_fma() of
+ *   gaol/math/gaol_fma.h where its fma() or Cygwin's is, and the build has no
+ *   fused multiply-add instruction;
  * - on a 32-bit x86 Windows, a fegetexceptflag() and a fesetexceptflag()
  *   written on MXCSR, which leave its exception masks alone;
  * - on 32-bit x86, the square root of SSE2, rounded in the direction in
@@ -110,9 +114,10 @@ log10p1, atan2pi, hypot, rsqrt and asinpi compute with a 128-bit unsigned intege
 which their sources name u128, and asinpi with a signed one too, i128, held
 in a u128 in two's complement. GCC and Clang have one on 64-bit targets, and
 _BitInt(128) on 32-bit targets too: Clang from 14 on, and GCC from 14 on
-where the ABI of the target defines it, as for x86, which
-__BITINT_MAXWIDTH__ tells. Visual C++ has none, on no architecture, and
-neither has GCC for the 32-bit targets whose ABI defines no _BitInt(128).
+where the ABI of the target defines it, which __BITINT_MAXWIDTH__ tells, but
+for 32-bit x86, where the GCC 14.2, 15.3 and 16.2 compile the choice between two
+such values wrongly (tests/u128_select.c). Visual C++ has none, on no architecture, and
+neither has GCC for the 32-bit targets.
 There the sources take the structure of two 64-bit halves of
 gaol/math/gaol_u128.h, which tests/u128.cpp checks against the native type.
 
@@ -163,6 +168,58 @@ took for an undeclared function and did not link.
 #elif defined(__GNUC__) && __GNUC__ < 10
 #define __builtin_roundeven(x) gaol_roundeven(x)
 #endif /* Windows, or no __builtin_roundeven() */
+
+/*---------------------------------------------------------------------------
+round() of mingw-w64's own math library, which is wrong
+
+Fifteen sources (exp.c, sin.c...) call __builtin_round() in the
+roundeven_finite() they use where the processor has neither AVX nor SSE4.1 nor
+ARMv8 (-mfma gives GCC and Clang AVX, so not with GAOL_FMA), and there the
+round() of mingw-w64 is wrong for the doubles next to 1/2; pow.c calls it to
+take the integer nearest to the square root of an odd integer, which is at
+least 1, where it is exact. The calls are replaced, with the toolchains whose
+fma() and round() are those of mingw-w64's own math library
+(GAOL_MINGW_OWN_MATH, defined once for this header and for gaol/gaol_config.h
+by gaol/gaol_mingw_own_math.h), so that GAOL calls no round() of that library:
+it is wrong for the doubles next to 1/2, and gives the sign of a zero wrong
+rounding downward (see gaol/math/gaol_round.h, which reads the bits instead).
+--------------------------------------------------------------------------*/
+
+#include "gaol/gaol_mingw_own_math.h"
+
+#if GAOL_MINGW_OWN_MATH
+#include "gaol/math/gaol_round.h"
+#define __builtin_round(x) gaol_round(x)
+#endif /* mingw-w64 whose round() is its own */
+
+/*---------------------------------------------------------------------------
+fma() of the C library, which is wrong, where the build has no instruction
+
+The sources call __builtin_fma(), which is one instruction with -mfma
+(GAOL_FMA, __FMA__) and a call of the fma() of the C library without. Where
+that library is mingw-w64's own (GAOL_MINGW_OWN_MATH, above) or Cygwin's, its
+fma() is not correctly rounded, and the bounds of the elementary functions
+that compute with it do not enclose the exact values: with GAOL_FMA=OFF, or on
+a processor without the instructions, for which the three builds do not take
+-mfma, the builtin is replaced by gaol_fma_upward() of gaol/math/gaol_fma.h,
+which computes it with integers, rounded once upward, the direction GAOL's code
+runs in (it is not right in another one, as the sources of CORE-MATH are only
+called by GAOL's functions, and in the direction in effect by tests/core_math.cpp
+only where the build has no such replacement), and so is it everywhere with
+GAOL_FMA_FORCE_SOFTWARE=1, the way the continuous integration runs that
+function on an ordinary machine. GAOL_SOFT_FMA of gaol/gaol_config.h
+is the same test, which these C sources cannot read; tests/core_math.cpp checks
+that they agree. Everywhere else the builtin is the instruction, or the call of
+a library whose fma() is right.
+--------------------------------------------------------------------------*/
+
+#if (defined(GAOL_FMA_FORCE_SOFTWARE) && GAOL_FMA_FORCE_SOFTWARE \
+     && (!defined(_MSC_VER) || defined(__clang__))) \
+    || ((GAOL_MINGW_OWN_MATH || defined(__CYGWIN__)) && !defined(__FMA__) \
+        && (defined(__x86_64__) || defined(__i386__)))
+#include "gaol/math/gaol_fma.h"
+#define __builtin_fma(x, y, z) gaol_fma_upward((x), (y), (z))
+#endif /* a library whose fma() is wrong, and no instruction */
 
 /*---------------------------------------------------------------------------
 fesetexceptflag() of mingw-w64 up to 12, which unmasks the exceptions

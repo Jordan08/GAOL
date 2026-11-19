@@ -315,13 +315,88 @@ halves forced (\code{-DGAOL\_U128\_EMULATION=ON}, in \file{linux.yml};
 MinGW-w64 is no longer refused for its version alone, both former reasons
 being gone: the hyperbolic functions of its math library, which GAOL no
 longer uses, and the cost of its \code{fesetround()}, which GAOL no longer
-calls for its elementary functions.\newinvfive{} Still refused are the MinGW-w64 whose
-\code{fma()} or \code{round()} is wrong, those of its own math library,
-computed in doubles: that \code{fma()} is not correctly rounded (10.7\,\% of
-the error-free products \code{fma(a, b, -a*b)} were wrong with mingw-w64 11
-on x86-64), and CORE-MATH computes with it wherever the compiler has no
-\option{-mfma}; that \code{round()} depends on the rounding direction
+calls for its elementary functions.\newinvfive{} The MinGW-w64 whose
+\code{fma()} and \code{round()} are wrong, those of its own math library,
+computed in doubles, are accepted too: these are the ones before version 12
+and, from 12 on, those linked with \file{msvcrt.dll} rather than the UCRT (MSYS2
+MINGW64 and MINGW32, the cross compilers of Debian and Ubuntu). That
+\code{fma()} is not correctly rounded (10.7\,\% of the error-free products
+\code{fma(a, b, -a*b)} were wrong with mingw-w64 11 on x86-64), and CORE-MATH
+computes with it wherever the compiler has no \option{-mfma}; that
+\code{round()} depends on the rounding direction
+(\code{round(0x1.fffffffffffffp-2)} is 1 except rounding upward). GAOL takes
+neither from that library: \code{fma()} is the instruction, with the
+\option{-mfma} that \option{GAOL\_FMA} gives GCC and Clang for Windows on a
+processor that has it, and, where the build has none (\option{GAOL\_FMA=OFF}, or
+a processor without the instruction), \code{gaol\_fma\_upward()}
+(\file{gaol/math/gaol\_fma.h}), which computes $a\times b + c$ rounded once
+upward, the direction GAOL runs in, with integers (\code{GAOL\_SOFT\_FMA};
+\code{gaol\_fma()} is the same in the four directions); and \code{round()} is
+its own \code{gaol\_round()} (\file{gaol/math/gaol\_round.h}), which reads the
+bits. These toolchains are therefore accepted with \option{-mfma} and without
+it, on x86-64 and on 32-bit x86. Still refused are the MinGW-w64 for 32-bit ARM
+and for 64-bit ARM linked with \file{msvcrt.dll} (\pxref{sec:refused}).
+
+A program can have that exact \code{fma()} too: \code{gaol::gaol\_fma(a, b, c)},
+which \code{gaol\_ieee1788} has too, is $a\times b + c$ rounded once in the
+direction in effect on every platform, the instruction where the program has
+it, the \code{fma()} of the C library where that is right, and GAOL's own
+computation where it is not.\newinvfive{} It costs what Table~\ref{tab:fma-cost}
+gives where GAOL has to compute it: GAOL~4 is the 4.2.3 of
+Fr\'ed\'eric Goualard with mathlib 2.1.1, built without \option{-mfma}, which
+never calls \code{fma()}, so that the defect of the MinGW-w64 does not touch
+it. The two columns without FMA are built with
+\option{-DGAOL\_FMA=OFF -DGAOL\_FMA\_SOFTWARE=ON}, before the fast paths of
+\code{gaol\_fma\_upward()} and with the three of this version
 (\pxref{sec:refused}).
+
+\begin{table}[htbp]
+  \centering\renewcommand{\arraystretch}{1.05}\footnotesize
+  \setlength{\tabcolsep}{4pt}
+  \caption{What the \code{fma()} computed by GAOL costs: nanoseconds per
+    operation on $[x, 1.001x]$, Intel i7-1185G7, GCC~15, \option{-O3}, the
+    median of six alternating runs on one core}\label{tab:fma-cost}
+  \begin{tabular}{lrrrrr}
+    \hline
+    Operation & GAOL~4 & \shortstack[r]{GAOL v5\\with FMA} &
+    \shortstack[r]{without FMA,\\before} & \shortstack[r]{without FMA,\\3 paths} &
+    \shortstack[r]{3 paths\\/ GAOL~4}\\
+    \hline\hline
+    \code{tan} & 77.4 & 29.1 & 484 & \textbf{253} & 3.27\\
+    \code{pow(x, 3)} & 10.5 & 10.6 & 75.8 & \textbf{37.3} & 3.55\\
+    \code{log} & 66.0 & 28.6 & 278 & \textbf{169} & 2.56\\
+    \code{sinh} & 50.4 & 19.2 & 39.9 & 26.6 & 0.53\\
+    \code{tanh} & 53.2 & 21.9 & 54.4 & 39.0 & 0.73\\
+    \code{atan} & 58.4 & 30.4 & 69.3 & 52.3 & 0.90\\
+    \code{cos} & 64.5 & 22.0 & 59.0 & 44.9 & 0.70\\
+    \code{exp} & 42.4 & 16.8 & 29.7 & 23.1 & 0.54\\
+    \code{sin} & 84.6 & 24.5 & 60.4 & 47.0 & 0.56\\
+    \code{asin} & 47.7 & 19.3 & 44.6 & 34.9 & 0.73\\
+    \code{exp2} & -- & 16.1 & 29.6 & 22.0 & --\\
+    \code{log2} & -- & 34.3 & 58.8 & 44.0 & --\\
+    \code{expm1} & -- & 19.3 & 32.7 & 24.5 & --\\
+    $x + y$ & 2.9 & 2.4 & 2.2 & 2.2 & 0.76\\
+    $x \times y$ & 12.6 & 6.0 & 6.0 & 6.1 & 0.48\\
+    $x / y$ & 12.8 & 5.5 & 5.1 & 5.1 & 0.40\\
+    \code{sqr} & 6.1 & 7.6 & 6.4 & 6.4 & 1.04\\
+    \code{sqrt} & 5.4 & 5.5 & 5.7 & 5.7 & 1.05\\
+    \code{roundTiesToAway} & -- & 10.5 & 9.4 & 9.5 & --\\
+    \hline
+  \end{tabular}
+\end{table}
+
+GAOL~4 has no \code{exp2}, \code{log2}, \code{expm1} nor
+\code{roundTiesToAway}. The dispersion between the runs is 11\,\% at the median
+for GAOL v5 (29\,\% at most) and 32\,\% for the session of GAOL~4: a difference
+of less than 10\,\% means nothing. With the instruction, GAOL v5 is faster than
+GAOL~4 on every function, by 1.2 to 3.2 times. With the \code{fma()} computed by
+GAOL and the three fast paths, it still is for $x \times y$, $x / y$,
+\code{exp}, \code{sin}, \code{cos}, \code{sinh}, \code{tanh} and \code{asin}, as
+fast for \code{atan}, \code{sqr} and \code{sqrt}, and slower for \code{tan} (3.3
+times), \code{pow(x, 3)} (3.6) and \code{log} (2.6), the three functions that
+call \code{fma()} most (6.3, 7.2 and 4.2 times before the fast paths). One
+machine, x86-64 with a 128-bit integer; the fast paths are not there
+without it.
 
 \medskip
 The functions of IEEE 1788-2015 that GAOL~4 did not provide are
@@ -1630,8 +1705,9 @@ runner of GitHub, \code{pow(x, 3)} takes 8.7 ns rather than 52.3,
 rather than 265.7 and 138.3 rather than 489.6. The library then needs a
 processor with the FMA and AVX instructions (Intel Haswell, AMD Piledriver,
 2012--2013, and later), as with the other x86 compilers. Cygwin on x86-64 is
-built and tested, and refused without the instructions, the \code{fma()} of
-its C library not being correctly rounded; with it, \code{previous\_float()}
+built and tested, with the instruction and, where the build has none, with
+\code{gaol\_fma()}, the \code{fma()} of its C library not being correctly
+rounded; with either, \code{previous\_float()}
 and \code{next\_float()} give $-\infty$ and $+\infty$ at $\pm$\code{DBL\_MAX}
 with every C library, where the \code{nextafter()} of Cygwin computed the
 overflow as $x + x$ in the rounding direction of the program, so that the

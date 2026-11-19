@@ -24,7 +24,8 @@
 #     overwritten;
 #   - -DGAOL_FMA=OFF leaves the fused multiply-add instructions out, and so does
 #     a C compiler that refuses their flag; -DGAOL_U128_EMULATION=ON has the two
-#     halves of the 128-bit integer; the settings of the developers
+#     halves of the 128-bit integer; -DGAOL_FMA_SOFTWARE=ON has fma() computed
+#     by gaol_fma() on any machine; the settings of the developers
 #     GAOL_EXCEPTIONS_ENABLED=OFF and GAOL_VERBOSE_MODE=ON;
 #   - a cross-compilation, where no program can be run to check the machine,
 #     leaves the fused multiply-add instructions and the AVX-512 path out, and
@@ -97,7 +98,7 @@ endif()
 set(_unset
   -UGAOL_PRESERVE_ROUNDING -UGAOL_SIMD -UGAOL_ARM64 -UGAOL_FMA -UGAOL_PREFER_AVX512
   -UGAOL_PREFER_AVX512_DERIVED
-  -UGAOL_U128_EMULATION -UGAOL_DEBUG -UGAOL_DEBUGGING -UGAOL_VERBOSE_MODE
+  -UGAOL_U128_EMULATION -UGAOL_FMA_SOFTWARE -UGAOL_DEBUG -UGAOL_DEBUGGING -UGAOL_VERBOSE_MODE
   -UGAOL_EXCEPTIONS_ENABLED -UCMAKE_BUILD_TYPE)
 
 # Configures GAOL in the directory of build <build> with the arguments given:
@@ -342,6 +343,21 @@ if(NOT output MATCHES "128-bit integer: the two halves")
   message(FATAL_ERROR "-DGAOL_U128_EMULATION=ON, and the configuration does not take the two halves:\n${output}")
 endif()
 message(STATUS "-DGAOL_FMA=OFF and -DGAOL_U128_EMULATION=ON: as expected")
+# fma() computed by gaol_fma(): said by the configuration where it is asked for,
+# with or without the instructions, and by no other (GAOL v5)
+configure_ok("-DGAOL_FMA_SOFTWARE=ON" "${_build}" -DGAOL_FMA_SOFTWARE=ON)
+if(NOT output MATCHES "fma\\(\\): gaol_fma\\(\\) of gaol/math/gaol_fma.h")
+  message(FATAL_ERROR "-DGAOL_FMA_SOFTWARE=ON, and the configuration does not say that gaol_fma() computes fma():\n${output}")
+endif()
+configure_ok("-DGAOL_FMA=OFF -DGAOL_FMA_SOFTWARE=ON" "${_build}" -DGAOL_FMA=OFF -DGAOL_FMA_SOFTWARE=ON)
+if(NOT output MATCHES "Fused multiply-add flags: \n")
+  message(FATAL_ERROR "-DGAOL_FMA=OFF -DGAOL_FMA_SOFTWARE=ON, and the configuration takes a flag of the fused multiply-add instructions:\n${output}")
+endif()
+configure_ok("without -DGAOL_FMA_SOFTWARE" "${_build}")
+if(output MATCHES "gaol_fma\\(\\) of gaol/math/gaol_fma.h")
+  message(FATAL_ERROR "No -DGAOL_FMA_SOFTWARE, and the configuration says that gaol_fma() computes fma():\n${output}")
+endif()
+message(STATUS "-DGAOL_FMA_SOFTWARE=ON: as expected")
 
 # ---- The settings of the developers -------------------------------------------
 

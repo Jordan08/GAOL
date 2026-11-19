@@ -32,10 +32,15 @@ AM_DEFAULT_SOURCE_EXT = .cpp
 # The same list as tests/CMakeLists.txt
 GAOL_TESTS = interval_ieee_basic arithmetic elementary rounding_direction numbers other_functions \
 	ieee1788 reverse u128 core_math compoundm1 expressions extended_precision \
-	static_initialization debugging fast_math_link test_ibex_codac \
+	static_initialization debugging fast_math_link test_ibex_codac u128_select \
 	arithmetic_operators assignment constants constructor float_functions \
 	generic_functions input_output interval_functions misc non_arithmetic \
 	relations reverse_mappings trigonometric intervalf interval2f
+# u128_select: a program in C, as the sources of CORE-MATH are, which only
+# includes gaol/math/gaol_u128.h and links nothing of GAOL (GAOL v5)
+u128_select_SOURCES = u128_select.c
+u128_select_LDADD =
+
 # The rounding direction after the automatic cleanup of GAOL, read by a
 # function registered in a constructor of priority 101, which ELF runs before
 # GAOL initializes itself; and the bounds written with a snprintf() that
@@ -137,6 +142,8 @@ EXTRA_DIST = \
 	extended_precision_values.h \
 	extended_precision_values.py \
 	fetch_content/CMakeLists.txt \
+	fma_values.h \
+	fma_values.py \
 	find_package/CMakeLists.txt \
 	fp_strict/CMakeLists.txt \
 	gaol_tests.h \
@@ -148,6 +155,7 @@ EXTRA_DIST = \
 	pow_rel_values.h \
 	pow_rel_values.py \
 	refused_aligned_new.cpp \
+	refused_mingw_arm.cpp \
 	refused_options.cpp \
 	refused_options.sh \
 	release_flags.py \

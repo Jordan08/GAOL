@@ -344,7 +344,8 @@ first runs found what Cygwin needed. Its `<stdlib.h>` does not declare
 there). Its `fma()` is not correctly rounded (`fma(1 + 2^-30, 1 - 2^-30, -1)`
 gives 0), and `std::fma` is a call of it without optimization: GAOL calls
 `__builtin_fma` (`fma_once()`), which is the instruction with `-mfma` at -O0 and
-at -O3 (both checked), and refuses Cygwin without `-mfma`. Its
+at -O3 (both checked), and `gaol_fma()` where the build has no `-mfma`
+(`GAOL_SOFT_FMA`, see [the older MinGW-w64](#the-fma-and-round-of-mingw-w64)). Its
 `nextafter(-DBL_MAX, -oo)` is `-DBL_MAX` in the rounding direction upward, which
 `previous_float()` and `next_float()` now tell apart (the lower bound of
 `sinh(-711)` did not enclose the value; `elementary` failed on it).
@@ -435,21 +436,20 @@ there is no option for this, and `gaol.pc` and `gaol::gaol` carry no such flag.
 Each of these gave bounds not enclosing the exact results, or worse. The three
 builds refuse the compilers of the first two rows when configuring, the C
 compiler, which builds CORE-MATH, as well as the C++ compiler, with a
-message naming what to use instead, and keep the options of the last five away
+message naming what to use instead, and keep the options of the last four away
 by giving GAOL the flags of [Using GAOL](using.md). `gaol/gaol_config.h`
 refuses them again at compile time, for the code including GAOL's headers too,
-all but the second row, which no macro of the compiler shows; the third row and
-the seventh, Cygwin, it alone refuses, when compiling:
+all but the second row, which no macro of the compiler shows; the third row, ARM,
+it alone refuses, when compiling:
 
 | Refused | Because |
 |---|---|
 | Clang for 32-bit ARM processors | It does not honour the rounding direction there: built by Clang 21, 4556 of 16000 random products, squares and cubes did not enclose their exact values. GCC does. |
 | A compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target", as Clang 14 for 64-bit ARM | Bounds of `pow()` and `nth_root()` did not enclose the exact values. Clang 18 honours the rounding direction there. |
-| MinGW-w64 whose `fma()` or `round()` is wrong: on x64, before mingw-w64 12 (GCC 11 to 13 of Chocolatey) and linked with `msvcrt.dll` rather than the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on 32-bit x86, before 11 (GCC 11 of WinLibs), and, without `-mfma`, from 12 on and linked with `msvcrt.dll` (MSYS2 MINGW32); on ARM, as on x64, before 12 or linked with `msvcrt.dll` (the refusal is not tested there; MSYS2 CLANGARM64, which links the UCRT, is built and tested) | On x64, the `fma()` and `round()` of mingw-w64's own math library, computed in doubles: that `fma()` is not correctly rounded (10.7 % of the error-free products `fma(a, b, -a*b)` wrong), and CORE-MATH computes with it wherever the compiler has no `-mfma` (`GAOL_FMA` off; GCC for Windows on x86-64 and on 32-bit x86 takes it by default, and these toolchains stay refused, their `round()` being wrong too); that `round()` depends on the rounding direction. On 32-bit x86, the `fma()` of the mingw-w64 9 of WinLibs rounds each of its partial sums to a double; linked with `msvcrt.dll`, that of mingw-w64 12 or later is refused where the build has no `-mfma`. On ARM, that `round()` too; GAOL v5 is not tested there. Bounds of `tan()`, `asin()`, `atan()` and others did not enclose the exact values. MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on 32-bit x86 (GCC 13 also with `GAOL_FMA` off), and MSYS2 UCRT64 and CLANG64 are built and tested. |
+| MinGW-w64 for 32-bit ARM, and for 64-bit ARM of version 12 or later linked with `msvcrt.dll` rather than the UCRT (no job builds these toolchains; the refusal is tested with the macros of such a toolchain defined by hand on an x86 system, by `refused_mingw_arm32` and `refused_mingw_arm64_msvcrt`, which check the logic of the refusal and not a real toolchain for ARM; mingw-w64 for 64-bit ARM before version 12 is accepted, below, and MSYS2 CLANGARM64, which links the UCRT, is built and tested) | Its `fma()` and `round()` are those of mingw-w64's own math library, which are wrong on x86 (below), and `round()` depends on the rounding direction there too, computed in doubles. GAOL v5 calls its own `gaol_round()`; the `fma()` of 32-bit ARM is not fused (`fmacd`, which is `vmla.f64`, a product and a sum each rounded) and Clang for 32-bit ARM is refused anyway, and no toolchain for 64-bit ARM links `msvcrt.dll`, so that this case was not built. |
 | `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. `-Ofast` is not refused where `-fno-fast-math` turns its fast-math optimizations off (below). Linking with them, or with `-funsafe-math-optimizations`, is a matter of its own (below). |
 | `-ffinite-math-only`, which `-ffast-math` and `-Ofast` turn on | The compiler then takes NaN and infinities never to occur, in GAOL's inline functions too: the empty interval has NaN bounds, and `([1, 2] & [3, 4]).is_empty()` is false (GCC 9.4 and 13 at `-O0`, `-O2` and `-O3`; Clang 18 at `-O0`, and at `-O2` and `-O3` when the bounds are `volatile`). |
 | Visual C++, and clang-cl from Clang 16, without `/fp:strict` (`/fp:precise`, their default) | They then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly (clang-cl compiles with `-fno-rounding-math -ffp-contract=on`; GAOL v5 did not refuse it at first): no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](differences.md)). |
-| Cygwin without the fused multiply-add instructions (`GAOL_FMA=OFF`, or a processor without them) | **Bounds not certified.** The `fma()` of the C library of Cygwin is not correctly rounded: `fma(1 + 2^-30, 1 - 2^-30, -1)` gives 0 instead of -2^-60, and `std::fma` is a call of it without optimization. CORE-MATH computes with `fma()`. GAOL v5 has the instruction instead (`-mfma`, `__builtin_fma`), which every level of optimization keeps. `gaol/gaol_config.h` alone refuses it; the Cygwin job of `windows.yml` checks the refusal, and builds and tests Cygwin with `-mfma` (GCC 14.4, Release, the tests passing but three skipped). |
 | Doubles computed on the x87 unit of 32-bit x86 processors (without `-msse2 -mfpmath=sse`, or `/arch:SSE2`) | CORE-MATH assumes every operation on doubles rounded to a double. Computed in extended precision, its results rounded to nearest are rounded twice, and 175 arguments gave the other neighbour of the exact value with GCC 12 on Debian 12 i386; with GCC 9, which rounds to nearest at compile time the constants CORE-MATH rounds in the direction in effect, GAOL's bounds of `exp2(-1075)`, `expm1(-800)` or `atan2()` of a tiny and a huge number did not enclose the exact values. `tests/extended_precision.cpp` checks these arguments. |
 
 `gaol/gaol_config.h` refuses ARM64EC too (`_M_ARM64EC`, GAOL v5), the 64-bit
@@ -558,27 +558,87 @@ Clang 21 drop its `+ 0.0` as they did that of the earlier form (GCC 9 to 14
 were not tried with it). The code using GAOL is still not to be compiled with
 these flags.
 
+### The `fma()` and `round()` of mingw-w64
+
 Two reasons that had GAOL refuse MinGW-w64 are gone with CORE-MATH (GAOL v5):
 the math library of mingw-w64 older than version 12 gave `acosh()` near 1 up
 to 25 million doubles away from the exact value, and the `fesetround()` of
 mingw-w64 12 runs the instruction `cpuid` at each call. GAOL takes no
 elementary function from the math library of the system any more, and no
-longer changes the rounding direction for its elementary functions: the older
-MinGW-w64 are refused for the reason of the third row only, the `fma()` and
-`round()` that CORE-MATH and GAOL still take from the C library. Before
-mingw-w64 12 they are those of mingw-w64 in every program; from 12 on, only in
-the library of `msvcrt.dll`, so that a toolchain linking the UCRT takes those
-of `ucrtbase.dll`, which pass the tests. `gaol/gaol_config.h` tells the two
-runtimes apart by `_UCRT`, which the headers of a UCRT toolchain define, with
-GCC and Clang alike, and `tests/core_math.cpp` checks the two functions first,
-on every platform. On 32-bit x86, mingw-w64 computes them on the x87 unit:
-there its `round()` is right, and the `fma()` of mingw-w64 11 (MinGW-Builds
-GCC 12 and 13), accepted and called only with `GAOL_FMA` off (the default gives
-GCC for Windows `-mfma` there too), keeps its partial sums in extended
-precision and passes the tests, though it is not correctly rounded; that of the mingw-w64 9
-of WinLibs, compiled without optimization, rounds each of them to a double;
-that of a mingw-w64 12 or later linking `msvcrt.dll` (MSYS2 MINGW32) is
-refused with `GAOL_FMA` off, as on x64.
+longer changes the rounding direction for its elementary functions. A third
+reason was left, the `fma()` and `round()` that CORE-MATH and GAOL took from the
+C library, and GAOL takes them no more where they are wrong. They are those of
+mingw-w64's own math library (`GAOL_MINGW_OWN_MATH`, which
+`gaol/gaol_mingw_own_math.h` defines once for `gaol/gaol_config.h` and for the C
+sources of CORE-MATH) in every program linked before mingw-w64 12, and from 12 on
+only in the library of `msvcrt.dll`, so that a toolchain linking the UCRT takes
+those of `ucrtbase.dll`, which pass the tests. `gaol/gaol_mingw_own_math.h`
+tells the two runtimes apart by `_UCRT`, which the headers of a UCRT toolchain
+define, with GCC and Clang alike. There, and for Cygwin, whose `fma()` is wrong
+too:
+
+- `round()` is `gaol_round()` (`gaol/math/gaol_round.h`), which reads the bits;
+- `fma()` is the instruction, which `GAOL_FMA` gives GCC and Clang for Windows
+  on a processor that has it: the three builds run a program compiled with
+  `-mfma` and drop it where the processor does not run it, and the objects of
+  the Release builds of the continuous integration are checked for the
+  instructions (`.github/scripts/check-gcc-windows-fma.sh`);
+- where the build has no instruction (`GAOL_FMA=OFF`, or a processor without the
+  instructions, for which the builds do not take `-mfma`), `fma()` is
+  `gaol_fma()` (`gaol/math/gaol_fma.h`): `a*b + c` rounded once, in the
+  direction in effect, computed with integers (`GAOL_SOFT_FMA` of
+  `gaol/gaol_config.h` is then 1). The library calls no `fma()` of the C
+  library in either case, which `.github/scripts/check-no-fma-call.sh` reads in
+  its objects. Nothing changes where the library's `fma()` is right: Linux,
+  macOS, Visual C++, the UCRT of mingw-w64 12 and later.
+
+`gaol_fma_upward()`, which GAOL calls, is slower than the instruction: it is
+there for the processors without it (before Intel Haswell and AMD Piledriver)
+and for a library built for any processor of the architecture
+(`-DGAOL_FMA=OFF`), which was refused before. It takes for granted the upward
+direction that GAOL's code runs in, and has three fast paths on x86-64 (the
+error of a product, `c` far above the product, and `c` of the size of the
+product or below it), which `tan`, `log` and `pow(x, 3)` call most; `gaol_fma()` is right in the four directions, which the
+tests that call CORE-MATH in another direction need: they are not run where
+GAOL calls `gaol_fma_upward()`. `-DGAOL_FMA_SOFTWARE=ON` (`GAOL_FMA_FORCE_SOFTWARE=1` for the other two
+builds) has GAOL call it on any machine, as the continuous integration does on
+Ubuntu x86-64 with GCC and Clang.
+
+`tests/core_math.cpp` checks the two functions first, on every platform: that of
+the C library, and `gaol_round()` and `gaol_fma()` where GAOL calls them. On
+32-bit x86, mingw-w64 computes them on the x87 unit: there its `round()` is
+right, and the `fma()` of mingw-w64 11 (MinGW-Builds GCC 12 and 13) keeps its
+partial sums in extended precision and passes the tests, though it is not
+correctly rounded (125 results of 400,000 were one double off); that of the
+mingw-w64 9 of WinLibs, compiled without optimization, rounds each of them to a
+double; that of a mingw-w64 12 or later linking `msvcrt.dll` (MSYS2 MINGW32) is
+that of mingw-w64 too. GAOL calls none of them: the instruction, or
+`gaol_fma()`.
+
+On 64-bit ARM, mingw-w64 before version 12 is accepted (GAOL v5): the `fma()`
+of its `libmingwex` is not the code above but the instruction. In the
+`libmingwex.a` of llvm-mingw 20230320 (Clang 16, mingw-w64 11) it is `fmadd d2,
+d0, d1, d2`, a move and a return, which is the instruction that `__builtin_fma()`
+of Clang is at every level of optimization; its `round()` is the code above,
+computed in doubles. GAOL calls `gaol_round()` and the instruction, and
+`gaol_fma()` is for x86 only (`GAOL_SOFT_FMA` is 0), a processor for 64-bit ARM
+having the instruction. That is read in the code, not taken from a comment:
+`.github/scripts/check-arm64-fma.sh` reads the disassembly of the `fma()` of
+the library and requires one `fmadd` and nothing else that computes, requires
+fused instructions in the objects of the library, and fails on an object that
+calls `fma()` or `round()`; `tests/core_math.cpp` calls the `fma()` of the
+library as a function, through a pointer read at run time, against the exact
+values of `tests/fma_values.py` in the four rounding directions, which a
+product and a sum each rounded fails (the error-free products, the halfway
+cases, the cancellations); and a job of `windows.yml` builds and tests GAOL with
+that toolchain on the arm64 runners. The releases of llvm-mingw from June 2023
+on call themselves mingw-w64 12, and the `libmingwex` of 20231128 and 20240130
+has neither `fma.o` nor `round.o`: they take those of `ucrtbase.dll`. A toolchain
+for 32-bit ARM, and one for 64-bit ARM of version 12 or later linking
+`msvcrt.dll`, which no job builds, stay refused. The refusal is tested with the
+macros of such a toolchain defined by hand on an x86 system
+(`tests/refused_mingw_arm.cpp`): that checks the logic of the refusal, not a
+real toolchain for ARM.
 
 ### Linking with `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations`
 

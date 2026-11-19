@@ -221,19 +221,21 @@ namespace {
 
   /*
     Whether p + e is exactly a * b, in every rounding direction: the error of
-    a rounded product is a double, which std::fma computes exactly however
-    it rounds, so p + e is the product exactly when std::fma(a, b, -p) gives
-    e back. The check runs to nearest, whatever the direction of the pair.
-    (With GCC, std::fma is a call of the C library without optimization: with
-    a library whose fma() is not correctly rounded, as Cygwin's, this check is
-    wrong there; __builtin_fma is the instruction with -mfma.)
+    a rounded product is a double, which gaol::gaol_fma computes exactly
+    however it rounds, so p + e is the product exactly when
+    gaol::gaol_fma(a, b, -p) gives e back. The check runs to nearest, whatever
+    the direction of the pair. gaol_fma is the fused multiply-add instruction
+    where the program has it, the fma() of the C library where that is right,
+    and GAOL's own computation where it is not (Cygwin, the MinGW-w64 before
+    version 12 or linked with msvcrt.dll, without -mfma, where std::fma is a
+    call of a wrong fma() without optimization): the program need not know.
   */
   bool is_exact_product(double a, double b, double p, double e)
   {
     bool same;
     {
       nearest_scope nearest;
-      same = keep(e == std::fma(keep(a), keep(b), -keep(p)));
+      same = keep(e == gaol::gaol_fma(keep(a), keep(b), -keep(p)));
     }
     return same;
   }
@@ -252,7 +254,7 @@ namespace {
     bool exact_sum;                   // s + e is a + b for TwoSum(1e20, 1e-20)
     std::size_t inexact_pairs;        // pairs of doubles whose TwoSum is not exact
     std::size_t inexact_products;     // pairs whose TwoProd, from Dekker's splitting, is not exact
-    std::size_t inexact_fma_products; // pairs whose TwoProd, from std::fma, is not exact
+    std::size_t inexact_fma_products; // pairs whose TwoProd, from gaol_fma, is not exact
   };
 
   Consequences consequences(const std::vector<double>& values, const std::vector<std::pair<double, double>>& pairs,
@@ -293,9 +295,9 @@ namespace {
 
     /* TwoProd, the error of a product: Dekker's, from the split operands,
        which TwoSum's fate awaits (it is exact to nearest only), and the one
-       of std::fma, exact in every direction: the error of a rounded product
-       is a double, which std::fma computes however it rounds. That e is the
-       error is what is_exact_product() checks, from std::fma to nearest. */
+       of gaol_fma, exact in every direction: the error of a rounded product
+       is a double, which gaol_fma computes however it rounds. That e is the
+       error is what is_exact_product() checks, from gaol_fma to nearest. */
     c.inexact_products = 0;
     c.inexact_fma_products = 0;
     for (const std::pair<double, double>& ab : product_pairs) {
@@ -305,7 +307,7 @@ namespace {
       err = keep(err);
       c.inexact_products += !is_exact_product(ab.first, ab.second, p, err);
       p = ab.first * ab.second;
-      err = std::fma(ab.first, ab.second, -p);
+      err = gaol::gaol_fma(ab.first, ab.second, -p);
       p = keep(p);
       err = keep(err);
       c.inexact_fma_products += !is_exact_product(ab.first, ab.second, p, err);
@@ -546,11 +548,11 @@ int main()
        "of " + std::to_string(pairs.size()) + " with exponents within 60: not exact",
        to_nearest.inexact_pairs == 0 && (upward ? as_it_runs.inexact_pairs > 0 : as_it_runs.inexact_pairs == 0));
   // TwoProd, the error of a product: Dekker's splitting breaks as TwoSum does,
-  // and the error of std::fma is exact in every rounding direction
+  // and the error of gaol_fma is exact in every rounding direction
   show("TwoProd, Dekker's splitting", std::to_string(as_it_runs.inexact_products) + ", " + std::to_string(to_nearest.inexact_products),
        "of " + std::to_string(product_pairs.size()) + " of [1, 2): not exact",
        to_nearest.inexact_products == 0 && (upward ? as_it_runs.inexact_products > 0 : as_it_runs.inexact_products == 0));
-  show("TwoProd, std::fma", std::to_string(as_it_runs.inexact_fma_products) + ", " + std::to_string(to_nearest.inexact_fma_products),
+  show("TwoProd, gaol_fma", std::to_string(as_it_runs.inexact_fma_products) + ", " + std::to_string(to_nearest.inexact_fma_products),
        "the error of a rounded product, exact in every direction",
        as_it_runs.inexact_fma_products == 0 && to_nearest.inexact_fma_products == 0);
 

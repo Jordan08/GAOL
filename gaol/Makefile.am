@@ -70,6 +70,7 @@ library_include_HEADERS = gaol gaol.h \
 	gaol_common.h gaol_config.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_ieee1788.h \
 	gaol_interval.h \
+	gaol_mingw_own_math.h \
 	gaol_port.h \
 	gaol_version.h
 # gaol_configuration.h, which configure writes from gaol_configuration.h.in:
@@ -108,7 +109,8 @@ noinst_HEADERS = math/gaol_core_math.h \
 	core/gaol_interval_fpu_impl.h core/gaol_interval_avx512_impl.h \
 	math/gaol_double_op.h float/gaol_intervalf.h float/gaol_interval2f.h \
 	float/gaol_intervalf_impl.h float/gaol_interval2f_impl.h \
-	math/gaol_ldexp.h math/gaol_roundeven.h math/gaol_compoundm1.h
+	math/gaol_ldexp.h math/gaol_roundeven.h math/gaol_round.h \
+	math/gaol_fma.h math/gaol_compoundm1.h
 
 tags: TAGS
 	etags --language=c++ *.cpp *.h *.c core/*.cpp core/*.h math/*.h

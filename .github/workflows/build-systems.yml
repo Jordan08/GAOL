@@ -665,8 +665,8 @@ jobs:
 
   # Cygwin, GCC for x86-64 (GAOL v5), with autotools and with meson as with
   # CMake in windows.yml: GAOL_FMA gives it -mfma -mprefer-vector-width=128,
-  # without which gaol/gaol_config.h refuses it (its fma() is not correctly
-  # rounded). Cygwin is not mingw-w64 (__CYGWIN__, not __MINGW32__).
+  # without which GAOL calls gaol_fma() rather than its fma(), which is not
+  # correctly rounded. Cygwin is not mingw-w64 (__CYGWIN__, not __MINGW32__).
   cygwin:
     name: ${{ matrix.cfg.desc }}
     runs-on: windows-2025

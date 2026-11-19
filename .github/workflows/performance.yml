@@ -8,8 +8,12 @@
 # so that two builds are measured in turn in one job instead. The table never
 # fails a job: only a large difference means something, and the table says so.
 #
-# Only for a pull request that changes what is measured (the paths below), and
-# with the CMake build alone, for gaol_performance and, on Linux, macOS and
+# Only for a pull request into dev, the branch of the development, that changes
+# what is measured (the paths below): master receives the versions only
+# (process.md section 13), as a pull request from dev, whose changes the pull
+# requests into dev have measured one by one, so that its jobs would measure
+# them a second time at each push to dev.
+# With the CMake build alone, for gaol_performance and, on Linux, macOS and
 # with Visual C++, the ten long lines of doc/compare/code/run_lines.sh
 # (gaol_bench) too. Not for the jobs of the other workflows, whose step
 # Performance prints one table, which no other run compares. The jobs of
@@ -35,6 +39,8 @@ name: Performance
 
 on:
   pull_request:
+    branches:
+      - dev
     paths:
       - 'gaol/**'
       - '3rd/**'

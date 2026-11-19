@@ -25,7 +25,17 @@
  *
  * First, the test checks the fma() and round() of the C library, which
  * CORE-MATH and GAOL call, against values computed apart: where they are
- * wrong, so are the bounds, whatever the platform.
+ * wrong, so are the bounds, whatever the platform. Where the fma() and the
+ * round() are those of mingw-w64's own math library (GAOL_MINGW_OWN_MATH), which
+ * are wrong, and Cygwin's fma(), GAOL calls gaol_round() of
+ * gaol/math/gaol_round.h, and gaol_fma() of gaol/math/gaol_fma.h where the
+ * build has no fused multiply-add instruction (GAOL_SOFT_FMA), which the test
+ * checks there, and on every platform, apart from the C library. Where that
+ * library's fma() is mingw-w64's own on a 64-bit ARM processor, which GAOL does
+ * not replace with a function of its own (it is the instruction fmadd, which
+ * the objects of the library show: .github/scripts/check-arm64-fma.sh), the
+ * test calls it as a function and compares it with the exact values of
+ * tests/fma_values.py in the four directions.
  *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
@@ -38,6 +48,10 @@
 #include "gaol_tests.h"
 #include "gaol/math/gaol_core_math.h"
 #include "gaol/math/gaol_ldexp.h"
+#include "gaol/math/gaol_fma.h"
+#include "gaol/math/gaol_round.h"
+
+#include "fma_values.h"
 
 #include <climits>
 #include <cstring>
@@ -48,6 +62,70 @@
 #if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #  include <xmmintrin.h>
 #  define GAOL_TESTS_HAVE_MXCSR 1
+#endif
+
+/*
+  What the sources of CORE-MATH get for __builtin_round() from
+  gaol/math/gaol_core_math_port.h, which they take with `-include`, and these
+  tests do not: the same lines, so that the tests below call it as the sources
+  do, with the same GAOL_MINGW_OWN_MATH, which gaol/gaol_mingw_own_math.h
+  defines once for the header and for gaol/gaol_config.h. Visual C++ has no
+  __builtin_round() (the header gives it round()).
+*/
+#if GAOL_MINGW_OWN_MATH
+#include "gaol/math/gaol_round.h"
+#define __builtin_round(x) gaol_round(x)
+#endif /* mingw-w64 whose round() is its own */
+
+/*
+  The same for __builtin_fma(), where the library's fma() is wrong and the
+  build has no instruction, or where GAOL_FMA_FORCE_SOFTWARE says so: the
+  test is that of GAOL_SOFT_FMA (gaol/gaol_config.h), which the C sources do not
+  include and this one repeats (with the same GAOL_MINGW_OWN_MATH), the next
+  lines checking that the two agree.
+*/
+#if (defined(GAOL_FMA_FORCE_SOFTWARE) && GAOL_FMA_FORCE_SOFTWARE \
+     && (!defined(_MSC_VER) || defined(__clang__))) \
+    || ((GAOL_MINGW_OWN_MATH || defined(__CYGWIN__)) && !defined(__FMA__) \
+        && (defined(__x86_64__) || defined(__i386__)))
+#define GAOL_TESTS_PORT_HAS_SOFT_FMA 1
+#define __builtin_fma(x, y, z) gaol_fma_upward((x), (y), (z))
+#else
+#define GAOL_TESTS_PORT_HAS_SOFT_FMA 0
+#endif /* a library whose fma() is wrong, and no instruction */
+
+#if GAOL_TESTS_PORT_HAS_SOFT_FMA != GAOL_SOFT_FMA
+#  error "the test of the __builtin_fma() of gaol/math/gaol_core_math_port.h is not the one of GAOL_SOFT_FMA in gaol/gaol_config.h"
+#endif
+
+// An expression as the text it expands to
+#define GAOL_TEST_TEXT_OF_2(x) #x
+#define GAOL_TEST_TEXT_OF(x) GAOL_TEST_TEXT_OF_2(x)
+
+// Where fma_reference() (tests/gaol_tests.h) is a reference for gaol_fma(): the
+// instruction, or the C library's where that is right, with GAOL_SOFT_FMA or
+// without it (GAOL_FMA_FORCE_SOFTWARE, on a machine that has the instruction or
+// a library that is right), and not where the build has neither
+#if defined(__FMA__) || defined(__ARM_FEATURE_FMA) || defined(__aarch64__) \
+    || !(GAOL_MINGW_OWN_MATH || defined(__CYGWIN__))
+#  define GAOL_TESTS_FMA_IS_TRUSTED 1
+#else
+#  define GAOL_TESTS_FMA_IS_TRUSTED 0
+#endif
+
+// Where the test calls the fma() of the C library as a function and checks it
+// against the exact values of tests/fma_values.py: the toolchains whose own
+// math library has an fma() that GAOL does not replace, mingw-w64 before version
+// 12 for 64-bit ARM (the instruction fmadd, which is what __builtin_fma() is
+// there, and what std::fma calls without optimization). Defining
+// GAOL_TESTS_CHECK_LIBRARY_FMA to 1 asks for the test anywhere, which is how it
+// is shown to fail on an fma() that is not fused (GAOL v5)
+#if !defined(GAOL_TESTS_CHECK_LIBRARY_FMA)
+#  if GAOL_MINGW_OWN_MATH && !defined(__x86_64__) && !defined(__i386__)
+#    define GAOL_TESTS_CHECK_LIBRARY_FMA 1
+#  else
+#    define GAOL_TESTS_CHECK_LIBRARY_FMA 0
+#  endif
 #endif
 
 using namespace gaol;
@@ -123,10 +201,61 @@ namespace
   // computed apart from GAOL
   void tightest(double (*f)(double), double x, double& lo, double& hi)
   {
+#if GAOL_SOFT_FMA
+    // CORE-MATH computes with gaol_fma_upward() there, which is right in the
+    // upward direction only (the one GAOL calls it in): the downward value is
+    // not computed, lo is hi, and compare() checks the lower bound with that
+    std::fesetround(FE_UPWARD);
+    hi = f(x);
+    lo = hi;
+#else
     std::fesetround(FE_DOWNWARD);
     lo = f(x);
     std::fesetround(FE_UPWARD);
     hi = f(x);
+#endif
+  }
+
+  /*
+    CORE-MATH, where GAOL_SOFT_FMA says that the build computes the fma() itself,
+    computes with gaol_fma_upward(), which is right in the upward direction alone,
+    the one GAOL runs in and the only one GAOL calls CORE-MATH in. The tests that
+    call it in another direction (the four roundings of the hard cases, the
+    exception flags, the lower bound as the value rounded downward) do not run
+    there, or compare the lower bound with the value rounded upward, which it is
+    or is the double below: the builds with the instruction, or a library fma()
+    that is right, run them all, and gaol_fma() is checked in the four directions
+    above.
+  */
+  inline bool direction_is_usable(int fenv_direction)
+  {
+    return GAOL_SOFT_FMA == 0 || fenv_direction == FE_UPWARD;
+  }
+
+  // f(x) rounded downward by CORE-MATH, or where it cannot be (see above) rounded upward, which the lower bound
+  // GAOL gives is or is the double below (lower_is())
+  double cm_down(double (*f)(double), double x)
+  {
+#if GAOL_SOFT_FMA
+    std::fesetround(FE_UPWARD);
+    return f(x);
+#else
+    std::fesetround(FE_DOWNWARD);
+    const double v = f(x);
+    std::fesetround(FE_UPWARD);
+    return v;
+#endif
+  }
+
+  // Whether the lower bound got is the one CORE-MATH gives rounded downward, lo, or where that is rounded
+  // upward (cm_down()), lo or the double below it
+  bool lower_is(double got, double lo)
+  {
+#if GAOL_SOFT_FMA
+    return got == lo || got == previous_float(lo);
+#else
+    return got == lo;
+#endif
   }
 
   /* GAOL's bounds of an interval [x,x] against the tightest ones. A bound that
@@ -150,6 +279,18 @@ namespace
               [&] { return name + "(" + show(x) + ")"; });
         continue;
       }
+#if GAOL_SOFT_FMA
+      /* Only the upper bound is CORE-MATH's, in the upward direction: it is
+         the upper bound of GAOL, and the lower one is it, or the double below
+         it, which the builds with the instruction check against the value
+         rounded downward. */
+      check(name + ": the upper bound is the value rounded upward, the lower one is it or the double below",
+            got.right() == hi && (got.left() == hi || got.left() == previous_float(hi)),
+            [&] {
+              return name + "(" + show(x) + ") = [" + show(got.left()) + ", " + show(got.right())
+                   + "] with the value rounded upward " + show(hi);
+            });
+#else
       check(name + ": encloses the tightest bounds",
             got.left() <= lo && got.right() >= hi,
             [&] {
@@ -169,7 +310,41 @@ namespace
                        return name + "(" + show(x) + ") = [..., " + show(got.right()) + "] rather than [..., "
                             + show(hi) + "]";
                      });
+#endif
     }
+  }
+
+  struct Known { double x, value; };
+
+  // The nearest integer, halfway values away from zero, written out, with what
+  // a wrong round() gets wrong: the value expected (GAOL v5)
+  const Known known_rounds[] = {
+    {0x1.fffffffffffffp-2, 0.0}, {-0x1.fffffffffffffp-2, -0.0},
+    {0.5, 1.0}, {-0.5, -1.0}, {0x1.0000000000001p-1, 1.0}, {-0x1.0000000000001p-1, -1.0},
+    {0.3, 0.0}, {-0.3, -0.0}, {0x1.fffffffffffffp-1, 1.0}, {-0x1.fffffffffffffp-1, -1.0},
+    {0.0, 0.0}, {-0.0, -0.0}, {0x1p-1074, 0.0}, {-0x1p-1074, -0.0},
+    {0x0.fffffffffffffp-1022, 0.0}, {-0x0.fffffffffffffp-1022, -0.0},
+    {1.0, 1.0}, {-1.0, -1.0}, {0x1.fffffffffffffp+0, 2.0}, {0x1.0000000000001p+0, 1.0},
+    {1.5, 2.0}, {-1.5, -2.0}, {0x1.7ffffffffffffp+0, 1.0}, {-0x1.7ffffffffffffp+0, -1.0},
+    {2.5, 3.0}, {-2.5, -3.0}, {3.5, 4.0}, {-3.5, -4.0}, {0.5 + 0x1p+10, 0x1p+10 + 1.0},
+    {0x1p+51 + 0.5, 0x1p+51 + 1.0}, {-(0x1p+51 + 0.5), -(0x1p+51 + 1.0)},
+    {0x1p+51, 0x1p+51}, {0x1.fffffffffffffp+51, 0x1p+52}, // 2^52 - 1/2
+    {-0x1.fffffffffffffp+51, -0x1p+52},
+    {0x1p+52, 0x1p+52}, {0x1p+52 + 1.0, 0x1p+52 + 1.0}, {0x1p+53, 0x1p+53},
+    {0x1.fffffffffffffp+1023, 0x1.fffffffffffffp+1023},
+    {-0x1.fffffffffffffp+1023, -0x1.fffffffffffffp+1023},
+    {GAOL_INFINITY, GAOL_INFINITY}, {-GAOL_INFINITY, -GAOL_INFINITY},
+  };
+
+  // round(x) as GAOL computes it: gaol_round() where the round() of the C library
+  // is mingw-w64's own and wrong, that of the C library elsewhere (GAOL v5)
+  double round_as_gaol(double x)
+  {
+#if GAOL_MINGW_OWN_MATH
+    return gaol_round(x);
+#else
+    return std::round(x);
+#endif
   }
 
   /*
@@ -184,6 +359,10 @@ namespace
     checks the instruction where there is one. round() is
     roundTiesToAway (round_ties_to_away() of gaol/core/gaol_interval_core.h, and pow of
     CORE-MATH), which does not depend on the rounding direction.
+
+    round() is the one GAOL calls: that of the C library, and gaol_round() where
+    the C library's is mingw-w64's own (GAOL_MINGW_OWN_MATH, which
+    round_as_gaol() follows), the one the next function checks apart.
 
     The fma() of mingw-w64's own math library (see gaol/gaol_config.h) adds
     the products of the halves of x and y to z with four roundings. That of
@@ -245,7 +424,7 @@ namespace
       for (int d = 0; d < 4; ++d) {
         volatile double x = v.x;
         std::fesetround(directions[d]);
-        const double got = gaol_core::rnd_keep(std::round(x));
+        const double got = gaol_core::rnd_keep(round_as_gaol(x));
         std::fesetround(FE_UPWARD);
         check("the round() of the C library: the same in every rounding direction", got == v.value,
               [&] {
@@ -254,6 +433,763 @@ namespace
               });
       }
     }
+  }
+
+  bool same_bits(double a, double b)
+  {
+    return std::memcmp(&a, &b, sizeof a) == 0;
+  }
+
+  /*
+    gaol_round() of gaol/math/gaol_round.h, which GAOL calls where the round()
+    of the C library is that of mingw-w64 (GAOL_MINGW_OWN_MATH): the nearest
+    integer, halfway values away from zero, exactly, and the sign of a zero
+    kept, whatever the rounding direction. It is checked on every platform, with
+    the doubles round() of mingw-w64 gets wrong, 0x1.fffffffffffffp-2 and its
+    opposite (1 or -1 rather than 0 or -0 in every direction but upward), the
+    halfway values, the doubles next to them and to the integers, the subnormal
+    numbers, the limit of 2^52 where every double is an integer, the infinities
+    and the NaN, then at random doubles of every magnitude and at random
+    multiples of 1/2 and of their neighbours, against reference_round_away().
+  */
+  void gaol_round_of_the_bits()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    const char* const names[] = {"to nearest", "upward", "downward", "toward zero"};
+
+    for (const Known& k : known_rounds) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double x = k.x;
+        std::fesetround(directions[d]);
+        const double got = gaol_core::rnd_keep(gaol_round(x));
+        std::fesetround(FE_UPWARD);
+        check("gaol_round(): the nearest integer, halfway values away from zero",
+              same_bits(got, k.value),
+              [&] {
+                return "gaol_round(" + show(k.x) + ") rounding " + names[d] + " = " + show(got)
+                     + " rather than " + show(k.value);
+              });
+      }
+    }
+    {
+      volatile double nan_value = GAOL_NAN;
+      const double got = gaol_round(nan_value);
+      check("gaol_round(): a NaN stays one", got != got, [] { return std::string("gaol_round(NaN)"); });
+    }
+
+    // against the reference: every double next to a halfway value or to an
+    // integer of the first magnitudes, then random ones
+    std::vector<double> v;
+    for (int k = -4000; k <= 4000; ++k) {
+      const double h = k / 2.0;
+      v.push_back(h);
+      v.push_back(previous_float(h));
+      v.push_back(next_float(h));
+    }
+    for (int e = -1074; e <= 1023; ++e) { // each power of two and the doubles around it
+      const double p = std::ldexp(1.0, e);
+      v.push_back(p);
+      v.push_back(-p);
+      v.push_back(previous_float(p));
+      v.push_back(-previous_float(p));
+      v.push_back(next_float(p));
+      v.push_back(-next_float(p));
+    }
+    std::mt19937_64 gen(20261118u);
+    for (int i = 0; i < 200000; ++i) {
+      const std::uint64_t u = gen();
+      double x;
+      std::memcpy(&x, &u, sizeof x);
+      if (std::isfinite(x)) {
+        v.push_back(x);
+      }
+    }
+    for (int i = 0; i < 200000; ++i) {
+      // a multiple of 2^-k below 2^52, a halfway value for k = 1 and often one
+      // double next to it
+      const int k = static_cast<int>(gen() % 4);
+      const double x = static_cast<double>(static_cast<std::int64_t>(gen() % 2000001) - 1000000)
+                     / static_cast<double>(1 << k);
+      v.push_back(x);
+      v.push_back(next_float(x));
+    }
+    std::size_t index = 0;
+    for (double x : v) {
+      // the four directions at one argument in 50, and the direction in effect at the others
+      const bool all = (index++ % 50) == 0;
+      for (int d = 0; d < (all ? 4 : 1); ++d) {
+        volatile double xv = x;
+        std::fesetround(directions[d]);
+        const double got = gaol_core::rnd_keep(gaol_round(xv));
+        std::fesetround(FE_UPWARD);
+        const double want = reference_round_away(x);
+        check("gaol_round(): the nearest integer, as the reference, whatever the direction",
+              same_bits(got, want),
+              [&] {
+                return "gaol_round(" + show(x) + ") rounding " + names[d] + " = " + show(got)
+                     + " rather than " + show(want);
+              });
+      }
+    }
+  }
+
+  // __builtin_round(x) as the sources of CORE-MATH call it: the builtin of the
+  // compiler, and gaol_round() where gaol/math/gaol_core_math_port.h replaces
+  // it (the macro defined at the top of this file). Visual C++ has no such
+  // builtin: the header gives it round()
+  double core_math_round(double x)
+  {
+#if defined(__GNUC__) || defined(__clang__)
+    return __builtin_round(x);
+#else
+    return std::round(x);
+#endif
+  }
+
+  /*
+    The __builtin_round() of the sources of CORE-MATH, with the lines of
+    gaol/math/gaol_core_math_port.h that replace it where the round() of the C
+    library is that of mingw-w64 (GAOL v5). The sources call it in two ways.
+    The roundeven_finite() of fifteen of them (exp.c, sin.c...), where the
+    processor has neither AVX nor SSE4.1 nor ARMv8, takes round(x) for any x
+    and corrects the halfway values: the test calls it at the values where a
+    wrong round() fails, the doubles next to 1/2, and at those of the table
+    above, whatever the rounding direction. pow.c calls it once, in the
+    exactness test of the powers: for an odd integer m, s = round(sqrt(m)),
+    and m is a square if s * s == m: the test calls it so, at the odd squares
+    and at the odd integers two from them, which are no squares, whatever the
+    rounding direction (m < 2^53, where s * s is exact); there the argument is
+    at least 1 and a wrong round() is exact.
+  */
+  void builtin_round_of_core_math()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    const char* const names[] = {"to nearest", "upward", "downward", "toward zero"};
+
+    // the macro is gaol_round() exactly where GAOL_MINGW_OWN_MATH says so: what
+    // __builtin_round(0.5) expands to, written as text
+    const std::string expansion = GAOL_TEST_TEXT_OF(__builtin_round(0.5));
+    check("__builtin_round(): gaol_round() where GAOL_MINGW_OWN_MATH is 1, and only there",
+          (GAOL_MINGW_OWN_MATH != 0) == (expansion.compare(0, 10, "gaol_round") == 0),
+          [&] { return "__builtin_round(0.5) expands to " + expansion; });
+
+    for (const Known& k : known_rounds) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double x = k.x;
+        std::fesetround(directions[d]);
+        const double got = gaol_core::rnd_keep(core_math_round(x));
+        std::fesetround(FE_UPWARD);
+        check("__builtin_round(): the nearest integer, halfway values away from zero",
+              std::memcmp(&got, &k.value, sizeof got) == 0,
+              [&] {
+                return "__builtin_round(" + show(k.x) + ") rounding " + names[d] + " = " + show(got)
+                     + " rather than " + show(k.value);
+              });
+      }
+    }
+
+    // the exactness test of pow.c
+    std::vector<std::uint64_t> roots;
+    for (std::uint64_t k = 1; k < 4000; k += 2) {
+      roots.push_back(k);
+    }
+    std::mt19937_64 gen(20261118u);
+    for (int i = 0; i < 4000; ++i) {
+      roots.push_back((gen() % 94906265u) | 1u); // odd, below 2^26.5: k * k < 2^53
+    }
+    for (std::uint64_t k : roots) {
+      const std::uint64_t squares[] = {k * k, k * k + 2, k * k - 2}; // odd; the last two are no squares
+      for (int c = 0; c < 3; ++c) {
+        if (c == 2 && k < 3) {
+          continue; // 1 - 2 is no integer of the set
+        }
+        const std::uint64_t m = squares[c];
+        for (int d = 0; d < 4; ++d) {
+          volatile double dm = static_cast<double>(m);
+          std::fesetround(directions[d]);
+          const double s = gaol_core::rnd_keep(core_math_round(std::sqrt(dm)));
+          std::fesetround(FE_UPWARD);
+          const bool is_square = (s * s == static_cast<double>(m));
+          check("__builtin_round(): the exactness test of pow.c, whatever the direction",
+                is_square == (c == 0),
+                [&] {
+                  return "m = " + std::to_string(m) + ", s = " + show(s) + " rounding " + names[d];
+                });
+        }
+      }
+    }
+  }
+
+  /*
+    The error of the product a*b, p being a*b rounded to nearest: a*b - p, which
+    is a double. Computed by the splitting of Veltkamp and the products of the
+    halves of Dekker, in doubles rounded to nearest, with no fma and no
+    overflow or underflow (the factors are between 2^-300 and 2^300): the exact
+    value of fma(a, b, -p), which gaol_fma() has to give in every direction.
+  */
+  double product_error(double a, double b, double p)
+  {
+    const double ta = 134217729.0 * a; // 2^27 + 1
+    const double ah = ta - (ta - a);
+    const double al = a - ah;
+    const double tb = 134217729.0 * b;
+    const double bh = tb - (tb - b);
+    const double bl = b - bh;
+    return ((ah * bh - p) + ah * bl + al * bh) + al * bl;
+  }
+
+  // A double of exponent in [lo, hi], random sign and significand
+  double random_double(std::mt19937_64& gen, int lo, int hi)
+  {
+    const std::uint64_t e = static_cast<std::uint64_t>(lo + static_cast<int>(gen() % static_cast<std::uint64_t>(hi - lo + 1)) + 1023);
+    const std::uint64_t u = ((gen() & 1) << 63) | (e << 52) | (gen() & 0x000fffffffffffffull);
+    double x;
+    std::memcpy(&x, &u, sizeof x);
+    return x;
+  }
+
+  // a, up to a few units of its last place away, in either direction
+  [[maybe_unused]] double near_double(std::mt19937_64& gen, double a)
+  {
+    double x = a;
+    for (int k = static_cast<int>(gen() % 4); k > 0; --k) {
+      x = (gen() & 1) ? next_float(x) : previous_float(x);
+    }
+    return x;
+  }
+
+  const int fma_in_effect[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+  const int fma_directed[] = {GAOL_FMA_TO_NEAREST, GAOL_FMA_UPWARD, GAOL_FMA_DOWNWARD, GAOL_FMA_TOWARD_ZERO};
+  const char* const fma_names[] = {"to nearest", "upward", "downward", "toward zero"};
+
+  // gaol_fma() in the direction in effect d, and gaol_fma_directed() in the direction d
+  // given, of a*b + c, compared with the value expected (the same bits: a zero
+  // has its sign, a NaN is compared with the NaN of the expectation)
+  void check_gaol_fma(const std::string& what, double a, double b, double c, int d, double want)
+  {
+    const bool nan = want != want;
+    const double given = gaol_fma_directed(a, b, c, fma_directed[d]);
+    check(what + ": in the direction given",
+          nan ? given != given : same_bits(given, want),
+          [&] {
+            return "gaol_fma_directed(" + show(a) + ", " + show(b) + ", " + show(c) + ") rounding "
+                 + fma_names[d] + " = " + show(given) + " rather than " + show(want);
+          });
+    // read at run time, as the fma of the C library above
+    volatile double va = a, vb = b, vc = c;
+    std::fesetround(fma_in_effect[d]);
+    const double got = gaol_core::rnd_keep(::gaol_fma(va, vb, vc));
+    std::fesetround(FE_UPWARD);
+    check(what + ": in the direction in effect",
+          nan ? got != got : same_bits(got, want),
+          [&] {
+            return "gaol_fma(" + show(a) + ", " + show(b) + ", " + show(c) + ") rounding "
+                 + fma_names[d] + " = " + show(got) + " rather than " + show(want);
+          });
+  }
+
+#if GAOL_TESTS_CHECK_LIBRARY_FMA
+  /*
+    The fma() of the C library, called as a function, against the exact values
+    of tests/fma_values.py (a*b + c rounded once, in each of the four
+    directions): where it is the fused multiply-add instruction it gives
+    them all, and where it computes a product and then a sum, each rounded, as
+    the fma() of mingw-w64 does for 32-bit ARM and x86, it fails the error-free
+    products, the halfway cases and the cancellations. The function is read
+    through a pointer at run time, so that the compiler can neither replace the
+    call with the instruction, as it does for __builtin_fma() and for std::fma
+    with optimization, nor compute the value: it is the fma() that std::fma calls
+    without optimization, and that code linked with GAOL may call.
+  */
+  void c_library_fma_function()
+  {
+    double (*volatile library_fma)(double, double, double) =
+      static_cast<double (*)(double, double, double)>(std::fma);
+    for (const FmaValue& t : fma_values) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double a = t.a, b = t.b, c = t.c;
+        std::fesetround(fma_in_effect[d]);
+        const double got = gaol_core::rnd_keep(library_fma(a, b, c));
+        std::fesetround(FE_UPWARD);
+        const bool nan = t.rounded[d] != t.rounded[d];
+        check("the fma() of the C library, called as a function: the exact value in the direction in effect",
+              nan ? got != got : same_bits(got, t.rounded[d]),
+              [&] {
+                return "fma(" + show(t.a) + ", " + show(t.b) + ", " + show(t.c) + ") rounding "
+                     + fma_names[d] + " = " + show(got) + " rather than " + show(t.rounded[d]);
+              });
+      }
+    }
+  }
+#endif
+
+  /*
+    gaol_fma() of gaol/math/gaol_fma.h, which GAOL calls where the fma() of the
+    C library is wrong and the build has no fused multiply-add instruction
+    (GAOL_SOFT_FMA of gaol/gaol_config.h): a*b + c rounded once, in the four
+    rounding directions, with integers. It is checked on every platform,
+    whether GAOL calls it or not, and apart from the C library:
+
+    - against the triples of tests/fma_values.py, whose results are
+      computed exactly with rational numbers: products and sums that cancel, the
+      error of a product, halfway cases of both parities and the doubles next
+      to them, a product far below c and above it at every distance, the
+      subnormal range, the edge of the overflow;
+    - against the error of a product, which the products of the halves of Dekker
+      give with no fma: fma(a, b, -rn(a*b)) is that error, exactly, whatever
+      the direction;
+    - the zeros of every sign, the infinities and the NaN written out;
+    - where the platform has the instruction, or a C library whose fma() is
+      right (also with GAOL_FMA_FORCE_SOFTWARE; not where the build has
+      neither, and gaol_fma() is what GAOL calls), against it, at 200000 triples of every magnitude, near cancellations, in
+      the subnormal range and at the edge of the overflow.
+  */
+  void gaol_fma_of_integers()
+  {
+    for (const FmaValue& t : fma_values) {
+      for (int d = 0; d < 4; ++d) {
+        check_gaol_fma("gaol_fma(): the exact value", t.a, t.b, t.c, d, t.rounded[d]);
+      }
+    }
+
+    std::mt19937_64 gen(20261118u);
+    {
+      RoundingToNearest nearest;
+      for (int i = 0; i < 20000; ++i) {
+        const double a = random_double(gen, -300, 300);
+        const double b = random_double(gen, -300, 300);
+        const double p = a * b;
+        const double error = product_error(a, b, p);
+        for (int d = 0; d < 4; ++d) {
+          const double given = gaol_fma_directed(a, b, -p, fma_directed[d]);
+          check("gaol_fma(): the error of a product, as Dekker's",
+                same_bits(given, error) || (given == 0.0 && error == 0.0),
+                [&] {
+                  return "gaol_fma_directed(" + show(a) + ", " + show(b) + ", " + show(-p) + ") rounding "
+                       + fma_names[d] + " = " + show(given) + " rather than " + show(error);
+                });
+        }
+      }
+    }
+
+    // inf is the infinity of gaol_tests (a local one hides it: C4459 of Visual C++)
+    const double largest = 0x1.fffffffffffffp+1023;
+    const double tiny = 0x1p-1074;
+    struct Special { double a, b, c; double rounded[4]; };
+    const Special specials[] = {
+      // the sign of a zero
+      {0.0, 1.0, 0.0, {0.0, 0.0, 0.0, 0.0}},
+      {-0.0, 1.0, 0.0, {0.0, 0.0, -0.0, 0.0}},
+      {-0.0, 1.0, -0.0, {-0.0, -0.0, -0.0, -0.0}},
+      {0.0, -1.0, -0.0, {-0.0, -0.0, -0.0, -0.0}},
+      {-0.0, -1.0, -0.0, {0.0, 0.0, -0.0, 0.0}},
+      {0.0, 5.0, 3.0, {3.0, 3.0, 3.0, 3.0}},
+      {5.0, -0.0, -tiny, {-tiny, -tiny, -tiny, -tiny}},
+      {1.0, 1.0, -1.0, {0.0, 0.0, -0.0, 0.0}},
+      {-1.5, 2.0, 3.0, {0.0, 0.0, -0.0, 0.0}},
+      // underflow to a zero or to the least number, by the direction and the sign
+      {tiny, tiny, 0.0, {0.0, tiny, 0.0, 0.0}},
+      {-tiny, tiny, 0.0, {-0.0, -0.0, -tiny, -0.0}},
+      {tiny, 0.5, 0.0, {0.0, tiny, 0.0, 0.0}},
+      {tiny, 0.75, 0.0, {tiny, tiny, 0.0, 0.0}},
+      // an overflow of the product that c brings back, exactly
+      {largest, 2.0, -largest, {largest, largest, largest, largest}},
+      {-largest, 2.0, largest, {-largest, -largest, -largest, -largest}},
+      // an overflow, by the direction and the sign
+      {largest, 2.0, 0.0, {inf, inf, largest, largest}},
+      {-largest, 2.0, 0.0, {-inf, -largest, -inf, -largest}},
+      // the infinities, and c alone infinite with a product that overflows
+      {inf, 2.0, 1.0, {inf, inf, inf, inf}},
+      {-inf, 2.0, 1.0, {-inf, -inf, -inf, -inf}},
+      {2.0, inf, -largest, {inf, inf, inf, inf}},
+      {1.0, 1.0, inf, {inf, inf, inf, inf}},
+      {1.0, 1.0, -inf, {-inf, -inf, -inf, -inf}},
+      {largest, 2.0, -inf, {-inf, -inf, -inf, -inf}},
+      {-largest, 2.0, inf, {inf, inf, inf, inf}},
+      {0.0, 1.0, inf, {inf, inf, inf, inf}},
+      {inf, 1.0, inf, {inf, inf, inf, inf}},
+      // the invalid operations and the NaN
+      {inf, 0.0, 1.0, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {0.0, -inf, 1.0, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {inf, 1.0, -inf, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {-inf, 1.0, inf, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {GAOL_NAN, 1.0, 1.0, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {1.0, GAOL_NAN, 1.0, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {1.0, 1.0, GAOL_NAN, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+      {largest, 2.0, GAOL_NAN, {GAOL_NAN, GAOL_NAN, GAOL_NAN, GAOL_NAN}},
+    };
+    for (const Special& t : specials) {
+      for (int d = 0; d < 4; ++d) {
+        check_gaol_fma("gaol_fma(): zeros, infinities, NaN and overflows", t.a, t.b, t.c, d, t.rounded[d]);
+      }
+    }
+
+#if GAOL_TESTS_FMA_IS_TRUSTED
+    for (int i = 0; i < 200000; ++i) {
+      double a, b, c;
+      switch (i % 9) {
+        case 0: // any double
+          a = random_double(gen, -1022, 1023);
+          b = random_double(gen, -1022, 1023);
+          c = random_double(gen, -1022, 1023);
+          break;
+        case 1: // magnitudes near one: the sum has bits of both
+          a = random_double(gen, -30, 30);
+          b = random_double(gen, -30, 30);
+          c = random_double(gen, -60, 60);
+          break;
+        case 2: // cancellation: c within a few units of -a*b
+          a = random_double(gen, -300, 300);
+          b = random_double(gen, -300, 300);
+          c = near_double(gen, -(a * b));
+          break;
+        case 3: // and the same sign, a sum of nearly equal numbers
+          a = random_double(gen, -300, 300);
+          b = random_double(gen, -300, 300);
+          c = near_double(gen, a * b);
+          break;
+        case 4: // the subnormal range, the product and c
+          a = random_double(gen, -540, -480);
+          b = random_double(gen, -600, -540);
+          c = random_double(gen, -1074, -1040);
+          break;
+        case 5: // the edge of the overflow, c bringing the sum back or not
+          a = random_double(gen, 500, 520);
+          b = random_double(gen, 500, 520);
+          c = (gen() & 1) ? -(a * b) : random_double(gen, 900, 1023);
+          break;
+        case 6: // operands of a few bits: exact sums, and halfway cases
+          a = std::ldexp(static_cast<double>(gen() % 1048576), -static_cast<int>(gen() % 30));
+          b = std::ldexp(static_cast<double>(gen() % 1048576), -static_cast<int>(gen() % 30));
+          c = std::ldexp(static_cast<double>(gen() % 1048576), -static_cast<int>(gen() % 60)) * ((gen() & 1) ? 1.0 : -1.0);
+          break;
+        case 7: { // significands of a few bits set or cleared, at every gap of 140 bits
+          static const double significands[] = {1.0, 1.0 + 0x1p-52, 2.0 - 0x1p-52, 1.5, 1.0 + 0x1p-26,
+                                                2.0 - 0x1p-26, 1.0 + 0x1p-51, 1.75};
+          const auto pick = [&gen] { return significands[gen() % 8] * ((gen() & 1) ? 1.0 : -1.0); };
+          const int gap = static_cast<int>(gen() % 281) - 140;
+          a = pick();
+          b = std::ldexp(pick(), static_cast<int>(gen() % 7) - 3);
+          c = std::ldexp(pick(), 7 + gap);
+          break;
+        }
+        default: { // the exponents of the product and of c, up to 130 bits apart
+          const int e = static_cast<int>(gen() % 261) - 130;
+          a = random_double(gen, -2, 2);
+          b = random_double(gen, -2, 2);
+          c = random_double(gen, e - 1, e + 1);
+          break;
+        }
+      }
+      for (int d = 0; d < 4; ++d) {
+        volatile double va = a, vb = b, vc = c;
+        std::fesetround(fma_in_effect[d]);
+        const double want = gaol_core::rnd_keep(fma_reference(va, vb, vc));
+        std::fesetround(FE_UPWARD);
+        const double given = gaol_fma_directed(a, b, c, fma_directed[d]);
+        check("gaol_fma(): as the instruction, at random",
+              (want != want) ? given != given : same_bits(given, want),
+              [&] {
+                return "gaol_fma_directed(" + show(a) + ", " + show(b) + ", " + show(c) + ") rounding "
+                     + fma_names[d] + " = " + show(given) + " rather than " + show(want);
+              });
+      }
+    }
+#endif
+  }
+
+  /*
+    gaol_fma_upward() of gaol/math/gaol_fma.h, which GAOL calls where
+    GAOL_SOFT_FMA says so, and its three fast paths (x86-64 with a 128-bit
+    integer), in the upward direction, the only one it is right in:
+
+    - against the triples of tests/fma_values.py, upward;
+    - on triples of the kinds the fast paths are for and of their edges, against
+      gaol_fma_directed(), the general path, which the tests above compare with
+      exact values and with the instruction, and where the platform has the
+      instruction (GAOL_TESTS_FMA_IS_TRUSTED), against it too:
+        the error of a product, c = -(a*b rounded upward by the processor), and
+          the values next to it, which the first path takes or leaves,
+        c above the product by 2^3 to 2^143, with the halfway cases of products
+          of a few bits (powers of two) and sums that carry or borrow out of the
+          53 bits,
+        anything, the zeros, the infinities and the NaN included,
+        c near the ends of its exponent range, and a*b near those of the window
+          of the paths (the exponent of the product from -900 to 1000),
+        products of a few bits, exact, and c of the same size or just above,
+        c of the size of the product or below it down to 80 binades, and the
+          near cancellations, which the third path takes;
+    - the fast paths are taken by most of the triples that are theirs: a bug that
+      sends every call to the general path would pass the comparisons.
+  */
+  void gaol_fma_upward_fast_paths()
+  {
+    std::fesetround(FE_UPWARD);
+    for (const FmaValue& t : fma_values) {
+      volatile double a = t.a, b = t.b, c = t.c;
+      const double got = gaol_core::rnd_keep(gaol_fma_upward(a, b, c));
+      const double want = t.rounded[1]; // upward
+      check("gaol_fma_upward(): the exact value, upward",
+            (want != want) ? got != got : same_bits(got, want),
+            [&] {
+              return "gaol_fma_upward(" + show(t.a) + ", " + show(t.b) + ", " + show(t.c) + ") = "
+                   + show(got) + " rather than " + show(want);
+            });
+    }
+
+    std::mt19937_64 gen(20261119u);
+    const auto mantissa = [&gen]() -> std::uint64_t {
+      switch (gen() % 10) {
+        case 4: return 0;
+        case 5: return 0xfffffffffffffull;
+        case 6: { const int k = 1 + static_cast<int>(gen() % 30); return (gen() >> (64 - k)) << (52 - k); }
+        case 7: return 1;
+        case 8: return 0x8000000000000ull;
+        case 9: return 0x7ffffffffffffull;
+        default: return gen() & 0xfffffffffffffull;
+      }
+    };
+    const auto make = [](int field, std::uint64_t m, int sign) {
+      const std::uint64_t u = (static_cast<std::uint64_t>(sign) << 63) | (static_cast<std::uint64_t>(field) << 52) | m;
+      double x;
+      std::memcpy(&x, &u, sizeof x);
+      return x;
+    };
+    const auto range = [&gen](int lo, int hi) {
+      return lo + static_cast<int>(gen() % static_cast<std::uint64_t>(hi - lo + 1));
+    };
+    const auto clamp_field = [](int f) { return f < 1 ? 1 : (f > 2046 ? 2046 : f); };
+    const auto sign = [&gen]() { return static_cast<int>(gen() & 1); };
+    // the exponent fields of a and b: mostly where the product is in the window of the fast paths, sometimes
+    // at its edges, sometimes anywhere
+    const auto fields = [&](int& fa, int& fb) {
+      switch (gen() % 10) {
+        case 0: fa = range(1, 2046); fb = range(1, 2046); break;
+        case 1: {
+          const int edge = (gen() & 1) ? -900 : 1000;
+          fa = range(1, 2046);
+          fb = clamp_field(2046 + edge - fa + range(-2, 2));
+          break;
+        }
+        case 2: fa = (gen() & 1) ? range(1, 3) : range(2044, 2046); fb = range(1, 2046); break;
+        default: fa = range(1023 - 440, 1023 + 490); fb = clamp_field(2046 - fa + range(-800, 800)); break;
+      }
+    };
+
+    struct Kind {
+      const char* name;
+      long calls;
+      long fast;
+      long percent_fast; // the share of the calls that the fast paths have to take, at least
+    };
+    Kind kinds[] = {{"the error of a product", 0, 0, 70}, {"c above the product", 0, 0, 85},
+                    {"anything", 0, 0, 0}, {"c near the ends of its range", 0, 0, 0},
+                    {"products of a few bits", 0, 0, 80}, {"c near and below the product", 0, 0, 60}};
+    const auto compare_triple = [&](Kind& kind, double a, double b, double c) {
+      const double general = gaol_fma_directed(a, b, c, GAOL_FMA_UPWARD);
+      const double got = gaol_fma_upward(a, b, c);
+      ++kind.calls;
+      const auto same = [](double x, double y) { return (x != x) ? y != y : same_bits(x, y); };
+      check(std::string("gaol_fma_upward(): as the general path, ") + kind.name, same(got, general),
+            [&] {
+              return "gaol_fma_upward(" + show(a) + ", " + show(b) + ", " + show(c) + ") = " + show(got)
+                   + " rather than " + show(general);
+            });
+#if GAOL_FMA_FAST
+      double r;
+      if (gaol_fma_fast_upward(a, b, c, &r)) {
+        ++kind.fast;
+        check(std::string("gaol_fma_fast_upward(): as the general path, ") + kind.name, same(r, general),
+              [&] {
+                return "gaol_fma_fast_upward(" + show(a) + ", " + show(b) + ", " + show(c) + ") = " + show(r)
+                     + " rather than " + show(general);
+              });
+      }
+#endif
+#if GAOL_TESTS_FMA_IS_TRUSTED
+      volatile double va = a, vb = b, vc = c;
+      const double instruction = gaol_core::rnd_keep(fma_reference(va, vb, vc));
+      check(std::string("gaol_fma_upward(): as the instruction, ") + kind.name, same(got, instruction),
+            [&] {
+              return "gaol_fma_upward(" + show(a) + ", " + show(b) + ", " + show(c) + ") = " + show(got)
+                   + " rather than " + show(instruction);
+            });
+#endif
+    };
+
+    for (int i = 0; i < 150000; ++i) {
+      { // the error of a product, c = -p, and values next to -p
+        int fa, fb;
+        fields(fa, fb);
+        const double a = make(fa, mantissa(), sign()), b = make(fb, mantissa(), sign());
+        volatile double p = a * b; // rounded upward by the processor
+        double c = -static_cast<double>(p);
+        const unsigned k = static_cast<unsigned>(gen() % 100);
+        if (k < 4) {
+          c = next_float(c);
+        } else if (k < 8) {
+          c = previous_float(c);
+        }
+        compare_triple(kinds[0], a, b, c);
+      }
+      { // c above the product by 2^(k + 3), k from -3 to 140
+        int fa, fb;
+        fields(fa, fb);
+        const bool powers_of_two = gen() % 8 == 0;
+        const double a = make(fa, powers_of_two ? 0 : mantissa(), sign());
+        const double b = make(fb, powers_of_two ? 0 : mantissa(), sign());
+        int k;
+        switch (gen() % 10) {
+          case 0: k = range(-3, 3); break;
+          case 1: k = range(4, 8); break;
+          case 2: case 3: k = range(45, 56); break; // the halfway cases of products of a few bits
+          case 4: k = range(100, 140); break;
+          default: k = range(9, 100); break;
+        }
+        const int fc = fa + fb - 2046 + 3 + k + 1023;
+        if (fc >= 1 && fc <= 2046) {
+          compare_triple(kinds[1], a, b, make(fc, mantissa(), sign()));
+        }
+      }
+      { // anything, the zeros, the infinities and the NaN now and then
+        const auto field = [&]() {
+          const unsigned k = static_cast<unsigned>(gen() % 40);
+          return k < 2 ? 0 : (k == 2 ? 2047 : range(1, 2046));
+        };
+        compare_triple(kinds[2], make(field(), mantissa(), sign()), make(field(), mantissa(), sign()),
+                       make(field(), mantissa(), sign()));
+      }
+      { // c near the ends of its exponent range, the product just below it
+        const int fc = (gen() & 1) ? range(2040, 2046) : range(1, 6);
+        const int fa = range(1, 2046);
+        const int fb = clamp_field(fc - 1023 - 3 + 2046 - fa + range(-3, 2));
+        compare_triple(kinds[3], make(fa, mantissa(), sign()), make(fb, mantissa(), sign()),
+                       make(fc, mantissa(), sign()));
+      }
+      { // a and b of a few bits, the product exact, c of the same size or just above
+        const int fa = range(1023 - 200, 1023 + 200), fb = range(1023 - 200, 1023 + 200);
+        const int ka = static_cast<int>(gen() % 26), kb = static_cast<int>(gen() % 26);
+        const std::uint64_t ma = ka ? (gen() >> (64 - ka)) << (52 - ka) : 0;
+        const std::uint64_t mb = kb ? (gen() >> (64 - kb)) << (52 - kb) : 0;
+        const int fc = clamp_field(fa + fb - 2046 + 1023 + range(-2, 60));
+        compare_triple(kinds[4], make(fa, ma, sign()), make(fb, mb, sign()),
+                       make(fc, (gen() & 1) ? mantissa() : (gen() & 1), sign()));
+      }
+      { // c of the size of the product or below it, down to 80 binades, and the near cancellations
+        int fa, fb;
+        fields(fa, fb);
+        const double a = make(fa, mantissa(), sign()), b = make(fb, mantissa(), sign());
+        volatile double p = a * b; // rounded upward by the processor
+        double c;
+        switch (gen() % 5) {
+          case 0:
+          case 1: {
+            c = (gen() & 1) ? -static_cast<double>(p) : static_cast<double>(p);
+            for (int j = static_cast<int>(gen() % 4); j > 0; --j) {
+              c = (gen() & 1) ? next_float(c) : previous_float(c);
+            }
+            break;
+          }
+          default: {
+            const int fc = fa + fb - 2046 + 1023 + range(-80, 5);
+            c = (fc >= 1 && fc <= 2046) ? make(fc, mantissa(), sign()) : -static_cast<double>(p);
+            break;
+          }
+        }
+        compare_triple(kinds[5], a, b, c);
+      }
+    }
+#if GAOL_FMA_FAST
+    for (const Kind& kind : kinds) {
+      check(std::string("gaol_fma_fast_upward(): taken by most of the triples that are its, ") + kind.name,
+            kind.fast * 100 >= kind.calls * kind.percent_fast,
+            [&] {
+              return std::to_string(kind.fast) + " of " + std::to_string(kind.calls) + " calls, "
+                   + std::to_string(kind.percent_fast) + " % at least";
+            });
+    }
+#endif
+  }
+
+  /*
+    gaol_fma() of gaol/core/gaol_interval_core.h, the function of three doubles
+    that a program calls, in gaol and in gaol_ieee1788 (GAOL v5): a*b + c
+    rounded once in the direction in effect, the same on every platform
+    whichever fma() the C library has and whether the code has the instruction or
+    not (the instruction with -mfma, fma_exact() of the library otherwise, which
+    is the fma() of the C library where that is right and GAOL's own computation
+    where it is not): at the triples of tests/fma_values.py in the four
+    directions, and, against gaol_fma_directed() of gaol/math/gaol_fma.h, the
+    function that is right in the four directions whatever the platform, at 40 000
+    random triples, the errors of products among them, in each direction.
+  */
+  void gaol_fma_exported()
+  {
+    const auto same = [](double x, double y) { return (x != x) ? y != y : same_bits(x, y); };
+    for (const FmaValue& t : fma_values) {
+      for (int d = 0; d < 4; ++d) {
+        volatile double a = t.a, b = t.b, c = t.c;
+        std::fesetround(fma_in_effect[d]);
+        const double in_gaol = gaol_core::rnd_keep(gaol::gaol_fma(a, b, c));
+        const double in_ieee1788 = gaol_core::rnd_keep(gaol_ieee1788::gaol_fma(a, b, c));
+        const double out_of_line = gaol_core::rnd_keep(gaol_core::fma_exact(a, b, c));
+        std::fesetround(FE_UPWARD);
+        const auto message = [&](const char* name, double got) {
+          return std::string(name) + "(" + show(t.a) + ", " + show(t.b) + ", " + show(t.c) + ") rounding "
+               + fma_names[d] + " = " + show(got) + " rather than " + show(t.rounded[d]);
+        };
+        check("gaol::gaol_fma(): the exact value, in the direction in effect", same(in_gaol, t.rounded[d]),
+              [&] { return message("gaol::gaol_fma", in_gaol); });
+        check("gaol_ieee1788::gaol_fma(): the exact value, in the direction in effect",
+              same(in_ieee1788, t.rounded[d]), [&] { return message("gaol_ieee1788::gaol_fma", in_ieee1788); });
+        check("gaol_core::fma_exact(): the exact value, in the direction in effect",
+              same(out_of_line, t.rounded[d]), [&] { return message("gaol_core::fma_exact", out_of_line); });
+      }
+    }
+    std::mt19937_64 gen(20261120u);
+    for (int i = 0; i < 10000; ++i) {
+      const double a = random_double(gen, -300, 300);
+      const double b = random_double(gen, -300, 300);
+      for (int d = 0; d < 4; ++d) {
+        double c;
+        if (i % 2 == 0) {
+          c = random_double(gen, -600, 600);
+        } else {
+          // the error of the product in the direction d: c = -rounded(a*b)
+          volatile double va = a, vb = b;
+          std::fesetround(fma_in_effect[d]);
+          const double p = gaol_core::rnd_keep(va * vb);
+          std::fesetround(FE_UPWARD);
+          c = -p;
+        }
+        const double want = ::gaol_fma_directed(a, b, c, fma_directed[d]);
+        volatile double va = a, vb = b, vc = c;
+        std::fesetround(fma_in_effect[d]);
+        const double got = gaol_core::rnd_keep(gaol::gaol_fma(va, vb, vc));
+        std::fesetround(FE_UPWARD);
+        check("gaol::gaol_fma(): as the function right in the four directions, at random", same(got, want),
+              [&] {
+                return "gaol::gaol_fma(" + show(a) + ", " + show(b) + ", " + show(c) + ") rounding "
+                     + fma_names[d] + " = " + show(got) + " rather than " + show(want);
+              });
+      }
+    }
+  }
+
+  // __builtin_fma(x, y, z) as the sources of CORE-MATH call it, with the lines of
+  // gaol/math/gaol_core_math_port.h that replace it where GAOL_SOFT_FMA says so
+  // (the macro defined at the top of this file): gaol_fma() exactly there
+  void builtin_fma_of_core_math()
+  {
+    const std::string expansion = GAOL_TEST_TEXT_OF(__builtin_fma(1.0, 2.0, 3.0));
+    check("__builtin_fma(): gaol_fma_upward() where GAOL_SOFT_FMA is 1, and only there",
+          (GAOL_SOFT_FMA != 0) == (expansion.compare(0, 16, "gaol_fma_upward(") == 0),
+          [&] { return "__builtin_fma(1.0, 2.0, 3.0) expands to " + expansion; });
+    // fma_as_gaol() is the general gaol_fma() there, right in every direction, which the tests
+    // use as a reference; what GAOL calls, gaol_fma_upward(), is right in the upward direction
+    volatile double x = 1.0 + 0x1p-30, y = 1.0 - 0x1p-30, z = -1.0;
+    check("the fma() GAOL calls: fma(1 + 2^-30, 1 - 2^-30, -1) is -2^-60, not 0",
+          same_bits(fma_as_gaol(x, y, z), -0x1p-60), [] { return std::string("fma(1 + 2^-30, 1 - 2^-30, -1)"); });
   }
 
   /*
@@ -692,10 +1628,16 @@ namespace
     const double exponents[] = {0.0, 1.0, 2.0, 3.0, -1.0, -2.0, 0.5, -0.5, 1.0 / 3.0, 12.0, -7.5};
     for (double b : bases) {
       for (double e : exponents) {
+#if GAOL_SOFT_FMA
+        std::fesetround(FE_UPWARD);
+        const double hi = gaol_cr_pow(b, e);
+        const double lo = hi; // the value rounded downward is not computed (see direction_is_usable())
+#else
         std::fesetround(FE_DOWNWARD);
         const double lo = gaol_cr_pow(b, e);
         std::fesetround(FE_UPWARD);
         const double hi = gaol_cr_pow(b, e);
+#endif
         if (!std::isfinite(lo) || !std::isfinite(hi)) {
           continue;
         }
@@ -715,10 +1657,16 @@ namespace
       if (x == 0.0 && y == 0.0) {
         continue;
       }
+#if GAOL_SOFT_FMA
+      std::fesetround(FE_UPWARD);
+      const double hi = gaol_cr_atan2(y, x);
+      const double lo = hi; // the value rounded downward is not computed (see direction_is_usable())
+#else
       std::fesetround(FE_DOWNWARD);
       const double lo = gaol_cr_atan2(y, x);
       std::fesetround(FE_UPWARD);
       const double hi = gaol_cr_atan2(y, x);
+#endif
       const interval got = evaluate("atan2", [&] { return atan2(interval(y, y), interval(x, x)); },
                                     [&] { return "atan2(" + show(y) + ", " + show(x) + ")"; });
       check("atan2: encloses the tightest bounds",
@@ -1060,10 +2008,18 @@ namespace
       }
       std::fesetround(FE_TONEAREST);
       const Power power = power_of(x, y);
+#if GAOL_SOFT_FMA
+      // the value rounded downward is not computed (see direction_is_usable()): where x^y is no double it is
+      // the double below the one rounded upward, which is where lo is used
+      std::fesetround(FE_UPWARD);
+      const double hi = gaol_cr_pow(x, y);
+      const double lo = previous_double(hi);
+#else
       std::fesetround(FE_DOWNWARD);
       const double lo = gaol_cr_pow(x, y);
       std::fesetround(FE_UPWARD);
       const double hi = gaol_cr_pow(x, y);
+#endif
       const auto describe = [&] { return "pow(" + show(x) + ", " + show(y) + ")"; };
       const bool rational = power.kind == Power::rational, known = rational || power.root > 0;
       const auto power_text = [&] {
@@ -1081,7 +2037,7 @@ namespace
         doubles += power.is_double;
         check(rational ? "pow: CORE-MATH's pow is x^y rounded downward and upward where x^y is rational"
                        : "pow: CORE-MATH's pow is x^y rounded downward and upward where x^y is a 2^k-th root, k <= 6",
-              at_most(lo) && !at_most(next_double(lo)) && at_least(hi) && !at_least(previous_double(hi)),
+              (GAOL_SOFT_FMA || (at_most(lo) && !at_most(next_double(lo)))) && at_least(hi) && !at_least(previous_double(hi)),
               [&] { return describe() + " is " + show(lo) + " downward and " + show(hi) + " upward" + power_text(); });
       } else {
         reference = !std::signbit(lo) && hi == next_double(lo);
@@ -1366,12 +2322,7 @@ namespace
     const auto uniform = [&](double lo, double hi) {
       return lo + (hi - lo) * (static_cast<double>(next() >> 11) * 0x1p-53);
     };
-    const auto rd = [](double (*f)(double), double x) {
-      std::fesetround(FE_DOWNWARD);
-      const double v = f(x);
-      std::fesetround(FE_UPWARD);
-      return v;
-    };
+    const auto rd = [](double (*f)(double), double x) { return cm_down(f, x); };
     const auto ru = [](double (*f)(double), double x) {
       std::fesetround(FE_UPWARD);
       return f(x);
@@ -1432,7 +2383,7 @@ namespace
         }
         std::fesetround(FE_UPWARD);
         check(std::string(p.name) + " over an interval: the tightest bounds",
-              got.left() == lo && got.right() == hi,
+              lower_is(got.left(), lo) && got.right() == hi,
               [&] {
                 return std::string(p.name) + "([" + show(l) + ", " + show(r) + "]) = ["
                      + show(got.left()) + ", " + show(got.right()) + "] rather than ["
@@ -1530,6 +2481,10 @@ namespace
       const double want[4] = {e.rn, e.ru, e.rd, e.rz};
       double v[4];
       for (int d = 0; d < 4; ++d) {
+        if (!direction_is_usable(directions[d])) {
+          v[d] = want[d]; // not computed (see direction_is_usable())
+          continue;
+        }
         std::fesetround(directions[d]);
         v[d] = gaol_cr_sin(e.x);
       }
@@ -1625,6 +2580,10 @@ namespace
       const double want[4] = {e.rn, e.ru, e.rd, e.rz};
       double v[4];
       for (int d = 0; d < 4; ++d) {
+        if (!direction_is_usable(directions[d])) {
+          v[d] = want[d]; // not computed (see direction_is_usable())
+          continue;
+        }
         std::fesetround(directions[d]);
         v[d] = gaol_cr_cos(e.x);
       }
@@ -1678,6 +2637,10 @@ namespace
           const double want[4] = {to_zero, hi, lo, to_zero};
           double v[4];
           for (int d = 0; d < 4; ++d) {
+            if (!direction_is_usable(directions[d])) {
+              v[d] = want[d]; // not computed (see direction_is_usable())
+              continue;
+            }
             std::fesetround(directions[d]);
             v[d] = gaol_cr_cbrt(x);
           }
@@ -1782,6 +2745,10 @@ namespace
       const double want[4] = {below, above, below, below};
       double v[4];
       for (int d = 0; d < 4; ++d) {
+        if (!direction_is_usable(directions[d])) {
+          v[d] = want[d]; // not computed (see direction_is_usable())
+          continue;
+        }
         std::fesetround(directions[d]);
         v[d] = gaol_cr_rsqrt(x);
       }
@@ -1803,18 +2770,13 @@ namespace
   void recommended_tightest()
   {
     std::mt19937_64 gen(20260921u);
-    const auto rd = [](double (*f)(double), double x) {
-      std::fesetround(FE_DOWNWARD);
-      const double v = f(x);
-      std::fesetround(FE_UPWARD);
-      return v;
-    };
+    const auto rd = [](double (*f)(double), double x) { return cm_down(f, x); };
     const auto ru = [](double (*f)(double), double x) {
       std::fesetround(FE_UPWARD);
       return f(x);
     };
     const auto same = [](const interval& got, double lo, double hi) {
-      return !got.is_empty() && got.left() == lo && got.right() == hi;
+      return !got.is_empty() && lower_is(got.left(), lo) && got.right() == hi;
     };
 
     // The bounds the intervals are drawn from
@@ -1904,20 +2866,30 @@ namespace
                                   (int)(gen() % 60) - 30));
     }
     const auto hypot_rd = [](double x, double y) {
+#if GAOL_SOFT_FMA
+      std::fesetround(FE_UPWARD);
+      return gaol_cr_hypot(x, y); // see cm_down()
+#else
       std::fesetround(FE_DOWNWARD);
       const double v = gaol_cr_hypot(x, y);
       std::fesetround(FE_UPWARD);
       return v;
+#endif
     };
     const auto hypot_ru = [](double x, double y) {
       std::fesetround(FE_UPWARD);
       return gaol_cr_hypot(x, y);
     };
     const auto atan2pi_rd = [](double y, double x) {
+#if GAOL_SOFT_FMA
+      std::fesetround(FE_UPWARD);
+      return gaol_cr_atan2pi(y, x); // see cm_down()
+#else
       std::fesetround(FE_DOWNWARD);
       const double v = gaol_cr_atan2pi(y, x);
       std::fesetround(FE_UPWARD);
       return v;
+#endif
     };
     const auto atan2pi_ru = [](double y, double x) {
       std::fesetround(FE_UPWARD);
@@ -2005,6 +2977,15 @@ namespace
     const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
     for (double x0 : near_one) {
       for (double x : {x0, -x0}) {
+#if GAOL_SOFT_FMA
+        // the upward direction alone (see direction_is_usable()): the upper bound is CORE-MATH's, the lower one is
+        // it or the double below
+        std::fesetround(FE_UPWARD);
+        const double upper = gaol_cr_asinpi(x);
+        const interval got = asinpi(interval(x));
+        check("asinpi next to +-1: the tightest bounds, upward",
+              same(got, upper, upper), [&] { return "asinpi(" + show(x) + ") = " + hex(got); });
+#else
         double v[4];
         for (int d = 0; d < 4; ++d) {
           std::fesetround(directions[d]);
@@ -2016,6 +2997,7 @@ namespace
               same(got, v[2], v[1]) && v[2] <= v[0] && v[0] <= v[1] && (v[3] == v[1] || v[3] == v[2])
               && next_float(v[2]) == v[1],
               [&] { return "asinpi(" + show(x) + ") = " + hex(got); });
+#endif
       }
     }
 
@@ -2074,18 +3056,13 @@ namespace
   void error_functions()
   {
     std::mt19937_64 gen(20261006u);
-    const auto rd = [](double (*f)(double), double x) {
-      std::fesetround(FE_DOWNWARD);
-      const double v = f(x);
-      std::fesetround(FE_UPWARD);
-      return v;
-    };
+    const auto rd = [](double (*f)(double), double x) { return cm_down(f, x); };
     const auto ru = [](double (*f)(double), double x) {
       std::fesetround(FE_UPWARD);
       return f(x);
     };
     const auto same = [](const interval& got, double lo, double hi) {
-      return !got.is_empty() && got.left() == lo && got.right() == hi;
+      return !got.is_empty() && lower_is(got.left(), lo) && got.right() == hi;
     };
 
     std::vector<double> points = {0.0, -0.0, inf, -inf, 1e300, -1e300, 0x1.fffffffffffffp+1023, -0x1.fffffffffffffp+1023};
@@ -2159,6 +3136,14 @@ namespace
     const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
     for (const Monotonic& m : monotonic) {
       for (double x : hard) {
+#if GAOL_SOFT_FMA
+        // the upward direction alone (see direction_is_usable())
+        std::fesetround(FE_UPWARD);
+        const double upper = m.cr(x);
+        const interval got = m.g(interval(x));
+        check(std::string(m.name) + " at the arguments of erfc.c's tables: the tightest bounds, upward",
+              same(got, upper, upper), [&] { return std::string(m.name) + "(" + show(x) + ") = " + hex(got); });
+#else
         double v[4];
         for (int d = 0; d < 4; ++d) {
           std::fesetround(directions[d]);
@@ -2170,6 +3155,7 @@ namespace
               same(got, v[2], v[1]) && v[2] <= v[0] && v[0] <= v[1] && (v[3] == v[1] || v[3] == v[2])
               && next_float(v[2]) == v[1],
               [&] { return std::string(m.name) + "(" + show(x) + ") = " + hex(got); });
+#endif
       }
     }
   }
@@ -2179,10 +3165,22 @@ int main()
 {
   gaol::init();
   c_library_fma_and_round();
+  gaol_round_of_the_bits();
+  builtin_round_of_core_math();
+  gaol_fma_of_integers();
+  gaol_fma_upward_fast_paths();
+  gaol_fma_exported();
+  builtin_fma_of_core_math();
+#if GAOL_TESTS_CHECK_LIBRARY_FMA
+  c_library_fma_function();
+#endif
   ldexp_of_core_math();
+#if !GAOL_SOFT_FMA
+  // CORE-MATH and pow in the four rounding directions: see direction_is_usable()
   exact_results_raise_no_flag();
   pow_limits_raise_no_flag();
   pow_near_overflow_raises_no_flag();
+#endif
   elementary_functions();
   exact_values();
   two_arguments();
@@ -2195,7 +3193,8 @@ int main()
   sin_accurate_path();
   cos_accurate_path();
   cbrt_hard_cases();
-#if defined(GAOL_TESTS_HAVE_MXCSR) && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
+#if defined(GAOL_TESTS_HAVE_MXCSR) && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)) \
+    && !GAOL_SOFT_FMA
   core_math_follows_mxcsr();
 #endif
   rsqrt_hard_cases();

@@ -45,6 +45,12 @@
 // The bounds at doubles, *_dn() and *_up(): a header of the sources, not
 // installed (GAOL v5)
 #include "gaol/math/gaol_double_op.h"
+#if GAOL_SOFT_FMA
+// Only where fma_once() calls it: the unused static functions of the header
+// are a warning of Visual C++ (C4505) in every source otherwise, as for
+// gaol_round() (GAOL v5)
+#include "gaol/math/gaol_fma.h"
+#endif
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_port.h"
 #include "gaol/core/gaol_interval_core.h"
@@ -116,10 +122,16 @@ namespace gaol_core {
   // fma(a, b, c) rounded once (GAOL v5). __builtin_fma, not std::fma: without
   // optimization std::fma is a call of the fma() of the C library, and that of
   // Cygwin is not correctly rounded, where the builtin is the instruction with
-  // -mfma (gaol_config.h refuses Cygwin without it)
+  // -mfma. Where the library's fma() is wrong and the build has no
+  // instruction (GAOL_SOFT_FMA of gaol_config.h: mingw-w64 before version 12 or
+  // linked with msvcrt.dll, and Cygwin, with GAOL_FMA=OFF or on a processor
+  // without the instructions), gaol_fma_upward() computes it with integers,
+  // the intervals being computed in the upward direction
   static inline double fma_once(double a, double b, double c)
   {
-#if defined(__GNUC__)
+#if GAOL_SOFT_FMA
+    return gaol_fma_upward(a, b, c);
+#elif defined(__GNUC__)
     return __builtin_fma(a, b, c);
 #else
     return std::fma(a, b, c);

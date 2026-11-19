@@ -70,7 +70,18 @@ the compilers that have no such builtin, GCC before 10 among them: `sin.c`
 called it without the guard of the other sources from its rewrite (upstream
 commit `6b84457`) to commit `19e85418` (5 October 2026), and GCC 9.4 did not
 link it; `sin.c` and `cos.c` have their own `roundeven_finite()` now,
-and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
+`gaol_round()` of `gaol/math/gaol_round.h` for the `__builtin_round()` that
+`pow.c` and the `roundeven_finite()` of fifteen sources call (the latter
+where the processor has neither AVX nor SSE4.1 nor ARMv8), where the
+`round()` of the C library is that of mingw-w64's own math library
+(mingw-w64 before version 12, and the later ones linked with `msvcrt.dll`),
+which depends on the rounding direction for the doubles next to 1/2 (it is
+exact for the argument `pow.c` gives it, the square root of an odd integer),
+`gaol_fma()` of `gaol/math/gaol_fma.h` for the `__builtin_fma()` of the sources,
+where the `fma()` of the C library is that of mingw-w64's own math library or
+that of Cygwin, which are not correctly rounded, and the build has no fused
+multiply-add instruction (`GAOL_SOFT_FMA` of `gaol/gaol_config.h`: `GAOL_FMA=OFF`,
+or a processor without the instructions), and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
 written on MXCSR: `cbrt`, `pow`, `atan2` and `hypot` keep the exception flags
 around their work with them, and the ones of mingw-w64 up to version 12 clear
 the mask bits of MXCSR as well (version 13.0.0 does not: commit `4696986c30`),

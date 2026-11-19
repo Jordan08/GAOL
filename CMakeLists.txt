@@ -217,6 +217,7 @@ option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and 
 #   GAOL_FMA=OFF                    no fused multiply-add instructions
 #   GAOL_PREFER_AVX512=ON|OFF       the AVX-512 path asked for, or refused
 #   GAOL_U128_EMULATION=ON          the 128-bit integer of two 64-bit halves
+#   GAOL_FMA_SOFTWARE=ON            fma() computed by gaol_fma(), with integers
 #   GAOL_DEBUG=ON                   GAOL and CORE-MATH built for debugging
 #   GAOL_VERBOSE_MODE=ON            a line on the standard error at init/cleanup
 #   GAOL_EXCEPTIONS_ENABLED=OFF     abort instead of raising exceptions
@@ -314,24 +315,29 @@ if(GAOL_TARGET_IS_ARM32)
   endif()
 endif()
 
-# mingw-w64 is refused by gaol/gaol_config.h only, when compiling, where the
-# fma() or round() of the programs is wrong. On x86-64, before version 12 (the
-# MinGW-w64 GCC 11 to 13 of Chocolatey) and linked with msvcrt.dll rather than
-# the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu), they are
+# mingw-w64 whose fma() or round() is wrong is built with GAOL's own (GAOL v5).
+# On x86-64, before version 12 (the MinGW-w64 GCC 11 to 13 of Chocolatey) and
+# linked with msvcrt.dll rather than the UCRT (MSYS2 MINGW64, the cross
+# compilers of Debian and Ubuntu), the fma() and round() of the programs are
 # those of mingw-w64's own math library, computed in doubles: that fma() is not
 # correctly rounded, and CORE-MATH's functions compute with it where the
-# compiler has no -mfma (GAOL_FMA OFF, GCC for 32-bit Windows, see below);
-# that round() depends on the rounding direction. On 32-bit x86, where
-# mingw-w64 computes them on the x87 unit, before version 11, as the
-# mingw-w64 9 of WinLibs (GCC 11), whose fma() rounds each of its partial sums
-# to a double (the one of mingw-w64 11, accepted, keeps them in extended
-# precision and passes the tests, though not correctly rounded), nor, without
-# -mfma, the one of mingw-w64 12 or later linked with msvcrt.dll (MSYS2
-# MINGW32). On ARM, as on
-# x86-64, before version 12 or linked with msvcrt.dll, the refusal not being
-# tested there (MSYS2 CLANGARM64, which links the UCRT, is built and tested).
-# From version 12 on, a toolchain linking the UCRT takes those of
-# ucrtbase.dll, which pass the tests.
+# compiler has no -mfma; that round() depends on the rounding direction. GAOL
+# calls neither: gaol_round() of gaol/math/gaol_round.h, which reads the bits,
+# takes the place of round() wherever GAOL_MINGW_OWN_MATH of gaol/gaol_config.h
+# is 1, and fma() is the instruction, with -mfma, which GAOL_FMA gives GCC and
+# Clang for Windows on a processor that has it (below: the build runs a program
+# compiled with the flags, and leaves them out where the processor does not
+# run it), and gaol_fma() of gaol/math/gaol_fma.h without it, which computes it
+# with integers (GAOL_SOFT_FMA of gaol/gaol_config.h is 1): GAOL_FMA=OFF, or a
+# processor without the instructions. Cygwin, whose fma() is wrong too, is
+# treated so. On 32-bit x86, where mingw-w64 computes them on the x87 unit, the
+# same holds: the fma() of the mingw-w64 9 of WinLibs (GCC 11) rounded each of
+# its partial sums to a double, and that of mingw-w64 11 (GCC 12 and 13), in
+# extended precision, was one double off in 125 results of 400,000. On ARM, as
+# on x86-64, mingw-w64 before version 12 or linked with msvcrt.dll is refused
+# by gaol/gaol_config.h, the refusal not being tested there (MSYS2 CLANGARM64,
+# which links the UCRT, is built and tested). From version 12 on, a toolchain
+# linking the UCRT takes those of ucrtbase.dll, which pass the tests.
 #
 # Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
 # and both are gone now that GAOL bounds its elementary functions with
@@ -351,11 +357,12 @@ endif()
 #   GAOL calls them in the upward rounding it keeps
 #   (gaol/math/gaol_double_op.h).
 #
-# The continuous integration builds GAOL with the MinGW-w64 GCC 14.2.0 and
-# 15.2.0 of Chocolatey on x86-64, and 12.2.0 to 15.2.0 on 32-bit x86, and with
-# MSYS2 UCRT64, CLANG64 and CLANGARM64, runs the tests with them, and checks that GCC
-# 11.2.0 to 13.2.0 and MSYS2 MINGW64 are refused on x86-64 and GCC 11.2.0 on
-# 32-bit x86 (.github/workflows/windows.yml).
+# The continuous integration builds GAOL with the MinGW-w64 GCC 11.2.0 to
+# 15.2.0 of Chocolatey on x86-64 and on 32-bit x86, and with MSYS2 UCRT64,
+# CLANG64, CLANGARM64 and MINGW64 (GCC and Clang), runs the tests with them, and
+# builds and tests without -mfma, with gaol_fma(), GCC 13.2.0 on x86-64, GCC
+# 11.2.0 and 13.2.0 on 32-bit x86, MSYS2 MINGW64 (GCC), MSYS2 MINGW32 and Cygwin
+# (.github/workflows/windows.yml).
 
 set(GAOL_INTERVAL_FLAGS "")
 if(MSVC)
@@ -1350,7 +1357,8 @@ endif()
 # The 128-bit integer of the accurate phases of CORE-MATH and of GAOL's exact
 # products (gaol/math/gaol_u128.h): the type of the compiler where it has one
 # (`unsigned __int128` of GCC and Clang on the 64-bit targets, `_BitInt(128)` of
-# Clang 14 and later and of GCC 14 and later where the ABI defines it), else two
+# Clang 14 and later and of GCC 14 and later where the ABI defines it, but 32-bit
+# x86, where GCC 14.2 and later compile it wrongly: tests/u128_select.c), else two
 # 64-bit halves, which is what Visual C++ and the 32-bit targets of GCC take.
 # GAOL_U128_EMULATION is no option (GAOL v5): it is on where the header finds no
 # type, the header being the one that decides, compiled by a program that asks
@@ -1390,6 +1398,19 @@ if(_gaol_u128_asked AND GAOL_COMPILER_HAS_U128)
   # not reach: without this line they took the native type, and the option
   # only changed tests/u128.cpp (GAOL v5)
   target_compile_definitions(gaol_core_math PRIVATE GAOL_U128_FORCE_EMULATION=1)
+endif()
+# GAOL_FMA_SOFTWARE=ON (a setting of the developers, as GAOL_U128_EMULATION) has
+# fma() computed by gaol_fma() of gaol/math/gaol_fma.h, with integers, wherever
+# the build is (but with Visual C++, whose cl has no __builtin_fma()), as it is
+# with the mingw-w64 whose fma() is wrong and the build has no -mfma
+# (GAOL_SOFT_FMA of gaol/gaol_config.h): the macro
+# GAOL_FMA_FORCE_SOFTWARE reaches the code of GAOL, the sources of CORE-MATH,
+# which are in gaol_core_math, and the code using GAOL (GAOL v5). With
+# -DGAOL_FMA=OFF, the instruction is no longer around either
+if(GAOL_FMA_SOFTWARE)
+  message(STATUS "fma(): gaol_fma() of gaol/math/gaol_fma.h, computed with integers, as with the mingw-w64 whose fma() is wrong and no fused multiply-add instruction")
+  target_compile_definitions(gaol PUBLIC GAOL_FMA_FORCE_SOFTWARE=1)
+  target_compile_definitions(gaol_core_math PRIVATE GAOL_FMA_FORCE_SOFTWARE=1)
 endif()
 add_library(gaol::gaol ALIAS gaol)
 
@@ -1511,7 +1532,7 @@ install(TARGETS gaol EXPORT gaolTargets
 # core/gaol_interval_core.cpp includes, and their kernels that the other
 # sources take inline, core/*_kernels.h), what
 # CORE-MATH's sources need to compile within GAOL (math/gaol_core_math_port.h,
-# math/gaol_ldexp.h, math/gaol_roundeven.h), the bounds
+# math/gaol_ldexp.h, math/gaol_roundeven.h, math/gaol_round.h, math/gaol_fma.h), the bounds
 # at doubles, *_dn() and *_up(), which are not part of GAOL's interface
 # (math/gaol_double_op.h), and the intervals of floats, which only a developer
 # of GAOL compiles (see gaol/gaol_config.h)
@@ -1520,6 +1541,7 @@ set(GAOL_HEADERS
   gaol/gaol_config.h
   gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h
   gaol/gaol_ieee1788.h gaol/gaol_interval.h
+  gaol/gaol_mingw_own_math.h
   gaol/gaol_port.h
   gaol/gaol_version.h)
 # The headers of the intervals, which gaol/gaol_interval.h includes: installed

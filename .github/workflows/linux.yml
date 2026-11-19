@@ -356,7 +356,7 @@ jobs:
           exit $status
 
   l4:
-    name: 'Ubuntu 24.04 x86_64, tools and checks of the build (11 configurations)'
+    name: 'Ubuntu 24.04 x86_64, tools and checks of the build (13 configurations)'
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
@@ -442,12 +442,31 @@ jobs:
         timeout-minutes: 15
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, cpack_stale_configure with ccache in CC and Ninja outside PATH'
+      - id: c12
+        name: 'fma() computed by gaol_fma(), Ubuntu 24.04 x86_64 gcc, with -mfma'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-fma-software
+        timeout-minutes: 30
+        with:
+          desc: 'fma() computed by gaol_fma(), Ubuntu 24.04 x86_64 gcc, with -mfma'
+          cc: 'gcc'
+          cxx: 'g++'
+      - id: c13
+        name: 'fma() computed by gaol_fma(), Ubuntu 24.04 x86_64 clang, without FMA'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-fma-software
+        timeout-minutes: 30
+        with:
+          desc: 'fma() computed by gaol_fma(), Ubuntu 24.04 x86_64 clang, without FMA'
+          cc: 'clang'
+          cxx: 'clang++'
+          opts: '-DGAOL_FMA=OFF'
       - name: Results of the configurations
         if: ${{ always() }}
         shell: bash
         env:
           OUTCOMES: >-
-            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }} c7=${{ steps.c7.outcome }} c8=${{ steps.c8.outcome }} c9=${{ steps.c9.outcome }} c10=${{ steps.c10.outcome }} c11=${{ steps.c11.outcome }}
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }} c7=${{ steps.c7.outcome }} c8=${{ steps.c8.outcome }} c9=${{ steps.c9.outcome }} c10=${{ steps.c10.outcome }} c11=${{ steps.c11.outcome }} c12=${{ steps.c12.outcome }} c13=${{ steps.c13.outcome }}
         run: |
           status=0
           printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 x86_64, tools and checks of the build' >> "$GITHUB_STEP_SUMMARY"
@@ -464,6 +483,8 @@ jobs:
               c9) name='Ubuntu 24.04 x86_64 GCC, GAOL_DEBUG and Ninja Multi-Config' ;;
               c10) name='Ubuntu 24.04 x86_64 GCC, CMake 3.14.7' ;;
               c11) name='Ubuntu 24.04 x86_64 GCC, cpack_stale_configure with ccache in CC and Ninja outside PATH' ;;
+              c12) name='fma() computed by gaol_fma(), Ubuntu 24.04 x86_64 gcc, with -mfma' ;;
+              c13) name='fma() computed by gaol_fma(), Ubuntu 24.04 x86_64 clang, without FMA' ;;
             esac
             printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
             [ "${kv#*=}" = success ] || status=1

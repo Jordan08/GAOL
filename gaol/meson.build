@@ -122,6 +122,7 @@ gaol_HEADERS = [
   'gaol_fpu_fenv.h',
   'gaol_ieee1788.h',
   'gaol_interval.h',
+  'gaol_mingw_own_math.h',
   'gaol_port.h',
   'gaol_version.h',
 ]
@@ -156,6 +157,8 @@ EXTRA_DIST = [
   'math/gaol_u128.h',
   'math/gaol_ldexp.h',
   'math/gaol_roundeven.h',
+  'math/gaol_round.h',
+  'math/gaol_fma.h',
   'math/gaol_compoundm1.h',
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',

@@ -90,6 +90,13 @@ foreach t : gaol_tests
   check_targets += [exe]
 endforeach
 
+# u128_select: a program in C, as the sources of CORE-MATH are, which only
+# includes gaol/math/gaol_u128.h and links nothing of GAOL (GAOL v5)
+u128_select = executable('gaol_test_u128_select', 'u128_select.c',
+  include_directories: include_directories('..'))
+test('u128_select', u128_select, suite: 'unit', timeout: 300)
+check_targets += [u128_select]
+
 # The options gaol/gaol_config.h refuses, which the compile tests refused_* of
 # tests/CMakeLists.txt check in the CMake build (GAOL v5): refused_options.sh
 # compiles refused_options.cpp with the compiler, the cpp_args and the language

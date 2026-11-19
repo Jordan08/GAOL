@@ -6,6 +6,12 @@ inputs:
   desc:
     description: The key desc of the row of the matrix of the job
     default: ''
+  gcc:
+    description: >-
+      The version of GCC to install and to build with (gcc-N, g++-N), for the
+      images where the g++ of the distribution is not the one to try (tools:
+      apt); empty for that g++
+    default: ''
   image:
     description: The key image of the row of the matrix of the job
     default: ''
@@ -45,7 +51,20 @@ runs:
       uses: docker/setup-qemu-action@v4
     - name: Build and tests
       shell: bash -e {0}
+      env:
+        GCC_VERSION: ${{ inputs.gcc }}
       run: |
+        # A GCC that is not the g++ of the image: its packages, the compilers
+        # CMake is given, and the line that shows which one it is (GAOL v5)
+        gcc_packages=''
+        gcc_options=''
+        gcc_show=true
+        if [ -n "$GCC_VERSION" ]; then
+          [ "${{ inputs.tools }}" = apt ] || { echo "gcc: needs tools: apt" >&2; exit 1; }
+          gcc_packages="gcc-$GCC_VERSION g++-$GCC_VERSION"
+          gcc_options="-DCMAKE_C_COMPILER=gcc-$GCC_VERSION -DCMAKE_CXX_COMPILER=g++-$GCC_VERSION"
+          gcc_show="gcc-$GCC_VERSION --version && g++-$GCC_VERSION --version"
+        fi
         # Debian has no locale writing a decimal comma until one is
         # generated, which numbers reads and writes numbers under, and the
         # job checks it did; Alpine and manylinux have none to generate
@@ -54,7 +73,7 @@ runs:
         comma_check=true
         case "${{ inputs.tools }}" in
           apt)
-            tools='apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq g++ cmake make ca-certificates locales > /dev/null'
+            tools="apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq g++ cmake make ca-certificates locales $gcc_packages > /dev/null"
             comma_generate='sh .github/scripts/comma-locale.sh generate'
             comma_check='sh .github/scripts/comma-locale.sh check /tmp/build'
             ;;
@@ -66,9 +85,10 @@ runs:
           $tools
           uname -m
           c++ --version
+          $gcc_show
           cmake --version
           $comma_generate
-          cmake -S . -B /tmp/build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON ${{ inputs.opts }}
+          cmake -S . -B /tmp/build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON ${{ inputs.opts }} $gcc_options
           case \$(c++ -dumpmachine) in aarch64-*) expected=neon ;; x86_64-*|i?86-*) expected=sse2 ;; arm*|s390x-*|powerpc64le-*|ppc64le-*|riscv64-*) expected=fpu ;; *) expected=any ;; esac
           if [ \$expected != any ]; then sh .github/scripts/check-intervals.sh /tmp/build/gaol/gaol_configuration.h \$expected; fi
           cmake --build /tmp/build -j 4

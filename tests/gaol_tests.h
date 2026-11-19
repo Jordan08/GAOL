@@ -52,6 +52,11 @@
 #include <vector>
 
 #include "gaol/gaol"
+#if GAOL_SOFT_FMA
+// The header of the sources of GAOL, not installed: the tests are built in the
+// tree, or with -I<the sources> (.github/scripts/tests.sh gives it)
+#  include "gaol/math/gaol_fma.h"
+#endif
 
 // The tests write the smallest positive double as the literal 0x1p-1074, not as
 // std::numeric_limits<double>::denorm_min(): with -frounding-math, GCC 12.1 to
@@ -340,11 +345,47 @@ namespace gaol_tests
       const int saved_;
   };
 
+  /*
+    The nearest integer to x, halfway values away from zero, with no round() of
+    the C library (GAOL v5): |x| is cut at its integer part by floor() and a
+    difference that are both exact (0 <= |x| - floor(|x|) < 1), compared with
+    1/2, then given its sign by copysign(), so that a zero keeps it. None of
+    these operations is rounded, so the result does not depend on the rounding
+    direction, and the round() of mingw-w64's own math library, which does,
+    is not the reference of what checks it.
+  */
+  inline double reference_round_away(double x)
+  {
+    if (!(std::fabs(x) < 0x1p52)) {
+      return x; // an integer already, or an infinity or a NaN
+    }
+    const double a = std::fabs(x);
+    const double f = std::floor(a);
+    const double d = a - f; // exact
+    return std::copysign(d >= 0.5 ? f + 1.0 : f, x); // f + 1 <= 2^52, exact
+  }
+
   // fma(a, b, c) as CORE-MATH and GAOL compute it (GAOL v5): __builtin_fma, the
   // instruction with -mfma at every level of optimization, where std::fma is a
   // call of the fma() of the C library without optimization, and that of Cygwin
-  // is not correctly rounded
+  // is not correctly rounded; gaol_fma() where GAOL_SOFT_FMA says that the
+  // library's fma() is wrong and the build has no instruction
   inline double fma_as_gaol(double a, double b, double c)
+  {
+#if GAOL_SOFT_FMA
+    return ::gaol_fma(a, b, c);
+#elif defined(__GNUC__)
+    return __builtin_fma(a, b, c);
+#else
+    return std::fma(a, b, c);
+#endif
+  }
+
+  // fma(a, b, c) by the instruction where the build has it, and by the C library
+  // otherwise, whatever GAOL_SOFT_FMA says (GAOL v5): the reference gaol_fma() is
+  // compared with in tests/core_math.cpp, where the platform has the instruction
+  // or a library whose fma() is right
+  inline double fma_reference(double a, double b, double c)
   {
 #if defined(__GNUC__)
     return __builtin_fma(a, b, c);

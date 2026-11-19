@@ -338,11 +338,12 @@ $3=$gaol_save_flags
 AC_LANG_POP([$1])])
 GAOL_REFUSE_COMPILER([C++], [$CXX], [CXXFLAGS])
 GAOL_REFUSE_COMPILER([C], [$CC], [CFLAGS])
-# mingw-w64 is refused by gaol/gaol_config.h only, when compiling: on x86-64
-# before version 12 or linked with msvcrt.dll, whose fma() and round(), those
-# of mingw-w64's own math library, are wrong; on 32-bit x86 before 11, as the
-# mingw-w64 9 of WinLibs, whose fma() is wrong; on ARM as on x86-64, not
-# tested (see CMakeLists.txt)
+# mingw-w64 whose fma() or round() is wrong (GAOL_MINGW_OWN_MATH of
+# gaol/gaol_config.h: before version 12, or linked with msvcrt.dll; and Cygwin
+# for fma()) is built with GAOL's own: gaol_round() for round(), and for fma()
+# the instruction with -mfma, which the build takes where the processor runs
+# it, and gaol_fma() without (see CMakeLists.txt); only on ARM, not tested, is
+# it refused by gaol/gaol_config.h, when compiling
 
 # --enable-simd
 AC_ARG_ENABLE(simd,

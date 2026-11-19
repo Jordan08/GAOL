@@ -1004,12 +1004,15 @@ namespace
             round_ties_to_even(I).left() == e && round_ties_to_even(I).right() == e,
             [&] { return "round_ties_to_even(" + hex(x) + ") = " + hex(round_ties_to_even(I).left())
                        + " rather than " + hex(e); });
-      // std::round rounds ties away from zero "regardless of the current
-      // rounding direction", so it is called as it is
-      const double a = std::round(x);
+      // the nearest integer, ties away from zero, whatever the direction: x is
+      // 0x1.fffffffffffffp-2 for one of the arguments, the double below 1/2,
+      // that the round() of mingw-w64's own math library sends to 1 in every
+      // direction but upward (round_ties_to_away() calls gaol_round() there)
+      const double a = reference_round_away(x);
       check("roundTiesToAway: the nearest integer, ties away from zero",
             round_ties_to_away(I).left() == a && round_ties_to_away(I).right() == a,
-            [&] { return "round_ties_to_away(" + hex(x) + ")"; });
+            [&] { return "round_ties_to_away(" + hex(x) + ") = " + hex(round_ties_to_away(I).left())
+                       + " rather than " + hex(a); });
     }
 
     // Over intervals: each function does not decrease, so the bounds of the

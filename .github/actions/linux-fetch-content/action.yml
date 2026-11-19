@@ -60,7 +60,7 @@ runs:
         done
         # Not the headers of the sources of GAOL only, nor the parser's at
         # their old place (GAOL v5)
-        for file in include/gaol/math/gaol_u128.h include/gaol/math/gaol_roundeven.h include/gaol/math/gaol_compoundm1.h include/gaol/parser/gaol_interval_parser.h include/gaol/parser/gaol_expression.h include/gaol/parser/gaol_expr_eval.h include/gaol/parser/gaol_eval_stack.h include/gaol/gaol_expression.h; do
+        for file in include/gaol/math/gaol_u128.h include/gaol/math/gaol_roundeven.h include/gaol/math/gaol_round.h include/gaol/math/gaol_fma.h include/gaol/math/gaol_compoundm1.h include/gaol/parser/gaol_interval_parser.h include/gaol/parser/gaol_expression.h include/gaol/parser/gaol_expr_eval.h include/gaol/parser/gaol_eval_stack.h include/gaol/gaol_expression.h; do
           test ! -e "gaol-install/$file" || { echo "$file is installed"; exit 1; }
         done
     - name: Tests built with the installed GAOL

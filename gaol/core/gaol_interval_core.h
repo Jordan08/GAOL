@@ -1768,6 +1768,30 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval compoundm1(const interval& X, const
   */
 GAOL_NODISCARD extern GAOL_PUBLIC   interval fma(const interval& X, const interval& Y, const interval& Z);
   /*!
+    \brief gaol_fma(a, b, c): a*b + c of three doubles rounded once, in the
+    rounding direction in effect, with the same value on every platform (GAOL v5)
+
+    The fused multiply-add instruction where the code has it (-mfma with GCC and
+    Clang for x86, any 64-bit ARM), and else fma_exact(), which gives the
+    value of the instruction too: the fma() of the C library where that is
+    correctly rounded, and GAOL's own computation with integers where it is not
+    (the mingw-w64 before version 12 or linked with msvcrt.dll, and Cygwin) and
+    the library has no instruction. A program calls gaol_fma() without knowing
+    which: the instruction may be there or not, the C library's fma() right or
+    not, the value is the correctly rounded one. It is not called fma: a program
+    with `using namespace gaol;` and `using namespace std;` would find two
+    functions of three doubles. In gaol and in gaol_ieee1788.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   double fma_exact(double a, double b, double c);
+GAOL_NODISCARD GAOL_INLINE double gaol_fma(double a, double b, double c)
+{
+#if (defined(__GNUC__) || defined(__clang__)) && (defined(__FMA__) || defined(__aarch64__) || defined(__ARM_FEATURE_FMA))
+  return __builtin_fma(a, b, c);
+#else
+  return fma_exact(a, b, c);
+#endif
+}
+  /*!
     \brief cancelMinus and cancelPlus of IEEE 1788-2015 (10.5.6, 12.12.5)
     (GAOL v5)
 
@@ -1936,7 +1960,10 @@ GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
   are the ones that do read it, and are not used; roundTiesToEven, which no
   function of C++ gives, is gaol/math/gaol_roundeven.h, which reads the bits.
   That header is not installed: round_ties_to_even() is defined in
-  gaol/core/gaol_interval_core.cpp.
+  gaol/core/gaol_interval_core.cpp. So is round_ties_to_away() with the
+  mingw-w64 whose round() is wrong, which does read the rounding direction
+  (GAOL_MINGW_OWN_MATH, gaol/gaol_config.h; GAOL v5): it is there
+  gaol/math/gaol_round.h, which reads the bits too.
   tests/elementary.cpp checks the four in the four rounding directions.
   std::trunc and std::round are called through gaol_detail::bound_trunc() and
   bound_round() (gaol_port.h), which round a subnormal from its bits, as
@@ -2013,7 +2040,15 @@ GAOL_NODISCARD GAOL_INLINE interval trunc(const interval &I)
   /*!
     \brief Returns an enclosure of the elements of I rounded to the nearest
            integer, halfway values away from zero
+
+    Not inline with the mingw-w64 whose round() is wrong
+    (GAOL_MINGW_OWN_MATH, gaol/gaol_config.h; GAOL v5): the function that
+    reads the bits (gaol/math/gaol_round.h) is a header of the sources, which
+    is not installed. The other toolchains call std::round() inline.
   */
+#if GAOL_MINGW_OWN_MATH
+GAOL_NODISCARD extern GAOL_PUBLIC interval round_ties_to_away(const interval &I);
+#else
 GAOL_NODISCARD GAOL_INLINE interval round_ties_to_away(const interval &I)
   {
     if (I.is_empty()) {
@@ -2021,6 +2056,7 @@ GAOL_NODISCARD GAOL_INLINE interval round_ties_to_away(const interval &I)
     }
     return interval(gaol_detail::bound_round(I.left()),gaol_detail::bound_round(I.right()));
   }
+#endif
 
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I, double d)
   {
