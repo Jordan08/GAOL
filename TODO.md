@@ -1,9 +1,11 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit de fusion de #397 dans `master` (le
-19 novembre : le `.deb` et le `.exe` construits avec les instructions FMA, le
-`.pkg` pour macOS 15 et plus ; l'étiquette `v5.0.0` est posée sur ce commit), et
-avant au commit `a3428f2` de `master` (la fusion de #391 le 19 novembre à 16 h 11
+Ce qui reste à faire sur GAOL v5 au commit de fusion de #398 dans `master` (le
+19 novembre : les textes du `.deb` corrigés, qui demande x86-64-v3 ; l'étiquette
+`v5.0.0` est posée sur ce commit), et avant au commit `f4b691d` de `master` (la
+fusion de #397 le 19 novembre à 20 h 22 UTC : le `.deb` et le `.exe` construits
+avec les instructions FMA, le `.pkg` pour macOS 15 et plus), et avant au commit
+`a3428f2` de `master` (la fusion de #391 le 19 novembre à 16 h 11
 UTC : les registres de la version, de `dev` dans `master`), et avant au commit
 `0173d0a` de `dev` (la fusion de
 `master` dans `dev` par le mainteneur le 19 novembre à 12 h 57 UTC, sans
@@ -106,10 +108,16 @@ macOS 15 et plus : `release.yml`, avec deux étapes qui le vérifient,
 `doc/building.md` et le `ChangeLog` ; `release-fma-packages`, ouverte vers
 `master`, sans passer par `dev`, sur la demande du mainteneur : « fait en sorte
 d'avoir GAOL_FMA=ON dans le .deb », puis « pareil pour le .exe », et la cible
-15.0 du `.pkg` à sa réponse ; `TODO_DONE.md` 3.60) est fusionnée par le
-mainteneur, la CI de sa tête au vert, et l'étiquette `v5.0.0`, annotée, est
-posée par la session sur son commit de fusion : la version 5.0.0 est publiée
-(`TODO_DONE.md` 2.3, 3.60 et 7.63). #393 (hors
+15.0 du `.pkg` à sa réponse ; `TODO_DONE.md` 3.60) est fusionnée le 19 novembre à 20 h
+22 UTC par le mainteneur (`f4b691d`, tête `54dc207`), la CI de sa tête au vert,
+avant la correction des textes du `.deb` : son `libgaol.a` est celui de #391 octet
+pour octet, le GCC du runner visant x86-64-v3, de sorte qu'il demande AVX2 et BMI
+comme FMA (Intel Haswell et AMD Excavator, 2013-2015, et plus), non AMD
+Piledriver. #398 (`release-fma-texts`, vers `master` : `doc/building.md`, le
+`ChangeLog`, l'en-tête de `release.yml`, `TODO_AFTER.md` 21 et les registres) est
+fusionnée par le mainteneur, la CI de sa tête au vert, et l'étiquette `v5.0.0`,
+annotée, est posée par la session sur son commit de fusion : la version 5.0.0
+est publiée (`TODO_DONE.md` 2.3, 3.60, 7.63 et 7.64). #393 (hors
 des points : `gaol_fma()`, le `fma()` calculé avec des entiers, pour
 les mingw-w64 avant 12 et Cygwin sans FMA ; `mingw-soft-fma`, ouverte par la
 session « mingw FMA » sur la demande du mainteneur, qui avait répondu « Ne pas
@@ -135,7 +143,7 @@ dont la tête est `dev`, était ouverte : l'étiquette `v5.0.0` porte son code
 `TODO.md`, `TODO_DONE.md` et `process.md`, de `dev` dans `master`, pour que
 `master` les ait avant l'étiquette) est fusionnée le 19 novembre à 16 h 11 UTC
 par le mainteneur (`a3428f2`), la CI de sa tête au vert (les sept workflows) et
-celle de `master` aussi (six workflows), sans étiquette : elle vient avec #397,
+celle de `master` aussi (six workflows), sans étiquette : elle vient avec #398,
 que la demande des paquets avec FMA a ajoutée (`TODO_DONE.md` 2.3, 3.57, 3.60
 et 7.58).
 #382 (la tâche PH : trois commentaires de GAOL, `3rd/README.md`
@@ -303,8 +311,8 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 ## Les tâches restantes
 
 Aucune : PJ, la dernière, est faite le 19 novembre (la fusion de `dev` dans
-`master` par #390, les registres par #391, les paquets avec FMA par #397, puis
-l'étiquette `v5.0.0` : `TODO_DONE.md` 3.56, 3.57 et 3.60). Le texte de son point 34 est dans `TODO_DONE.md`
+`master` par #390, les registres par #391, les paquets avec FMA par #397 et leurs
+textes par #398, puis l'étiquette `v5.0.0` : `TODO_DONE.md` 3.56, 3.57 et 3.60). Le texte de son point 34 est dans `TODO_DONE.md`
 (section 5, point Y).
 
 Ce qui vient après la version est dans `TODO_AFTER.md` (issue #178) : l'annonce
