@@ -67,7 +67,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `c38417e`, y entre, 2 338 commits et 980 fichiers ; l'arbre de `master` est
   celui de `dev`).
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `53db490` (la fusion de #393 le 19 novembre à 9 h 58 UTC, hors des
+  commit `a30f7dd` (la fusion de #396 le 19 novembre à 11 h 25 UTC, hors des
+  points : les sources du manuel pour #392 et #393 ; le PDF est refait dans le
+  commit de registres qui suit, 395 pages (3.59 et 7.61)), et avant au commit
+  `53db490` (la fusion de #393 le 19 novembre à 9 h 58 UTC, hors des
   points : `gaol_fma()`, le `fma()` calculé avec des entiers pour les mingw-w64
   avant 12 et Cygwin sans FMA, `gaol_fma_upward()` et ses trois chemins rapides,
   `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788` (3.59), après les
@@ -4926,6 +4929,22 @@ tournait au moment des registres.
   `.github`), `<limits.h>` avant les macros simulées (macOS x86_64).
   `doc/differences.md` et le `ChangeLog` corrigés dans la branche, sur la
   décision du mainteneur (3.58 et 3.59).
+- #396 (hors des points : les sources du manuel pour #392 et #393 ;
+  `manual-fma-393`, 1 commit, 4 fichiers : `02_installation.tex`,
+  `04_rounding.tex`, `14_tests_ci.tex` et `15_migration.tex`) : fusionnée le 19
+  novembre à 11 h 25 UTC par le mainteneur (`a30f7dd`, tête `3b5cd4d`) ; ouverte
+  à 11 h 52 UTC, sur sa réponse « corriger les sources .tex maintenant » à la
+  question de la session. Le manuel disait encore l'état d'avant #392 : les
+  mingw-w64 dont le `fma()` est faux et Cygwin sans FMA refusés, le refus pour ARM
+  « non testé ». Elle les aligne sur `doc/three-builds.md`,
+  `continuous-integration.md`, `tests.md` et `differences.md` : les refus réduits
+  aux mingw-w64 pour ARM 32 bits et pour ARM 64 bits lié à `msvcrt.dll` (testés
+  par des macros simulées sur x86, non par une vraie toolchain), `gaol_round()`,
+  `gaol_fma()` et ses chemins rapides, `gaol::gaol_fma`, le tableau du coût contre
+  GAOL 4 (chapitre 15), la ligne `GAOL_FMA_SOFTWARE`, les jobs de la CI, les
+  scripts `check-no-fma-call.sh` et `check-arm64-fma.sh`. Le manuel compile
+  (pdflatex, bibtex, makeindex) sans erreur ni référence indéfinie ; le PDF n'y
+  est pas, il est refait après la fusion (7.61).
 
 ### 2.4 Fermées sans fusion
 
@@ -8686,11 +8705,15 @@ fusion du master, vu que l'on ne peux pas faire de push directe dans le master
   de `gaol/`, et le PDF de 389 pages), et ceux de #392, que le mainteneur a
   fusionnée dans `dev` le 18 novembre à 11 h 56 UTC (`cb2474b`), après la
   rédaction de ces registres et avant la fusion de #391, dont la tête est `dev`
-  (3.58) ; les trois commits de notes qui suivent `fc8b9ac` (`b2f04bf`,
+  (3.58), puis ceux de #393 (9 h 58 UTC) et de #396 (11 h 25 UTC : les sources du
+  manuel, et son PDF refait, 395 pages), fusionnées le 19 novembre (3.59) ; les
+  trois commits de notes qui suivent `fc8b9ac` (`b2f04bf`,
   `c38417e`, `5b4cb29`), puis celui de 7.58, n'ont changé que `TODO*.md` et
   `process.md`, que `.gitattributes` prive des archives. La
-  couverture et le PDF ne sont pas refaits ; les temps de PJ.2 non plus
-  (*décidé le 17 novembre*, 3.55). Les trois archives des sources valent donc
+  couverture n'est pas refaite (son rapport ne compte pas `gaol_round.h`,
+  `gaol_mingw_own_math.h` ni `gaol/math/gaol_fma.h`) ; le PDF l'est le 19
+  novembre, après #396 (7.61) ; les temps de PJ.2 non plus (*décidé le 17
+  novembre*, 3.55). Les trois archives des sources valent donc
   `git archive HEAD`, que `buildsystems-dist` contrôle.
 - **L'étiquette** : annotée, de Jordan08, « GAOL 5.0.0: CORE-MATH bounds, IEEE
   1788-2015, three alike builds, a new manual » (3.55), posée par la session sur
@@ -8829,13 +8852,21 @@ la proposition de contournement de round() » (18 novembre).
   `tests.md` et `differences.md` (les refus réduits aux mingw-w64 pour ARM, le refus
   testé par des macros, `gaol_fma()`, ses chemins rapides, le tableau du coût, les
   jobs, les scripts `check-no-fma-call.sh` et `check-arm64-fma.sh`) ; le manuel
-  compile, le PDF n'est pas régénéré ; `11_accuracy.tex` et `12_computing.tex`
-  parlent de `std::fma` pour les noyaux, laissés. Elle attend la décision du
-  mainteneur.
-- **La CI de `dev` à `53db490`** : Linux containers, Windows verts ; Linux a échoué
-  sur un job d'infrastructure (le miroir apt d'Ubuntu, « File has unexpected size …
-  Mirror sync in progress? », GCC 9 sans `__builtin_roundeven`), relancé par l'API.
-- **Ce qui reste ouvert** : la pull request #396 ; des chemins rapides
+  compile ; `11_accuracy.tex` et `12_computing.tex` parlent de `std::fma` pour
+  les noyaux, laissés. Le mainteneur la fusionne à 11 h 25 UTC (`a30f7dd`, 2.3) ;
+  le PDF est refait ensuite (7.61).
+- **La CI de `dev` à `53db490`** : Linux containers, Windows, Autotools and meson
+  verts ; Linux a échoué sur un job d'infrastructure (le miroir apt d'Ubuntu,
+  « File has unexpected size … Mirror sync in progress? », GCC 9 sans
+  `__builtin_roundeven`), vert à la relance ; macOS : « macOS 15 arm64 (4
+  configurations) » annulé sans runner après 68 minutes en file (aucune étape),
+  relancé, puis annulé de nouveau par le push de la fusion de #396 (`concurrency`).
+- **Ce qui reste ouvert** : la couverture, que `coverage/README.md` et le tableau
+  14.8 du manuel disent à `c1110ef` : le rapport ne compte pas `gaol/math/gaol_fma.h`
+  (ni `gaol_round.h` ni `gaol_mingw_own_math.h`), les trois en-têtes de #392 et
+  #393 (*à décider* : la refaire avant l'étiquette, sur la machine locale pour
+  SSE, AVX-512 et FPU, et le Mac pour NEON, dont les trois fichiers n'ont pas
+  changé, ou à la version suivante, comme #392 l'avait dit) ; des chemins rapides
   pour x86 32 bits (MSYS2 MINGW32 et les mingw-w64 32 bits, sans `__int128`,
   restent à 21 ns par appel) ; `tan` reste à 253 ns contre 29 avec l'instruction ;
   la question ouverte de #205 (une pull request fusionnée le 27 octobre) est
@@ -8845,7 +8876,12 @@ la proposition de contournement de round() » (18 novembre).
   le code, les tests et les textes de #393 ; les registres de 3.57 et 3.58 le
   disent pour #392. Sur la demande du mainteneur, la CI de la pull request #391
   (les workflows de l'évènement `pull_request`, relancés par la fusion de #393)
-  est annulée, et celle de `dev` (les workflows de `push`) est laissée.
+  est annulée, et celle de `dev` (les workflows de `push`) est laissée. Le
+  mainteneur fusionne #396 dans `dev` à 11 h 25 UTC : sa tête devient `a30f7dd`,
+  et le manuel entre dans `master` avec le reste. Chaque push sur `dev`, même de
+  notes, relance la CI de #391 (les `paths-ignore` ne couvrent que les pushes) :
+  le commit de 7.61, avec le PDF, la relance une fois de plus, tous les jobs
+  étant encore en file.
 
 ## 4. Les points faits, par lettre
 
@@ -11474,6 +11510,24 @@ leurs registres n'étaient pas faits :
 - Ce commit ne change que des fichiers que les workflows ignorent sur un push
   (`paths-ignore`) : aucun workflow ne tourne sur `dev` pour lui ; la CI de `push`
   du commit de fusion de #393 (`53db490`) continue.
+
+### 7.61 Le 19 novembre (après #396 : le PDF et les registres)
+
+- Le mainteneur écrit « attention pour une PR vers master, il faut que les
+  registres soient à jour dans la PR, ainsi que le manuel, et tout le reste.
+  Vérifie », puis « je viens de faire un merge » (#396, 11 h 25 UTC). La
+  vérification de la tête de #391 (`a30f7dd`) : le code, les tests, la
+  documentation (`doc/`, `ChangeLog`, `README.md`) disent #392 et #393 sans
+  reste (aucun « non testé » pour ARM, aucun refus de mingw-w64 x64 ni de
+  Cygwin) ; les registres disaient #396 ouverte ; le PDF du manuel (389 pages,
+  du 17 novembre) ne portait pas #396 ; la couverture n'est pas refaite (3.59).
+- **Le PDF** : `manual/Manual_GAOLv5.pdf` refait par la cible du projet
+  (`cmake -S . -B <build> -DWITH_DOC=ON`, `cmake --build <build> --target pdf`) :
+  395 pages (389 avant), aucune erreur, aucune référence indéfinie ; l'édition
+  garde sa date du 12 novembre (*décidé le 12 novembre*).
+- Les registres de ce commit : `TODO.md` (l'en-tête, #396), ce fichier (l'état de
+  `dev`, 2.3, 3.57, 3.59 et cette section) et `process.md` (l'en-tête, §12 et §13).
+  La description de #391 est récrite (#393 et #396 y sont).
 
 ## 8. Le ménage fait
 

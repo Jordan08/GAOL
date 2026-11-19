@@ -14,8 +14,10 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 19 novembre 2026, au commit `53db490` de `dev` (la
-fusion de #393, hors des points : `gaol_fma()`, le `fma()` calculé avec des
+Dernière mise à jour : 19 novembre 2026, au commit `a30f7dd` de `dev` (la
+fusion de #396, hors des points : les sources du manuel pour #392 et #393, dont
+le PDF est refait dans le commit de registres qui suit), et avant au commit
+`53db490` de `dev` (la fusion de #393, hors des points : `gaol_fma()`, le `fma()` calculé avec des
 entiers pour les mingw-w64 avant 12 et Cygwin sans FMA, ses trois chemins
 rapides et `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788`, après les
 registres de #392, `137c990`), et avant au commit `cb2474b` de `dev` (la
@@ -1141,14 +1143,17 @@ git ls-remote --heads origin
   sont ceux de leur bibliothèque, acceptés avec `-mfma`) à 11 h 56 UTC
   (`cb2474b`, 2.3, 3.58 et 7.59), puis, le 19 novembre, #393 (hors des points :
   `gaol_fma()`, le `fma()` calculé avec des entiers, et `gaol_fma()` exporté) à
-  9 h 58 UTC (`53db490`, 2.3, 3.59 et 7.60) ; l'audit du 13 octobre a vérifié dans
+  9 h 58 UTC (`53db490`, 2.3, 3.59 et 7.60), et #396 (hors des points : les
+  sources du manuel pour ces deux pull requests) à 11 h 25 UTC (`a30f7dd`, 2.3,
+  3.59 et 7.61) ; l'audit du 13 octobre a vérifié dans
   `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
 - **En cours** : au 19 novembre, aucune pull request n'est ouverte hors de #391
   (les registres de la version, de `dev` dans `master`, écrits d'avance :
   `TODO_DONE.md` 3.57) : #393 (hors des points : `gaol_fma()`, le `fma()` calculé
   avec des entiers ; `mingw-soft-fma`) est fusionnée, ses registres faits
-  (`TODO_DONE.md` 2.3, 3.59 et 7.60) ; #373 (le
+  (`TODO_DONE.md` 2.3, 3.59 et 7.60), de même que #396 (les sources du manuel ;
+  `manual-fma-393`, 2.3 et 7.61) ; #373 (le
   diagnostic d'un échec sous Rosetta ; `todo-rosetta-diagnostic-pow2`)
   est fermée sans fusion, son contenu étant dans `dev` (`TODO_DONE.md` 2.4), et
   #351 à #355 et #372 (la tâche PX) sont fusionnées, leurs registres faits, ceux
@@ -1314,7 +1319,10 @@ novembre, après les tâches PU à PZ (*décidé le 13 novembre*).
    est ouverte, aucun push sur `dev` sans son accord (il relance la CI de la
    pull request), et une pull request fusionnée dans `dev` pendant ce temps
    entre aussi dans `master` et dans l'étiquette (#392, le 18 novembre :
-   `TODO_DONE.md` 3.58). Pour v5.0.0, il a demandé que ces registres disent la
+   `TODO_DONE.md` 3.58 ; #393 et #396, le 19 : 3.59 et 7.61). Une pull request
+   vers `master` doit porter, avec les registres, le manuel (les sources et le
+   PDF) et le reste de ce que le code change (*demande du mainteneur, 19
+   novembre*) : elle se vérifie avant de la dire prête. Pour v5.0.0, il a demandé que ces registres disent la
    version
    publiée avant même l'étiquette (*décidé le 18 novembre* : `TODO_DONE.md`
    3.57), pour que `master` n'ait rien à rattraper après elle. Les notes sont

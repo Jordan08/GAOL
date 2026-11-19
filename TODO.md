@@ -1,7 +1,9 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `53db490` de `dev` (la fusion de
-#393 le 19 novembre à 9 h 58 UTC, hors des points : `gaol_fma()`, le `fma()`
+Ce qui reste à faire sur GAOL v5 au commit `a30f7dd` de `dev` (la fusion de
+#396 le 19 novembre à 11 h 25 UTC, hors des points : les sources du manuel pour
+#392 et #393, dont le PDF est refait, 395 pages), et avant au commit `53db490`
+de `dev` (la fusion de #393 le 19 novembre à 9 h 58 UTC, hors des points : `gaol_fma()`, le `fma()`
 calculé avec des entiers pour les mingw-w64 avant 12 et Cygwin sans FMA, ses
 trois chemins rapides et `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788`,
 après les registres de #392, `137c990`), et avant au commit `cb2474b` de `dev`
@@ -98,12 +100,13 @@ la faire » dans la session de #392) est fusionnée le 19 novembre à 9 h 58 UTC
 le mainteneur, la CI de sa tête au vert (les sept workflows), ses registres faits
 (`TODO_DONE.md` 2.3, 3.59 et 7.60) ; elle est entrée dans `dev` alors que #391,
 dont la tête est `dev`, est ouverte : `master` et l'étiquette `v5.0.0` portent
-son code à la fusion de #391 (`TODO_DONE.md` 3.59). Il reste, sur la demande du
-mainteneur du 19 novembre : la pull request #396 (les sources du manuel,
-`02_installation.tex`, `04_rounding.tex`, `14_tests_ci.tex` et `15_migration.tex` :
-mingw-w64 et Cygwin acceptés avec `gaol_fma()`, le refus pour ARM testé par des
-macros, le tableau du coût), ouverte vers `dev`, qui attend la décision du
-mainteneur, le PDF restant à la version. La mesure du `fma()` logiciel sur le Xeon
+son code à la fusion de #391 (`TODO_DONE.md` 3.59). #396 (hors des points : les sources du
+manuel, `02_installation.tex`, `04_rounding.tex`, `14_tests_ci.tex` et
+`15_migration.tex` : mingw-w64 et Cygwin acceptés avec `gaol_fma()`, le refus pour
+ARM testé par des macros, le tableau du coût ; `manual-fma-393`) est fusionnée le
+19 novembre à 11 h 25 UTC par le mainteneur (`a30f7dd`) ; le PDF du manuel est
+refait dans le commit de registres qui la suit (395 pages, `TODO_DONE.md` 7.61),
+et elle entre aussi dans `master` à la fusion de #391. La mesure du `fma()` logiciel sur le Xeon
 de la session Boulot6 est faite : `tan` -51 %, `log` -47 %, `pow(x, 3)` -53 %
 (`TODO_DONE.md` 3.59). #392 (hors des points : GAOL appelle son propre `round()`
 et l'instruction FMA là où le `fma()` et le `round()` de la bibliothèque sont
