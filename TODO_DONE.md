@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 18 novembre
-2026 (le commit de fusion de #391 dans `master`, celui de l'étiquette `v5.0.0` ;
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 19 novembre
+2026 (le commit de fusion de #397 dans `master`, celui de l'étiquette `v5.0.0` ;
 `configure-clean`, qui était à `83e2f69`, la fusion de #321, est supprimée le 17
 novembre : voir la section 1). Ce fichier est dans `dev` et dans `master`
 (depuis #390), non dans les archives des sources. Ce fichier fait foi : l'issue
@@ -60,10 +60,12 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 19 novembre 2026
 
-- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #391
-  (le 18 novembre : les registres de la version, de `dev` dans `master`), celui
-  de l'étiquette `v5.0.0` (3.57) : la version 5.0.0 est publiée. Avant, il était
-  au commit `313ef2d` (la fusion de #390 le 17 novembre à 22 h 20 UTC : `dev`, à
+- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #397
+  (le 19 novembre : le `.deb` et le `.exe` avec FMA, le `.pkg` pour macOS 15 et
+  plus), celui de l'étiquette `v5.0.0` (3.60) : la version 5.0.0 est publiée.
+  Avant, il était au commit `a3428f2` (la fusion de #391 le 19 novembre à 16 h 11
+  UTC : les registres de la version, de `dev` dans `master`, 3.57), et avant au
+  commit `313ef2d` (la fusion de #390 le 17 novembre à 22 h 20 UTC : `dev`, à
   `c38417e`, y entre, 2 338 commits et 980 fichiers ; l'arbre de `master` est
   celui de `dev`).
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
@@ -4802,11 +4804,12 @@ tournait au moment des registres.
   du code, des tests, de la documentation ni du manuel ; le 18 novembre, sur sa
   demande (« met à jours les registre comme si PJ est fini directement dans la
   PR #391 »), un commit de plus (7.58) y dit la tâche PJ faite. Fusionnée par le
-  mainteneur le 18 novembre ; la CI de sa tête est verte, les cinq workflows
-  qu'une pull request lance sur un changement de notes (Linux, Linux containers,
-  Windows, Autotools and meson, macOS), alors que Manual, Release et Performance
-  ne tournent pas (leurs chemins ne changent pas). L'étiquette `v5.0.0` est
-  posée sur son commit de fusion (3.57).
+  mainteneur le 19 novembre à 16 h 11 UTC (`a3428f2`, 54 commits, 74 fichiers :
+  avec #392, #393 et #396 elle porte leur code, leurs tests et leurs textes, le
+  PDF du manuel de 395 pages et la couverture refaite, 7.61 et 7.62) ; la CI de
+  sa tête (`56201f1`) est verte, les sept workflows, et celle de `master` à
+  `a3428f2` aussi, six workflows et 61 contrôles. L'étiquette n'est pas posée sur
+  ce commit : #397 (3.60).
 
 - #392 (hors des points : GAOL appelle son propre `round()` et l'instruction FMA
   là où le `fma()` et le `round()` de la bibliothèque sont ceux de mingw-w64 ;
@@ -4945,6 +4948,18 @@ tournait au moment des registres.
   scripts `check-no-fma-call.sh` et `check-arm64-fma.sh`. Le manuel compile
   (pdflatex, bibtex, makeindex) sans erreur ni référence indéfinie ; le PDF n'y
   est pas, il est refait après la fusion (7.61).
+
+- #397 (hors des points : les paquets de la Release ; `release-fma-packages`,
+  vers `master`, sans passer par `dev`, sur la demande du mainteneur, 3.60) :
+  `.github/workflows/release.yml`, `ChangeLog`, `doc/building.md` et les
+  registres ; ni le code, ni les tests, ni le manuel (il n'a pas de texte sur
+  les paquets de la Release : ni sources ni PDF changés). Le `.deb` et le `.exe`
+  sont construits sans `-DGAOL_FMA=OFF` : `-mfma` et `/arch:AVX2`, que la ligne
+  « Fused multiply-add flags » du journal de configure doit montrer, sans quoi
+  une étape échoue ; le `.pkg` prend `-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0`, et
+  une étape lit les `minos` des objets de `libgaol.a` (`otool -l`), qui doivent
+  tous valoir 15.0. Fusionnée par le mainteneur, la CI de sa tête au vert, et
+  l'étiquette `v5.0.0` est posée sur son commit de fusion.
 
 ### 2.4 Fermées sans fusion
 
@@ -8690,7 +8705,8 @@ fusion du master, vu que l'on ne peux pas faire de push directe dans le master
   (3.56), donc rien ne peut y entrer après l'étiquette sans une pull request de
   plus. La session pousse sur `dev`, la tête de #391, un commit (7.58) qui dit
   la tâche PJ faite : #391 fusionnée, l'étiquette `v5.0.0` posée sur son commit
-  de fusion, la Release lancée par `release.yml`. Elle écrit ces faits avant
+  de fusion (finalement celui de #397, 3.60), la Release lancée par
+  `release.yml`. Elle écrit ces faits avant
   qu'ils soient vrais : la fusion par le mainteneur, la CI verte de la nouvelle
   tête et l'étiquette viennent après le commit. Ce commit relance la CI de #391
   (cinq workflows), qui reste la condition de l'étiquette (3.56). Les issues
@@ -8716,9 +8732,10 @@ fusion du master, vu que l'on ne peux pas faire de push directe dans le master
   `git archive HEAD`, que `buildsystems-dist` contrôle.
 - **L'étiquette** : annotée, de Jordan08, « GAOL 5.0.0: CORE-MATH bounds, IEEE
   1788-2015, three alike builds, a new manual » (3.55), posée par la session sur
-  le commit de fusion de #391 quand toute la CI est verte (celle de `master` à
-  `313ef2d`, six workflows, et celle de #391), les jobs sans runner relancés par
-  `rerun-failed-jobs`. Elle lance `release.yml` : le job `tag` (le commit est
+  le commit de fusion de #397 (3.60 ; elle était prévue sur celui de #391, que le
+  mainteneur a fusionné le 19 novembre sans qu'elle y soit posée) quand toute la
+  CI est verte (celle de `master`, six workflows, et celle de la pull request),
+  les jobs sans runner relancés par `rerun-failed-jobs`. Elle lance `release.yml` : le job `tag` (le commit est
   sur `master`, l'étiquette vaut `VERSION.txt`), les trois paquets (le `.deb`,
   le `.pkg` de macOS, l'installateur `.exe` de Windows) et la GitHub Release
   (3.36).
@@ -8881,6 +8898,98 @@ la proposition de contournement de round() » (18 novembre).
   notes, relance la CI de #391 (les `paths-ignore` ne couvrent que les pushes) :
   le commit de 7.61, avec le PDF, la relance une fois de plus, tous les jobs
   étant encore en file.
+
+### 3.60 Le 19 novembre : les paquets avec FMA, et le `.pkg` pour macOS 15 (#397)
+
+Le mainteneur fusionne #391 le 19 novembre à 16 h 11 UTC (`a3428f2`, l'arbre de
+`dev`) ; la CI de `master` est verte (six workflows, 61 contrôles) et la session
+dit qu'il ne manque que l'étiquette. Il pose alors des questions sur ce que
+contient la version, auxquelles la session répond avant de rien changer :
+
+- **Les archives** : celle de `git archive` de `master` (l'« Source code » de
+  GitHub) a 780 fichiers, 21 Mo, sans `TODO*.md`, `STEP.md`, `process.md` ni
+  `.gitattributes` ; un configure de CMake depuis elle donne `GAOL_VERSION
+  "5.0.0"`. Les trois paquets sont `libgaol-dev_5.0.0_amd64.deb`,
+  `gaol-5.0.0-macos-arm64.pkg` et `gaol-5.0.0-windows-x64.exe` (les options de
+  chacun sont dans `release.yml`). Le `.deb` a 24 fichiers : 18 en-têtes (ceux
+  que `gaol_interval.h` et `gaol_ieee1788.h` incluent ; ceux de `gaol/math/` et
+  de `gaol/float/` ne sont pas installés), les 4 fichiers de CMake, `libgaol.a`
+  (statique, 1 928 672 octets) et `gaol.pc`.
+- **Le `.pkg`**, listé par la session MACarm5 sans l'installer (669 758 octets,
+  sha256 `c39e4964…`, non signé) : 24 fichiers sous `/usr/local`, dont 18
+  identiques au `.deb` (17 en-têtes et `gaolConfigVersion.cmake`) et 6 propres à
+  l'architecture et au préfixe (`gaol_configuration.h` : NEON au lieu de SSE2 et
+  SSE3, `libgaol.a` arm64 de 1 190 936 octets, `gaol.pc`, `gaolConfig.cmake`,
+  `gaolTargets.cmake`, `gaolTargets-release.cmake`). Il est compilé avec Apple
+  clang 21.0.0 (clang-2100.1.1.101), Xcode 26.6, sur l'image `macos-26-arm64` du
+  2 novembre ; aucun script d'installation, aucune contrainte de système dans
+  `Distribution`.
+- **macOS 27 en runner** : l'étiquette `macos-27` n'existe pas (le 31 octobre
+  aucun exécuteur ne la servait, #276 ; le job est passé sur `xcode-27` le 1er
+  novembre, 3.12) ; le runner de macOS 27 est `xcode-27`, une image en aperçu (macOS 27.0.1, Xcode 27), déjà celle du job
+  macOS 27 de `macos.yml`. La session ne le conseille pas pour le paquet :
+  aperçu, et surtout aucune cible de déploiement n'était fixée. MACarm5 mesure
+  que les 54 objets de `libgaol.a` du `.pkg` sont en `minos` 26.0 (SDK 26.5) et
+  que `ld` donne 50 avertissements (« built for newer macOS version ») à qui se
+  lie pour macOS 15, le programme se liant et tournant.
+
+Les décisions du mainteneur :
+
+- **FMA dans les paquets x86-64** (« fait en sorte d'avoir GAOL_FMA=ON dans le
+  .deb. Tu peux le mettre par défaut », puis « pareil pour le .exe, il faut
+  GAOL_FMA=ON ») : `release.yml` ne donne plus `-DGAOL_FMA=OFF` au `.deb` ni au
+  `.exe` ; FMA est pris là où le runner l'exécute, `-mfma` pour le `.deb` et
+  `/arch:AVX2` pour le `.exe` (le journal du job Visual Studio 2026 x64 de la CI
+  du 19 novembre donne « Fused multiply-add flags: /arch:AVX2 » sur l'image
+  `windows-2025-vs2026`, celui d'une configuration locale « -mfma »), et ces
+  flags sont ceux du `gaol.pc` et du paquet CMake, donc du code qui l'utilise.
+  `-DGAOL_PREFER_AVX512=OFF` reste. Une étape lit le journal de configure et
+  échoue si la ligne ne porte pas le flag : sans elle, un runner sans FMA
+  donnerait en silence un paquet sans FMA, plus lent, et aucun test ne le dirait
+  (essai local : la ligne passe avec FMA, échoue avec `-DGAOL_FMA=OFF`). Le prix
+  : ces deux paquets ne tournent plus que sur les processeurs qui ont les
+  instructions (Intel Haswell et AMD Piledriver, 2012-2013, et plus pour le
+  `.deb` ; Intel Haswell et AMD Excavator, 2013-2015, et plus pour le `.exe`,
+  `/arch:AVX2` prenant AVX2 aussi). Le gain, sur l'i7-1185G7, GCC 15, contre le
+  `fma()` logiciel (3.59) : `tan` 253 ns contre 29, `log` 169 contre 29, `pow(x,
+  3)` 37 contre 11. `doc/building.md` et le `ChangeLog` le disent ; un `.deb` et
+  un `.exe` sans FMA, pour les autres processeurs, sont reportés
+  (`TODO_AFTER.md` 21).
+- **Le `.pkg` pour macOS 15 et plus** (réponse « Cible 15.0 », la session ayant
+  proposé 15.0, « ne pas changer » ou 26.0 explicite) :
+  `-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0`, le `.pkg` restant construit sur
+  `macos-26`, et une étape lit `otool -l build/libgaol.a` : tous les `minos`
+  doivent valoir 15.0. MACarm5 le mesure avec le CMake de `master` : 54 objets
+  en 15.0, 0 avertissement de `ld` pour un programme lié avec
+  `-mmacosx-version-min=15.0`, contre 50 sans la cible ; la commande de l'étape
+  donne le bon format. L'exécution sur macOS 15 n'est pas mesurée (aucun Mac n'y
+  était, `nm -u` n'est pas lu).
+- **Le chemin** (réponse « PR directe vers master ») : la branche
+  `release-fma-packages`, à partir de `a3428f2`, vers `master`, sans passer par
+  `dev` ; sa CI est celle de la pull request, où le workflow Release construit
+  les trois paquets, installe chacun et refait les tests avec lui, la pull
+  request changeant `release.yml`. Le mainteneur la fusionne, et l'étiquette
+  `v5.0.0` est posée sur son commit de fusion, non sur celui de #391 que 3.57
+  prévoyait. `dev` n'a pas ces commits : une fusion de `master` dans `dev` les
+  lui donne (le mainteneur l'a faite le 19 novembre à 12 h 57 UTC, 7.62).
+- **Après l'étiquette** (réponses aux questions de la session) : l'étiquette, la
+  Release avec ses trois paquets, puis la correction des issues #179 et #178
+  (registres), pas avant ; le texte de la Release est un court paragraphe en
+  anglais (trois ou quatre lignes : ce qui change, la compatibilité avec GAOL 4,
+  les plateformes refusées, un lien vers `doc/differences.md`), qui remplace les
+  notes de GitHub, et il dit que le `.deb` et le `.exe` demandent FMA et le
+  `.pkg` macOS 15 ; aucune tâche ensuite tant que le mainteneur n'en donne pas,
+  et aucun rapport envoyé aux autres projets (PH).
+- **La couverture du lexeur et du parseur des chaînes**
+  (`gaol/parser/gaol_interval_lexer.cpp` et `gaol_interval_parser.cpp`) : la
+  session Boulot6 puis la session constatent que ces deux fichiers, générés, ne
+  sont dans aucun rapport de couverture (les directives `#line` ont des noms
+  nus, `gaol_interval_parser.ypp`, `y.tab.c`, `gaol_interval_lexer.lpp` et
+  `lex.gaol_.c`, que gcov ne trouve pas ;
+  `--gcov-ignore-errors=no_working_dir_found` cache les deux erreurs) : les 97,6
+  % de 8 077 lignes ne les comptent pas. Le mainteneur : « Laisse tel quel. Ce
+  n'est pas important si ces fichiers ne sont pas couverts. » Rien n'est changé.
+
 
 ## 4. Les points faits, par lettre
 
@@ -11568,6 +11677,29 @@ leurs registres n'étaient pas faits :
   phrase de `doc/differences.md` sont mis à jour dans le même commit.
 - Le piège : la cible `coverage` écrit `coverage.json` dans le dossier de build,
   non dans `coverage/` de l'arbre des sources.
+
+### 7.63 Le 19 novembre (les paquets avec FMA : #397)
+
+- Les commits de #397 sur la branche `release-fma-packages`, à partir de
+  `a3428f2` (rebasée sur `master` avant tout push) : `release.yml` (la ligne de
+  configuration du `.deb` et du `.exe` sans `-DGAOL_FMA=OFF`, un champ `fma` par
+  paquet et l'étape qui lit « Fused multiply-add flags » du journal, le champ
+  `minos` du `.pkg` et l'étape de `otool -l`, l'en-tête), `ChangeLog`,
+  `doc/building.md`, puis les registres : `TODO.md` (l'en-tête, #391 et #397,
+  les tâches restantes), `TODO_AFTER.md` (l'en-tête, 6, 7, le point 21), ce
+  fichier (l'en-tête, 1, 2.3, 3.57, 3.60 et 7.63) et `process.md` (l'en-tête,
+  §1, §12 et §13).
+- Vérifié avant le push : `actionlint` ne dit que l'étiquette `ubuntu-26.04`,
+  inconnue de sa liste comme avant ; l'étape de FMA essayée contre deux journaux
+  de configure locaux, avec FMA (elle passe) et avec `-DGAOL_FMA=OFF` (elle
+  échoue) ; la commande `otool` par MACarm5 sur un build du CMake de `master`
+  avec la cible 15.0 (une ligne, « 54 15.0 »). Pas vérifié : l'étape de FMA sur
+  Visual C++ (c'est la CI de la pull request qui la lit sur le runner), et
+  l'exécution du `.pkg` sur macOS 15.
+- Le manuel n'est pas changé : il décrit les options des paquets en général
+  (`-DGAOL_FMA=OFF` pour un paquet pour tout processeur), non ceux de la Release
+  ; le PDF, la couverture et les temps ne sont pas refaits. Les issues #179 et
+  #178 sont mises à jour après l'étiquette.
 
 ## 8. Le ménage fait
 

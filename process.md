@@ -14,7 +14,11 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 19 novembre 2026, au commit `0173d0a` de `dev` (la
+Dernière mise à jour : 19 novembre 2026, au commit de fusion de #397 dans
+`master` (le `.deb` et le `.exe` avec FMA, le `.pkg` pour macOS 15 et plus ;
+l'étiquette `v5.0.0` est posée sur ce commit), et avant au commit `a3428f2` de
+`master` (la fusion de #391 le 19 novembre à 16 h 11 UTC : les registres de la
+version), et avant au commit `0173d0a` de `dev` (la
 fusion de `master` dans `dev` par le mainteneur, sans changement de fichier ; la
 couverture et le PDF du manuel sont refaits dans le commit de registres qui
 suit), et avant au commit `a30f7dd` de `dev` (la fusion de #396, hors des points :
@@ -26,8 +30,7 @@ registres de #392, `137c990`), et avant au commit `cb2474b` de `dev` (la
 fusion de #392, hors des points : les mingw-w64 dont le `fma()` et le `round()`
 sont ceux de leur bibliothèque sont acceptés avec `-mfma`, après les registres
 de PJ écrits d'avance, `2166289`), et avant au commit de fusion de #391 dans
-`master` (les registres de la version : PJ est faite, l'étiquette `v5.0.0` est
-posée sur ce commit), et avant au commit `313ef2d` de `master` (la fusion de
+`master` (les registres de la version : PJ est faite, sans étiquette), et avant au commit `313ef2d` de `master` (la fusion de
 #390 : `dev`, à `c38417e`, y entre), et avant au commit `fc8b9ac` de `dev` (la
 fusion de #388, PJ.3 : le
 tableau de couverture du manuel et son PDF, après les registres de #387,
@@ -106,10 +109,11 @@ Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
     v5.0.0, par #390 (point Y : `dev` → `master`, par une pull request que le
     mainteneur fusionne lui-même, et qu'il a demandé à la session d'ouvrir ;
     elle n'accepte que des pull requests, les registres y sont entrés par une
-    pull request de `dev`, #391, avant l'étiquette ; puis l'étiquette annotée
-    `v5.0.0`, que la session a posée sur le commit de fusion de #391 le 18
-    novembre et qui a lancé `release.yml`, la GitHub Release et ses trois
-    paquets ; *décidé le 12 novembre*,
+    pull request de `dev`, #391, avant l'étiquette, fusionnée le 19 novembre à
+    16 h 11 UTC (`a3428f2`) ; puis #397, les paquets avec FMA, d'une branche à
+    part vers `master` (3.60) ; puis l'étiquette annotée `v5.0.0`, que la
+    session a posée sur le commit de fusion de #397 et qui a lancé
+    `release.yml`, la GitHub Release et ses trois paquets ; *décidé le 12 novembre*,
     `TODO_DONE.md` 3.36, et le 17 novembre pour `dev` à la place de
     `configure-clean`). `MATH-CORE`, l'étape intermédiaire prévue le 3 octobre,
     est supprimée le 11 novembre. *Décidé le 13 novembre* : pas de fusion dans
@@ -1139,9 +1143,8 @@ git ls-remote --heads origin
   et 7.54), puis #388 (PJ.3 : le tableau de couverture du manuel et son PDF) à
   21 h 21 UTC (`fc8b9ac`, 2.3, 3.54 et 7.55), puis #390 (PJ.3 : `dev` dans
   `master`) à 22 h 20 UTC (`313ef2d`, 2.3, 3.56 et 7.57), puis, le 18 novembre,
-  #391 (PJ.3 : les registres de la version, de `dev` dans `master`) et
-  l'étiquette `v5.0.0`, posée sur son commit de fusion (2.3, 3.57 et 7.58),
-  puis #392 (hors des points : les mingw-w64 dont le `fma()` et le `round()`
+  #391 (PJ.3 : les registres de la version, de `dev` dans `master` ; fusionnée
+  le 19 novembre à 16 h 11 UTC, `a3428f2`, 2.3, 3.57 et 7.58), puis #392 (hors des points : les mingw-w64 dont le `fma()` et le `round()`
   sont ceux de leur bibliothèque, acceptés avec `-mfma`) à 11 h 56 UTC
   (`cb2474b`, 2.3, 3.58 et 7.59), puis, le 19 novembre, #393 (hors des points :
   `gaol_fma()`, le `fma()` calculé avec des entiers, et `gaol_fma()` exporté) à
@@ -1150,9 +1153,10 @@ git ls-remote --heads origin
   3.59 et 7.61, la couverture : 7.62) ; l'audit du 13 octobre a vérifié dans
   `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
-- **En cours** : au 19 novembre, aucune pull request n'est ouverte hors de #391
-  (les registres de la version, de `dev` dans `master`, écrits d'avance :
-  `TODO_DONE.md` 3.57) : #393 (hors des points : `gaol_fma()`, le `fma()` calculé
+- **En cours** : au 19 novembre, #391 est fusionnée (`a3428f2`) et la seule pull
+  request ouverte est #397 (le `.deb` et le `.exe` avec FMA, le `.pkg` pour macOS
+  15 et plus, de `release-fma-packages` vers `master` ; l'étiquette `v5.0.0` est
+  posée sur son commit de fusion : `TODO_DONE.md` 2.3, 3.60 et 7.63) : #393 (hors des points : `gaol_fma()`, le `fma()` calculé
   avec des entiers ; `mingw-soft-fma`) est fusionnée, ses registres faits
   (`TODO_DONE.md` 2.3, 3.59 et 7.60), de même que #396 (les sources du manuel ;
   `manual-fma-393`, 2.3 et 7.61) ; #373 (le
@@ -1268,9 +1272,9 @@ git ls-remote --heads origin
   textes de GAOL que les signalements rendent faux ; les signalements eux-mêmes
   sont dans leurs issues et `TODO_AFTER.md` 2.6, avec l'accord du mainteneur),
   et la version (PJ) est publiée : la fusion de `dev` dans `master` par #390
-  (section 13), les registres par #391, puis l'étiquette annotée `v5.0.0`, que
-  la session a posée sur le commit de fusion de #391 quand toute la CI était
-  verte, et qui a lancé la Release de `release.yml` (*décidé le 12 novembre* :
+  (section 13), les registres par #391, les paquets avec FMA par #397, puis
+  l'étiquette annotée `v5.0.0`, que la session a posée sur le commit de fusion
+  de #397 quand toute la CI était verte, et qui a lancé la Release de `release.yml` (*décidé le 12 novembre* :
   `TODO_DONE.md` 3.36 ; le message de l'étiquette, le 17 novembre : 3.55 ; 3.56
   et 3.57). La couverture et le PDF du manuel sont ceux de #388, au code de la
   version ; les temps de PJ.2 ne sont pas remesurés (*décidé le 17 novembre*).
@@ -1287,7 +1291,7 @@ git ls-remote --heads origin
 ## 13. Une version : `dev` → `master`
 
 `dev` est la branche des versions (*décidé le 17 novembre* : `configure-clean`,
-qui retirait les notes, est supprimée). La première, v5.0.0, est publiée le 18
+qui retirait les notes, est supprimée). La première, v5.0.0, est publiée le 19
 novembre, après les tâches PU à PZ (*décidé le 13 novembre*).
 
 1. **Quand.** Le mainteneur le dit. Les tâches de `TODO.md` qui précèdent la
@@ -1324,7 +1328,7 @@ novembre, après les tâches PU à PZ (*décidé le 13 novembre*).
    `TODO_DONE.md` 3.58 ; #393 et #396, le 19 : 3.59 et 7.61). Une pull request
    vers `master` doit porter, avec les registres, le manuel (les sources et le
    PDF) et le reste de ce que le code change (*demande du mainteneur, 19
-   novembre*) : elle se vérifie avant de la dire prête. Pour v5.0.0, il a demandé que ces registres disent la
+   novembre*) : elle se vérifie avant de la dire prête. Un changement qui doit entrer après la fusion de `dev` et avant l'étiquette passe par une pull request de plus, d'une branche à part vers `master` : pour v5.0.0, #397 (les paquets avec FMA, *décidé le 19 novembre* : `TODO_DONE.md` 3.60), dont le commit de fusion porte l'étiquette ; `dev` reçoit ensuite `master`. Pour v5.0.0, il a demandé que ces registres disent la
    version
    publiée avant même l'étiquette (*décidé le 18 novembre* : `TODO_DONE.md`
    3.57), pour que `master` n'ait rien à rattraper après elle. Les notes sont
