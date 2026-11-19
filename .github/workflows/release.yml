@@ -4,10 +4,11 @@
 #
 #   libgaol-dev_<version>_amd64.deb   Ubuntu 26.04 x86_64, GCC (the one of the
 #                                     system), installed in /usr
-#   gaol-<version>-macos-arm64.pkg    macOS 26 arm64, AppleClang, installed in
-#                                     /usr/local (not signed: Gatekeeper asks
-#                                     to open it with a right click, or
-#                                     sudo installer -pkg ... -target /)
+#   gaol-<version>-macos-arm64.pkg    macOS 26 arm64, AppleClang, for macOS 15
+#                                     and later (CMAKE_OSX_DEPLOYMENT_TARGET),
+#                                     installed in /usr/local (not signed:
+#                                     Gatekeeper asks to open it with a right
+#                                     click, or sudo installer -pkg ... -target /)
 #   gaol-<version>-windows-x64.exe    Windows Server 2025, Visual C++ 2026 x64,
 #                                     /MD (MultiThreadedDLL), installed in
 #                                     C:\Program Files\gaol
@@ -111,8 +112,8 @@ jobs:
         cfg:
           - { os: ubuntu-26.04, generator: DEB, intervals: sse2, fma: '-mfma', desc: 'Ubuntu 26.04 x86_64 GCC, .deb',
               opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DGAOL_PREFER_AVX512=OFF' }
-          - { os: macos-26, generator: productbuild, intervals: neon, desc: 'macOS 26 arm64 AppleClang, .pkg', name: macos-arm64,
-              opts: '-DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_INSTALL_PREFIX=/usr/local',
+          - { os: macos-26, generator: productbuild, intervals: neon, minos: '15.0', desc: 'macOS 26 arm64 AppleClang, .pkg', name: macos-arm64,
+              opts: '-DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DCMAKE_INSTALL_PREFIX=/usr/local',
               cpack: '-D CPACK_PACKAGING_INSTALL_PREFIX=/usr/local' }
           - { os: windows-2025-vs2026, generator: NSIS, intervals: sse2, fma: '/arch:AVX2', desc: 'Windows Server 2025 Visual C++ 2026 x64 /MD, .exe', name: windows-x64,
               opts: '-G "Visual Studio 18 2026" -A x64 -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DGAOL_PREFER_AVX512=OFF' }
@@ -164,6 +165,16 @@ jobs:
           fi
       - name: Build
         run: cmake --build build --config Release -j 4
+      # The version of macOS the library is built for: without a deployment
+      # target the objects of libgaol.a carry the one of the runner (26.0), and
+      # the linker of a program built for an earlier macOS warns of each one it
+      # takes
+      - name: The library is built for macOS 15 and later
+        if: matrix.cfg.minos
+        run: |
+          versions=$(otool -l build/libgaol.a | awk '$1 == "minos" { print $2 }' | sort -u)
+          echo "minos of the objects of libgaol.a: $versions"
+          test "$versions" = "${{ matrix.cfg.minos }}"
       - name: Tests
         run: ctest --test-dir build -C Release --output-on-failure -j 4
       - name: The package

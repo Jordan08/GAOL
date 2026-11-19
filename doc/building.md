@@ -317,7 +317,9 @@ for each tag of a commit of `master`, the tag being the version of
 `VERSION.txt` (`5.0.0` or `v5.0.0`), and attaches them to the GitHub Release of
 the tag, which it makes if there is none, with the notes GitHub generates
 (GAOL v5): `libgaol-dev_<version>_amd64.deb` (Ubuntu 26.04 x86_64, the GCC of
-the system), `gaol-<version>-macos-arm64.pkg` (macOS 26 arm64, AppleClang) and
+the system), `gaol-<version>-macos-arm64.pkg` (macOS 26 arm64, AppleClang, built
+for macOS 15 and later with `-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0`, which the job
+checks in the objects of the library) and
 `gaol-<version>-windows-x64.exe` (Windows Server 2025, Visual C++ 2026 x64,
 `/MD`), in Release, with `-DGAOL_PREFER_AVX512=OFF` on x86-64. The two
 packages for x86-64 take the fused multiply-add instructions (`-mfma` for the

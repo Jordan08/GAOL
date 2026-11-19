@@ -262,7 +262,8 @@
 	builds three packages with CPack, in Release, and attaches them to the
 	GitHub Release of the tag, which the workflow makes if there is none:
 	libgaol-dev_<version>_amd64.deb (Ubuntu 26.04, the GCC of the system),
-	gaol-<version>-macos-arm64.pkg (macOS 26, AppleClang) and
+	gaol-<version>-macos-arm64.pkg (macOS 26, AppleClang, built for
+	macOS 15 and later) and
 	gaol-<version>-windows-x64.exe (Windows Server 2025, Visual C++ 2026
 	x64, /MD); the .deb and the .exe take the fused multiply-add
 	instructions (-mfma, /arch:AVX2), so that they run only on the
