@@ -2530,10 +2530,10 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   setting of the developers, builds for any x86 processor, with the MinGW-w64
   whose `fma()` is wrong too (MSYS2 MINGW32 and MINGW64, which link
   `msvcrt.dll`, and those before version 12), where `gaol_fma_upward()` computes
-  `fma()` (about 10 ns a call, against 1.1 for the instruction: a `tan` of an
-  interval takes 315 ns, against 30 with the instruction and 490 before the
-  fast paths of that function, a `log` 175 ns, against 30 and 290, a `pow(x, 3)`
-  45 ns, against 11 and 78). The 256-bit
+  `fma()` (under 10 ns a call, against 1.1 for the instruction: a `tan` of an
+  interval takes 255 ns, against 30 with the instruction and 490 before the
+  fast paths of that function, a `log` 170 ns, against 30 and 290, a `pow(x, 3)`
+  38 ns, against 11 and 78). The 256-bit
   intrinsics a program writes itself stay exposed to the defect.
 - **`gaol_fma(a, b, c)`**, in `gaol` and in `gaol_ieee1788`, is `a*b + c` of
   three doubles rounded once in the direction in effect, the same on every

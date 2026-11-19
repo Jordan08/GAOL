@@ -1210,7 +1210,7 @@ computes each row and checks it):
 | `TwoSum(1e20, 1e-20)`, the error of a sum | s + e ≠ a + b | s + e = a + b |
 | `TwoSum(a, b)`, 50 000 pairs of doubles of exponents from −60 to 60 | s + e ≠ a + b for 10 717 pairs | none |
 | `TwoProd(a, b)`, Dekker's splitting, 50 000 pairs of doubles of [1, 2) | p + e ≠ a·b for 1 888 pairs | none |
-| `TwoProd(a, b)`, `e = std::fma(a, b, -a*b)`, the same pairs | none | none |
+| `TwoProd(a, b)`, `e = gaol::gaol_fma(a, b, -a*b)`, the same pairs | none | none |
 
 The quotient is the double above 1/3, where the program expects the nearest.
 The C library rounds in the direction in effect too, as the C standard
@@ -1244,10 +1244,10 @@ that of the MinGW-w64 before version 12 or linked with `msvcrt.dll` (MSYS2
 MINGW64 and MINGW32), are not correctly rounded, where `__builtin_fma` is the
 instruction with `-mfma`: a program of yours that computes with `std::fma` on
 those toolchains needs `-mfma`, which `gaol.pc` and `gaol::gaol` give it where
-the processor has the instructions, and the example
-`13_rounding_environment.cpp` reports a wrong error of a product without it).
+the processor has the instructions).
 `gaol::gaol_fma(a, b, c)`, which `gaol_ieee1788` has too, spares a program that
-trouble: it is `a*b + c` rounded once in the direction in effect, the same on
+trouble, and is what the example `13_rounding_environment.cpp` computes the
+error of a product with: it is `a*b + c` rounded once in the direction in effect, the same on
 every platform, the instruction where the program has it (`-mfma`, any 64-bit
 ARM), the `fma()` of the C library where that is right, and GAOL's own
 computation with integers where it is not (those toolchains, without

@@ -1171,12 +1171,14 @@ which `numbers` checks there too.
   checked against `GAOL_SOFT_FMA`. A fourth checks `gaol_fma_upward()`, which
   GAOL calls where `GAOL_SOFT_FMA` is 1 and which is right in the upward
   direction alone (it takes for granted the direction GAOL runs in, and a debug
-  build checks it): at the triples of `fma_values.py`, upward, then at 750 000
-  triples of the kinds its two fast paths (x86-64 with a 128-bit integer) are
+  build checks it): at the triples of `fma_values.py`, upward, then at 900 000
+  triples of the kinds its three fast paths (x86-64 with a 128-bit integer) are
   for and of their edges (the error of a product and the values next to it, `c`
   above the product by 2<sup>3</sup> to 2<sup>143</sup> with the halfway cases of
   products of a few bits, anything with the zeros, the infinities and the NaN,
-  `c` near the ends of its exponent range, products of a few bits), against
+  `c` near the ends of its exponent range, products of a few bits, `c` of the
+  size of the product or below it down to 80 binades with the near
+  cancellations), against
   `gaol_fma_directed()` and, where there is one, against the instruction; the
   fast paths have to take most of the triples that are theirs. CORE-MATH
   computes with `gaol_fma_upward()` there, so that the checks that call it in

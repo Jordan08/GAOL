@@ -358,18 +358,20 @@
 	in the four directions, and gaol_fma_upward(), which
 	__builtin_fma() of CORE-MATH and fma_once() call, and which takes
 	for granted the upward direction that GAOL runs in (a debug build
-	checks it).  gaol_fma_upward() has two fast paths on x86-64 (a
+	checks it).  gaol_fma_upward() has three fast paths on x86-64 (a
 	128-bit integer), for the calls that the double-double arithmetic
 	of CORE-MATH makes most: the error of a product, c = -(a*b rounded
-	upward), which is a difference of two 64-bit integers, and c far
-	above the product, a sum on 64 bits with one bit for what is lost.
-	It costs about 10 ns a call, against 1.1 for the instruction and
-	21 before the fast paths: a tan of an interval takes 315 ns, against
-	30 with the instruction and 490 before, a log 175 against 30 and 290,
-	a pow(x, 3) 45 against 11 and 78.  The test checks gaol_fma() against
-	exact rational arithmetic, the error of products, and the instruction
-	where there is one, and the fast paths against the general path on
-	750000 triples of their kinds; the tests that call CORE-MATH in
+	upward), which is a difference of two 64-bit integers; c far
+	above the product, a sum on 64 bits with one bit for what is lost;
+	and c of the size of the product or below it, down to 73 binades,
+	whose sum, cancellations included, is exact on 128 bits and rounded
+	once.  It costs under 10 ns a call, against 1.1 for the instruction
+	and 21 before the fast paths: a tan of an interval takes 255 ns,
+	against 30 with the instruction and 490 before, a log 170 against 30
+	and 290, a pow(x, 3) 38 against 11 and 78.  The test checks gaol_fma()
+	against exact rational arithmetic, the error of products, and the
+	instruction where there is one, and the fast paths against the
+	general path on 900000 triples of their kinds; the tests that call CORE-MATH in
 	another direction (the four roundings of the hard cases, the
 	exception flags) are not run where GAOL calls gaol_fma_upward(), and
 	those that compare a lower bound with the value rounded downward
