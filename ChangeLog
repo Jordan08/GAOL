@@ -353,13 +353,30 @@
 	tests/core_math.cpp, tests/fma_values.py: where the fma() of the C
 	library is mingw-w64's own or Cygwin's and the build has no -mfma
 	(GAOL_FMA=OFF, or a processor without the instruction), GAOL
-	computes fma() with gaol_fma(), a*b + c rounded once in the
-	direction in effect, with integers, instead of refusing the
-	toolchain: __builtin_fma() of CORE-MATH and fma_once() call it.  It
-	costs 21 ns, against 1.1 for the instruction.  The test checks it
-	against exact rational arithmetic, the error of products, and the
-	instruction where there is one.  GAOL_FMA_FORCE_SOFTWARE=1
-	(-DGAOL_FMA_SOFTWARE=ON of CMake) has it called on any machine.
+	computes fma() with integers instead of refusing the toolchain:
+	gaol_fma(), a*b + c rounded once in the direction in effect, right
+	in the four directions, and gaol_fma_upward(), which
+	__builtin_fma() of CORE-MATH and fma_once() call, and which takes
+	for granted the upward direction that GAOL runs in (a debug build
+	checks it).  gaol_fma_upward() has two fast paths on x86-64 (a
+	128-bit integer), for the calls that the double-double arithmetic
+	of CORE-MATH makes most: the error of a product, c = -(a*b rounded
+	upward), which is a difference of two 64-bit integers, and c far
+	above the product, a sum on 64 bits with one bit for what is lost.
+	It costs about 10 ns a call, against 1.1 for the instruction and
+	21 before the fast paths: a tan of an interval takes 315 ns, against
+	30 with the instruction and 490 before, a log 175 against 30 and 290,
+	a pow(x, 3) 45 against 11 and 78.  The test checks gaol_fma() against
+	exact rational arithmetic, the error of products, and the instruction
+	where there is one, and the fast paths against the general path on
+	750000 triples of their kinds; the tests that call CORE-MATH in
+	another direction (the four roundings of the hard cases, the
+	exception flags) are not run where GAOL calls gaol_fma_upward(), and
+	those that compare a lower bound with the value rounded downward
+	compare it with the value rounded upward, which it is or is the
+	double below (tests/core_math.cpp, tests/extended_precision.cpp).
+	GAOL_FMA_FORCE_SOFTWARE=1 (-DGAOL_FMA_SOFTWARE=ON of CMake) has it
+	called on any machine.
 	* .github/scripts/check-no-fma-call.sh, windows.yml, linux.yml: no
 	object of the library calls the fma() of the C library.
 	* gaol/math/gaol_u128.h, tests/u128_select.c: 32-bit x86 with GCC takes

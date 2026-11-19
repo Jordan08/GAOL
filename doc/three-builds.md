@@ -592,10 +592,15 @@ too:
   its objects. Nothing changes where the library's `fma()` is right: Linux,
   macOS, Visual C++, the UCRT of mingw-w64 12 and later.
 
-`gaol_fma()` is slower than the instruction: it is there for the processors
-without it (before Intel Haswell and AMD Piledriver) and for a library built
-for any processor of the architecture (`-DGAOL_FMA=OFF`), which was refused
-before. `-DGAOL_FMA_SOFTWARE=ON` (`GAOL_FMA_FORCE_SOFTWARE=1` for the other two
+`gaol_fma_upward()`, which GAOL calls, is slower than the instruction: it is
+there for the processors without it (before Intel Haswell and AMD Piledriver)
+and for a library built for any processor of the architecture
+(`-DGAOL_FMA=OFF`), which was refused before. It takes for granted the upward
+direction that GAOL's code runs in, and has two fast paths on x86-64 (the error
+of a product, and `c` far above the product), which `tan`, `log` and
+`pow(x, 3)` call most; `gaol_fma()` is right in the four directions, which the
+tests that call CORE-MATH in another direction need: they are not run where
+GAOL calls `gaol_fma_upward()`. `-DGAOL_FMA_SOFTWARE=ON` (`GAOL_FMA_FORCE_SOFTWARE=1` for the other two
 builds) has GAOL call it on any machine, as the continuous integration does on
 Ubuntu x86-64 with GCC and Clang.
 

@@ -80,9 +80,10 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     except rounding upward). GAOL takes neither from that library: `fma()` is
     the instruction, with the `-mfma` that `GAOL_FMA` gives GCC and Clang for
     Windows on a processor that has it, and, where the build has none
-    (`GAOL_FMA=OFF`, or a processor without the instruction), `gaol_fma()`
-    (`gaol/math/gaol_fma.h`), which computes `a*b + c` rounded once with
-    integers (`GAOL_SOFT_FMA`); and `round()` is its own `gaol_round()`
+    (`GAOL_FMA=OFF`, or a processor without the instruction), `gaol_fma_upward()`
+    (`gaol/math/gaol_fma.h`), which computes `a*b + c` rounded once upward, the
+    direction GAOL runs in, with integers (`GAOL_SOFT_FMA`; `gaol_fma()` is the
+    same in the four directions); and `round()` is its own `gaol_round()`
     (`gaol/math/gaol_round.h`, which reads the bits), in `round_ties_to_away()`
     and in the sources of CORE-MATH. These toolchains are therefore accepted
     with `-mfma` and without it, on x86-64 and on 32-bit x86, and the `fma()` of
@@ -2528,8 +2529,11 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   2012-2013, and later), as with the other x86 compilers; `-DGAOL_FMA=OFF`, a
   setting of the developers, builds for any x86 processor, with the MinGW-w64
   whose `fma()` is wrong too (MSYS2 MINGW32 and MINGW64, which link
-  `msvcrt.dll`, and those before version 12), where `gaol_fma()` computes
-  `fma()` (about 21 ns, against 1.1 for the instruction). The 256-bit
+  `msvcrt.dll`, and those before version 12), where `gaol_fma_upward()` computes
+  `fma()` (about 10 ns a call, against 1.1 for the instruction: a `tan` of an
+  interval takes 315 ns, against 30 with the instruction and 490 before the
+  fast paths of that function, a `log` 175 ns, against 30 and 290, a `pow(x, 3)`
+  45 ns, against 11 and 78). The 256-bit
   intrinsics a program writes itself stay exposed to the defect.
 - **Cygwin on x86-64 is built and tested**, with GCC, by the three builds in the
   continuous integration, and **it calls `gaol_fma()` without the fused

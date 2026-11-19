@@ -1140,8 +1140,9 @@ which `numbers` checks there too.
   arithmetic. The `fma()` and `round()` of mingw-w64's own math library on
   x64 fail 21 and 6 of these checks under wine (GAOL v5): where the library is
   that one (`GAOL_MINGW_OWN_MATH` of `gaol/gaol_config.h`), GAOL calls the
-  instruction (`-mfma`) or its own `gaol_fma()` of `gaol/math/gaol_fma.h`
-  without it, which the `fma()` check then calls, and its own `gaol_round()` of
+  instruction (`-mfma`) or its own `gaol_fma_upward()` of `gaol/math/gaol_fma.h`
+  without it (the `fma()` check calls `gaol_fma()`, right in the four
+  directions), and its own `gaol_round()` of
   `gaol/math/gaol_round.h`, which the `round()` check then
   calls, and which a second function checks on every platform: the nearest
   integer, halfway values away from zero, with the sign of a zero, in the four
@@ -1166,8 +1167,25 @@ which `numbers` checks there too.
   C library whose `fma()` is right, at 200 000 random triples of every kind
   against it (cancellations, the subnormal range, the edge of the overflow,
   operands of a few bits, a product and `c` up to 130 bits apart); the lines of
-  the port header that give the sources `gaol_fma()` are repeated, and checked
-  against `GAOL_SOFT_FMA`. The `ldexp()` CORE-MATH rounds the subnormal values
+  the port header that give the sources `gaol_fma_upward()` are repeated, and
+  checked against `GAOL_SOFT_FMA`. A fourth checks `gaol_fma_upward()`, which
+  GAOL calls where `GAOL_SOFT_FMA` is 1 and which is right in the upward
+  direction alone (it takes for granted the direction GAOL runs in, and a debug
+  build checks it): at the triples of `fma_values.py`, upward, then at 750 000
+  triples of the kinds its two fast paths (x86-64 with a 128-bit integer) are
+  for and of their edges (the error of a product and the values next to it, `c`
+  above the product by 2<sup>3</sup> to 2<sup>143</sup> with the halfway cases of
+  products of a few bits, anything with the zeros, the infinities and the NaN,
+  `c` near the ends of its exponent range, products of a few bits), against
+  `gaol_fma_directed()` and, where there is one, against the instruction; the
+  fast paths have to take most of the triples that are theirs. CORE-MATH
+  computes with `gaol_fma_upward()` there, so that the checks that call it in
+  another direction (the four roundings of the hard cases of `sin`, `cos`, `cbrt`
+  and `rsqrt`, the exception flags, `pow` at the limits) are not run, and
+  those that compare the lower bounds with the value rounded downward compare
+  them with the value rounded upward, which a lower bound is or is the double
+  below: the builds with the instruction, or with a library `fma()` that is
+  right, run them all. The `ldexp()` CORE-MATH rounds the subnormal values
   of `erfc` with, `gaol_ldexp()` of `gaol/math/gaol_ldexp.h` with every compiler
   (the `ldexp()` of the UCRT of Windows and of macOS do not always round in
   the direction in effect), has to be x·2<sup>n</sup> rounded
