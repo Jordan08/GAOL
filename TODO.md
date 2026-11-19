@@ -1,6 +1,11 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `0173d0a` de `dev` (la fusion de
+Ce qui reste à faire sur GAOL v5 au commit de fusion de #397 dans `master` (le
+19 novembre : le `.deb` et le `.exe` construits avec les instructions FMA, le
+`.pkg` pour macOS 15 et plus ; l'étiquette `v5.0.0` est posée sur ce commit), et
+avant au commit `a3428f2` de `master` (la fusion de #391 le 19 novembre à 16 h 11
+UTC : les registres de la version, de `dev` dans `master`), et avant au commit
+`0173d0a` de `dev` (la fusion de
 `master` dans `dev` par le mainteneur le 19 novembre à 12 h 57 UTC, sans
 changement de fichier : l'arbre est celui de `fd1194f`, qui porte le PDF du manuel
 refait, 395 pages, et les registres de #396 ; la couverture est refaite dans le
@@ -14,9 +19,8 @@ après les registres de #392, `137c990`), et avant au commit `cb2474b` de `dev`
 (la fusion de #392 le 18 novembre à 11 h 56 UTC, hors des points : les
 mingw-w64 dont le `fma()` et le `round()` sont ceux de leur bibliothèque sont
 acceptés avec `-mfma`, après les registres de PJ écrits d'avance, `2166289`), et
-avant au commit de fusion de #391 dans `master` (le 18 novembre : les registres de la
-version, de `dev` dans `master` ; PJ est faite et l'étiquette `v5.0.0` est
-posée sur ce commit), et avant au commit `313ef2d`
+avant au commit de fusion de #391 dans `master` (les registres de la version,
+de `dev` dans `master` ; PJ est faite, sans étiquette), et avant au commit `313ef2d`
 de `master` (la fusion de #390 le 17 novembre à 22 h 20 UTC : `dev`, à
 `c38417e`, entre dans `master`), et avant au commit `fc8b9ac` de `dev` (la
 fusion de #388 le 17 novembre à 21 h 21 UTC, PJ.3 : le tableau de couverture du
@@ -96,7 +100,16 @@ l'intervalle contient des solutions (PU.1, #323), et deux threads qui
 affichaient la même expression `-x` plantaient (PU.2, #324) ; une borne est
 peut-être fausse encore pour un programme qui met lui-même `FPCR.AH` sur arm64
 (issue #198 : `x / y` des intervalles NEON, cause non trouvée). Rien n'est à
-envoyer à un autre projet ni à publier sans l'accord du mainteneur. #393 (hors
+envoyer à un autre projet ni à publier sans l'accord du mainteneur. #397 (hors des points : le `.deb` et le `.exe`
+construits avec les instructions FMA, `-mfma` et `/arch:AVX2`, et le `.pkg` pour
+macOS 15 et plus : `release.yml`, avec deux étapes qui le vérifient,
+`doc/building.md` et le `ChangeLog` ; `release-fma-packages`, ouverte vers
+`master`, sans passer par `dev`, sur la demande du mainteneur : « fait en sorte
+d'avoir GAOL_FMA=ON dans le .deb », puis « pareil pour le .exe », et la cible
+15.0 du `.pkg` à sa réponse ; `TODO_DONE.md` 3.60) est fusionnée par le
+mainteneur, la CI de sa tête au vert, et l'étiquette `v5.0.0`, annotée, est
+posée par la session sur son commit de fusion : la version 5.0.0 est publiée
+(`TODO_DONE.md` 2.3, 3.60 et 7.63). #393 (hors
 des points : `gaol_fma()`, le `fma()` calculé avec des entiers, pour
 les mingw-w64 avant 12 et Cygwin sans FMA ; `mingw-soft-fma`, ouverte par la
 session « mingw FMA » sur la demande du mainteneur, qui avait répondu « Ne pas
@@ -120,11 +133,11 @@ la CI de sa tête au vert (les sept workflows), ses registres faits
 dont la tête est `dev`, était ouverte : l'étiquette `v5.0.0` porte son code
 (`TODO_DONE.md` 3.57). #391 (les registres de la version :
 `TODO.md`, `TODO_DONE.md` et `process.md`, de `dev` dans `master`, pour que
-`master` les ait avant l'étiquette) est fusionnée le 18 novembre par le
-mainteneur, la CI de sa tête au vert (les cinq workflows qu'une pull request
-lance sur ce changement), et l'étiquette `v5.0.0`, annotée, est posée par la
-session sur son commit de fusion : la version 5.0.0 est publiée, PJ est faite
-(`TODO_DONE.md` 2.3, 3.57 et 7.58).
+`master` les ait avant l'étiquette) est fusionnée le 19 novembre à 16 h 11 UTC
+par le mainteneur (`a3428f2`), la CI de sa tête au vert (les sept workflows) et
+celle de `master` aussi (six workflows), sans étiquette : elle vient avec #397,
+que la demande des paquets avec FMA a ajoutée (`TODO_DONE.md` 2.3, 3.57, 3.60
+et 7.58).
 #382 (la tâche PH : trois commentaires de GAOL, `3rd/README.md`
 et deux fichiers de `doc/compare/`, que les vérifications des signalements
 rendent faux) et #383 (PJ : le rapport de couverture du 17 novembre, 95,5 % des
@@ -289,9 +302,9 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 
 ## Les tâches restantes
 
-Aucune : PJ, la dernière, est faite le 18 novembre (la fusion de `dev` dans
-`master` par #390, les registres par #391, puis l'étiquette `v5.0.0` :
-`TODO_DONE.md` 3.56 et 3.57). Le texte de son point 34 est dans `TODO_DONE.md`
+Aucune : PJ, la dernière, est faite le 19 novembre (la fusion de `dev` dans
+`master` par #390, les registres par #391, les paquets avec FMA par #397, puis
+l'étiquette `v5.0.0` : `TODO_DONE.md` 3.56, 3.57 et 3.60). Le texte de son point 34 est dans `TODO_DONE.md`
 (section 5, point Y).
 
 Ce qui vient après la version est dans `TODO_AFTER.md` (issue #178) : l'annonce
