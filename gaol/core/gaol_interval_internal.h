@@ -125,11 +125,12 @@ namespace gaol_core {
   // -mfma. Where the library's fma() is wrong and the build has no
   // instruction (GAOL_SOFT_FMA of gaol_config.h: mingw-w64 before version 12 or
   // linked with msvcrt.dll, and Cygwin, with GAOL_FMA=OFF or on a processor
-  // without the instructions), gaol_fma() computes it with integers
+  // without the instructions), gaol_fma_upward() computes it with integers,
+  // the intervals being computed in the upward direction
   static inline double fma_once(double a, double b, double c)
   {
 #if GAOL_SOFT_FMA
-    return gaol_fma(a, b, c);
+    return gaol_fma_upward(a, b, c);
 #elif defined(__GNUC__)
     return __builtin_fma(a, b, c);
 #else

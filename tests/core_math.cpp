@@ -89,7 +89,7 @@
     || ((GAOL_MINGW_OWN_MATH || defined(__CYGWIN__)) && !defined(__FMA__) \
         && (defined(__x86_64__) || defined(__i386__)))
 #define GAOL_TESTS_PORT_HAS_SOFT_FMA 1
-#define __builtin_fma(x, y, z) gaol_fma((x), (y), (z))
+#define __builtin_fma(x, y, z) gaol_fma_upward((x), (y), (z))
 #else
 #define GAOL_TESTS_PORT_HAS_SOFT_FMA 0
 #endif /* a library whose fma() is wrong, and no instruction */
@@ -201,10 +201,61 @@ namespace
   // computed apart from GAOL
   void tightest(double (*f)(double), double x, double& lo, double& hi)
   {
+#if GAOL_SOFT_FMA
+    // CORE-MATH computes with gaol_fma_upward() there, which is right in the
+    // upward direction only (the one GAOL calls it in): the downward value is
+    // not computed, lo is hi, and compare() checks the lower bound with that
+    std::fesetround(FE_UPWARD);
+    hi = f(x);
+    lo = hi;
+#else
     std::fesetround(FE_DOWNWARD);
     lo = f(x);
     std::fesetround(FE_UPWARD);
     hi = f(x);
+#endif
+  }
+
+  /*
+    CORE-MATH, where GAOL_SOFT_FMA says that the build computes the fma() itself,
+    computes with gaol_fma_upward(), which is right in the upward direction alone,
+    the one GAOL runs in and the only one GAOL calls CORE-MATH in. The tests that
+    call it in another direction (the four roundings of the hard cases, the
+    exception flags, the lower bound as the value rounded downward) do not run
+    there, or compare the lower bound with the value rounded upward, which it is
+    or is the double below: the builds with the instruction, or a library fma()
+    that is right, run them all, and gaol_fma() is checked in the four directions
+    above.
+  */
+  inline bool direction_is_usable(int fenv_direction)
+  {
+    return GAOL_SOFT_FMA == 0 || fenv_direction == FE_UPWARD;
+  }
+
+  // f(x) rounded downward by CORE-MATH, or where it cannot be (see above) rounded upward, which the lower bound
+  // GAOL gives is or is the double below (lower_is())
+  double cm_down(double (*f)(double), double x)
+  {
+#if GAOL_SOFT_FMA
+    std::fesetround(FE_UPWARD);
+    return f(x);
+#else
+    std::fesetround(FE_DOWNWARD);
+    const double v = f(x);
+    std::fesetround(FE_UPWARD);
+    return v;
+#endif
+  }
+
+  // Whether the lower bound got is the one CORE-MATH gives rounded downward, lo, or where that is rounded
+  // upward (cm_down()), lo or the double below it
+  bool lower_is(double got, double lo)
+  {
+#if GAOL_SOFT_FMA
+    return got == lo || got == previous_float(lo);
+#else
+    return got == lo;
+#endif
   }
 
   /* GAOL's bounds of an interval [x,x] against the tightest ones. A bound that
@@ -228,6 +279,18 @@ namespace
               [&] { return name + "(" + show(x) + ")"; });
         continue;
       }
+#if GAOL_SOFT_FMA
+      /* Only the upper bound is CORE-MATH's, in the upward direction: it is
+         the upper bound of GAOL, and the lower one is it, or the double below
+         it, which the builds with the instruction check against the value
+         rounded downward. */
+      check(name + ": the upper bound is the value rounded upward, the lower one is it or the double below",
+            got.right() == hi && (got.left() == hi || got.left() == previous_float(hi)),
+            [&] {
+              return name + "(" + show(x) + ") = [" + show(got.left()) + ", " + show(got.right())
+                   + "] with the value rounded upward " + show(hi);
+            });
+#else
       check(name + ": encloses the tightest bounds",
             got.left() <= lo && got.right() >= hi,
             [&] {
@@ -247,6 +310,7 @@ namespace
                        return name + "(" + show(x) + ") = [..., " + show(got.right()) + "] rather than [..., "
                             + show(hi) + "]";
                      });
+#endif
     }
   }
 
@@ -834,16 +898,205 @@ namespace
 #endif
   }
 
+  /*
+    gaol_fma_upward() of gaol/math/gaol_fma.h, which GAOL calls where
+    GAOL_SOFT_FMA says so, and its two fast paths (x86-64 with a 128-bit
+    integer), in the upward direction, the only one it is right in:
+
+    - against the triples of tests/fma_values.py, upward;
+    - on triples of the kinds the fast paths are for and of their edges, against
+      gaol_fma_directed(), the general path, which the tests above compare with
+      exact values and with the instruction, and where the platform has the
+      instruction (GAOL_TESTS_FMA_IS_TRUSTED), against it too:
+        the error of a product, c = -(a*b rounded upward by the processor), and
+          the values next to it, which the first path takes or leaves,
+        c above the product by 2^3 to 2^143, with the halfway cases of products
+          of a few bits (powers of two) and sums that carry or borrow out of the
+          53 bits,
+        anything, the zeros, the infinities and the NaN included,
+        c near the ends of its exponent range, and a*b near those of the window
+          of the paths (the exponent of the product from -900 to 1000),
+        products of a few bits, exact, and c of the same size or just above;
+    - the fast paths are taken by most of the triples that are theirs: a bug that
+      sends every call to the general path would pass the comparisons.
+  */
+  void gaol_fma_upward_fast_paths()
+  {
+    std::fesetround(FE_UPWARD);
+    for (const FmaValue& t : fma_values) {
+      volatile double a = t.a, b = t.b, c = t.c;
+      const double got = gaol_core::rnd_keep(gaol_fma_upward(a, b, c));
+      const double want = t.rounded[1]; // upward
+      check("gaol_fma_upward(): the exact value, upward",
+            (want != want) ? got != got : same_bits(got, want),
+            [&] {
+              return "gaol_fma_upward(" + show(t.a) + ", " + show(t.b) + ", " + show(t.c) + ") = "
+                   + show(got) + " rather than " + show(want);
+            });
+    }
+
+    std::mt19937_64 gen(20261119u);
+    const auto mantissa = [&gen]() -> std::uint64_t {
+      switch (gen() % 10) {
+        case 4: return 0;
+        case 5: return 0xfffffffffffffull;
+        case 6: { const int k = 1 + static_cast<int>(gen() % 30); return (gen() >> (64 - k)) << (52 - k); }
+        case 7: return 1;
+        case 8: return 0x8000000000000ull;
+        case 9: return 0x7ffffffffffffull;
+        default: return gen() & 0xfffffffffffffull;
+      }
+    };
+    const auto make = [](int field, std::uint64_t m, int sign) {
+      const std::uint64_t u = (static_cast<std::uint64_t>(sign) << 63) | (static_cast<std::uint64_t>(field) << 52) | m;
+      double x;
+      std::memcpy(&x, &u, sizeof x);
+      return x;
+    };
+    const auto range = [&gen](int lo, int hi) {
+      return lo + static_cast<int>(gen() % static_cast<std::uint64_t>(hi - lo + 1));
+    };
+    const auto clamp_field = [](int f) { return f < 1 ? 1 : (f > 2046 ? 2046 : f); };
+    const auto sign = [&gen]() { return static_cast<int>(gen() & 1); };
+    // the exponent fields of a and b: mostly where the product is in the window of the fast paths, sometimes
+    // at its edges, sometimes anywhere
+    const auto fields = [&](int& fa, int& fb) {
+      switch (gen() % 10) {
+        case 0: fa = range(1, 2046); fb = range(1, 2046); break;
+        case 1: {
+          const int edge = (gen() & 1) ? -900 : 1000;
+          fa = range(1, 2046);
+          fb = clamp_field(2046 + edge - fa + range(-2, 2));
+          break;
+        }
+        case 2: fa = (gen() & 1) ? range(1, 3) : range(2044, 2046); fb = range(1, 2046); break;
+        default: fa = range(1023 - 440, 1023 + 490); fb = clamp_field(2046 - fa + range(-800, 800)); break;
+      }
+    };
+
+    struct Kind {
+      const char* name;
+      long calls;
+      long fast;
+      long percent_fast; // the share of the calls that the fast paths have to take, at least
+    };
+    Kind kinds[] = {{"the error of a product", 0, 0, 70}, {"c above the product", 0, 0, 85},
+                    {"anything", 0, 0, 0}, {"c near the ends of its range", 0, 0, 0},
+                    {"products of a few bits", 0, 0, 80}};
+    const auto compare_triple = [&](Kind& kind, double a, double b, double c) {
+      const double general = gaol_fma_directed(a, b, c, GAOL_FMA_UPWARD);
+      const double got = gaol_fma_upward(a, b, c);
+      ++kind.calls;
+      const auto same = [](double x, double y) { return (x != x) ? y != y : same_bits(x, y); };
+      check(std::string("gaol_fma_upward(): as the general path, ") + kind.name, same(got, general),
+            [&] {
+              return "gaol_fma_upward(" + show(a) + ", " + show(b) + ", " + show(c) + ") = " + show(got)
+                   + " rather than " + show(general);
+            });
+#if GAOL_FMA_FAST
+      double r;
+      if (gaol_fma_fast_upward(a, b, c, &r)) {
+        ++kind.fast;
+        check(std::string("gaol_fma_fast_upward(): as the general path, ") + kind.name, same(r, general),
+              [&] {
+                return "gaol_fma_fast_upward(" + show(a) + ", " + show(b) + ", " + show(c) + ") = " + show(r)
+                     + " rather than " + show(general);
+              });
+      }
+#endif
+#if GAOL_TESTS_FMA_IS_TRUSTED
+      volatile double va = a, vb = b, vc = c;
+      const double instruction = gaol_core::rnd_keep(fma_reference(va, vb, vc));
+      check(std::string("gaol_fma_upward(): as the instruction, ") + kind.name, same(got, instruction),
+            [&] {
+              return "gaol_fma_upward(" + show(a) + ", " + show(b) + ", " + show(c) + ") = " + show(got)
+                   + " rather than " + show(instruction);
+            });
+#endif
+    };
+
+    for (int i = 0; i < 150000; ++i) {
+      { // the error of a product, c = -p, and values next to -p
+        int fa, fb;
+        fields(fa, fb);
+        const double a = make(fa, mantissa(), sign()), b = make(fb, mantissa(), sign());
+        volatile double p = a * b; // rounded upward by the processor
+        double c = -static_cast<double>(p);
+        const unsigned k = static_cast<unsigned>(gen() % 100);
+        if (k < 4) {
+          c = next_float(c);
+        } else if (k < 8) {
+          c = previous_float(c);
+        }
+        compare_triple(kinds[0], a, b, c);
+      }
+      { // c above the product by 2^(k + 3), k from -3 to 140
+        int fa, fb;
+        fields(fa, fb);
+        const bool powers_of_two = gen() % 8 == 0;
+        const double a = make(fa, powers_of_two ? 0 : mantissa(), sign());
+        const double b = make(fb, powers_of_two ? 0 : mantissa(), sign());
+        int k;
+        switch (gen() % 10) {
+          case 0: k = range(-3, 3); break;
+          case 1: k = range(4, 8); break;
+          case 2: case 3: k = range(45, 56); break; // the halfway cases of products of a few bits
+          case 4: k = range(100, 140); break;
+          default: k = range(9, 100); break;
+        }
+        const int fc = fa + fb - 2046 + 3 + k + 1023;
+        if (fc >= 1 && fc <= 2046) {
+          compare_triple(kinds[1], a, b, make(fc, mantissa(), sign()));
+        }
+      }
+      { // anything, the zeros, the infinities and the NaN now and then
+        const auto field = [&]() {
+          const unsigned k = static_cast<unsigned>(gen() % 40);
+          return k < 2 ? 0 : (k == 2 ? 2047 : range(1, 2046));
+        };
+        compare_triple(kinds[2], make(field(), mantissa(), sign()), make(field(), mantissa(), sign()),
+                       make(field(), mantissa(), sign()));
+      }
+      { // c near the ends of its exponent range, the product just below it
+        const int fc = (gen() & 1) ? range(2040, 2046) : range(1, 6);
+        const int fa = range(1, 2046);
+        const int fb = clamp_field(fc - 1023 - 3 + 2046 - fa + range(-3, 2));
+        compare_triple(kinds[3], make(fa, mantissa(), sign()), make(fb, mantissa(), sign()),
+                       make(fc, mantissa(), sign()));
+      }
+      { // a and b of a few bits, the product exact, c of the same size or just above
+        const int fa = range(1023 - 200, 1023 + 200), fb = range(1023 - 200, 1023 + 200);
+        const int ka = static_cast<int>(gen() % 26), kb = static_cast<int>(gen() % 26);
+        const std::uint64_t ma = ka ? (gen() >> (64 - ka)) << (52 - ka) : 0;
+        const std::uint64_t mb = kb ? (gen() >> (64 - kb)) << (52 - kb) : 0;
+        const int fc = clamp_field(fa + fb - 2046 + 1023 + range(-2, 60));
+        compare_triple(kinds[4], make(fa, ma, sign()), make(fb, mb, sign()),
+                       make(fc, (gen() & 1) ? mantissa() : (gen() & 1), sign()));
+      }
+    }
+#if GAOL_FMA_FAST
+    for (const Kind& kind : kinds) {
+      check(std::string("gaol_fma_fast_upward(): taken by most of the triples that are its, ") + kind.name,
+            kind.fast * 100 >= kind.calls * kind.percent_fast,
+            [&] {
+              return std::to_string(kind.fast) + " of " + std::to_string(kind.calls) + " calls, "
+                   + std::to_string(kind.percent_fast) + " % at least";
+            });
+    }
+#endif
+  }
+
   // __builtin_fma(x, y, z) as the sources of CORE-MATH call it, with the lines of
   // gaol/math/gaol_core_math_port.h that replace it where GAOL_SOFT_FMA says so
   // (the macro defined at the top of this file): gaol_fma() exactly there
   void builtin_fma_of_core_math()
   {
     const std::string expansion = GAOL_TEST_TEXT_OF(__builtin_fma(1.0, 2.0, 3.0));
-    check("__builtin_fma(): gaol_fma() where GAOL_SOFT_FMA is 1, and only there",
-          (GAOL_SOFT_FMA != 0) == (expansion.compare(0, 9, "gaol_fma(") == 0),
+    check("__builtin_fma(): gaol_fma_upward() where GAOL_SOFT_FMA is 1, and only there",
+          (GAOL_SOFT_FMA != 0) == (expansion.compare(0, 16, "gaol_fma_upward(") == 0),
           [&] { return "__builtin_fma(1.0, 2.0, 3.0) expands to " + expansion; });
-    // and what GAOL calls, fma_as_gaol(), is that function there
+    // fma_as_gaol() is the general gaol_fma() there, right in every direction, which the tests
+    // use as a reference; what GAOL calls, gaol_fma_upward(), is right in the upward direction
     volatile double x = 1.0 + 0x1p-30, y = 1.0 - 0x1p-30, z = -1.0;
     check("the fma() GAOL calls: fma(1 + 2^-30, 1 - 2^-30, -1) is -2^-60, not 0",
           same_bits(fma_as_gaol(x, y, z), -0x1p-60), [] { return std::string("fma(1 + 2^-30, 1 - 2^-30, -1)"); });
@@ -1285,10 +1538,16 @@ namespace
     const double exponents[] = {0.0, 1.0, 2.0, 3.0, -1.0, -2.0, 0.5, -0.5, 1.0 / 3.0, 12.0, -7.5};
     for (double b : bases) {
       for (double e : exponents) {
+#if GAOL_SOFT_FMA
+        std::fesetround(FE_UPWARD);
+        const double hi = gaol_cr_pow(b, e);
+        const double lo = hi; // the value rounded downward is not computed (see direction_is_usable())
+#else
         std::fesetround(FE_DOWNWARD);
         const double lo = gaol_cr_pow(b, e);
         std::fesetround(FE_UPWARD);
         const double hi = gaol_cr_pow(b, e);
+#endif
         if (!std::isfinite(lo) || !std::isfinite(hi)) {
           continue;
         }
@@ -1308,10 +1567,16 @@ namespace
       if (x == 0.0 && y == 0.0) {
         continue;
       }
+#if GAOL_SOFT_FMA
+      std::fesetround(FE_UPWARD);
+      const double hi = gaol_cr_atan2(y, x);
+      const double lo = hi; // the value rounded downward is not computed (see direction_is_usable())
+#else
       std::fesetround(FE_DOWNWARD);
       const double lo = gaol_cr_atan2(y, x);
       std::fesetround(FE_UPWARD);
       const double hi = gaol_cr_atan2(y, x);
+#endif
       const interval got = evaluate("atan2", [&] { return atan2(interval(y, y), interval(x, x)); },
                                     [&] { return "atan2(" + show(y) + ", " + show(x) + ")"; });
       check("atan2: encloses the tightest bounds",
@@ -1653,10 +1918,18 @@ namespace
       }
       std::fesetround(FE_TONEAREST);
       const Power power = power_of(x, y);
+#if GAOL_SOFT_FMA
+      // the value rounded downward is not computed (see direction_is_usable()): where x^y is no double it is
+      // the double below the one rounded upward, which is where lo is used
+      std::fesetround(FE_UPWARD);
+      const double hi = gaol_cr_pow(x, y);
+      const double lo = previous_double(hi);
+#else
       std::fesetround(FE_DOWNWARD);
       const double lo = gaol_cr_pow(x, y);
       std::fesetround(FE_UPWARD);
       const double hi = gaol_cr_pow(x, y);
+#endif
       const auto describe = [&] { return "pow(" + show(x) + ", " + show(y) + ")"; };
       const bool rational = power.kind == Power::rational, known = rational || power.root > 0;
       const auto power_text = [&] {
@@ -1674,7 +1947,7 @@ namespace
         doubles += power.is_double;
         check(rational ? "pow: CORE-MATH's pow is x^y rounded downward and upward where x^y is rational"
                        : "pow: CORE-MATH's pow is x^y rounded downward and upward where x^y is a 2^k-th root, k <= 6",
-              at_most(lo) && !at_most(next_double(lo)) && at_least(hi) && !at_least(previous_double(hi)),
+              (GAOL_SOFT_FMA || (at_most(lo) && !at_most(next_double(lo)))) && at_least(hi) && !at_least(previous_double(hi)),
               [&] { return describe() + " is " + show(lo) + " downward and " + show(hi) + " upward" + power_text(); });
       } else {
         reference = !std::signbit(lo) && hi == next_double(lo);
@@ -1959,12 +2232,7 @@ namespace
     const auto uniform = [&](double lo, double hi) {
       return lo + (hi - lo) * (static_cast<double>(next() >> 11) * 0x1p-53);
     };
-    const auto rd = [](double (*f)(double), double x) {
-      std::fesetround(FE_DOWNWARD);
-      const double v = f(x);
-      std::fesetround(FE_UPWARD);
-      return v;
-    };
+    const auto rd = [](double (*f)(double), double x) { return cm_down(f, x); };
     const auto ru = [](double (*f)(double), double x) {
       std::fesetround(FE_UPWARD);
       return f(x);
@@ -2025,7 +2293,7 @@ namespace
         }
         std::fesetround(FE_UPWARD);
         check(std::string(p.name) + " over an interval: the tightest bounds",
-              got.left() == lo && got.right() == hi,
+              lower_is(got.left(), lo) && got.right() == hi,
               [&] {
                 return std::string(p.name) + "([" + show(l) + ", " + show(r) + "]) = ["
                      + show(got.left()) + ", " + show(got.right()) + "] rather than ["
@@ -2123,6 +2391,10 @@ namespace
       const double want[4] = {e.rn, e.ru, e.rd, e.rz};
       double v[4];
       for (int d = 0; d < 4; ++d) {
+        if (!direction_is_usable(directions[d])) {
+          v[d] = want[d]; // not computed (see direction_is_usable())
+          continue;
+        }
         std::fesetround(directions[d]);
         v[d] = gaol_cr_sin(e.x);
       }
@@ -2218,6 +2490,10 @@ namespace
       const double want[4] = {e.rn, e.ru, e.rd, e.rz};
       double v[4];
       for (int d = 0; d < 4; ++d) {
+        if (!direction_is_usable(directions[d])) {
+          v[d] = want[d]; // not computed (see direction_is_usable())
+          continue;
+        }
         std::fesetround(directions[d]);
         v[d] = gaol_cr_cos(e.x);
       }
@@ -2271,6 +2547,10 @@ namespace
           const double want[4] = {to_zero, hi, lo, to_zero};
           double v[4];
           for (int d = 0; d < 4; ++d) {
+            if (!direction_is_usable(directions[d])) {
+              v[d] = want[d]; // not computed (see direction_is_usable())
+              continue;
+            }
             std::fesetround(directions[d]);
             v[d] = gaol_cr_cbrt(x);
           }
@@ -2375,6 +2655,10 @@ namespace
       const double want[4] = {below, above, below, below};
       double v[4];
       for (int d = 0; d < 4; ++d) {
+        if (!direction_is_usable(directions[d])) {
+          v[d] = want[d]; // not computed (see direction_is_usable())
+          continue;
+        }
         std::fesetround(directions[d]);
         v[d] = gaol_cr_rsqrt(x);
       }
@@ -2396,18 +2680,13 @@ namespace
   void recommended_tightest()
   {
     std::mt19937_64 gen(20260921u);
-    const auto rd = [](double (*f)(double), double x) {
-      std::fesetround(FE_DOWNWARD);
-      const double v = f(x);
-      std::fesetround(FE_UPWARD);
-      return v;
-    };
+    const auto rd = [](double (*f)(double), double x) { return cm_down(f, x); };
     const auto ru = [](double (*f)(double), double x) {
       std::fesetround(FE_UPWARD);
       return f(x);
     };
     const auto same = [](const interval& got, double lo, double hi) {
-      return !got.is_empty() && got.left() == lo && got.right() == hi;
+      return !got.is_empty() && lower_is(got.left(), lo) && got.right() == hi;
     };
 
     // The bounds the intervals are drawn from
@@ -2497,20 +2776,30 @@ namespace
                                   (int)(gen() % 60) - 30));
     }
     const auto hypot_rd = [](double x, double y) {
+#if GAOL_SOFT_FMA
+      std::fesetround(FE_UPWARD);
+      return gaol_cr_hypot(x, y); // see cm_down()
+#else
       std::fesetround(FE_DOWNWARD);
       const double v = gaol_cr_hypot(x, y);
       std::fesetround(FE_UPWARD);
       return v;
+#endif
     };
     const auto hypot_ru = [](double x, double y) {
       std::fesetround(FE_UPWARD);
       return gaol_cr_hypot(x, y);
     };
     const auto atan2pi_rd = [](double y, double x) {
+#if GAOL_SOFT_FMA
+      std::fesetround(FE_UPWARD);
+      return gaol_cr_atan2pi(y, x); // see cm_down()
+#else
       std::fesetround(FE_DOWNWARD);
       const double v = gaol_cr_atan2pi(y, x);
       std::fesetround(FE_UPWARD);
       return v;
+#endif
     };
     const auto atan2pi_ru = [](double y, double x) {
       std::fesetround(FE_UPWARD);
@@ -2598,6 +2887,15 @@ namespace
     const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
     for (double x0 : near_one) {
       for (double x : {x0, -x0}) {
+#if GAOL_SOFT_FMA
+        // the upward direction alone (see direction_is_usable()): the upper bound is CORE-MATH's, the lower one is
+        // it or the double below
+        std::fesetround(FE_UPWARD);
+        const double upper = gaol_cr_asinpi(x);
+        const interval got = asinpi(interval(x));
+        check("asinpi next to +-1: the tightest bounds, upward",
+              same(got, upper, upper), [&] { return "asinpi(" + show(x) + ") = " + hex(got); });
+#else
         double v[4];
         for (int d = 0; d < 4; ++d) {
           std::fesetround(directions[d]);
@@ -2609,6 +2907,7 @@ namespace
               same(got, v[2], v[1]) && v[2] <= v[0] && v[0] <= v[1] && (v[3] == v[1] || v[3] == v[2])
               && next_float(v[2]) == v[1],
               [&] { return "asinpi(" + show(x) + ") = " + hex(got); });
+#endif
       }
     }
 
@@ -2667,18 +2966,13 @@ namespace
   void error_functions()
   {
     std::mt19937_64 gen(20261006u);
-    const auto rd = [](double (*f)(double), double x) {
-      std::fesetround(FE_DOWNWARD);
-      const double v = f(x);
-      std::fesetround(FE_UPWARD);
-      return v;
-    };
+    const auto rd = [](double (*f)(double), double x) { return cm_down(f, x); };
     const auto ru = [](double (*f)(double), double x) {
       std::fesetround(FE_UPWARD);
       return f(x);
     };
     const auto same = [](const interval& got, double lo, double hi) {
-      return !got.is_empty() && got.left() == lo && got.right() == hi;
+      return !got.is_empty() && lower_is(got.left(), lo) && got.right() == hi;
     };
 
     std::vector<double> points = {0.0, -0.0, inf, -inf, 1e300, -1e300, 0x1.fffffffffffffp+1023, -0x1.fffffffffffffp+1023};
@@ -2752,6 +3046,14 @@ namespace
     const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
     for (const Monotonic& m : monotonic) {
       for (double x : hard) {
+#if GAOL_SOFT_FMA
+        // the upward direction alone (see direction_is_usable())
+        std::fesetround(FE_UPWARD);
+        const double upper = m.cr(x);
+        const interval got = m.g(interval(x));
+        check(std::string(m.name) + " at the arguments of erfc.c's tables: the tightest bounds, upward",
+              same(got, upper, upper), [&] { return std::string(m.name) + "(" + show(x) + ") = " + hex(got); });
+#else
         double v[4];
         for (int d = 0; d < 4; ++d) {
           std::fesetround(directions[d]);
@@ -2763,6 +3065,7 @@ namespace
               same(got, v[2], v[1]) && v[2] <= v[0] && v[0] <= v[1] && (v[3] == v[1] || v[3] == v[2])
               && next_float(v[2]) == v[1],
               [&] { return std::string(m.name) + "(" + show(x) + ") = " + hex(got); });
+#endif
       }
     }
   }
@@ -2775,14 +3078,18 @@ int main()
   gaol_round_of_the_bits();
   builtin_round_of_core_math();
   gaol_fma_of_integers();
+  gaol_fma_upward_fast_paths();
   builtin_fma_of_core_math();
 #if GAOL_TESTS_CHECK_LIBRARY_FMA
   c_library_fma_function();
 #endif
   ldexp_of_core_math();
+#if !GAOL_SOFT_FMA
+  // CORE-MATH and pow in the four rounding directions: see direction_is_usable()
   exact_results_raise_no_flag();
   pow_limits_raise_no_flag();
   pow_near_overflow_raises_no_flag();
+#endif
   elementary_functions();
   exact_values();
   two_arguments();
@@ -2795,7 +3102,8 @@ int main()
   sin_accurate_path();
   cos_accurate_path();
   cbrt_hard_cases();
-#if defined(GAOL_TESTS_HAVE_MXCSR) && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
+#if defined(GAOL_TESTS_HAVE_MXCSR) && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)) \
+    && !GAOL_SOFT_FMA
   core_math_follows_mxcsr();
 #endif
   rsqrt_hard_cases();

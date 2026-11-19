@@ -478,9 +478,9 @@
    with -mfma, which GAOL_FMA gives GCC and Clang for Windows on a processor
    that has it (the three builds check it by running a program compiled with
    the flags, and drop them where the processor does not run it), and
-   gaol_fma() of gaol/math/gaol_fma.h, which computes it with integers,
-   without (GAOL_SOFT_FMA below): GAOL_FMA=OFF, or a processor without the
-   instructions. These toolchains, and Cygwin (below), are accepted with and
+   gaol_fma_upward() of gaol/math/gaol_fma.h, which computes it with integers,
+   rounded upward, the direction GAOL runs in, without (GAOL_SOFT_FMA below):
+   GAOL_FMA=OFF, or a processor without the instructions. These toolchains, and Cygwin (below), are accepted with and
    without -mfma, and the fma() of their library is never called by GAOL.
 
    Before version 12 both are in libmingwex, which every program links; from
@@ -503,8 +503,8 @@
    mingw-w64 but whose math library is its own, does not say __MINGW32__. Its
    fma() is not correctly rounded either (fma(1 + 2^-30, 1 - 2^-30, -1) gave 0
    instead of -2^-60), as std::fma is a call of it without optimization: GAOL
-   takes the instruction there, -mfma (GAOL_FMA), and gaol_fma() without it
-   (GAOL v5).
+   takes the instruction there, -mfma (GAOL_FMA), and gaol_fma_upward() without
+   it (GAOL v5).
 
    On 32-bit x86, the same fma() and round() compute on the x87 unit, in
    extended precision where the compiler keeps the values in its registers.
@@ -520,7 +520,7 @@
    x86-64. One linking msvcrt.dll (MSYS2 MINGW32, which has no other) takes
    mingw-w64's own. GAOL calls none of them on x86, whatever the version
    and the build: the instruction with -mfma, which GAOL_FMA gives GCC for
-   Windows on 32-bit x86 as on x86-64, and gaol_fma() without it, which
+   Windows on 32-bit x86 as on x86-64, and gaol_fma_upward() without it, which
    replaces the x87 fma() that the mingw-w64 11 was accepted with (GAOL v5; the
    job "no FMA" of windows.yml runs it).
 
@@ -544,8 +544,8 @@
    the tests of GAOL with that Clang (MSYS2 CLANGARM64, which links the UCRT,
    is tested too). Refused: 32-bit ARM, whose fma() is not fused, and 64-bit
    ARM with mingw-w64 12 or later linked with msvcrt.dll, which no job builds. */
-/* 1 where fma() is gaol_fma() of gaol/math/gaol_fma.h, which computes it with
-   integers (GAOL v5): the C library's fma() is wrong (GAOL_MINGW_OWN_MATH, which
+/* 1 where fma() is gaol_fma_upward() of gaol/math/gaol_fma.h, which computes it with
+   integers, rounded upward, the direction GAOL runs in (GAOL v5): the C library's fma() is wrong (GAOL_MINGW_OWN_MATH, which
    gaol/gaol_mingw_own_math.h gives: mingw-w64 before version 12, and the later
    ones linked with msvcrt.dll; and Cygwin) and the processor has no fused multiply-add instruction in
    the code of the build, which -mfma gives (__FMA__): GAOL_FMA=OFF, or a
@@ -555,7 +555,7 @@
    library's fma() is right, it is 0: nothing changes. Always defined, to 0 or
    1. GAOL_FMA_FORCE_SOFTWARE=1, given to the C and C++ compilers, makes it 1
    on any platform but Visual C++ (cl, which has no __builtin_fma()): the
-   continuous integration runs gaol_fma() so on an ordinary machine, with the
+   continuous integration runs gaol_fma_upward() so on an ordinary machine, with the
    instruction around, as GAOL_U128_FORCE_EMULATION does for the two halves of
    gaol_u128.
    gaol/math/gaol_core_math_port.h makes the same test for the C sources of

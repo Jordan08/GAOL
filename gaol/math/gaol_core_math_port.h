@@ -201,10 +201,13 @@ that library is mingw-w64's own (GAOL_MINGW_OWN_MATH, above) or Cygwin's, its
 fma() is not correctly rounded, and the bounds of the elementary functions
 that compute with it do not enclose the exact values: with GAOL_FMA=OFF, or on
 a processor without the instructions, for which the three builds do not take
--mfma, the builtin is replaced by gaol_fma() of gaol/math/gaol_fma.h, which
-computes it with integers, rounded once in the direction in effect, and so is it
-everywhere with GAOL_FMA_FORCE_SOFTWARE=1, the way the continuous integration
-runs that function on an ordinary machine. GAOL_SOFT_FMA of gaol/gaol_config.h
+-mfma, the builtin is replaced by gaol_fma_upward() of gaol/math/gaol_fma.h,
+which computes it with integers, rounded once upward, the direction GAOL's code
+runs in (it is not right in another one, as the sources of CORE-MATH are only
+called by GAOL's functions, and in the direction in effect by tests/core_math.cpp
+only where the build has no such replacement), and so is it everywhere with
+GAOL_FMA_FORCE_SOFTWARE=1, the way the continuous integration runs that
+function on an ordinary machine. GAOL_SOFT_FMA of gaol/gaol_config.h
 is the same test, which these C sources cannot read; tests/core_math.cpp checks
 that they agree. Everywhere else the builtin is the instruction, or the call of
 a library whose fma() is right.
@@ -215,7 +218,7 @@ a library whose fma() is right.
     || ((GAOL_MINGW_OWN_MATH || defined(__CYGWIN__)) && !defined(__FMA__) \
         && (defined(__x86_64__) || defined(__i386__)))
 #include "gaol/math/gaol_fma.h"
-#define __builtin_fma(x, y, z) gaol_fma((x), (y), (z))
+#define __builtin_fma(x, y, z) gaol_fma_upward((x), (y), (z))
 #endif /* a library whose fma() is wrong, and no instruction */
 
 /*---------------------------------------------------------------------------
