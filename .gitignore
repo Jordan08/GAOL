@@ -1,6 +1,8 @@
 autom4te.cache/
-# The line-by-line coverage report, which the target coverage writes: only
-# coverage/README.md, the page of conclusions, is kept in the repository
+# The coverage report, which the target coverage writes: coverage/README.md,
+# the page of conclusions, coverage/coverage.html, the report line by line in
+# one page holding its own style, and coverage/coverage_summary.py are kept in
+# the repository, not the style sheets, scripts and raw data of gcovr
 coverage/*.css
 coverage/*.js
 coverage/coverage.json

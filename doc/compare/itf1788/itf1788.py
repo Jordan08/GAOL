@@ -895,7 +895,7 @@ def report(out, programs, builds, gaol_label, itf_label):
     shown = [BUILD_NAMES.get(n, n) for n, _ in results]
     names = shown[0] if len(shown) == 1 else ", ".join(shown[:-1]) + " and " + shown[-1]
     w("ITF1788 at commit `%s`: %d cases in %d files, run with GAOL v5 at `%s` (the last commit of its "
-      "sources, gaol/ and 3rd/), in its %s build%s" %
+      "sources, gaol/ and 3rd/, when the suite was run), in its %s build%s" %
       (itf_label, total, len(manifest), gaol_label, names, "s" if len(results) > 1 else ""))
     if len(results) > 1:
         w(", which give the same result in every case.\n\n" if not differences else

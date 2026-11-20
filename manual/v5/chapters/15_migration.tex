@@ -389,7 +389,10 @@ GAOL~4 has no \code{exp2}, \code{log2}, \code{expm1} nor
 \code{roundTiesToAway}. The dispersion between the runs is 11\,\% at the median
 for GAOL v5 (29\,\% at most) and 32\,\% for the session of GAOL~4: a difference
 of less than 10\,\% means nothing. With the instruction, GAOL v5 is faster than
-GAOL~4 on every function, by 1.2 to 3.2 times. With the \code{fma()} computed by
+GAOL~4 on every elementary function, by 1.9 (\code{atan}) to 3.5 (\code{sin})
+times, and on $x + y$, $x \times y$ and $x / y$; it is as fast on
+\code{pow(x, 3)} and \code{sqrt}, and slower on \code{sqr} (7.6~ns against
+6.1). With the \code{fma()} computed by
 GAOL and the three fast paths, it still is for $x \times y$, $x / y$,
 \code{exp}, \code{sin}, \code{cos}, \code{sinh}, \code{tanh} and \code{asin}, as
 fast for \code{atan}, \code{sqr} and \code{sqrt}, and slower for \code{tan} (3.3

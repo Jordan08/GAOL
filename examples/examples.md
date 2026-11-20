@@ -81,10 +81,11 @@ Appendices: [A. How the review was done](#appendix-a-how-the-review-was-done),
   them since, number 4 and number 20 in part (section 5, Appendix B).
 - **The documentation** is precise and its 86 examples of the manual print
   what it shows (though its overview program evaluated another function than
-  Goldstein-Price's, without the +1: recommendation 16), but it has no
-  tutorial and no example of an interval algorithm, and its FetchContent
-  recipe fetches the public `master`, which is GAOL 4.2.3, 121 commits behind
-  GAOL v5 (section 3).
+  Goldstein-Price's, without the +1: recommendation 16), but it had no
+  tutorial and no example of an interval algorithm (`examples/tutorial.md`
+  since), and its FetchContent recipe fetched the public `master`, then GAOL
+  4.2.3, 121 commits behind GAOL v5 (section 3; `master` is GAOL v5 since the
+  merge of #391).
 
 ## 1. The examples
 
@@ -96,7 +97,7 @@ GAOL as any user's project would:
 ```bash
 cmake -S examples -B build-examples -DCMAKE_PREFIX_PATH=<prefix of GAOL>
 cmake --build build-examples
-ctest --test-dir build-examples
+(cd build-examples && ctest)
 ```
 
 The three builds of GAOL build them too, with the GAOL they build, where they
@@ -332,8 +333,9 @@ have the true function. The enclosure contains the range
 [3, 1015690.27…], and is 231 times wider than it, for lack of a link between
 the occurrences of x and y (the dependency problem, example 03). The example
 checks f(0, −1) = 3, the enclosure, computed by exact arithmetic (its bounds
-are integers that no operation rounds), the enclosure of the program of the
-manual, and the ratio of the widths. Its `main()` keeps the layout of GAOL 4
+are integers that no operation rounds), the enclosure of the expression of
+the program of the manual, its constants written as doubles, and the ratio of
+the widths. Its `main()` keeps the layout of GAOL 4
 (`endl`, `cout.precision(16)`, the timing loop on one line); the constants
 and the declarations follow the style of the other examples.
 
@@ -349,10 +351,10 @@ it, and says for each idiom how it reads with GAOL v5.
 | `[a, b]` from doubles | `interval(a, b)` | `interval(b, a)` with b > a is the empty set (IEEE 1788, as IBEX); the hull of two numbers of unknown order is `interval(a) \| interval(b)` |
 | A decimal constant | `textToInterval("0.1")` | `interval(0.1)` is one double, which is not 1/10 (example 02) |
 | A constant | `interval::pi()`, `textToInterval("sqrt(2)")`, `sqrt(interval(2.0))` | `sqrt(2)` on a number is the C library's, a double rounded upward, which misses √2 |
-| Zero | `interval(0.0)`, `interval(0)`, `interval(0, 0)`, `interval::zero()` | GAOL v5 has no constructor from strings, which made `interval(0)` and `interval(0, 0)` ambiguous, the literal 0 being a null pointer too; `x = 0`, `x < 0` and `T(0)` compile, `=` and the relations taking a double; `max(x, 0)` does not, `interval(double)` being explicit: `max(x, interval(0))` |
+| Zero | `interval(0.0)`, `interval(0)`, `interval(0, 0)`, `interval::zero()` | GAOL v5 has no constructor from strings, which made `interval(0)` and `interval(0, 0)` ambiguous, the literal 0 being a null pointer too; `x = 0`, `x < 0` and `T(0)` compile, `=` and the relations taking the integer; `max(x, 0)` does not, `interval(double)` being explicit: `max(x, interval(0))` |
 | The empty set, the whole line | `interval::emptyset()`, `interval::universe()` or `interval()` | `interval()` is the whole line, not 0: `std::accumulate(v, interval())` is the whole line |
-| m ± r | `m + interval(-r, r)` | `interval(m - r, m + r)` computed with doubles misses the ends (the doubles are rounded upward); there is no mid-radius constructor |
-| From an integer beyond 2⁵³ | — | `interval(9007199254740993LL)` is one double that does not contain the integer |
+| m ± r | `interval::centered_form(m, r)`, or `m + interval(-r, r)` | `interval(m - r, m + r)` computed with doubles misses the ends (the doubles are rounded upward) |
+| From an integer beyond 2⁵³ | `interval(n)`, n of any integer type | `interval(9007199254740993LL)` is [2⁵³, 2⁵³ + 2], which contains the integer ([Integers](../doc/using.md#integers)) |
 
 ### 2.2 Arithmetic and functions
 
@@ -594,7 +596,7 @@ All 172 names the manual documents exist in the headers.
   and `dev`): it had `3rd/mathlib` (GAOL v5 has `3rd/math-core`), no
   `gaol_ieee1788.h` and no namespace `gaol_core`, so that the programs of the
   docs did not compile against it. There was no `v5.0.0` tag to pin; `master`
-  is GAOL 4.2.3 until v5.0.0 is published.
+  was GAOL 4.2.3 until GAOL v5 was merged into it (#391, 19 November 2026).
 - A program compiled with `-Wall -Wextra` and pkg-config's `-I`, or through
   FetchContent (whose include directory is not `SYSTEM`), gets about 35
   warnings from GAOL's headers: 30 `-Wunused-parameter` in
@@ -607,8 +609,8 @@ All 172 names the manual documents exist in the headers.
   `.github/scripts/headers.sh` checks.)
 - `[[nodiscard]]` worked in C++17 only; `GAOL_NODISCARD` now also takes the
   attribute of GCC, Clang and Visual C++ before C++17. `gaol::gaol` still
-  sets no language standard, so a CMake project with GCC 9 compiles in C++14
-  and gets no warning for `sqrt(x);`.
+  sets no language standard, so a CMake project with GCC 9 compiles in C++14,
+  where it gets the warning for `sqrt(x);` too (tests `nodiscard_*_cxx14`).
 - `examples/` held one benchmark of 2006, which the recommended CMake build
   did not build and no document mentioned; `check/` holds the CppUnit tests of
   GAOL 4, not built by CMake, some for types no build compiles (they have been
@@ -1029,6 +1031,9 @@ To take:
 
 12. Tag `v5.0.0`, or merge `configure-clean` into `master` (`MATH-CORE` is
     gone since 2026-11-11), and write the tag in the FetchContent recipes.
+    (Done since another way: `dev`, the branch of GAOL v5 once
+    `configure-clean` was deleted, was merged into `master` by #391; the
+    recipes keep `master`, as decided on 12 November.)
 13. Put a ten-line program in `README.md`, and point to this directory. Add a
     short tutorial (range enclosure and subdivision, Newton with `%` or
     `div_rel`, a contractor with the `*_rel` functions, branch and bound),

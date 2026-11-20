@@ -1,6 +1,3 @@
-# Clang does not honour the rounding direction on 32-bit ARM processors, for
-# the C compiler, which builds CORE-MATH, as for the C++ compiler: each of the
-# three builds has to refuse it for either alone (GAOL v5)
 # The control register of the rounding direction read and written directly,
 # against the functions of the C library, with GAOL_PRESERVE_ROUNDING (GAOL
 # v5): FPSCR with vmrs and vmsr on 32-bit ARM (GAOL_RND_FPSCR_DIRECT), and on

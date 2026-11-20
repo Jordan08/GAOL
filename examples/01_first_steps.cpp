@@ -111,8 +111,8 @@ int main()
 
   // From two bounds and from one double (a point interval); text is for
   // what doubles cannot write, as 0.1 below. interval(0, 0) and interval(0)
-  // compile: the literal 0 is an int, the constructors taking doubles only
-  // (GAOL v5).
+  // compile: the constructors take integers of any type, which they enclose,
+  // and no string (GAOL v5).
   show("interval(1, 2)", interval(1, 2), "the real numbers from 1 to 2",
        interval(1, 2).left() == 1.0 && interval(1, 2).right() == 2.0);
   show("interval(2.0)", interval(2.0), "a point interval: one double", interval(2.0).is_a_double());

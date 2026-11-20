@@ -40,7 +40,9 @@ namespace gaol_ieee1788 {
     interval of no literal, catching every std::exception. The handlers name
     the two classes, then, not std::exception, nor std::logic_error, which
     std::length_error and the other logic errors of the library derive from:
-    the reader of GAOL throws these two only.
+    the reader of GAOL throws these two for a string it refuses, and a
+    std::logic_error only for an error of GAOL itself (gaol_value() of
+    gaol/parser/gaol_interval_parser.ypp), which goes through.
   */
   interval textToInterval(const std::string& s)
   {

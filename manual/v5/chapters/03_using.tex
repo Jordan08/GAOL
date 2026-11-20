@@ -274,7 +274,9 @@ the compiler takes it, the flags are the following.
   \option{-mavx512f} or a \option{-march} that turns on wider registers, which
   the option may not always undo. Cygwin and MSYS get these flags as the other
   GCC for Windows; Cygwin is built and tested by a job of the continuous
-  integration, and refused without them.\newinvfive
+  integration, with them and without them, where GAOL calls
+  \code{gaol\_fma()} instead of the instruction
+  (\pxref{sec:refused}).\newinvfive
 \end{itemize}
 
 \noindent
@@ -354,8 +356,9 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 A GAOL installed in a \var{prefix} of its own is found by giving
 \option{-DCMAKE\_PREFIX\_PATH=\var{prefix}} to the first \cmd{cmake} of the
 project. \code{gaol::gaol} carries the include directory, the flags above, and the
-link option above for the code built by GCC~13 or a later one, or by the
-compiler that built GAOL, of its major version and not older: another
+link option above for the code built by GCC~13 or a later one, by Clang~20 or
+a later one (not on Windows), or by the compiler that built GAOL, of its major
+version and not older: another
 compiler, as Clang~18, would stop on it, and so would GCC 12.0 to 12.3 with a
 GAOL built by GCC 11.4, GCC having the option from 11.4 and 12.4 only in the
 series 11 and 12. It no longer carries, for Visual C++, the definition

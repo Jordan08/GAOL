@@ -14,8 +14,9 @@
 	possibly relations removed, == and != the equality of sets, one
 	grammar reading every string, a reentrant lexer and a pure parser,
 	the rounding direction checked once per operation, the *_dn() and
-	*_up() of doubles no longer public, the intervals of floats left to
-	the developers of GAOL (GAOL_FLOAT_INTERVALS).
+	*_up() of doubles and the expressions no longer public, the
+	intervals of floats left to the developers of GAOL
+	(GAOL_FLOAT_INTERVALS).
 	* CMakeLists.txt: a CMake build, the one to use, which finds GAOL
 	with find_package(gaol) and makes the archive of the sources and
 	the packages (CPack); make dist of the autotools build and meson
@@ -53,8 +54,9 @@
 	which read some of them, are removed).
 	* gaol/gaol_common.h: <iostream> with GAOL_DEBUGGING, without which
 	gaol/parser/gaol_expression.h did not compile; debug_level is public.
-	* gaol/parser/gaol_expression.h: the classes and functions of the
-	expressions are public, which a shared libgaol did not export.
+	* gaol/parser/gaol_expression.h: a shared libgaol exports the
+	classes and functions of the expressions, which it did not, for
+	the tests of GAOL: the header is not installed.
 	* gaol/core/gaol_interval_core.h, gaol/gaol_interval.h: the
 	constructor from two strings is gone: textToInterval(sl, sr) takes
 	its place, and gives the empty set for bounds in the wrong order,
@@ -143,9 +145,9 @@
 	and bad_snprintf need a static library, as with CMake and meson)
 	and gives each test 300 s where the system has timeout
 	(GAOL_TEST_TIMEOUT); meson gives the examples 300 s, not 30.
-	* CMakeLists.txt, cmake/gaol.pc.in: -mno-daz-ftz is given to the
-	code using GAOL built by Clang 20 or later, whatever the compiler
-	that built GAOL.
+	* CMakeLists.txt: gaol::gaol gives -mno-daz-ftz to the code using
+	GAOL built by Clang 20 or later (not on Windows), where the
+	compiler that built GAOL takes the option.
 	* CMakeLists.txt, configure.ac, meson.build: with GCC 12 for a
 	64-bit ARM target (Debian 12, GCC 12.2.0) the three builds give
 	-fno-section-anchors to GAOL, CORE-MATH, the tests, the examples
@@ -250,13 +252,35 @@
 	(AM_DISTCHECK_CONFIGURE_FLAGS).
 	* CMakeLists.txt, meson.build: the three builds make the same
 	archive of the sources, gaol-<version>.tar.gz, with the same files,
-	those of the commit less the notes of the work on GAOL v5 that only
-	the development branch dev holds (export-ignore for meson dist): the
-	target dist of CMake is new, and the project of meson is gaol, not
-	GAOL, which named the archive GAOL-<version>.
+	those of the commit less the notes of the work on GAOL v5 that the
+	development branch dev holds, and master once a version of dev is
+	merged into it (export-ignore for meson dist): the target dist of
+	CMake is new, and the project of meson is gaol, not GAOL, which
+	named the archive GAOL-<version>.
 	* .github/workflows/build-systems.yml: a job makes the three archives,
 	builds and tests the one of make distcheck and of meson dist, and
 	checks that all hold the files of git archive HEAD.
+	* CMakeLists.txt, meson.build: GAOL is not built where a flag of the
+	user (CMAKE_CXX_FLAGS, cpp_args, CXXFLAGS, and those of the C compiler)
+	fails the checks of -frounding-math, -ffp-contract=off and
+	-fno-fast-math, which GCC and Clang take: a warning such as that of
+	-Wstrict-prototypes in C++ failed them, and GAOL was built without
+	these flags, its bounds wrong (15 of 56 unit tests failed).  meson
+	gives them to the libraries of GAOL and CORE-MATH and to the tests
+	after cpp_args and c_args, as CMake and configure give them after the
+	flags of the user.
+	* CMakeLists.txt, Makefile.am, meson.build: the three builds install
+	COPYING.LIB and the licence of CORE-MATH (LICENSE.CORE-MATH) in
+	share/doc/gaol, which the packages of the Release hold.
+	* meson.build: enable-debug leaves out the optimizations of the release
+	build type, and machine-runs-fma and machine-runs-avx512 are read in a
+	native build too, as by CMake and configure.
+	* configure.ac: the check that the compiler honours the rounding
+	direction looks for its message, rather than failing on a warning of
+	the flags of the user; automake 1.13 and libtool 2.5.4 at least.
+	* CMakeLists.txt: -DGAOL_FMA=OFF warns where the compiler gives the
+	fused multiply-add instructions without a flag (a default target of
+	x86-64-v3).
 	* .github/workflows/release.yml, CMakeLists.txt: new; a tag of a
 	commit of master that is the version of VERSION.txt (5.0.0 or v5.0.0)
 	builds three packages with CPack, in Release, and attaches them to the
@@ -270,7 +294,8 @@
 	processors that have them (Intel Haswell and AMD Excavator, and later
 	ones: the GCC of the runner ubuntu-26.04 targets x86-64-v3, as
 	/arch:AVX2 asks for AVX2); each job installs its package and runs
-	the unit tests again with the installed GAOL.  On macOS the files are
+	six of the unit tests again with the installed GAOL
+	(tests/find_package).  On macOS the files are
 	in the component Development, so that productbuild makes a .pkg with
 	a package in it.
 	* CMakeLists.txt: the archive of the sources that CMake makes (dist,
@@ -459,7 +484,7 @@
 	v5, and gaol_ERROR, the name of GAOL 4, an alias.
 	* gaol/gaol_fpu_msvc.h, CMakeLists.txt, gaol/Makefile.am,
 	gaol/meson.build: removed: no configuration that the builds accept
-	included it, and it is no longer installed (21 installed headers).
+	included it, and it is no longer installed.
 	* gaol/gaol_config.h: GAOL_PUBLIC replaces __GAOL_PUBLIC__, and
 	is empty with Visual C++ and clang-cl, where GAOL is a static
 	library: neither the builds, gaol::gaol, gaol.pc nor the code
@@ -492,7 +517,7 @@
 	list of installed headers with the three builds, without those
 	of the sources (parser/gaol_interval_parser.h,
 	gaol_init_cleanup.h, math/*.h).
-	* .github/scripts/headers.sh: each installed header but four
+	* .github/scripts/headers.sh: each installed header but three
 	compiles alone with -Wall -Wextra -Wold-style-cast -Wundef
 	-Werror, and the macros of gaol/gaol all start with GAOL_ or
 	gaol_; linux.yml: a job compiles GAOL, the tests and the
@@ -519,11 +544,19 @@
 	defined to 0 where they do not hold.  The installed headers read
 	them with #if, and compile under -Wundef -Werror.
 	* gaol/parser/: the expressions (gaol_expression.h, gaol_expr_eval.h,
-	gaol_expr_visitor.h, gaol_eval_stack.h), the reader of strings
-	(gaol_parser.h), the lexer, the parser and regenerate_parser.sh,
-	moved from gaol/; the three builds install the five headers in
-	include/gaol/parser/, 22 headers in all with those of include/gaol/
-	and include/gaol/core/.
+	gaol_eval_stack.h), the reader of strings (gaol_parser.h), the
+	lexer, the parser and regenerate_parser.sh, moved from gaol/; the
+	three builds install gaol_parser.h alone in include/gaol/parser/, 18
+	headers in all with those of include/gaol/ and include/gaol/core/.
+	* gaol/parser/gaol_expression.h, gaol/gaol_interval.h,
+	gaol/gaol_ieee1788.h: the expressions, which textToInterval()
+	builds, are internal to GAOL: expression, expr_node and its nodes,
+	expr_eval, eval_stack, evaluate_expr() and the functions building
+	an expression are in gaol_core only, no longer in gaol, and their
+	three headers are not installed; gaol_pown_exp(e, n) is the
+	pow(e, n) of GAOL 4.  A program reads a string with
+	textToInterval().  gaol/parser/gaol_expr_visitor.h: removed, with
+	expr_visitor; the accept() of a node takes an expr_eval.
 	* gaol/core/gaol_interval_core.h, gaol/core/gaol_interval_core.cpp:
 	the class interval, the functions of gaol_core and the code of the
 	SSE2, NEON and FPU intervals, split from gaol/gaol_interval.h and
@@ -985,14 +1018,13 @@
 	beyond the ints was converted to an int.
 	* gaol/core/gaol_interval_core.h, gaol/gaol_ieee1788.h,
 	gaol/parser/gaol_expression.h: nth_root(x, q), rootn(x, q),
-	pownRev(c, x, p) and the pow(e, n), pown(e, n) and nth_root(e, n)
-	of the expressions take an integer of any type, as pow(x, n)
-	does; an order beyond the unsigned ints is enclosed through pow
-	with the exponent 1/q, and nth_root(e, -2) is no longer the
-	order 4294967294.  rootn and pown of gaol_ieee1788 being
-	overloaded for every integer type, their address needs a cast or
-	a typed pointer: auto f = &gaol_ieee1788::rootn; does not
-	compile.
+	pownRev(c, x, p) and the nth_root(e, n) of the expressions take
+	an integer of any type, as pow(x, n) does; an order beyond the
+	unsigned ints is enclosed through pow with the exponent 1/q, and
+	nth_root(e, -2) is no longer the order 4294967294.  rootn and
+	pown of gaol_ieee1788 being overloaded for every integer type,
+	their address needs a cast or a typed pointer: auto f =
+	&gaol_ieee1788::rootn; does not compile.
 	* gaol/core/gaol_interval_pow.cpp: pow(x, y) with an interval
 	exponent, pow(x, d) with a double, pow(x, n) with a long long
 	beyond the unsigned ints and gaol_ieee1788::pow(x, y) return the
@@ -1382,8 +1414,8 @@
 	std::basic_streambuf<char>::seekpos, which tests/numbers.cpp
 	imports, so that Windows did not start the test (0xc0000139).
 	* .github/workflows, README.md: a push runs the continuous
-	integration on master and configure-clean only (a pull request,
-	or workflow_dispatch, runs it for another branch); the jobs that
+	integration on master and dev only (a pull request, or
+	workflow_dispatch, runs it for another branch); the jobs that
 	took Ubuntu 22.04 for its compilers (GCC 11 and Clang 14 on x86_64,
 	GCC 11 on arm64) run on Ubuntu 24.04, which has them too, GitHub
 	retiring the image of 22.04 by April 2027; README.md shows the

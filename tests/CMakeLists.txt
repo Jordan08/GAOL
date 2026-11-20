@@ -9,8 +9,8 @@
 # of IBEX and of Codac on their intervals, against the exact results. They are
 # compiled as any code using GAOL, with the flags gaol::gaol carries, and in
 # C++17 for the hexadecimal floating literals of the tests, such as 0x1p-1060:
-# those of gaol_tests.h, which all but u128.cpp include, of the *_values.h, and
-# of several of the programs.
+# those of gaol_tests.h, which all but u128.cpp and interval_ieee_basic.cpp
+# include, of the *_values.h, and of several of the programs.
 # WITH_TESTS builds them (CMakeLists.txt); make test and make check run them,
 # with the label unit.
 #
@@ -417,7 +417,7 @@ target_compile_options(gaol_performance PRIVATE ${GAOL_TESTS_OPTIONS})
 # The tests run in the C locale, the message of GCC and Clang being translated
 # otherwise; that of Visual C++ is looked for by its number. Not with Visual C++
 # before 2019 16.4, whose _Check_return_ before C++17 only /analyze reports, nor
-# with Clang for Windows. The autotools and meson builds have no such test: the
+# with clang-cl. The autotools and meson builds have no such test: the
 # header it checks is the same.
 function(gaol_nodiscard_test standard flags message)
   foreach(kind discard used)

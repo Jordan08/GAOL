@@ -9,7 +9,7 @@
 #
 #   cmake -S tests/fetch_content -B build-fetch-content -DFETCHCONTENT_SOURCE_DIR_GAOL=<sources of GAOL> -DCMAKE_INSTALL_PREFIX=<prefix>
 #   cmake --build build-fetch-content
-#   ctest --test-dir build-fetch-content
+#   (cd build-fetch-content && ctest)
 #   cmake --install build-fetch-content
 #
 # tests/find_package then builds the tests with the GAOL installed so. Without

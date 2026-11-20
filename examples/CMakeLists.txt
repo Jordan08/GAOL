@@ -6,7 +6,7 @@
 #
 #   cmake -S examples -B build-examples -DCMAKE_PREFIX_PATH=<prefix of GAOL>
 #   cmake --build build-examples
-#   ctest --test-dir build-examples
+#   (cd build-examples && ctest)
 #
 # or a part of the build of GAOL, with the GAOL it builds, where WITH_EXAMPLES
 # is ON (see CMakeLists.txt): make check then runs the examples, with the unit

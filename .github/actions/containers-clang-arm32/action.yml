@@ -1,3 +1,6 @@
+# Clang does not honour the rounding direction on 32-bit ARM processors, for
+# the C compiler, which builds CORE-MATH, as for the C++ compiler: each of the
+# three builds has to refuse it for either alone (GAOL v5)
 # The steps of the job clang-arm32 of containers.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
 name: containers-clang-arm32

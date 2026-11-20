@@ -53,7 +53,7 @@ what each platform showed are described in Chapter~\ref{chap:tests}
 \item[$\bullet$] \textbf{Linux.} Ubuntu 24.04 and 26.04 on x86-64 and
   64-bit ARM, with GCC and Clang, and the compilers of Ubuntu 22.04 (GCC~11, Clang~14, the latter on x86-64
   only: the three builds refuse it on 64-bit ARM) on Ubuntu 24.04; Debian 12 and 13 on x86-64,
-  64-bit ARM and 32-bit ARM (armhf), and Debian 12 on 32-bit x86;
+  64-bit ARM and 32-bit ARM (armhf), and Debian 12, 13 and 14 on 32-bit x86;
   manylinux\_2\_28 on x86-64 and 64-bit ARM; Alpine (musl) on x86-64 and 64-bit
   ARM; Debian 13 on s390x, ppc64le and riscv64, and Ubuntu 24.04 on POWER9,
   these four under qemu.
@@ -61,8 +61,9 @@ what each platform showed are described in Chapter~\ref{chap:tests}
   macOS 27, on arm64, with AppleClang, the Clang of LLVM and GCC.
 \item[$\bullet$] \textbf{Windows.} Visual Studio 2022 and 2026 on x86, x64 and
   arm64, with Visual C++ and with clang-cl, and Clang with the target of
-  Visual C++; MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 and
-  MINGW32 with GCC, CLANG64 and CLANGARM64 with Clang); Cygwin (GCC, x64).
+  Visual C++; MinGW-w64 GCC 11 to 15 on x64 and x86; MSYS2 (UCRT64, MINGW64
+  and MINGW32 with GCC, MINGW64, CLANG64 and CLANGARM64 with Clang);
+  llvm-mingw 20230320 (Clang~16) on arm64; Cygwin (GCC, x64).
 \end{itemize}
 
 \noindent
@@ -118,14 +119,21 @@ results, or cannot be shown to enclose them. The three builds refuse Clang for
 32-bit ARM processors and the compilers of the second item when configuring,
 the C compiler, which builds CORE-MATH, as well as the C++ compiler, with a
 message naming what to use instead. They keep the options
-away by giving GAOL the flags of interval arithmetic (\pxref{sec:compiling}).
+away by giving GAOL the flags of interval arithmetic (\pxref{sec:compiling}),
+after the flags of the user, so that these cannot undo them. CMake and meson
+also stop, and say why, where a flag of the user (\option{CMAKE\_CXX\_FLAGS},
+\code{cpp\_args}, \code{CXXFLAGS}, and their counterparts for the C compiler)
+makes the checks of these flags fail, as a warning such as ``command-line
+option \ldots{} is valid for C/ObjC but not for C++'' does: GAOL would be
+built without them, and gave wrong bounds then; \cmd{configure} checks each
+flag alone.\newinvfive{}
 The header \file{gaol/gaol\_config.h} refuses them again when compiling, for
 the code including the headers of GAOL too, all but the second one, which no
 macro of the compiler shows; it alone refuses the other compilers of the list,
-MinGW-w64, Cygwin without the fused multiply-add instructions, Visual C++ and
-clang-cl without \option{/fp:strict}, and the x87 unit, and the SSE2 intervals
-on 32-bit Windows compiled without \option{-faligned-new=8}, whose programs
-crashed rather than give wrong bounds.
+the MinGW-w64 for ARM of the third item, Visual C++ and clang-cl without
+\option{/fp:strict}, and the x87 unit, and the SSE2 intervals on 32-bit
+Windows compiled without \option{-faligned-new=8}, whose programs crashed
+rather than give wrong bounds.
 
 \begin{itemize}
 \item[$\bullet$] \textbf{Clang for 32-bit ARM processors.} It does not honour
@@ -142,7 +150,7 @@ crashed rather than give wrong bounds.
   computed in doubles and depends on the rounding direction there too, and the
   \code{fma()} of 32-bit ARM is not fused (\code{fmacd}, which is
   \code{vmla.f64}, a product and a sum each rounded). GAOL v5 calls its own
-  \code{gaol\_round()}, and \code{gaol\_fma()} is for x86 only, a processor for
+  \code{gaol\_round()}, and \code{gaol\_fma\_upward()} is for x86 only, a processor for
   64-bit ARM having the instruction; Clang for 32-bit ARM is refused anyway,
   and no toolchain for 64-bit ARM links \file{msvcrt.dll}, so that this case
   was not built. No job builds these toolchains: the refusal is tested with
@@ -1857,7 +1865,11 @@ Each build installs:
   \file{pkgconfig} directory of the library directory (except the CMake build
   with Visual C++);
 \item[$\bullet$] \textbf{the CMake package of GAOL}, with CMake, which defines
-  the target \code{gaol::gaol}.
+  the target \code{gaol::gaol};
+\item[$\bullet$] \textbf{the licences}, in \file{share/doc/gaol}:
+  \file{COPYING.LIB}, that of GAOL, and \file{LICENSE.CORE-MATH}, the MIT
+  licence of the functions of CORE-MATH that \file{libgaol} holds, with the
+  three builds and in the packages.\newinvfive
 \end{itemize}
 
 \noindent

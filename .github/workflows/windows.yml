@@ -1,9 +1,10 @@
 # Builds GAOL with CMake on Windows, with Visual Studio 2022 and 2026 (x86,
 # x64, arm64; Release and Debug), the clang-cl of Visual Studio 2022 (x64;
 # Release and Debug) and 2026 (x86, x64, arm64; Release), MinGW-w64 15 (x86,
-# x64; Release and Debug), 14 (x86, x64), 11, 12 and 13 (x86, x64; 13 x86
-# without GAOL_FMA too), MSYS2 (UCRT64 GCC, CLANG64 Clang, CLANGARM64 Clang,
-# MINGW64 GCC and Clang) and Cygwin (GCC, x64; GAOL v5), runs
+# x64; Release and Debug), 14 (x86, x64), 11, 12 and 13 (x86, x64; 13 x64
+# and x86 and 11 x86 without GAOL_FMA too), MSYS2 (UCRT64 GCC, CLANG64 Clang,
+# CLANGARM64 Clang, MINGW64 GCC and Clang, MINGW32 GCC without GAOL_FMA) and
+# Cygwin (GCC, x64; GAOL v5), runs
 # its tests, installs it, and builds the tests again with the installed GAOL
 # (but Cygwin, which builds, checks the objects and runs the tests, with FMA and
 # without, and the configurations under Intel SDE, which run the tests of the
@@ -23,8 +24,9 @@
 # and MSYS2 MINGW64 (linked with msvcrt.dll), whose fma() and round() are those
 # of mingw-w64's own math library; on x86, GCC 11, whose fma() rounds each of
 # its partial sums to a double, GCC 12 and 13, whose fma() is computed on the
-# x87 unit, and MSYS2 MINGW32, are built and tested with the instruction, which
-# GAOL_FMA gives them (-mfma), and, GCC 13 on x64, GCC 11 and 13 on x86, MSYS2
+# x87 unit, and MSYS2 MINGW32 (with autotools and meson, build-systems.yml),
+# are built and tested with the instruction, which GAOL_FMA gives them
+# (-mfma), and, GCC 13 on x64, GCC 11 and 13 on x86, MSYS2
 # MINGW64 (GCC) and MINGW32, and Cygwin, without it (GAOL_FMA=OFF): GAOL then
 # calls its own gaol_fma() (gaol/math/gaol_fma.h) rather than their fma(), and
 # always its own gaol_round() (gaol/math/gaol_round.h) rather than their round();

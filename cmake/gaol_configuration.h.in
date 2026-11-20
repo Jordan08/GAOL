@@ -135,7 +135,11 @@
 /* Defined to 1 where the compiler has <fenv.h> */
 #cmakedefine GAOL_HAVE_FENV_H 1
 
-/* The macros above that the build leaves undefined are 0 (GAOL v5): GAOL's
+/* The macros above that the build leaves undefined are 0 (GAOL v5), but
+   GAOL_UNIVERSAL_SSE2 and GAOL_UNIVERSAL_NEON, which stay undefined outside a
+   universal build and are read with defined() above, and
+   GAOL_SSE2_UNALIGNED_STORAGE, which gaol/gaol_config.h derives from the
+   target where it is undefined: GAOL's
    headers read them with #if, which warned under
    -Wundef, so that a program could not include GAOL under -Wundef -Werror.
    A program reads them with #if too: #ifdef is now true of each of them.

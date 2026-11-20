@@ -568,7 +568,7 @@ namespace gaol_cm1
     constants and 26 products is off by less than one unit (2^-127), and the
     error of a step is that of the step after it times |r| < 1/2 plus two
     units, so that G is off by less than 4 units; the tail of the series,
-    below |r|^27 / 28!, is below 2^-125 (2^-133 for |r| <= 0.4), and the
+    below |r|^27 / 28!, is below 2^-124.9 (2^-133 for |r| <= 0.4), and the
     truncation of |r| to 128 bits moves G by less than one unit: 2^-123
     holds them all.
   */

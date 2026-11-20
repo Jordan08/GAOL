@@ -195,7 +195,16 @@ GAOL.
 - **The memory and the flags of the intervals**: the aligned memory the SSE2
   intervals need on 32-bit Windows, the flags of interval arithmetic, the link
   option `-mno-daz-ftz`, `<fenv.h>`, the visibility, the type of the intervals
-  of a universal build.
+  of a universal build. The flags of interval arithmetic (`-frounding-math`,
+  `-ffp-contract=off`, `-fno-fast-math`) come after the flags of the user in
+  the three builds, so that a `-ffp-contract=fast` of `CXXFLAGS` cannot undo
+  them (GAOL v5: meson put the user's `cpp_args` and `c_args` last). GCC and
+  Clang take them all: where a flag of the user makes their checks fail, as a
+  warning for an option of the other language does (`-Wstrict-prototypes` in
+  `CMAKE_CXX_FLAGS` or `cpp_args`, `-Wnon-virtual-dtor` in `CMAKE_C_FLAGS`),
+  CMake and meson stop and say which flag to take out, where they built GAOL
+  without them, with no word of it (GAOL v5); configure checks each flag
+  alone.
 
 ### The settings of the developers
 
@@ -211,8 +220,8 @@ cache unless they were given.
 | `-DGAOL_FMA=OFF` | `--disable-fma` | `-Denable-fma=false` | No fused multiply-add instructions: a library for any processor of the architecture |
 | `-DGAOL_PREFER_AVX512=ON`, `=OFF` | `--enable-prefer-avx512`, `--disable-prefer-avx512` | `-Denable-prefer-avx512=true`, `=false` | The AVX-512 path asked for without `GAOL_PRESERVE_ROUNDING`, or refused with it (a package for any processor); asked for where the compiler cannot take it, an error |
 | `-DGAOL_U128_EMULATION=ON` | `CPPFLAGS=-DGAOL_U128_FORCE_EMULATION=1` | `-Dc_args=-DGAOL_U128_FORCE_EMULATION=1 -Dcpp_args=-DGAOL_U128_FORCE_EMULATION=1` | The two 64-bit halves where the compiler has a 128-bit type: the code of Visual C++ and of the 32-bit targets on an ordinary machine |
-| `-DGAOL_FMA_SOFTWARE=ON` | `CPPFLAGS=-DGAOL_FMA_FORCE_SOFTWARE=1` | `-Dc_args=-DGAOL_FMA_FORCE_SOFTWARE=1 -Dcpp_args=-DGAOL_FMA_FORCE_SOFTWARE=1` | `fma()` computed by `gaol_fma()` (`gaol/math/gaol_fma.h`), with integers, whatever the machine has: what GAOL does where the `fma()` of the C library is wrong (mingw-w64 before version 12 or linked with `msvcrt.dll`, Cygwin) and the build has no fused multiply-add instruction (`-DGAOL_FMA=OFF` with it, for a library for any processor of the architecture) |
-| `-DGAOL_DEBUG=ON` | `--enable-debug` | `-Denable-debug=true` | GAOL and CORE-MATH built for debugging whatever the build type, a project bringing GAOL in included (`-Dgaol:enable-debug=true` for a subproject of meson); the tests and the examples keep the build type |
+| `-DGAOL_FMA_SOFTWARE=ON` | `CPPFLAGS=-DGAOL_FMA_FORCE_SOFTWARE=1` | `-Dc_args=-DGAOL_FMA_FORCE_SOFTWARE=1 -Dcpp_args=-DGAOL_FMA_FORCE_SOFTWARE=1` | `fma()` computed by `gaol_fma_upward()` (`gaol/math/gaol_fma.h`), with integers, rounded upward, whatever the machine has: what GAOL does where the `fma()` of the C library is wrong (mingw-w64 before version 12 or linked with `msvcrt.dll`, Cygwin) and the build has no fused multiply-add instruction (`-DGAOL_FMA=OFF` with it, for a library for any processor of the architecture) |
+| `-DGAOL_DEBUG=ON` | (none: `--enable-debug` is the build type) | `-Denable-debug=true` | GAOL and CORE-MATH built for debugging whatever the build type, a project bringing GAOL in included (`-Dgaol:enable-debug=true` for a subproject of meson); the tests and the examples keep the build type |
 | `-DGAOL_EXCEPTIONS_ENABLED=OFF` | `--disable-exceptions` | `-Denable-exception=false` | GAOL aborts to signal an error instead of raising an exception |
 | `-DGAOL_VERBOSE_MODE=ON` | `--enable-verbose-mode` | `-Denable-verbose-mode=true` | A line on the standard error when GAOL initializes and cleans up; GAOL is silent by default |
 | `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` | `CXXFLAGS=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | `-Dcpp_args=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | The SSE2 intervals with their two bounds as two doubles, as on 32-bit Windows with Visual C++ and clang-cl: that layout on another system. CMake alone writes the macro into the installed `gaol/gaol_configuration.h`: given to configure or meson by the flags, it reaches what the build compiles, not a program compiled later with the installed GAOL, which then has to be compiled with the same flag, or its layout differs from the library's; with CMake, a program must not define the macro |
@@ -307,10 +316,10 @@ cmake --build build --target package
 | File | What it holds |
 |---|---|
 | `gaol-<version>.tar.gz` (`dist`, `package_source`, `make dist`, `meson dist --formats gztar`) | The sources, in `gaol-<version>/`, with `configure` and the `Makefile.in`: the three builds build them. The files of the commit less the notes of the work on GAOL v5 of the branch `dev`, `configure` as it was generated among them: if that was for another version than `VERSION.txt` holds, `configure --version` in the archive gives the old one, and CMake warns of it when it configures (see [The version of GAOL](#the-version-of-gaol)). |
-| `gaol-<version>-<system>.tar.gz` (`package`) | What `cmake --install` installs, in `gaol-<version>-<system>/`: the headers, `libgaol.a` (or `libgaol.so*` with `BUILD_SHARED_LIBS`), the CMake package of GAOL and `gaol.pc`, to extract anywhere, `gaol.pc` finding its directories from where it is. |
+| `gaol-<version>-<system>.tar.gz` (`package`) | What `cmake --install` installs, in `gaol-<version>-<system>/`: the headers, `libgaol.a` (or `libgaol.so*` with `BUILD_SHARED_LIBS`), the CMake package of GAOL, `gaol.pc`, and the licences in `share/doc/gaol` (`COPYING.LIB`, and `LICENSE.CORE-MATH` for the functions of CORE-MATH that `libgaol` holds, which the three builds install), to extract anywhere, `gaol.pc` finding its directories from where it is. |
 | `libgaol-dev_<version>_<arch>.deb` (`package`, on Linux) | The same files in `/usr`, for `apt install ./libgaol-dev_<version>_<arch>.deb`: by default a static library and its headers, hence the name and the section `libdevel` of the development packages of Debian. |
-| `gaol-<version>-macos-arm64.pkg` (`cpack -G productbuild -D CPACK_PACKAGING_INSTALL_PREFIX=/usr/local`, without which the files go in `/Applications`) | The same files in `/usr/local`, for the Installer of macOS, or `sudo installer -pkg gaol-<version>-macos-arm64.pkg -target /`. Not signed: Gatekeeper asks to open it with a right click. No uninstaller: `pkgutil --only-files --files fr.ensta.gaol.Development` lists the files it installed, relative to `/`, and `sudo pkgutil --forget fr.ensta.gaol.Development` forgets the package once they are removed. |
-| `gaol-<version>-windows-x64.exe` (`cpack -G NSIS`) | The same files in `C:\Program Files\gaol`, where `find_package(gaol)` finds them, with an uninstaller; `/S` installs it without a window. Built with `/MD`: a program built in Debug, with `/MDd`, does not link with it. |
+| `gaol-<version>-macos-arm64.pkg` (`cpack -G productbuild -D CPACK_PACKAGING_INSTALL_PREFIX=/usr/local -D CPACK_PACKAGE_FILE_NAME=gaol-<version>-macos-arm64`: without the first the files go in `/Applications`, without the second CPack names the file `gaol-<version>-<system>.pkg`) | The same files in `/usr/local`, for the Installer of macOS, or `sudo installer -pkg gaol-<version>-macos-arm64.pkg -target /`. Not signed: Gatekeeper blocks it until *Open Anyway* in System Settings > Privacy & Security allows it (no right click since macOS 15). No uninstaller: `pkgutil --only-files --files fr.ensta.gaol.Development` lists the files it installed, relative to `/`, and `sudo pkgutil --forget fr.ensta.gaol.Development` forgets the package once they are removed. |
+| `gaol-<version>-windows-x64.exe` (`cpack -G NSIS -D CPACK_PACKAGE_FILE_NAME=gaol-<version>-windows-x64`, without which CPack names it `gaol-<version>-<system>.exe`) | The same files in `C:\Program Files\gaol`, where `find_package(gaol)` finds them, with an uninstaller; `/S` installs it without a window. Built with `/MD`: a program built in Debug, with `/MDd`, does not link with it. Built with Visual C++ 2026 too: Microsoft guarantees the link only with a linker at least as recent, that of Visual Studio 2026 or later (Visual Studio 2022 may fail, which the continuous integration does not try), and the program then needs a Visual C++ Redistributable at least as recent. |
 
 The workflow Release (`.github/workflows/release.yml`) makes three packages
 for each tag of a commit of `master`, the tag being the version of
@@ -334,8 +343,10 @@ byte for byte, so the `.deb` of that build already needed these processors, and
 AMD Piledriver, which has FMA without AVX2, runs neither package. A package for
 any processor is built as above, with `-DGAOL_FMA=OFF`, and with
 `-march=x86-64` where the default of the compiler is higher. Each job runs the unit tests, makes the
-package, installs it on the runner, and builds and runs the unit tests again
-with the installed GAOL (`tests/find_package`). A pull request that changes
+package, installs it on the runner, and builds and runs six of the unit tests
+again with the installed GAOL (`arithmetic`, `elementary`,
+`rounding_direction`, `numbers`, `other_functions` and `reverse`:
+`tests/find_package`). A pull request that changes
 the workflow, `CMakeLists.txt` or `cmake/` builds the three and keeps them as
 artifacts of the run.
 
@@ -378,7 +389,8 @@ make install
 ```
 
 configure compiles the thirty-eight sources of CORE-MATH into `libgaol`
-(`gaol/Makefile.am`), with the flags it gives GAOL's C code: there is nothing
+(`3rd/Makefile.am`, a convenience library that `gaol/Makefile.am` puts into
+`libgaol`), with the flags it gives GAOL's C code: there is nothing
 else to build, nothing else to install and nothing else to link.
 
 `make clean` erases what `make` built, and keeps what configure made, so that
@@ -594,8 +606,9 @@ continuous integration prints, and `GAOL_UNIVERSAL_SSE2` and
 macros of the architecture being compiled; and `GAOL_USING_SSE3_INSTRUCTIONS`
 is read only by the code of the intervals of floats, which a developer of GAOL
 compiles.
-Each macro of the table but the version is 1 where the table says, and 0
-otherwise (GAOL v5): it was left undefined, so that a header reading it with
+Each macro of the table but the version, `GAOL_UNIVERSAL_SSE2` and
+`GAOL_UNIVERSAL_NEON`, which stay undefined outside a universal build, is 1
+where the table says, and 0 otherwise (GAOL v5): it was left undefined, so that a header reading it with
 `#if` warned under `-Wundef`, and a program could not include GAOL under
 `-Wundef -Werror`. A program tests these macros with `#if` as well: `#ifdef` is
 now true of each of them.

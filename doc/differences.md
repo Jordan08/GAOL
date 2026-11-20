@@ -251,7 +251,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     GAOL already had. In the expressions of `gaol/parser/gaol_expression.h`,
     `cbrt(x)` is `nth_root(x, 3)`, as `sqrt(x)` is `nth_root(x, 2)`, so it needs
     no node of its own, and the four others have one each, which
-    `gaol::exp2(expression)` and its companions build from C++. Read from a
+    `gaol_core::exp2(expression)` and its companions build. Read from a
     string, they gave a syntax error before.
   - **`nth_root(x, 3)` is CORE-MATH's `cbrt`**, at the magnitudes of the bounds,
     the root of a negative number being the opposite of the root of its
@@ -1327,11 +1327,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   as x<sup>h</sup>·x<sup>l</sup>, n = h + l, h a double and |l| <
   2<sup>11</sup>. Beyond 64 bits, n is taken as ±(2<sup>63</sup> − 1) or
   ±(2<sup>63</sup> − 2) by its sign and parity, every power of a double but 0,
-  ±1 and ±∞ being beyond the doubles there. The powers of expressions,
-  `pow(e, n)` and `pown(e, n)`, follow: `pow(e, [n])` where n is a double, and
-  beyond 2<sup>53</sup> the product of `pow(e, [h])` and e<sup>l</sup>, within
-  three doubles for a point e and wider than the power of the interval where e
-  holds 0 inside.
+  ±1 and ±∞ being beyond the doubles there.
 - **`pow` with an empty operand returns the empty set before it checks the
   rounding direction**, as `sqr` does, and leaves the direction, and the modes
   that flush the subnormals to zero (DAZ, FTZ), as the program had them: in
@@ -1928,12 +1924,12 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   exceptions or without, throwing nothing and leaving the interval as it was.
 - **The namespaces `gaol_core`, `gaol` and `gaol_ieee1788`** (see
   [Using GAOL](using.md#the-namespaces)). The type `interval`, GAOL's
-  functions and its expressions are in `gaol_core`; `gaol` names them as GAOL
-  did, and `gaol_ieee1788` as IEEE 1788-2015 does. `gaol` names them one by one,
-  with using-declarations, rather than opening `gaol_core` whole: the names
-  GAOL 4 had in `gaol` that GAOL v5 still has, the functions on intervals GAOL
-  v5 adds (`exp2`, `hypot`, `fma`, `cancel_minus`, `trunc`... and the nodes of
-  their expressions), `restore_rounding()` and `exact_string()`. The two
+  functions and its expressions are in `gaol_core`; `gaol` names the type and
+  the functions as GAOL did, and `gaol_ieee1788` as IEEE 1788-2015 does. `gaol`
+  names them one by one, with using-declarations, rather than opening
+  `gaol_core` whole: the names GAOL 4 had in `gaol` that GAOL v5 still has, the
+  functions on intervals GAOL v5 adds (`exp2`, `hypot`, `fma`, `cancel_minus`,
+  `trunc`...), `restore_rounding()` and `exact_string()`. The two
   namespaces differ mainly in the power, the standard having two where GAOL 4
   had one: the `pow` of `gaol` takes the integer power for an integer exponent,
   a negative base included, and the real power otherwise, while in
@@ -1949,7 +1945,9 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   `gaol_pow_exp()`, and the node of a power of expressions keeps the function
   that computes it. The reader of strings, `parse_interval()` and
   `parsing_names`, is in `gaol_core`, and its code takes GAOL's `pow`.
-  `gaol` does not name the exceptions (gone, see above), `NaN_val`, `eval_stack`
+  `gaol` does not name the exceptions (gone, see above), the expressions
+  (`expression`, `expr_node` and its nodes, `expr_eval`, `eval_stack`,
+  `evaluate_expr()`: their headers are not installed, see below), `NaN_val`
   nor `parse_interval()`, which GAOL 4 had in `gaol`, nor `rnd_keep()` and
   `parsing_names`, which GAOL v5 adds, nor what GAOL uses for itself: the
   functions that get and set the `rounding_state`, the rounding direction and
@@ -1968,9 +1966,10 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     two, `pow(x, y)` being ambiguous with both.
   - **The symbols** of the library name `gaol_core`: a program compiled
     against the headers of GAOL 4 is compiled again.
-- **`pow(e, n)` on an expression links.** The library defined it with an
-  `unsigned int` exponent, where the header declares an `int`, and a program
-  calling it did not link; `tests/expressions.cpp` builds it.
+- **`pow(e, n)` on an expression links** (`gaol_core::gaol_pown_exp(e, n)` in
+  GAOL v5). The library defined it with an `unsigned int` exponent, where the
+  header declares an `int`, and a program calling it did not link;
+  `tests/expressions.cpp` builds it.
 - **`expression::operator/=` links**: it was declared and not defined. The
   operators `+=`, `-=`, `*=` and `/=` of expressions build the new node before
   giving up their reference to the old root, which a `std::bad_alloc` left
@@ -2011,10 +2010,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   takes the value off the stack, so that a second call is an error, and
   `eval_stack::pop()` of an empty stack returns `T()`, not the first element of
   the stack. The reader of strings reads that error and throws
-  `std::logic_error`. `override` marks the virtual functions of
-  `gaol_expression.h` and `gaol_expr_eval.h`: a class of the program that
-  derives from `expr_eval` and redefines `visit()` without it gets `-Wsuggest-override`
-  at most.
+  `std::logic_error`. `override` marks the virtual functions of the nodes
+  (`gaol_expression.h`).
 - **`uipow()`**, the `pown` of IEEE 1788-2015 for an unsigned exponent, is
   `pow(I, n)` for an `unsigned` n in `gaol`, `gaol_uipow()` in `gaol_core`,
   declared in `gaol/core/gaol_interval_core.h` and exported with the SSE2 intervals too,
@@ -2054,10 +2051,9 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   that the library does use are `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn`
   and `gaol_half_pi_up` (see the namespaces above).
 - **The headers GAOL installs are the ones a program includes.** The three
-  builds install the same list: `gaol/gaol`, `gaol/gaol.h`, the headers they
-  include, and `gaol/parser/gaol_expression.h` and
-  `gaol/parser/gaol_expr_eval.h` for the expressions. They install no header of
-  GAOL's sources: neither `gaol/parser/gaol_interval_parser.h`
+  builds install the same list: `gaol/gaol`, `gaol/gaol.h` and the headers they
+  include, 18 headers, and not those of the expressions (see below). They
+  install no header of GAOL's sources: neither `gaol/parser/gaol_interval_parser.h`
   (`gaol/gaol_interval_parser.h` in GAOL 4), which did not compile when
   included, nor `gaol/gaol_init_cleanup.h`, both of which GAOL 4 installed, nor
   the headers of `gaol/math/`, which no installed header includes
@@ -2074,12 +2070,17 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   reader of strings (`gaol_parser.h`) in `include/gaol/`, with the sources of
   the expressions, the lexer and the parser in `gaol/`. The sources are in
   `gaol/parser/` now (with `regenerate_parser.sh`), and the three builds
-  install the five headers in `include/gaol/parser/`: a program that builds
-  expressions includes `gaol/parser/gaol_expression.h`, with
-  `gaol/parser/gaol_expr_eval.h` to evaluate them, where it included
-  `gaol/gaol_expression.h`. No header is left in `include/gaol/` to include the
-  new ones, and `gaol/gaol`, which did not include the expressions in GAOL 4,
-  does not either.
+  install `gaol_parser.h` alone in `include/gaol/parser/`. The expressions are
+  internal to GAOL (an interface change): `expression`, `expr_node` and its
+  nodes, `expr_eval`, `eval_stack` and the functions that build and evaluate an
+  expression (`evaluate_expr()`, `gaol_pown_exp()`, which was `pow(e, n)`...)
+  are in `gaol_core` only, no longer in `gaol`, their three headers are not
+  installed, and `gaol_expr_visitor.h` is gone with `expr_visitor` (the
+  `accept()` of a node takes an `expr_eval`). A program reads a string with
+  `textToInterval()`, and does not build an expression: the changes of the
+  expressions above are in GAOL's own code. No header is left in
+  `include/gaol/` to include the new ones, and `gaol/gaol`, which did not
+  include the expressions in GAOL 4, does not either.
 - **`gaol/gaol_interval.h` is split in two, and the headers of the intervals are
   installed in `include/gaol/core/`.** GAOL 4 declared the class `interval`, its
   functions and the namespace `gaol` in `gaol/gaol_interval.h`, defined them in
@@ -2180,9 +2181,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     `GAOL_LO`, `GAOL_HAVE_FENV_H`, `GAOL_USING_SSE2_INSTRUCTIONS`,
     `GAOL_IX86_LINUX`, `GAOL_WORDS_BIGENDIAN`, `GAOL_ULONGLONGINT`..., in the
     sources, in the three `gaol/gaol_configuration.h` and in the builds. The
-    macros that `gaol/gaol`, `gaol/parser/gaol_expression.h` and
-    `gaol/parser/gaol_expr_eval.h` define, beyond those of the system headers
-    they include, all start with `GAOL_` or `gaol_`
+    macros that `gaol/gaol` defines, beyond those of the system headers it
+    includes, all start with `GAOL_` or `gaol_`
     (`.github/scripts/headers.sh`).
   - **`_XOPEN_SOURCE`** is no longer redefined to 600 by `gaol/gaol_port.h` (x86
     and ARM on Linux): g++ and clang++ define `_GNU_SOURCE`, under which
@@ -2290,11 +2290,10 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     within the ints is taken as an `int`, one within the unsigned ints as an
     `unsigned`, and a larger one from the `pow` of CORE-MATH at the bounds of x.
   - **The roots.** `nth_root(x, q)`, `rootn(x, q)`, `pownRev(c, x, p)` and the
-    `pow(e, n)`, `pown(e, n)` and `nth_root(e, n)` of the expressions take an
-    integer of any type too. GAOL 4 converted the order of `nth_root` to an
-    `unsigned` (`nth_root(x, 5000000001LL)` was the order 705032705,
-    `nth_root(e, -2)` of an expression the order 4294967294) and the exponent
-    of a power of expressions to an `int`. An order beyond the unsigned ints is
+    `nth_root(e, n)` of the expressions take an integer of any type too.
+    GAOL 4 converted the order of `nth_root` to an `unsigned`
+    (`nth_root(x, 5000000001LL)` was the order 705032705, `nth_root(e, -2)` of
+    an expression the order 4294967294). An order beyond the unsigned ints is
     enclosed through `pow` with the exponent 1/q, x<sup>1/q</sup> being within
     2<sup>−21</sup> of 1 for every double x > 0 there; a negative order of an
     expression within the ints is 1/`nth_root(e, |n|)`. These functions are
@@ -2583,7 +2582,9 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   dispersion between the runs is 11 % at the median for GAOL 5 (29 % at most),
   and 32 % for the session of GAOL 4: a difference of less than 10 % means
   nothing. With the instruction, GAOL 5 is faster than GAOL 4 on every
-  function, by 1.2 to 3.2 times. With the fma() computed by GAOL and the three
+  elementary function, by 1.9 (`atan`) to 3.5 (`sin`) times, and on `x + y`,
+  `x * y` and `x / y`; it is as fast on `pow(x, 3)` and `sqrt`, and slower on
+  `sqr` (7.6 ns against 6.1). With the fma() computed by GAOL and the three
   fast paths, it still is for `x * y`, `x / y`, `exp`, `sin`, `cos`, `sinh`,
   `tanh` and `asin`, as fast for `atan`, `sqr` and `sqrt`, and slower for `tan`
   (3.3 times), `pow(x, 3)` (3.6) and `log` (2.6), the three functions that call
@@ -2615,7 +2616,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     archive ("Couldn't list extended attributes"). The cause was not found, and
     `tests/cpack_stale_configure.cmake` says it is skipped.
 - **The intervals of floats are compiled by a developer of GAOL only**:
-  `gaol::intervalf`, intervals of floats computed on the x87 unit, and
+  `gaol::intervalf`, intervals of floats computed by scalar operations, and
   `gaol::interval2f`, two of them in an SSE3 register, were compiled and
   installed by every build, and `gaol/gaol` included their headers. Neither
   IBEX nor Codac uses them, the manual leaves them undocumented, and they are
@@ -2686,6 +2687,31 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   carries a `compile_commands.json` of the source tree, which a tool or an
   editor wrote there, as `make dist` (which lists its files) and `meson dist`
   (which archives the commit) do not.
+- **The licences are installed**: the three builds install `COPYING.LIB`, the
+  GNU LGPL v2 of GAOL, and `3rd/math-core/LICENSE`, the MIT licence of the
+  functions of CORE-MATH that `libgaol` holds, as `LICENSE.CORE-MATH`, in
+  `share/doc/gaol`, and the packages of the Release hold them (`release.yml`
+  checks it once each package is installed); the installers of macOS and Windows
+  show both texts. No build installed them, although the MIT licence asks for
+  its notice in every copy.
+- **The flags of the user cannot take the flags of interval arithmetic away**:
+  CMake and meson stop, and say why, where a flag the user gives the compiler
+  (`CMAKE_CXX_FLAGS`, `CMAKE_C_FLAGS`, `cpp_args`, `c_args`, `CXXFLAGS`,
+  `CFLAGS`) makes the checks of `-frounding-math`, `-ffp-contract=off` and
+  `-fno-fast-math` fail, which GCC and Clang take: a warning for an option of
+  the other language (`-Wstrict-prototypes` in `CXXFLAGS`) failed them, and GAOL
+  was built without them, with no word of it, 15 of its 56 unit tests failing.
+  meson gives these flags to the libraries of GAOL and CORE-MATH and to the
+  tests after `cpp_args` and `c_args` too, as CMake and configure put them after
+  the flags of the user: a `-ffp-contract=fast` of `cpp_args` undid the
+  `-ffp-contract=off` of GAOL. configure checks that the compiler honours the
+  rounding direction by its message, as CMake does, rather than by failing on
+  any warning of the flags of the user. With meson, `enable-debug` leaves out
+  the optimizations of the release build type, as `GAOL_DEBUG` of CMake does,
+  and `machine-runs-fma` and `machine-runs-avx512` are read in a native build
+  too, as by CMake and configure. `-DGAOL_FMA=OFF` warns where the compiler
+  gives the fused multiply-add instructions without a flag (a default target of
+  x86-64-v3): the library keeps them.
 - **`is_finite()`** is `std::isfinite()`, in every build: `finite()` of the C
   library was used where the build system found it, and is not declared by
   every C library.
@@ -2863,7 +2889,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     `-Ddefault_library=shared`); configure and meson made both, so that
     `make install` and `meson install` put `libgaol.a` alone under the prefix
     unless asked. A shared `libgaol` exports the classes and
-    functions of the expressions (`gaol/parser/gaol_expression.h`), which it did not.
+    functions of the expressions (`gaol/parser/gaol_expression.h`), which it did not,
+    for the tests of GAOL (`tests/expressions.cpp`): the header is not installed.
     On macOS the three builds make `libgaol.5.dylib` (CMake keeps the file
     `libgaol.5.0.0.dylib` and links to it), but its Mach-O versions differ, as
     `otool -L` shows on an Apple M2 with macOS 27 and Apple clang 21:

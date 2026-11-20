@@ -578,8 +578,9 @@ $x$, and for $n=2$ it is \code{sqrt}. For $n=3$ it is CORE-MATH's
 \code{cbrt} at the bounds, correctly rounded upward on their magnitudes,
 the root of a negative number being the opposite of the root of its
 magnitude: the tightest bounds, and exact where the cube root is a double,
-which cubing the value tells; it takes 50~ns rather than 189 with the
-search below, on an Intel i7-1185G7 with Clang 18.1.\newinvfive{} For the
+which cubing the value tells; it takes 41~ns rather than 89 with the
+search below, on an Intel i7-1185G7 with Clang 18.1 (the medians of three
+runs; 24~ns against 77 on an Apple M2).\newinvfive{} For the
 other orders, on $x$ (odd $n$, the root of a negative number being again
 the opposite of the root of its magnitude) or on $x\cap\itv{0}{+\infty}$
 (even $n$), the lower bound is the largest double $l$ with $l^n$ rounded

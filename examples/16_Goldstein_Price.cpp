@@ -100,8 +100,9 @@ int main()
   check(z.set_contains(range), "z encloses the range of f");
   check(z.set_eq(interval(-87881320.0, 147125080.0)), "z is the natural extension of f");
 
-  // The program of the overview of the manual, with sqr and integers, prints
-  // that enclosure
+  // The expression of the program of the overview of the manual, with sqr and
+  // its constants written as doubles (the manual writes ints), gives that
+  // enclosure; manual/check_examples.py checks the program of the manual itself
   const interval w = (1.0 + sqr(x + y + 1.0) * (19.0 - 14.0 * x + 3.0 * sqr(x) - 14.0 * y + 6.0 * x * y + 3.0 * sqr(y)))
                      * (30.0 + sqr(2.0 * x - 3.0 * y) * (18.0 - 32.0 * x + 12.0 * sqr(x) + 48.0 * y - 36.0 * x * y + 27.0 * sqr(y)));
   check(w.set_eq(z), "the program of the manual gives the same enclosure");

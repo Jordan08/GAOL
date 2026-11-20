@@ -62,12 +62,14 @@ git clone https://github.com/Jordan08/GAOL.git
 cd GAOL
 cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DWITH_TESTS=ON
 cmake --build build --config Release
-cmake --build build --target test
+ctest --test-dir build -C Release
 cmake --install build --config Release
 ```
 
 CMake 3.14 is enough to build GAOL; `cmake --install` is CMake 3.15, and with
-3.14 `cmake --build build --config Release --target install` installs.
+3.14 `cmake --build build --config Release --target install` installs;
+`ctest --test-dir` is CMake 3.20, and before it `cd build && ctest -C Release`
+runs the tests.
 
 To see the configuration options, see [Build GAOL](doc/building.md).
 
@@ -139,8 +141,10 @@ A program uses GAOL v5 through one of two namespaces, which hold the same
 `interval` and compute with the same functions:
 
 - `gaol`, GAOL under its own names, to stay compatible with GAOL 4: a program
-  written for GAOL 4, or for IBEX and Codac, keeps its names and, but for the
-  [results that change](doc/differences.md), its results;
+  written for GAOL 4, or for IBEX and Codac, keeps most of its names and, but
+  for the results that change, its results ([What differs from
+  GAOL](doc/differences.md) gives the names that are gone and the results that
+  change);
 - `gaol_ieee1788`, GAOL under the names of IEEE 1788-2015 (`numsToInterval`,
   `mulRev`, `sinPi`, `pown`...), to follow the standard.
 

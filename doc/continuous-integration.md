@@ -59,7 +59,7 @@ GAOL v5). The badges of
   sources of CORE-MATH (`.github/scripts/newlib-fe-values.h`), Cygwin, which
   defines `__x86_64__` but not `__WIN32__`, as Linux (see
   [3rd/README.md](../3rd/README.md), item 6; and a job builds it, below), and
-  with `fma()` computed by `gaol_fma()` of `gaol/math/gaol_fma.h`
+  with `fma()` computed by `gaol_fma_upward()` of `gaol/math/gaol_fma.h`
   (`-DGAOL_FMA_SOFTWARE=ON`, GCC of Ubuntu 24.04 x86_64 with `-mfma`, which the
   test `core_math` compares `gaol_fma()` with, and Clang with `-DGAOL_FMA=OFF`,
   where it compares it with the `fma()` of glibc, GAOL v5): the code that the
@@ -111,13 +111,14 @@ GAOL v5). The badges of
     job on x86 asks for the FPU intervals (`GAOL_SIMD=OFF`), so that their code,
     and the rounding direction they keep through the x87 unit and MXCSR, stay
     covered, and a job on arm64 with Visual C++ and another with clang-cl do
-    the same (`GAOL_SIMD=OFF`). Two x64 jobs ask
-    for the AVX-512 path (`GAOL_PREFER_AVX512`, a setting of the developers), as
-    the one with the rounding direction preserved gets it from the configuration:
-    they take it where the runner has the
+    the same (`GAOL_SIMD=OFF`). Four x64 configurations, three with Visual C++
+    (2022 Debug, 2026 Release, 2026 Release with `/W4 /WX`) and one with
+    clang-cl, ask for the AVX-512 path (`GAOL_PREFER_AVX512`, a setting of the
+    developers), as the one with the rounding direction preserved gets it from
+    the configuration: they take it where the runner has the
     instructions, which the step tells, with a warning where it has not. The
     runners have them or not, according to the machine GitHub gives, so that
-    five more jobs run the unit tests that compute
+    five more configurations run the unit tests that compute
     with intervals under Intel SDE, which emulates a processor with them
     (Visual Studio 2022 and 2026, Release and Debug, and clang-cl, with
     `GAOL_PRESERVE_ROUNDING` or `GAOL_PREFER_AVX512`);
@@ -133,8 +134,9 @@ GAOL v5). The badges of
     and, in Release, 11, 12 and 13 on x86 and on x64 (GAOL v5: the mingw-w64
     before 12 give their programs the `fma()` and `round()` of mingw-w64's own
     math library, which GAOL does not call: `fma()` is the instruction, with
-    the `-mfma` that `GAOL_FMA` gives them, and `gaol_fma()` without it, and
-    `round()` is `gaol_round()`), and, with `GAOL_FMA=OFF` and `gaol_fma()`,
+    the `-mfma` that `GAOL_FMA` gives them, and `gaol_fma_upward()` without it,
+    and `round()` is `gaol_round()`), and, with `GAOL_FMA=OFF` and
+    `gaol_fma_upward()`,
     GCC 13.2 on x64 and on x86 and GCC 11.2 on x86; on x86, Release, GCC 15.2
     with `GAOL_PRESERVE_ROUNDING` (with `-mfma`, GAOL v5); for each of them a
     step checks that no object of the library calls the `fma()` of the C
@@ -142,8 +144,9 @@ GAOL v5). The badges of
     is what the flags of `gaol.pc` say;
   - MSYS2 MINGW64 (GCC and Clang) and MINGW32, which link `msvcrt.dll` and so
     have the `fma()` and `round()` of mingw-w64's own math library: built and
-    tested with `-mfma` and, for MINGW64 (GCC) and MINGW32, with `GAOL_FMA=OFF`,
-    where `gaol_fma()` computes `fma()` (GAOL v5);
+    tested with `-mfma` (MINGW32 with autotools and meson only, in
+    `build-systems.yml`) and, for MINGW64 (GCC) and MINGW32, with `GAOL_FMA=OFF`,
+    where `gaol_fma_upward()` computes `fma()` (GAOL v5);
   - MSYS2 UCRT64 (GCC, and GCC again with `GAOL_PRESERVE_ROUNDING`, with and
     without `GAOL_FMA`: with `-mfma`, `__FMA__` is defined, so that the rounding
     direction goes through MXCSR alone, which Linux, clang-cl and Visual C++
@@ -171,8 +174,8 @@ GAOL v5). The badges of
     -mprefer-vector-width=128` in the flags, the objects read as below, all the
     tests passing but those that are skipped (`intervalf`, `interval2f`, and
     `cpack_stale_configure`, the CPack of Cygwin not making an archive) in both
-    build types, and a build with `GAOL_FMA=OFF`, where `gaol_fma()` computes
-    `fma()` (the flags, the macro `GAOL_SOFT_FMA`, no call of the library's
+    build types, and a build with `GAOL_FMA=OFF`, where `gaol_fma_upward()`
+    computes `fma()` (the flags, the macro `GAOL_SOFT_FMA`, no call of the library's
     `fma()` in the objects, the tests); with autotools and meson as well, and
     the tests built again with the installed GAOL (`tests.sh`);
   - Clang with the target of Visual C++ and the driver of GCC (`clang++`, not
@@ -377,13 +380,19 @@ means such a configuration.
   the name it is to have and the row of its matrix as `with:`. A new kind of
   job is a new action; a configuration longer than the others, or that has to
   start from a machine of its own (Cygwin), is a job of its own.
-- Two configurations of `build-systems.yml` are alone in their job, there being
-  no other of their image of runner in this workflow: *Meson, Visual Studio 2026
-  x64* (`windows-2025-vs2026`) and *Meson, Visual Studio 2026 arm64*
-  (`windows-11-vs2026-arm`), 2.4 minutes each. They stay so: joining a group of
-  `windows.yml` would put actions of another workflow in it and bring back what
-  one configuration leaves to the next on Windows (the environment of
-  `ilammy/msvc-dev-cmd`, the installs of `pipx`).
+- Four configurations of `build-systems.yml` are alone in their job, besides
+  the two of Cygwin. *Meson, Visual Studio 2026 x64* (`windows-2025-vs2026`)
+  and *Meson, Visual Studio 2026 arm64* (`windows-11-vs2026-arm`), 2.4 minutes
+  each, have no other of their image of runner in this workflow. They stay so:
+  joining a group of `windows.yml` would put actions of another workflow in it
+  and bring back what one configuration leaves to the next on Windows (the
+  environment of `ilammy/msvc-dev-cmd`, the installs of `pipx`). *Autotools,
+  Clang for Visual C++ x64 (clang++)* (`windows-2022`) installs MSYS2 after a
+  call of `ilammy/msvc-dev-cmd` for x64: in *Clang for Visual C++ and Visual
+  Studio 2022* it would have to come both first and after the x86
+  configurations, and the two groups of MSYS2 have already installed it.
+  *Meson, macOS 15 x86_64* (`macos-15-intel`), about eight minutes, would take
+  the twelve of *macOS 15 x86_64, autotools* well beyond fifteen.
 - The actions that the workflows use are on the moving tag of their release
   (`actions/checkout@v7`, `msys2/setup-msys2@v2`, `ilammy/msvc-dev-cmd@v1`...),
   which is how a fix of theirs reaches the jobs; only `petarpetrovt/setup-sde`
@@ -521,7 +530,7 @@ refusal.
 | Configuration | Why | What GAOL v5 does |
 |---|---|---|
 | Clang for 32-bit ARM processors (Debian armhf) | **Wrong bounds.** Clang does not honour the rounding direction there. Built by Clang 19 (Debian 13) and Clang 21 (Debian sid), GAOL v5 fails `arithmetic`, `elementary`, `reverse`, `other_functions` and `rounding_direction`: bounds of `atan2()`, `sin()`, `cos()`, `pow()`, `nth_root()` and `div_rel()` do not enclose the exact values, and the products are not the tightest ones in any rounding direction. | Refused by the three builds and by `gaol/gaol_config.h`; a job checks that CMake, configure and meson refuse it, for the C compiler alone as for the C++ compiler alone (`containers.yml`). GCC builds the armhf jobs. |
-| Clang 14 on 64-bit ARM (Ubuntu 22.04 arm64, and Clang 14 on Ubuntu 24.04 arm64), and any compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target" | **Wrong bounds.** Clang 14 does not honour the rounding direction on 64-bit ARM, and says so. Built by it, GAOL v5 fails `arithmetic`, `elementary`, `reverse` and `other_functions` in Release, bounds of `nth_root()`, `pow()`, `atan2()`, `cos()`, `div_rel()` and `mid()` not enclosing the exact values, and `elementary` in Debug, a bound of `atan2()`. Clang 18 honours the rounding direction there. | Refused by the three builds; a job checks it for the C compiler alone, the C++ compiler alone and both (`linux.yml`). Ubuntu 22.04 arm64 is built with GCC only, Ubuntu 24.04 and 26.04 arm64 with Clang too. |
+| Clang 14 on 64-bit ARM (Ubuntu 22.04 arm64, and Clang 14 on Ubuntu 24.04 arm64), and any compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target" | **Wrong bounds.** Clang 14 does not honour the rounding direction on 64-bit ARM, and says so. Built by it, GAOL v5 fails `arithmetic`, `elementary`, `reverse` and `other_functions` in Release, bounds of `nth_root()`, `pow()`, `atan2()`, `cos()`, `div_rel()` and `mid()` not enclosing the exact values, and `elementary` in Debug, a bound of `atan2()`. Clang 18 honours the rounding direction there. | Refused by the three builds; a job checks it for the C compiler alone, the C++ compiler alone and both (`linux.yml`). Of the compilers of Ubuntu 22.04, GCC 11 alone is built on 64-bit ARM (on Ubuntu 24.04 arm64); Ubuntu 24.04 and 26.04 arm64 are built with their Clang too. |
 | MinGW-w64 for 32-bit ARM, and for 64-bit ARM of version 12 or later linked with `msvcrt.dll` rather than the UCRT | **Not built.** Its `fma()` and `round()` are those of mingw-w64's own math library, which are wrong on x86 (see [The fma() and round() of mingw-w64](three-builds.md#the-fma-and-round-of-mingw-w64)): the `round()` is computed in doubles and depends on the rounding direction there too, and the `fma()` of 32-bit ARM is not fused (`fmacd`, which is `vmla.f64`, a product and a sum each rounded). On 64-bit ARM the `fma()` is the instruction `fmadd`; no toolchain links `msvcrt.dll` there (llvm-mingw has none), so that the case is not built. | Refused by `gaol/gaol_config.h`. The refusal is tested with the macros of such a toolchain defined by hand on an x86 system that is not Windows (`refused_mingw_arm32` and `refused_mingw_arm64_msvcrt`, with `tests/refused_mingw_arm.cpp`, and the end of `refused_options.sh` for the autotools and meson builds): that checks the logic of the refusal, not a real toolchain for ARM, which no job builds. mingw-w64 for 64-bit ARM before version 12 is accepted: llvm-mingw 20230320 (Clang 16, mingw-w64 11) is built and tested, with the instruction and `gaol_round()`; MSYS2 CLANGARM64, which links the UCRT, is built and tested too. On x86 the same toolchains are built and tested, with the instruction and with `gaol_fma()`. |
 | Visual C++, and clang-cl from Clang 16, without `/fp:strict` (`/fp:precise`, their default) | **Bounds not certified.** They then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, while GAOL computes with the rounding direction set upward. | Refused by `gaol/gaol_config.h`; `gaol::gaol` gives `/fp:strict` to the code linking it, and each Visual Studio job checks the refusal (`tests/fp_strict`), those of clang-cl included (GAOL v5). |
 | The SSE2 intervals on 32-bit Windows, compiled without aligned `new` | **Crash.** GCC takes the memory of `new` to be aligned on 16 bytes, which the C runtime of 32-bit Windows aligns on 8, and a `std::vector` of SSE2 intervals crashes on its first `movaps`: with MinGW-w64 14.2 and 15.2 for x86, in Release and in Debug, `arithmetic`, `other_functions`, `reverse` and `rounding_direction` crash. With `-faligned-new=8` the tests pass, but the code using GAOL needs that flag too. Visual C++ and clang-cl have no such flag: `/Zc:alignedNew` does nothing in C++14 with `cl` (the warning C4316 stays, and `std::allocator` calls `operator new(size_t)`), and with clang-cl it makes the STL fail to compile (`align_val_t` is not an enumeration there); only `/std:c++17` turns the aligned `new` on (Compiler Explorer, MSVC 19.51 and clang-cl 22 for x86). | CMake, configure and meson take the SSE2 intervals on 32-bit Windows with GCC and Clang (MinGW-w64, MSYS2), with `-faligned-new=8` given to the library and to the code using it (`gaol::gaol`, `gaol.pc`, `gaol_dep`); `gaol/gaol_config.h` refuses them compiled without (the tests `refused_aligned_new*` check it). Visual C++ and clang-cl take them with their two bounds kept as two doubles of alignment 8 (`GAOL_SSE2_UNALIGNED_STORAGE`), which need no aligned memory: `test_intervals_aligned_on_8_bytes` of `tests/misc.cpp` runs a representative set of operations on intervals at an address of 8 modulo 16, and stops the program with an aligned load. A compiler that does not take the flag keeps the FPU intervals. On 64-bit Windows (MinGW-w64, MSYS2, Visual C++, clang-cl) the SSE2 intervals are compiled and pass the tests. |

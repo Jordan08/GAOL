@@ -8,7 +8,7 @@
 #
 #   cmake -S tests/find_package -B build-find-package -DCMAKE_PREFIX_PATH=<prefix of GAOL>
 #   cmake --build build-find-package
-#   ctest --test-dir build-find-package
+#   (cd build-find-package && ctest)
 #
 # Copyright (c) 2026 ENSTA, France
 #

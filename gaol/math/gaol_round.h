@@ -30,7 +30,7 @@
  * - round_ties_to_away(I) of intervals (gaol/core/gaol_interval_core.cpp),
  *   where the defect above shows;
  * - the sources of CORE-MATH, which call __builtin_round() in the
- *   roundeven_finite() of fifteen of them (exp.c, sin.c...), their fallback
+ *   roundeven_finite() of thirteen of them (exp.c, sin.c...), their fallback
  *   where the processor has neither AVX nor SSE4.1 nor ARMv8 (with GAOL_FMA
  *   off, for instance), where the defect above shows, and in pow.c, to take
  *   the integer nearest to the square root of an odd integer, that is at

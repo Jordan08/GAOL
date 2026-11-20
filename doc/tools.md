@@ -50,7 +50,7 @@ In [.github/scripts/](../.github/scripts/).
 | [headers.sh](../.github/scripts/headers.sh) | Checks that each installed header compiles alone in C++11 with `-Wall -Wextra -Wold-style-cast -Wundef -Werror`. |
 | [check-intervals.sh](../.github/scripts/check-intervals.sh) | Fails unless the build computes with the expected intervals (`neon`, `sse2` or `fpu`), so that a silent fall back to the FPU does not leave the CI green. |
 | [check-gcc-windows-fma.sh](../.github/scripts/check-gcc-windows-fma.sh) | Checks that no object of GCC for Windows names a 256-bit or 512-bit register (GCC bug 54412, the stack aligned on 16 bytes), and that the objects of `gaol_interval_core.cpp` and of the `cos` of CORE-MATH hold fused multiply-add instructions (`vfmadd`). |
-| [check-no-fma-call.sh](../.github/scripts/check-no-fma-call.sh) | Fails if an object of the library (`CMakeFiles/gaol.dir`, `CMakeFiles/gaol_core_math.dir`) calls the `fma()` of the C library, which GAOL does not call where that is mingw-w64's own or Cygwin's: the instruction, or `gaol_fma()` (`gaol/math/gaol_fma.h`), takes its place. It counts the undefined symbols too, so that a count of zero is no mere failure to read the objects. |
+| [check-no-fma-call.sh](../.github/scripts/check-no-fma-call.sh) | Fails if an object of the library (`CMakeFiles/gaol.dir`, `CMakeFiles/gaol_core_math.dir`) calls the `fma()` of the C library, which GAOL does not call where that is mingw-w64's own or Cygwin's: the instruction, or `gaol_fma_upward()` and `gaol_fma()` (`gaol/math/gaol_fma.h`), take its place. It counts the undefined symbols too, so that a count of zero is no mere failure to read the objects. |
 | [check-arm64-fma.sh](../.github/scripts/check-arm64-fma.sh) | On 64-bit ARM with the mingw-w64 whose math library is its own (before version 12), reads in the code that `fma()` is the fused instruction: the `fma()` of `libmingwex.a` is one `fmadd` and nothing else that computes, the objects of the library hold fused instructions, and none calls `fma()` or `round()`. It fails on a library without an `fma()` of its own, and counts the undefined symbols, as `check-no-fma-call.sh`. Uses `llvm-nm`, `llvm-ar` and `llvm-objdump` (`NM`, `AR` and `OBJDUMP`). |
 | [comma-locale.sh](../.github/scripts/comma-locale.sh) | Generates or finds a locale that writes a decimal comma, so that `tests/numbers.cpp` does not pass without having tried one. |
 | [sde-tests.sh](../.github/scripts/sde-tests.sh) | Runs the tests under Intel SDE, which emulates AVX-512: the runners of GitHub for Windows have it or not, according to the machine they get, and this covers the AVX-512 path there whichever they get. |
@@ -86,10 +86,11 @@ for the CI (GAOL v5).
 
 ## Tests
 
-In [tests/](../tests/). The six `*_values.py` scripts write the headers of
+In [tests/](../tests/). The eight `*_values.py` scripts write the headers of
 reference values that the test programs include; they are run by hand when a
-table changes, and need [mpmath](https://mpmath.org). See [Tests](tests.md) for
-what the programs check.
+table changes, and need [mpmath](https://mpmath.org), but `fma_values.py`,
+which computes with the rational numbers of Python alone. See [Tests](tests.md)
+for what the programs check.
 
 | Script | What it is for |
 |---|---|
@@ -100,6 +101,7 @@ what the programs check.
 | [reverse_values.py](../tests/reverse_values.py) | Writes `reverse_values.h`: the cases of the reverse functions of IEEE 1788-2015 (10.5.4) for `reverse.cpp`. |
 | [atan2_rel_values.py](../tests/atan2_rel_values.py) | Writes `atan2_rel_values.h`: the cases of `atan2Rev1` and `atan2Rev2`, for `reverse.cpp`. |
 | [pow_rel_values.py](../tests/pow_rel_values.py) | Writes `pow_rel_values.h`: the cases of `powRev1` and `powRev2`, for `reverse.cpp`. |
+| [fma_values.py](../tests/fma_values.py) | Writes `fma_values.h`: a*b + c rounded once in the four rounding directions, computed exactly with fractions, at triples on which a fused multiply-add goes wrong, for `core_math.cpp`, which checks against them the `fma()` of the C library and GAOL's own (those of `gaol/math/gaol_fma.h` and the `gaol_fma()` of its interface). |
 | [refused_options.sh](../tests/refused_options.sh) | Checks that autotools and meson refuse the options and the targets `gaol/gaol_config.h` refuses, as the tests `refused_*` of CMake do: `-ffast-math`, `-ffinite-math-only`, and, where the compiler shows them by macros (GCC from 12 on), `-fno-signed-zeros`, `-fno-trapping-math`, `-funsafe-math-optimizations` and `-freciprocal-math`. |
 | [release_flags.py](../tests/release_flags.py) | Checks that a project which brings GAOL in without a build type compiles it in release (`-O3`, `NDEBUG`, `GAOL_DEBUGGING` at 0). |
 | [meson_subproject/check_flags.py](../tests/meson_subproject/check_flags.py) | Checks that a meson project which takes GAOL as a subproject gets the flags of its `gaol.pc`. |
