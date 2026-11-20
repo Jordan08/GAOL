@@ -42,7 +42,8 @@
 #     and one of CMAKE_C_FLAGS that fails that of -frounding-math
 #     (-Wnon-virtual-dtor, for C++ only), stop the configuration with the
 #     reason, rather than building GAOL without these flags (GAOL v5: it was
-#     built so, with no word of it).
+#     built so, with no word of it); with CMake 3.14, whose checks do not
+#     count the warning, they pass, and the cache shows it.
 #
 # What a platform may not give (an AVX-512 path on ARM, an FMA flag on 64-bit
 # ARM) is not asked for: the script compares each configuration with what its
@@ -492,30 +493,52 @@ endif()
 
 # ---- The flags of the user that fail the checks of interval arithmetic --------
 
-# With GCC, which warns of an option for another language ("is valid for C/ObjC
-# but not for C++"), a warning the checks of CMake count as a refusal of the
-# flag checked: the configuration stops and says why, in a directory of its
-# own each. Clang takes these options in both languages, and is not checked
+# With GCC, which warns of an option for another language ("command-line
+# option ... is valid for C/ObjC but not for C++"), a warning the checks of
+# CMake count as a refusal of the flag checked: the configuration stops and
+# says why, in a directory of its own each. The checks of CMake 3.14 do not
+# count it (their pattern reads "command line option", which GCC no longer
+# writes) and pass: GAOL is built with every flag then, which the cache shows
+# (the checks named after <expected>). Clang takes these options in both
+# languages, and is not checked
 function(configure_refused title build flags_variable flag expected)
   configure_gaol("${build}" "-D${flags_variable}=${flag}")
   set(output "${output}" PARENT_SCOPE)
+  set(kept OFF PARENT_SCOPE)
   if(NOT output MATCHES "The C(XX)? compiler identification is GNU")
     set(gnu OFF PARENT_SCOPE)
     return()
   endif()
   set(gnu ON PARENT_SCOPE)
+  if(status EQUAL 0)
+    foreach(_check ${ARGN})
+      cache_value("${build}" ${_check} _value ON)
+      if(NOT _value STREQUAL "1")
+        message(FATAL_ERROR "${title}: CMake configured GAOL without the flag that ${_check} checks, rather than stop and say that a flag of ${flags_variable} fails the checks:\n${output}")
+      endif()
+    endforeach()
+    set(kept ON PARENT_SCOPE)
+    return()
+  endif()
   # CMake breaks the lines of the message where it likes
   string(REGEX REPLACE "[ \t\r\n]+" " " _flat "${output}")
-  if(status EQUAL 0 OR NOT _flat MATCHES "${expected}")
+  if(NOT _flat MATCHES "${expected}")
     message(FATAL_ERROR "${title}: expected the configuration to stop and say that a flag of ${flags_variable} fails the checks (status ${status}):\n${output}")
   endif()
 endfunction()
 configure_refused("-Wstrict-prototypes in CMAKE_CXX_FLAGS" "${GAOL_WORK_DIR}/refused-cxx-flags"
-  CMAKE_CXX_FLAGS -Wstrict-prototypes "C\\+\\+ compiler .*which every GCC and Clang take")
+  CMAKE_CXX_FLAGS -Wstrict-prototypes "C\\+\\+ compiler .*which every GCC and Clang take"
+  GAOL_COMPILER_SUPPORTS_FROUNDING_MATH GAOL_COMPILER_SUPPORTS_FNO_FAST_MATH GAOL_COMPILER_SUPPORTS_FFP_CONTRACT_OFF)
+set(_kept_cxx ${kept})
 if(gnu)
   configure_refused("-Wnon-virtual-dtor in CMAKE_C_FLAGS" "${GAOL_WORK_DIR}/refused-c-flags"
-    CMAKE_C_FLAGS -Wnon-virtual-dtor "C compiler .*which every GCC and Clang take")
-  message(STATUS "The flags of the user that fail the checks of interval arithmetic: as expected")
+    CMAKE_C_FLAGS -Wnon-virtual-dtor "C compiler .*which every GCC and Clang take"
+    GAOL_C_COMPILER_SUPPORTS_FROUNDING_MATH)
+  if(_kept_cxx OR kept)
+    message(STATUS "The flags of the user that fail the checks of interval arithmetic: as expected (the checks of this CMake do not count the warning, and GAOL keeps the flags)")
+  else()
+    message(STATUS "The flags of the user that fail the checks of interval arithmetic: as expected")
+  endif()
 else()
   message(STATUS "The flags of the user that fail the checks of interval arithmetic: not made, the compiler is not GCC")
 endif()

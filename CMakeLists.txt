@@ -386,6 +386,9 @@ else()
   # its bounds no longer enclosing the values they should: GAOL is not built
   # then (GAOL v5: it was built so, with no word of it, and 15 of its 56 unit
   # tests failed). The same holds of the C compiler and -frounding-math below.
+  # The checks of CMake 3.14 do not count that warning (their pattern reads
+  # "command line option", which GCC no longer writes): they pass, and GAOL
+  # has the flags there.
   # The results of the failed checks are taken out of the cache, so that
   # configuring again after the flags are changed checks them again
   set(_gaol_refused_flags "")

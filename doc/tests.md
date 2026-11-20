@@ -1892,9 +1892,10 @@ which `numbers` checks there too.
   library keeps them; and, with GCC, `-Wstrict-prototypes` in
   `CMAKE_CXX_FLAGS` and `-Wnon-virtual-dtor` in `CMAKE_C_FLAGS`, which fail the
   checks of the flags of interval arithmetic and stop the configuration with
-  the reason (GAOL v5: GAOL was built without these flags; the last two parts
-  fail against the CMake build before them, on the warning and on the refusal).
-  Run against the CMake build before this
+  the reason, or, with CMake 3.14, whose checks do not count the warning,
+  pass them, the cache showing each check passed (GAOL v5: GAOL was built
+  without these flags; the last two parts fail against the CMake build before
+  them, on the warning and on the refusal). Run against the CMake build before this
   change, it fails on the 128-bit integer message, on `GAOL_ARM64`, on
   `GAOL_DEBUGGING`, on the settings of the exceptions and of the verbose mode,
   and on both cross-compilations. The script takes

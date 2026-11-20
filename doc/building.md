@@ -204,7 +204,9 @@ GAOL.
   `CMAKE_CXX_FLAGS` or `cpp_args`, `-Wnon-virtual-dtor` in `CMAKE_C_FLAGS`),
   CMake and meson stop and say which flag to take out, where they built GAOL
   without them, with no word of it (GAOL v5); configure checks each flag
-  alone.
+  alone. The checks of CMake 3.14 do not count that warning (their pattern
+  reads "command line option", which GCC no longer writes): they pass, and
+  GAOL has the flags.
 
 ### The settings of the developers
 

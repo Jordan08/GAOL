@@ -11902,6 +11902,15 @@ leurs registres n'étaient pas faits :
   autoheader, qui écrase `gaol/gaol_configuration.h.in`, écrit à la main ; il
   est restauré de sa copie `~`. Régénérer `configure` et les `Makefile.in` avec
   `aclocal -I m4`, `autoconf` et `automake`, jamais `autoreconf`.
+- Deux corrections du test `automatic_configuration` après la CI de #399 : le
+  GCC du runner `ubuntu-26.04` donne FMA sans drapeau (x86-64-v3), et
+  l'avertissement de `-DGAOL_FMA=OFF` y est attendu, ce que le test lit dans
+  `__FMA__` du préprocesseur ; les vérifications de CMake 3.14 ne comptent pas
+  l'avertissement « command-line option ... is valid for C/ObjC but not for
+  C++ » (leur motif lit « command line option »), passent, et GAOL garde ses
+  drapeaux : le test l'accepte en lisant le cache (chaque vérification à 1).
+  Vérifié avec CMake 3.14.4 et 4.2.3, et contre un `CMakeLists.txt` qui laisse
+  tomber les drapeaux sans rien dire (C++ et C) : le test échoue.
 
 ## 8. Le ménage fait
 
