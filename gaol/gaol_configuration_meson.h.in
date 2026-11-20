@@ -1,4 +1,5 @@
-/* Copyright (c) 2026 ENSTA, France
+/* Copyright (c) 2025 Raphaël Chenouard
+ * Copyright (c) 2026 ENSTA, France
  *
  * By: Raphaël Chenouard, Jordan NININ (created 2025-11-25)
  *
@@ -121,7 +122,9 @@
 /* Defined to 1 where the compiler has <fenv.h> */
 #mesondefine GAOL_HAVE_FENV_H
 
-/* The macros above that the build leaves undefined are 0 (GAOL v5): GAOL's
+/* The macros above that the build leaves undefined are 0 (GAOL v5), but
+   GAOL_UNIVERSAL_SSE2 and GAOL_UNIVERSAL_NEON, which stay undefined outside a
+   universal build and are read with defined() above: GAOL's
    headers read them with #if, which warned under
    -Wundef, so that a program could not include GAOL under -Wundef -Werror.
    A program reads them with #if too: #ifdef is now true of each of them.

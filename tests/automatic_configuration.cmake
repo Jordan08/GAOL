@@ -33,7 +33,16 @@
 #     -DGAOL_MACHINE_RUNS_AVX512=1;
 #   - a machine that does not run the fused multiply-add instructions (the check
 #     that runs a program fails: -DGAOL_MACHINE_RUNS_FMA=0 makes it, on any
-#     machine) leaves them out and says which flags it leaves out.
+#     machine) leaves them out and says which flags it leaves out;
+#   - -DGAOL_FMA=OFF with a compiler that gives the instructions without a flag
+#     (here -mfma in CMAKE_CXX_FLAGS, as a default target of x86-64-v3 does)
+#     warns that the library keeps them;
+#   - with GCC, a flag of CMAKE_CXX_FLAGS that fails the checks of the flags of
+#     interval arithmetic (-Wstrict-prototypes, which GCC says is for C only),
+#     and one of CMAKE_C_FLAGS that fails that of -frounding-math
+#     (-Wnon-virtual-dtor, for C++ only), stop the configuration with the
+#     reason, rather than building GAOL without these flags (GAOL v5: it was
+#     built so, with no word of it).
 #
 # What a platform may not give (an AVX-512 path on ARM, an FMA flag on 64-bit
 # ARM) is not asked for: the script compares each configuration with what its
@@ -346,7 +355,7 @@ message(STATUS "-DGAOL_FMA=OFF and -DGAOL_U128_EMULATION=ON: as expected")
 # fma() computed by gaol_fma(): said by the configuration where it is asked for,
 # with or without the instructions, and by no other (GAOL v5)
 configure_ok("-DGAOL_FMA_SOFTWARE=ON" "${_build}" -DGAOL_FMA_SOFTWARE=ON)
-if(NOT output MATCHES "fma\\(\\): gaol_fma\\(\\) of gaol/math/gaol_fma.h")
+if(NOT output MATCHES "fma\\(\\): gaol_fma_upward\\(\\) and gaol_fma\\(\\) of gaol/math/gaol_fma.h")
   message(FATAL_ERROR "-DGAOL_FMA_SOFTWARE=ON, and the configuration does not say that gaol_fma() computes fma():\n${output}")
 endif()
 configure_ok("-DGAOL_FMA=OFF -DGAOL_FMA_SOFTWARE=ON" "${_build}" -DGAOL_FMA=OFF -DGAOL_FMA_SOFTWARE=ON)
@@ -354,7 +363,7 @@ if(NOT output MATCHES "Fused multiply-add flags: \n")
   message(FATAL_ERROR "-DGAOL_FMA=OFF -DGAOL_FMA_SOFTWARE=ON, and the configuration takes a flag of the fused multiply-add instructions:\n${output}")
 endif()
 configure_ok("without -DGAOL_FMA_SOFTWARE" "${_build}")
-if(output MATCHES "gaol_fma\\(\\) of gaol/math/gaol_fma.h")
+if(output MATCHES "gaol_fma\\(\\) of gaol/math/gaol_fma.h, computed with integers")
   message(FATAL_ERROR "No -DGAOL_FMA_SOFTWARE, and the configuration says that gaol_fma() computes fma():\n${output}")
 endif()
 message(STATUS "-DGAOL_FMA_SOFTWARE=ON: as expected")
@@ -444,6 +453,57 @@ if(_compiler_fma_flags)
   message(STATUS "A machine that does not run the fused multiply-add instructions: as expected")
 else()
   message(STATUS "A machine that does not run the fused multiply-add instructions: not made, the compiler has no flag for them")
+endif()
+
+# ---- -DGAOL_FMA=OFF and a compiler that gives the instructions by default ------
+
+# -mfma in CMAKE_CXX_FLAGS stands for a default target that has them
+# (x86-64-v3, the GCC of the runner ubuntu-26.04 of GitHub): the flags are left
+# out, the instructions are not, and a warning says so. Where the compiler
+# takes -mfma (x86), in a directory of its own, which keeps CMAKE_CXX_FLAGS
+if(_compiler_fma_flags MATCHES "-mfma")
+  configure_ok("-DGAOL_FMA=OFF, -mfma in CMAKE_CXX_FLAGS" "${GAOL_WORK_DIR}/fma-by-default"
+    -DGAOL_FMA=OFF "-DCMAKE_CXX_FLAGS=-mfma")
+  if(NOT output MATCHES "the compiler gives the fused multiply-add instructions")
+    message(FATAL_ERROR "-DGAOL_FMA=OFF, with a compiler that gives the fused multiply-add instructions without a flag, and no warning says that the library keeps them:\n${output}")
+  endif()
+  configure_ok("-DGAOL_FMA=OFF without them by default" "${GAOL_WORK_DIR}/fma-off" -DGAOL_FMA=OFF)
+  if(output MATCHES "the compiler gives the fused multiply-add instructions")
+    message(FATAL_ERROR "-DGAOL_FMA=OFF, with a compiler that does not give the fused multiply-add instructions by default, and a warning says it does:\n${output}")
+  endif()
+  message(STATUS "-DGAOL_FMA=OFF and the instructions of the default target: as expected")
+else()
+  message(STATUS "-DGAOL_FMA=OFF and the instructions of the default target: not made, the compiler has no -mfma")
+endif()
+
+# ---- The flags of the user that fail the checks of interval arithmetic --------
+
+# With GCC, which warns of an option for another language ("is valid for C/ObjC
+# but not for C++"), a warning the checks of CMake count as a refusal of the
+# flag checked: the configuration stops and says why, in a directory of its
+# own each. Clang takes these options in both languages, and is not checked
+function(configure_refused title build flags_variable flag expected)
+  configure_gaol("${build}" "-D${flags_variable}=${flag}")
+  set(output "${output}" PARENT_SCOPE)
+  if(NOT output MATCHES "The C(XX)? compiler identification is GNU")
+    set(gnu OFF PARENT_SCOPE)
+    return()
+  endif()
+  set(gnu ON PARENT_SCOPE)
+  # CMake breaks the lines of the message where it likes
+  string(REGEX REPLACE "[ \t\r\n]+" " " _flat "${output}")
+  if(status EQUAL 0 OR NOT _flat MATCHES "${expected}")
+    message(FATAL_ERROR "${title}: expected the configuration to stop and say that a flag of ${flags_variable} fails the checks (status ${status}):\n${output}")
+  endif()
+endfunction()
+configure_refused("-Wstrict-prototypes in CMAKE_CXX_FLAGS" "${GAOL_WORK_DIR}/refused-cxx-flags"
+  CMAKE_CXX_FLAGS -Wstrict-prototypes "C\\+\\+ compiler .*which every GCC and Clang take")
+if(gnu)
+  configure_refused("-Wnon-virtual-dtor in CMAKE_C_FLAGS" "${GAOL_WORK_DIR}/refused-c-flags"
+    CMAKE_C_FLAGS -Wnon-virtual-dtor "C compiler .*which every GCC and Clang take")
+  message(STATUS "The flags of the user that fail the checks of interval arithmetic: as expected")
+else()
+  message(STATUS "The flags of the user that fail the checks of interval arithmetic: not made, the compiler is not GCC")
 endif()
 
 file(REMOVE_RECURSE "${GAOL_WORK_DIR}")

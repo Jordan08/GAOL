@@ -12,22 +12,17 @@
 #
 # Origin
 # ------
-# It derives from the CMake build of GAOL in IBEX
-# (https://github.com/ibex-team/ibex-lib, GNU LGPL v3,
-# interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0/CMakeLists.txt), written by
-# Cyril Bouvier and updated by Gilles Chabert, with the list of sources of
-# GAOL's meson build (gaol/meson.build). The compilation flags of interval
-# arithmetic are those ibex_init_common() sets in the IBEX fork of Fabrice Le
-# Bars (https://github.com/lebarsfa/ibex-lib), and what Visual C++ needs
-# follows his fork of GAOL (https://github.com/lebarsfa/GAOL).
+# It takes the list of sources of GAOL's meson build (gaol/meson.build), and
+# what Visual C++ needs follows the fork of GAOL of Fabrice Le Bars
+# (https://github.com/lebarsfa/GAOL).
 #
-# It differs from IBEX's build in that the configuration is decided by the
-# preprocessor (cmake/gaol_configuration.h.in) and by compilation checks
-# rather than from CMAKE_SYSTEM_NAME and CMAKE_SYSTEM_PROCESSOR, which works the
-# same in a cross-compilation, in that it builds with Visual C++, and in that
-# it compiles CORE-MATH, which GAOL computes its elementary functions with,
-# into libgaol, from the sources of 3rd/math-core. It also builds as a part of
-# another project, brought in with FetchContent.
+# The configuration is decided by the preprocessor
+# (cmake/gaol_configuration.h.in) and by compilation checks rather than from
+# CMAKE_SYSTEM_NAME and CMAKE_SYSTEM_PROCESSOR, which works the same in a
+# cross-compilation. It builds with Visual C++, and it compiles CORE-MATH, which
+# GAOL computes its elementary functions with, into libgaol, from the sources
+# of 3rd/math-core. It also builds as a part of another project, brought in
+# with FetchContent.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -217,7 +212,7 @@ option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and 
 #   GAOL_FMA=OFF                    no fused multiply-add instructions
 #   GAOL_PREFER_AVX512=ON|OFF       the AVX-512 path asked for, or refused
 #   GAOL_U128_EMULATION=ON          the 128-bit integer of two 64-bit halves
-#   GAOL_FMA_SOFTWARE=ON            fma() computed by gaol_fma(), with integers
+#   GAOL_FMA_SOFTWARE=ON            fma() computed by gaol/math/gaol_fma.h
 #   GAOL_DEBUG=ON                   GAOL and CORE-MATH built for debugging
 #   GAOL_VERBOSE_MODE=ON            a line on the standard error at init/cleanup
 #   GAOL_EXCEPTIONS_ENABLED=OFF     abort instead of raising exceptions
@@ -326,18 +321,24 @@ endif()
 # takes the place of round() wherever GAOL_MINGW_OWN_MATH of gaol/gaol_config.h
 # is 1, and fma() is the instruction, with -mfma, which GAOL_FMA gives GCC and
 # Clang for Windows on a processor that has it (below: the build runs a program
-# compiled with the flags, and leaves them out where the processor does not
-# run it), and gaol_fma() of gaol/math/gaol_fma.h without it, which computes it
-# with integers (GAOL_SOFT_FMA of gaol/gaol_config.h is 1): GAOL_FMA=OFF, or a
-# processor without the instructions. Cygwin, whose fma() is wrong too, is
-# treated so. On 32-bit x86, where mingw-w64 computes them on the x87 unit, the
-# same holds: the fma() of the mingw-w64 9 of WinLibs (GCC 11) rounded each of
-# its partial sums to a double, and that of mingw-w64 11 (GCC 12 and 13), in
-# extended precision, was one double off in 125 results of 400,000. On ARM, as
-# on x86-64, mingw-w64 before version 12 or linked with msvcrt.dll is refused
-# by gaol/gaol_config.h, the refusal not being tested there (MSYS2 CLANGARM64,
-# which links the UCRT, is built and tested). From version 12 on, a toolchain
-# linking the UCRT takes those of ucrtbase.dll, which pass the tests.
+# compiled with the flags, and leaves them out where the processor does not run
+# it), and without it gaol/math/gaol_fma.h, which computes it with integers
+# (gaol_fma_upward() in CORE-MATH and in the operations of GAOL, rounded upward,
+# the direction they run in, and gaol_fma() for gaol::gaol_fma(), exact in the
+# four directions; GAOL_SOFT_FMA of gaol/gaol_config.h is 1): GAOL_FMA=OFF, or a
+# processor without the instructions. Cygwin, whose fma()
+# is wrong too, is treated so. On 32-bit x86, where mingw-w64 computes them on
+# the x87 unit, the same holds: the fma() of the mingw-w64 9 of WinLibs (GCC 11)
+# rounded each of its partial sums to a double, and that of mingw-w64 11 (GCC 12
+# and 13), in extended precision, was one double off in 125 results of 400,000.
+# On 64-bit ARM, mingw-w64 before version 12 is accepted as well, GAOL calling
+# gaol_round() and taking fma() as the instruction (llvm-mingw 20230320, built
+# and tested, as MSYS2 CLANGARM64, which links the UCRT); gaol/gaol_config.h
+# refuses mingw-w64 for 32-bit ARM, and for 64-bit ARM from version 12 on when
+# linked with msvcrt.dll, a refusal that tests/refused_mingw_arm.cpp checks with
+# the macros of such a toolchain defined by hand on x86, no real toolchain being
+# built. From version 12 on, a toolchain linking the UCRT takes those of
+# ucrtbase.dll, which pass the tests.
 #
 # Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
 # and both are gone now that GAOL bounds its elementary functions with
@@ -357,10 +358,10 @@ endif()
 #   GAOL calls them in the upward rounding it keeps
 #   (gaol/math/gaol_double_op.h).
 #
-# The continuous integration builds GAOL with the MinGW-w64 GCC 11.2.0 to
-# 15.2.0 of Chocolatey on x86-64 and on 32-bit x86, and with MSYS2 UCRT64,
-# CLANG64, CLANGARM64 and MINGW64 (GCC and Clang), runs the tests with them, and
-# builds and tests without -mfma, with gaol_fma(), GCC 13.2.0 on x86-64, GCC
+# The continuous integration builds GAOL with the MinGW-w64 GCC 11.2.0 to 15.2.0
+# of Chocolatey on x86-64 and on 32-bit x86, and with MSYS2 UCRT64, CLANG64,
+# CLANGARM64 and MINGW64 (GCC and Clang), runs the tests with them, and builds
+# and tests without -mfma, with gaol/math/gaol_fma.h, GCC 13.2.0 on x86-64, GCC
 # 11.2.0 and 13.2.0 on 32-bit x86, MSYS2 MINGW64 (GCC), MSYS2 MINGW32 and Cygwin
 # (.github/workflows/windows.yml).
 
@@ -377,15 +378,38 @@ if(MSVC)
     list(APPEND GAOL_INTERVAL_FLAGS -msse2)
   endif()
 else()
-  # From ibex_init_common(): each flag is kept where the compiler takes it
+  # Each flag where the compiler takes it. GCC and Clang take all three: a
+  # check that fails with them was made to fail by the flags given to the
+  # compiler, CMAKE_CXX_FLAGS or CXXFLAGS (a warning such as
+  # "command-line option '-Wstrict-prototypes' is valid for C/ObjC but not for
+  # C++" fails the check of every flag), and GAOL would be built without them,
+  # its bounds no longer enclosing the values they should: GAOL is not built
+  # then (GAOL v5: it was built so, with no word of it, and 15 of its 56 unit
+  # tests failed). The same holds of the C compiler and -frounding-math below.
+  # The results of the failed checks are taken out of the cache, so that
+  # configuring again after the flags are changed checks them again
+  set(_gaol_refused_flags "")
   foreach(flag -frounding-math -fno-fast-math -ffp-contract=off)
     string(MAKE_C_IDENTIFIER "${flag}" _flag_id)
     string(TOUPPER "GAOL_COMPILER_SUPPORTS${_flag_id}" _flag_var)
     check_cxx_compiler_flag("${flag}" ${_flag_var})
     if(${_flag_var})
       list(APPEND GAOL_INTERVAL_FLAGS ${flag})
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
+      list(APPEND _gaol_refused_flags ${flag})
+      unset(${_flag_var} CACHE)
     endif()
   endforeach()
+  if(_gaol_refused_flags)
+    string(REPLACE ";" " " _gaol_refused_flags "${_gaol_refused_flags}")
+    message(FATAL_ERROR
+      "The checks of the C++ compiler ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}) "
+      "found that it does not take ${_gaol_refused_flags}, which every GCC and Clang take: a flag it is given, "
+      "in CMAKE_CXX_FLAGS (\"${CMAKE_CXX_FLAGS}\") or CXXFLAGS, makes the checks fail, as one it warns of "
+      "(\"command-line option ... is valid for C/ObjC but not for C++\"; the output of the checks is in CMakeFiles/CMakeConfigureLog.yaml, CMakeError.log before CMake 3.26). "
+      "Built without these flags, GAOL would compute intervals that do not enclose the values they should.\n"
+      "Take the flag out of CMAKE_CXX_FLAGS (or CXXFLAGS) and configure again.")
+  endif()
 
   # On a 32-bit x86 processor, doubles are computed in SSE2 rather than on the
   # x87. CORE-MATH assumes every operation on doubles rounded to a double
@@ -488,6 +512,16 @@ else()
     endif()
   endif()
   check_c_compiler_flag(-frounding-math GAOL_C_COMPILER_SUPPORTS_FROUNDING_MATH)
+  if(NOT GAOL_C_COMPILER_SUPPORTS_FROUNDING_MATH AND CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
+    unset(GAOL_C_COMPILER_SUPPORTS_FROUNDING_MATH CACHE)
+    message(FATAL_ERROR
+      "The checks of the C compiler ${CMAKE_C_COMPILER} (${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}) "
+      "found that it does not take -frounding-math, which every GCC and Clang take: a flag it is given, "
+      "in CMAKE_C_FLAGS (\"${CMAKE_C_FLAGS}\") or CFLAGS, makes the check fail, as one it warns of "
+      "(\"command-line option ... is valid for C++/ObjC++ but not for C\"; the output of the checks is in CMakeFiles/CMakeConfigureLog.yaml, CMakeError.log before CMake 3.26). "
+      "The C compiler builds CORE-MATH, whose bounds would not enclose the values they should.\n"
+      "Take the flag out of CMAKE_C_FLAGS (or CFLAGS) and configure again.")
+  endif()
   if(GAOL_C_COMPILER_SUPPORTS_FROUNDING_MATH)
     set(CMAKE_REQUIRED_FLAGS "-frounding-math")
     check_c_source_compiles("int main(void) { return 0; }" GAOL_C_COMPILER_HONOURS_ROUNDING_MATH
@@ -559,18 +593,37 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 # with them, which a program compiled and run by the configuration tells (GAOL
 # v5: GAOL_FMA was an option, on by default; -DGAOL_FMA=OFF is a setting of the
 # developers, for a library running on any processor of the architecture, or to
-# run the path without them). A compiler takes the flag whatever the processor,
-# and under Rosetta on macOS 14 (no longer in the CI), which had no AVX, the
-# x86_64 programs of the tests stopped on an illegal instruction: where the
-# program cannot be run, when cross-compiling, they are left out too, unless
-# -DGAOL_MACHINE_RUNS_FMA=1 says that the machine running GAOL has them (GAOL v5:
-# they were taken on the word of the compiler).
+# run the path without them; it leaves the flags out, not the instructions that
+# the compiler gives by default, as the GCC of the runner ubuntu-26.04 of GitHub
+# does, which targets x86-64-v3: a warning says so, and -march=x86-64 in
+# CMAKE_CXX_FLAGS and CMAKE_C_FLAGS leaves them out). A compiler takes the flag
+# whatever the processor, and under Rosetta on macOS 14 (no longer in the CI),
+# which had no AVX, the x86_64 programs of the tests stopped on an illegal
+# instruction: where the program cannot be run, when cross-compiling, they are
+# left out too, unless -DGAOL_MACHINE_RUNS_FMA=1 says that the machine running
+# GAOL has them (GAOL v5: they were taken on the word of the compiler).
 set(GAOL_FMA_FLAGS "")
 set(_gaol_fma_wanted ON)
 set(_gaol_fma_left_out OFF)
 if(DEFINED GAOL_FMA AND NOT GAOL_FMA)
   set(_gaol_fma_wanted OFF)
   message(STATUS "Fused multiply-add instructions left out: GAOL_FMA=OFF")
+  set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
+  check_cxx_source_compiles("
+    #if !defined(__FMA__)
+    #error the compiler does not give the fused multiply-add instructions by default
+    #endif
+    int main() { return 0; }"
+    GAOL_COMPILER_GIVES_FMA_BY_DEFAULT)
+  unset(CMAKE_REQUIRED_FLAGS)
+  if(GAOL_COMPILER_GIVES_FMA_BY_DEFAULT)
+    message(WARNING
+      "GAOL_FMA=OFF, but the compiler gives the fused multiply-add instructions without a flag (__FMA__: its "
+      "default target, or a flag of CMAKE_CXX_FLAGS, has them, as x86-64-v3 does): the library keeps them, and "
+      "runs only on the processors that have them. For a library that runs on any processor of the "
+      "architecture, give the base architecture as well, -march=x86-64 in CMAKE_CXX_FLAGS and CMAKE_C_FLAGS, in a "
+      "new build directory.")
+  endif()
 endif()
 if(_gaol_fma_wanted)
   if(MSVC)
@@ -1400,15 +1453,16 @@ if(_gaol_u128_asked AND GAOL_COMPILER_HAS_U128)
   target_compile_definitions(gaol_core_math PRIVATE GAOL_U128_FORCE_EMULATION=1)
 endif()
 # GAOL_FMA_SOFTWARE=ON (a setting of the developers, as GAOL_U128_EMULATION) has
-# fma() computed by gaol_fma() of gaol/math/gaol_fma.h, with integers, wherever
-# the build is (but with Visual C++, whose cl has no __builtin_fma()), as it is
-# with the mingw-w64 whose fma() is wrong and the build has no -mfma
-# (GAOL_SOFT_FMA of gaol/gaol_config.h): the macro
-# GAOL_FMA_FORCE_SOFTWARE reaches the code of GAOL, the sources of CORE-MATH,
-# which are in gaol_core_math, and the code using GAOL (GAOL v5). With
-# -DGAOL_FMA=OFF, the instruction is no longer around either
+# fma() computed by gaol/math/gaol_fma.h, with integers (gaol_fma_upward() in
+# CORE-MATH and in the operations of GAOL, gaol_fma() for gaol::gaol_fma()),
+# wherever the build is (but with Visual C++, whose cl has no __builtin_fma()),
+# as it is with the mingw-w64 whose fma() is wrong and the build has no -mfma
+# (GAOL_SOFT_FMA of gaol/gaol_config.h): the macro GAOL_FMA_FORCE_SOFTWARE
+# reaches the code of GAOL, the sources of CORE-MATH, which are in
+# gaol_core_math, and the code using GAOL (GAOL v5). With -DGAOL_FMA=OFF, the
+# instruction is no longer around either
 if(GAOL_FMA_SOFTWARE)
-  message(STATUS "fma(): gaol_fma() of gaol/math/gaol_fma.h, computed with integers, as with the mingw-w64 whose fma() is wrong and no fused multiply-add instruction")
+  message(STATUS "fma(): gaol_fma_upward() and gaol_fma() of gaol/math/gaol_fma.h, computed with integers, as with the mingw-w64 whose fma() is wrong and no fused multiply-add instruction")
   target_compile_definitions(gaol PUBLIC GAOL_FMA_FORCE_SOFTWARE=1)
   target_compile_definitions(gaol_core_math PRIVATE GAOL_FMA_FORCE_SOFTWARE=1)
 endif()
@@ -1602,6 +1656,15 @@ if(NOT MSVC)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gaol.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
 
+# The licences: libgaol holds GAOL, under the GNU LGPL v2 (COPYING.LIB), and
+# the functions of CORE-MATH compiled into it, under the MIT licence, whose
+# notice goes with every copy (3rd/math-core/LICENSE), in share/doc/gaol, as
+# make install and meson install put them (GAOL v5: no build installed them,
+# nor did the packages of the Release hold them)
+install(FILES COPYING.LIB DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/gaol)
+install(FILES 3rd/math-core/LICENSE DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/gaol
+  RENAME LICENSE.CORE-MATH)
+
 
 ################################################################################
 # Packages (CPack)
@@ -1623,7 +1686,9 @@ endif()
 # ON, the default, only processors with the fused multiply-add instructions
 # run it, and with GAOL_AVX512_ARITHMETIC only those with the AVX-512 ones,
 # so a package for other machines is built with -DGAOL_FMA=OFF and
-# -DGAOL_PREFER_AVX512=OFF (see doc/building.md). Only where GAOL is the
+# -DGAOL_PREFER_AVX512=OFF, and with -march=x86-64 where the compiler targets
+# more by default (the GCC of the runner ubuntu-26.04 targets x86-64-v3; see
+# doc/building.md). Only where GAOL is the
 # project built, not brought in by another (add_subdirectory, FetchContent),
 # whose packages are its own.
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
@@ -1631,14 +1696,22 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_PACKAGE_VENDOR "ENSTA")
   set(CPACK_PACKAGE_CONTACT "Jordan Ninin <jordan.ninin@ensta.fr>")
   set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "GAOL, Not Just Another Interval Library: interval arithmetic in C++")
-  set(CPACK_PACKAGE_DESCRIPTION "GAOL v5 computes the tightest enclosures of the arithmetic operations and of the elementary functions, with the correctly rounded functions of CORE-MATH, compiled into the library. The package holds the library libgaol, its headers, and the files find_package(gaol) and pkg-config read.")
+  set(CPACK_PACKAGE_DESCRIPTION "GAOL v5 computes tight enclosures of the arithmetic operations and of the elementary functions (the tightest for the basic operations and most elementary functions, see doc/accuracy.md), with the correctly rounded functions of CORE-MATH, compiled into the library. The package holds the library libgaol, its headers, the files find_package(gaol) reads and, but with Visual C++, the gaol.pc of pkg-config, and the licences of GAOL and of CORE-MATH.")
   set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/Jordan08/GAOL")
   # The license and the readme that the installers of macOS (productbuild,
   # .pkg) and of Windows (NSIS, .exe) show, which the workflow Release makes
-  # (.github/workflows/release.yml): copies of COPYING.LIB and README.md named
-  # .txt, the installer of macOS reading a resource by its extension (.txt,
-  # .rtf, .html); the .deb and the archives do not read them (GAOL v5)
-  configure_file("${PROJECT_SOURCE_DIR}/COPYING.LIB" "${PROJECT_BINARY_DIR}/cpack/License.txt" COPYONLY)
+  # (.github/workflows/release.yml): COPYING.LIB followed by the licence of
+  # CORE-MATH, and a copy of README.md, named .txt, the installer of macOS
+  # reading a resource by its extension (.txt, .rtf, .html); the .deb and the
+  # archives do not read them, and hold both licences in share/doc/gaol
+  # (GAOL v5)
+  file(READ "${PROJECT_SOURCE_DIR}/COPYING.LIB" _gaol_licence_text)
+  file(READ "${PROJECT_SOURCE_DIR}/3rd/math-core/LICENSE" _gaol_core_math_licence_text)
+  file(WRITE "${PROJECT_BINARY_DIR}/cpack/License.txt"
+    "${_gaol_licence_text}\n\n"
+    "The functions of CORE-MATH that libgaol holds are distributed under the following licence "
+    "(3rd/math-core/LICENSE, installed as share/doc/gaol/LICENSE.CORE-MATH):\n\n"
+    "${_gaol_core_math_licence_text}")
   configure_file("${PROJECT_SOURCE_DIR}/README.md" "${PROJECT_BINARY_DIR}/cpack/ReadMe.txt" COPYONLY)
   set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_BINARY_DIR}/cpack/License.txt")
   set(CPACK_RESOURCE_FILE_README "${PROJECT_BINARY_DIR}/cpack/ReadMe.txt")

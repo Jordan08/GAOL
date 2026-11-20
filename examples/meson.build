@@ -1,5 +1,6 @@
 # Meson build of GAOL: the examples of examples/ (see examples.md)
 #
+# Copyright (c) 2025 Raphaël Chenouard
 # Copyright (c) 2026 ENSTA, France
 #
 # By: Raphaël Chenouard, Jordan NININ (created 2025-11-25)

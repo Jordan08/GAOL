@@ -1,5 +1,6 @@
 # Meson build of GAOL
 #
+# Copyright (c) 2025 Raphaël Chenouard
 # Copyright (c) 2026 ENSTA, France
 #
 # By: Raphaël Chenouard, Jordan NININ (created 2025-11-25)
@@ -99,8 +100,10 @@ c_comp = meson.get_compiler('c')
 # gaol/gaol_config.h: before version 12, or linked with msvcrt.dll; and Cygwin
 # for fma()) is built with GAOL's own: gaol_round() for round(), and for fma()
 # the instruction with -mfma, which the build takes where the processor runs
-# it, and gaol_fma() without (see CMakeLists.txt); only on ARM, not tested, is
-# it refused by gaol/gaol_config.h, when compiling
+# it, and gaol_fma() without (see CMakeLists.txt); gaol/gaol_config.h refuses,
+# when compiling, mingw-w64 for 32-bit ARM, and for 64-bit ARM from version 12
+# on when linked with msvcrt.dll (tests/refused_mingw_arm.cpp, with simulated
+# macros)
 
 msvc = cpp_comp.get_argument_syntax() == 'msvc'
 # The standard library of Visual C++ needs C++14 (GAOL v5): Clang with the
@@ -306,6 +309,13 @@ endforeach
 # gaol_dep gives that project's code the flags gaol.pc gives (pc_cflags, see
 # gaol/meson.build) (GAOL v5)
 pc_cflags = []  # the flags of interval arithmetic, which gaol.pc gives the code using GAOL
+# The same flags for the C compiler. Both lists are given to the libraries of
+# GAOL and CORE-MATH as their own arguments too (gaol/meson.build), which meson
+# puts after cpp_args, c_args, CXXFLAGS and CFLAGS, as CMake and configure put
+# the flags of GAOL after those of the user: a flag of the user cannot undo
+# them there (-ffp-contract=fast, -fno-rounding-math), where the arguments of
+# the project come before those of the user (GAOL v5)
+interval_c_args = []
 foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
   if cpp_comp.has_argument(flag)
     add_project_arguments([flag], language: 'cpp')
@@ -313,6 +323,33 @@ foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
   endif
   if c_comp.has_argument(flag)
     add_project_arguments([flag], language: 'c')
+    interval_c_args += [flag]
+  endif
+endforeach
+# GCC and Clang take the three flags: a check that fails with them was made to
+# fail by the flags given to the compiler, cpp_args, c_args, CXXFLAGS or CFLAGS
+# (a warning such as "command-line option '-Wstrict-prototypes' is valid for
+# C/ObjC but not for C++" fails the check of every flag), and GAOL would be
+# built without them, its bounds no longer enclosing the values they should:
+# GAOL is not built then, as CMake does not build it (GAOL v5: it was built so,
+# with no word of it)
+foreach lang_compiler : [['C++', cpp_comp, 'cpp_args or CXXFLAGS'], ['C', c_comp, 'c_args or CFLAGS']]
+  lang_comp = lang_compiler[1]
+  if lang_comp.get_argument_syntax() == 'gcc' and lang_comp.get_id() in ['gcc', 'clang']
+    refused_flags = []
+    foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
+      if not lang_comp.has_argument(flag)
+        refused_flags += [flag]
+      endif
+    endforeach
+    if refused_flags.length() > 0
+      error('The checks of the ' + lang_compiler[0] + ' compiler ' + lang_comp.get_id() + ' ' + lang_comp.version()
+        + ' found that it does not take ' + ' '.join(refused_flags) + ', which every GCC and Clang take: a flag it is given, in '
+        + lang_compiler[2] + ', makes the checks fail, as one it warns of ("command-line option ... is valid for ... but not for ..."; '
+        + 'the output of the checks is in meson-logs/meson-log.txt). Built without these flags, GAOL would compute intervals '
+        + 'that do not enclose the values they should.\n'
+        + 'Take the flag out of ' + lang_compiler[2] + ' and configure again.')
+    endif
   endif
 endforeach
 # -fno-section-anchors with GCC 12 for a 64-bit ARM target (Debian 12), as
@@ -333,18 +370,21 @@ int main(void) { return 0; }
   endif
   if c_comp.has_argument('-fno-section-anchors')
     add_project_arguments(['-fno-section-anchors'], language: 'c')
+    interval_c_args += ['-fno-section-anchors']
   endif
 endif
 # Visual C++: /fp:strict, as CMakeLists.txt gives it to GAOL and to CORE-MATH,
 # without which gaol/gaol_config.h refuses to compile
 if msvc
   add_project_arguments(['/fp:strict'], language: ['c', 'cpp'])
+  interval_c_args += ['/fp:strict']
   pc_cflags += ['/fp:strict']
   # clang-cl for 32-bit x86 computes doubles on the x87 unit, even with
   # /arch:SSE2, which gaol/gaol_config.h refuses: -msse2 has it compute them
   # in SSE2, as CMakeLists.txt gives it
   if cpp_comp.get_id() == 'clang-cl' and host_machine.cpu_family() == 'x86'
     add_project_arguments(['-msse2'], language: ['c', 'cpp'])
+    interval_c_args += ['-msse2']
     pc_cflags += ['-msse2']
   endif
 endif
@@ -373,8 +413,10 @@ if c_comp.has_argument('-Wconversion')
   gaol_library_c_args += ['-Wconversion']
 endif
 # The optimizations configure and the Release build of CMake add to -O3, in the
-# release build type, where the compiler takes them
-if release
+# release build type, where the compiler takes them, and not where enable-debug
+# builds GAOL for debugging, as GAOL_DEBUG of CMake and --enable-debug of
+# configure leave them out (GAOL v5: enable-debug kept them)
+if release and not get_option('enable-debug')
   foreach flag : ['-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations']
     if cpp_comp.has_argument(flag)
       gaol_library_cpp_args += [flag]
@@ -388,7 +430,7 @@ endif
 # where the compiler takes it (gaol/meson.build)
 gaol_align_cpp_args = []
 gaol_align_c_args = []
-if release
+if release and not get_option('enable-debug')
   if cpp_comp.has_argument('-falign-functions=64')
     gaol_align_cpp_args = ['-falign-functions=64']
   endif
@@ -444,6 +486,7 @@ if target_x86
     x86_args = ['-msse2', '-mfpmath=sse']
     add_project_arguments(x86_args, language: 'cpp')
     add_project_arguments(x86_args, language: 'c')
+    interval_c_args += x86_args
     pc_cflags += x86_args
   endif
   sse2_possible = simd
@@ -472,6 +515,7 @@ if target_x86
       # And the C sources, those of CORE-MATH, as CMake gives them (GAOL v5)
       if c_comp.has_argument('-msse2')
         add_project_arguments(['-msse2'], language: 'c')
+        interval_c_args += ['-msse2']
       endif
       if cpp_comp.has_argument('-msse3')
         conf_data.set('GAOL_USING_SSE3_INSTRUCTIONS', 1)
@@ -479,6 +523,7 @@ if target_x86
         pc_cflags += ['-msse3']
         if c_comp.has_argument('-msse3')
           add_project_arguments(['-msse3'], language: 'c')
+          interval_c_args += ['-msse3']
         endif
       endif
     endif
@@ -637,10 +682,12 @@ endif
 # v5)
 avx512_taken = false
 if prefer_avx512
-  if meson.is_cross_build()
+  if meson.is_cross_build() or get_option('machine-runs-avx512')
     # No program can be run: the path is left out, unless machine-runs-avx512
     # says that the machine running GAOL runs it (GAOL_MACHINE_RUNS_AVX512 of
-    # CMake)
+    # CMake). Given in a native build too, it is taken without running the
+    # check, as by CMake and configure, for a machine under an emulator such as
+    # Intel SDE (GAOL v5: it was read in a cross build only)
     avx512_taken = get_option('machine-runs-avx512')
   else
     if msvc
@@ -758,7 +805,9 @@ elif get_option('enable-fma')
   if fma_args.length() > 0 and meson.is_cross_build() and not get_option('machine-runs-fma')
     message('Fused multiply-add instructions left out: cross-compiling, a program compiled with ' + ' '.join(fma_args) + ' cannot be run here (-Dmachine-runs-fma=true says that the machine running GAOL has them)')
     fma_args = []
-  elif fma_args.length() > 0 and not meson.is_cross_build()
+  elif fma_args.length() > 0 and not meson.is_cross_build() and not get_option('machine-runs-fma')
+    # machine-runs-fma=true in a native build takes the instructions without
+    # running the check, as CMake and configure do (GAOL v5)
     # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0.
     # __builtin_fma, not std::fma: the test is built without optimization, and
     # std::fma is then a call of the fma() of the library, which is not the
@@ -786,6 +835,7 @@ elif get_option('enable-fma')
   endif
   if fma_args.length() > 0
     add_project_arguments(fma_args, language: 'c')
+    interval_c_args += fma_args
     add_project_arguments(fma_args, language: 'cpp')
     pc_cflags += fma_args
   endif
@@ -805,6 +855,7 @@ float_store_needed = cpp_comp.compiles('''
 ''', args: x86_args, name: 'doubles computed in extended precision')
 if float_store_needed and cpp_comp.has_argument('-ffloat-store')
   add_project_arguments(['-ffloat-store'], language: 'c')
+  interval_c_args += ['-ffloat-store']
   add_project_arguments(['-ffloat-store'], language: 'cpp')
   pc_cflags += ['-ffloat-store']
 endif
@@ -928,7 +979,7 @@ if not get_option('enable-debug')
   bench_dir = meson.current_source_dir() + '/doc/compare/code'
   gaol_bench = executable('gaol_bench', bench_dir + '/bench_gaol.cpp',
     include_directories: include_directories('.', 'doc/compare/code'),
-    cpp_args: ['-DGAOL_BENCH_NAME="gaol5"'],
+    cpp_args: pc_cflags + ['-DGAOL_BENCH_NAME="gaol5"'],
     link_with: gaollib_static,
     dependencies: deps,
     build_by_default: false)
@@ -948,6 +999,14 @@ run_target('parser', command: [find_program('sh'), files('gaol/parser/regenerate
 if doc
   subdir('manual')
 endif
+
+# The licences, in share/doc/gaol, as CMake and make install put them: GAOL,
+# under the GNU LGPL v2 (COPYING.LIB), and the functions of CORE-MATH compiled
+# into libgaol, under the MIT licence, whose notice goes with every copy
+# (GAOL v5)
+install_data('COPYING.LIB', install_dir: get_option('datadir') / 'doc' / 'gaol')
+install_data('3rd/math-core/LICENSE', install_dir: get_option('datadir') / 'doc' / 'gaol',
+  rename: ['LICENSE.CORE-MATH'])
 
 ## The pkg-config file (pkg-config --cflags --libs gaol): the flags of interval
 ## arithmetic, which the code including GAOL's headers has to be compiled with.

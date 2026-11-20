@@ -53,11 +53,13 @@ if cpp_comp.has_argument('-Wno-psabi')
   tests_args += ['-Wno-psabi']
 endif
 # Linked with the link option of gaol_dep and gaol.pc (-mno-daz-ftz, where the
-# compiler takes it), as CMake links them (GAOL v5)
+# compiler takes it), as CMake links them, and compiled with the flags of
+# interval arithmetic, which a dependency gives after cpp_args and CXXFLAGS:
+# a flag of the user cannot undo them, as with CMake and configure (GAOL v5)
 tests_dep = declare_dependency(
   link_with: gaollib_static,
   include_directories: include_directories('..'),
-  compile_args: tests_args,
+  compile_args: pc_cflags + tests_args,
   link_args: gaol_link_args,
   dependencies: deps,
 )

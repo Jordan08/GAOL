@@ -63,7 +63,10 @@ AC_INIT([gaol],[gaol_m4_version],[jordan.ninin@ensta.fr],[gaol],[https://github.
 # no-dist, the archives being made by CMake alone; see doc/building.md).
 # no-define: no PACKAGE nor VERSION in gaol/gaol_configuration.h, which the
 # code using GAOL includes.
-AM_INIT_AUTOMAKE([gnu 1.7 no-define subdir-objects])
+# automake 1.13 at least: the parallel test harness of tests/Makefile.am
+# (LOG_COMPILER, TEST_EXTENSIONS), AM_TESTS_ENVIRONMENT and AM_DEFAULT_SOURCE_EXT
+# (GAOL v5: 1.7, the version of GAOL 4)
+AM_INIT_AUTOMAKE([gnu 1.13 no-define subdir-objects])
 
 AM_MAINTAINER_MODE([disable])
 # In maintainer mode, the rule of automake that regenerates
@@ -156,7 +159,10 @@ AC_SUBST(GAOL_VERSION)
 LT_VERSION_INFO="`expr $gaol_major + $gaol_minor`:$gaol_micro:$gaol_minor"
 AC_SUBST(LT_VERSION_INFO)
 
-LT_PREREQ([2.2.6])
+# libtool 2.5.4, whose macros m4/ holds: --enable-pic is theirs, and libtool
+# 2.4.2 linked libgaol with -flat_namespace on macOS 11 and later (see
+# doc/building.md) (GAOL v5: 2.2.6)
+LT_PREREQ([2.5.4])
 # CFLAGS and CXXFLAGS left empty when not given, rather than the "-g -O2" that
 # AC_PROG_CC and AC_PROG_CXX give them otherwise: LT_INIT calls AC_PROG_CC, and
 # the C sources (CORE-MATH) were compiled with "-g -O2 ... -O3". The C and C++
@@ -324,9 +330,15 @@ AC_MSG_CHECKING([whether the $1 compiler accepts -frounding-math])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[has_rounding_math_opt=yes],[has_rounding_math_opt=no])
 AC_MSG_RESULT(${has_rounding_math_opt})
 if test "${has_rounding_math_opt}" = yes; then
-    $3="$gaol_save_flags -Werror -frounding-math"
+    # The message of the compiler, as CMake and meson look for it, rather than
+    # any warning made an error: a warning the flags of the user give (an option
+    # of the link with Clang, "argument unused during compilation") refused the
+    # compiler with this message (GAOL v5)
     AC_MSG_CHECKING([whether the $1 compiler honours the rounding direction on this target])
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[honours_rounding=yes],[honours_rounding=no])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
+      [AS_IF([grep "unsupported rounding mode" conftest.err >/dev/null 2>&1],
+             [honours_rounding=no], [honours_rounding=yes])],
+      [honours_rounding=no])
     AC_MSG_RESULT(${honours_rounding})
     if test "${honours_rounding}" = no; then
         AC_MSG_ERROR([GAOL cannot be built with the $1 compiler $2 for this target.
@@ -342,8 +354,10 @@ GAOL_REFUSE_COMPILER([C], [$CC], [CFLAGS])
 # gaol/gaol_config.h: before version 12, or linked with msvcrt.dll; and Cygwin
 # for fma()) is built with GAOL's own: gaol_round() for round(), and for fma()
 # the instruction with -mfma, which the build takes where the processor runs
-# it, and gaol_fma() without (see CMakeLists.txt); only on ARM, not tested, is
-# it refused by gaol/gaol_config.h, when compiling
+# it, and gaol_fma() without (see CMakeLists.txt); gaol/gaol_config.h refuses,
+# when compiling, mingw-w64 for 32-bit ARM, and for 64-bit ARM from version 12
+# on when linked with msvcrt.dll (tests/refused_mingw_arm.cpp, with simulated
+# macros)
 
 # --enable-simd
 AC_ARG_ENABLE(simd,
@@ -739,7 +753,8 @@ fi
 #
 # GAOL bounds every one of its elementary functions with CORE-MATH
 # (https://core-math.gitlabpages.inria.fr, MIT licence), whose sources are in
-# 3rd/math-core and are compiled into libgaol itself (gaol/Makefile.am): there
+# 3rd/math-core and are compiled into libgaol itself (3rd/Makefile.am makes of
+# them a convenience library, which gaol/Makefile.am puts into libgaol): there
 # is no library to find, to build apart or to link along with GAOL.
 #
 # CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL

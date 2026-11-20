@@ -1,5 +1,6 @@
 # Meson build of GAOL: libgaol
 #
+# Copyright (c) 2025 Raphaël Chenouard
 # Copyright (c) 2026 ENSTA, France
 #
 # By: Raphaël Chenouard, Jordan NININ (created 2025-11-25)
@@ -76,10 +77,13 @@ core_math_overrides = ['b_lto=false'] + gaol_build_options
 if not msvc
   core_math_overrides += ['c_std=gnu99']
 endif
+# The flags of interval arithmetic are given to the two libraries as their own
+# arguments too (interval_c_args and pc_cflags, see meson.build), which meson
+# puts after those of the user: a flag of the user cannot undo them (GAOL v5)
 core_math_lib = static_library(
   'gaol_core_math',
   core_math_sources,
-  c_args: core_math_args + gaol_library_c_args + gaol_align_c_args,
+  c_args: core_math_args + interval_c_args + gaol_library_c_args + gaol_align_c_args,
   include_directories: incdir,
   override_options: core_math_overrides,
   pic: true,
@@ -211,8 +215,8 @@ if msvc or clang_msvc
     install: true,
     extra_files: EXTRA_DIST,
     include_directories: [incdir, include_directories('../cmake/msvc')],
-    c_args: gaol_msvc_args,
-    cpp_args: gaol_msvc_args + gaol_library_cpp_args + gaol_align_cpp_args,
+    c_args: gaol_msvc_args + interval_c_args,
+    cpp_args: gaol_msvc_args + pc_cflags + gaol_library_cpp_args + gaol_align_cpp_args,
     override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
@@ -225,7 +229,7 @@ elif gaol_default_library == 'static'
     install: true,
     extra_files: EXTRA_DIST,
     include_directories: incdir,
-    cpp_args: gaol_library_cpp_args + gaol_align_cpp_args,
+    cpp_args: pc_cflags + gaol_library_cpp_args + gaol_align_cpp_args,
     override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
@@ -240,7 +244,7 @@ elif gaol_default_library == 'shared'
     include_directories: incdir,
     version: meson.project_version(),
     soversion: major_version.to_string(),
-    cpp_args: gaol_library_cpp_args + gaol_align_cpp_args,
+    cpp_args: pc_cflags + gaol_library_cpp_args + gaol_align_cpp_args,
     override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
@@ -255,7 +259,7 @@ else
     include_directories: incdir,
     version: meson.project_version(),
     soversion: major_version.to_string(),
-    cpp_args: gaol_library_cpp_args + gaol_align_cpp_args,
+    cpp_args: pc_cflags + gaol_library_cpp_args + gaol_align_cpp_args,
     override_options: gaol_lib_options,
   )
   gaollib_static = gaollib.get_static_lib()
