@@ -59,17 +59,17 @@ the interval literals, and the accuracy of each operation, which
 
 ```bash
 git clone https://github.com/Jordan08/GAOL.git
-cd GAOL
-cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DWITH_TESTS=ON
-cmake --build build --config Release
-ctest --test-dir build -C Release
-cmake --install build --config Release
+cd GAOL && mkdir build && cd build
+cmake -DCMAKE_INSTALL_PREFIX=<prefix> -DWITH_TESTS=ON ..
+make
+make test
+make install
 ```
 
-CMake 3.14 is enough to build GAOL; `cmake --install` is CMake 3.15, and with
-3.14 `cmake --build build --config Release --target install` installs;
-`ctest --test-dir` is CMake 3.20, and before it `cd build && ctest -C Release`
-runs the tests.
+CMake 3.14 is enough to build GAOL. With another generator than make (Visual
+Studio, Xcode, Ninja), `cmake --build . --config Release`, `ctest -C Release`
+and `cmake --build . --config Release --target install` replace the three
+`make` commands.
 
 To see the configuration options, see [Build GAOL](doc/building.md).
 
@@ -110,10 +110,10 @@ using namespace gaol;
 
 int main()
 {
-  const interval x = textToInterval("[0.4, 0.6]");   // the decimals 0.4 and 0.6, enclosed
-  std::cout << x * (1.0 - x) << '\n';       // [0.1599999999999999, 0.3600000000000002]
-  std::cout << 0.25 - sqr(x - 0.5) << '\n';  // [0.2399999999999999, 0.25]
-  gaol::cleanup();                            // right after the last use of GAOL
+  const interval x (0.4, 0.6);              // the interval [0.4, 0.6]
+  std::cout << x * (1.0 - x) << '\n';       // [0.16, 0.36]
+  std::cout << 0.25 - sqr(x - 0.5) << '\n'; // [0.2399999999999999, 0.25]
+  gaol::cleanup();                          // right after the last use of GAOL
 }
 ```
 

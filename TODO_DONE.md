@@ -11911,6 +11911,12 @@ leurs registres n'étaient pas faits :
   drapeaux : le test l'accepte en lisant le cache (chaque vérification à 1).
   Vérifié avec CMake 3.14.4 et 4.2.3, et contre un `CMakeLists.txt` qui laisse
   tomber les drapeaux sans rien dire (C++ et C) : le test échoue.
+- Le `README.md` simplifié par le mainteneur : le démarrage rapide avec `make`,
+  `make test` et `make install` dans `build/`, et le premier programme avec
+  `interval(0.4, 0.6)` (il affiche `[0.16, 0.36]` et
+  `[0.2399999999999999, 0.25]`, vérifié) ; la phrase sur `cmake --install` et
+  `ctest --test-dir` remplacée par les commandes des autres générateurs, et
+  `gaol::cleanup()` gardé à la fin du programme, que le `README` demande.
 
 ## 8. Le ménage fait
 
