@@ -14,9 +14,11 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 19 novembre 2026, au commit de fusion de #398 dans
-`master` (les textes du `.deb` corrigés ; l'étiquette `v5.0.0` est posée sur ce
-commit), et avant au commit `f4b691d` de `master` (la fusion de #397 : le `.deb`
+Dernière mise à jour : 20 novembre 2026, au commit de fusion de #399 dans
+`master` (les corrections de la relecture complète des 19 et 20 novembre ;
+l'étiquette `v5.0.0` est posée sur ce commit), et avant au commit `e733f87` de
+`master` (la fusion de #398 : les textes du `.deb` corrigés), et avant au commit
+`f4b691d` de `master` (la fusion de #397 : le `.deb`
 et le `.exe` avec FMA, le `.pkg` pour macOS 15 et plus), et avant au commit
 `a3428f2` de
 `master` (la fusion de #391 le 19 novembre à 16 h 11 UTC : les registres de la
@@ -27,14 +29,15 @@ suit), et avant au commit `a30f7dd` de `dev` (la fusion de #396, hors des points
 les sources du manuel pour #392 et #393), et avant au commit
 `53db490` de `dev` (la fusion de #393, hors des points : `gaol_fma()`, le `fma()` calculé avec des
 entiers pour les mingw-w64 avant 12 et Cygwin sans FMA, ses trois chemins
-rapides et `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788`, après les
-registres de #392, `137c990`), et avant au commit `cb2474b` de `dev` (la
+rapides et `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788`, après la
+fusion de #395, `c365e68`, hors des points : `performance.yml` pour les seules
+pull requests vers `dev`, et les registres de #392, `137c990`), et avant au
+commit `cb2474b` de `dev` (la
 fusion de #392, hors des points : les mingw-w64 dont le `fma()` et le `round()`
 sont ceux de leur bibliothèque sont acceptés avec `-mfma`, après les registres
-de PJ écrits d'avance, `2166289`), et avant au commit de fusion de #391 dans
-`master` (les registres de la version : PJ est faite, sans étiquette), et avant au commit `313ef2d` de `master` (la fusion de
-#390 : `dev`, à `c38417e`, y entre), et avant au commit `fc8b9ac` de `dev` (la
-fusion de #388, PJ.3 : le
+de PJ écrits d'avance, `2166289`), et avant au commit `313ef2d` de `master` (la
+fusion de #390 : `dev`, à `c38417e`, y entre), et avant au commit `fc8b9ac` de
+`dev` (la fusion de #388, PJ.3 : le
 tableau de couverture du manuel et son PDF, après les registres de #387,
 `9665f49`), et avant au commit `8a308a7` de `dev` (la fusion
 de #387, PJ.8 : les traces de `configure-clean` et le dossier `todo-notes/`,
@@ -79,7 +82,8 @@ et de #294, de #217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #24
 à #293).
 
 Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
-`TODO_AFTER.md`, `STEP.md`), n'est que dans la branche `dev` (section 1).
+`TODO_AFTER.md`, `STEP.md`), est dans la branche `dev` et, depuis #390, dans
+`master` ; les archives des sources ne les ont pas (`export-ignore`, section 1).
 
 ## 1. Le contexte
 
@@ -112,16 +116,17 @@ Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
     mainteneur fusionne lui-même, et qu'il a demandé à la session d'ouvrir ;
     elle n'accepte que des pull requests, les registres y sont entrés par une
     pull request de `dev`, #391, avant l'étiquette, fusionnée le 19 novembre à
-    16 h 11 UTC (`a3428f2`) ; puis #397, les paquets avec FMA, et #398, leurs
-    textes, d'une branche à part vers `master` (3.60) ; puis l'étiquette annotée
-    `v5.0.0`, que la session a posée sur le commit de fusion de #398 et qui a lancé
+    16 h 11 UTC (`a3428f2`) ; puis #397, les paquets avec FMA, #398, leurs
+    textes, et #399, les corrections de la relecture complète, d'une branche à
+    part vers `master` (3.60, 3.61) ; puis l'étiquette annotée `v5.0.0`, que la
+    session a posée sur le commit de fusion de #399 et qui a lancé
     `release.yml`, la GitHub Release et ses trois paquets ; *décidé le 12 novembre*,
     `TODO_DONE.md` 3.36, et le 17 novembre pour `dev` à la place de
     `configure-clean`). `MATH-CORE`, l'étape intermédiaire prévue le 3 octobre,
     est supprimée le 11 novembre. *Décidé le 13 novembre* : pas de fusion dans
     `master` tant que les tâches PU à PZ de `TODO.md` ne sont pas faites (« il y
     a encore des TODO. Donc ne fusionne pas dans master maintenant ») ; elles le
-    sont depuis le 16 novembre, et la version est publiée le 18 novembre.
+    sont depuis le 16 novembre, et la version est publiée par l'étiquette posée sur le commit de fusion de #399.
   - `todo-status`, l'ancienne branche des rapports et de l'outillage, a été
     supprimée le 4 octobre ; le dossier `todo-notes/`, qui en gardait ce qui
     servait encore, est supprimé le 17 novembre (#387) : ses rapports, la
@@ -777,17 +782,26 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   - `containers.yml` : Debian, manylinux, Alpine, qemu ;
   - `macos.yml` : dont un job AppleClang en `-Werror` et les sanitizers ;
   - `windows.yml` : Visual Studio 2022 et 2026, clang-cl, MinGW-w64, MSYS2, et
-    deux jobs `/W4 /WX` ;
+    quatre configurations `/W4 /WX` (x64 Release, x64 Release avec l'AVX-512,
+    x64 Debug, x86 Release) ;
   - `build-systems.yml` : autotools, meson, audit des trois builds,
     `make distclean` ;
   - `manual.yml` : ne tourne que si `manual/` change ;
-  - `performance.yml` : ne tourne que sur les pull requests qui touchent le
-    code, les `CMakeLists.txt` ou les outils de mesure ; construit et mesure
+  - `performance.yml` : ne tourne que sur les pull requests vers `dev` qui
+    touchent le code, les `CMakeLists.txt` ou les outils de mesure (vers `dev`
+    seulement depuis #395, le 18 novembre) ; construit et mesure
     la base de la pull request et son commit de fusion dans le même job, et
     écrit un tableau dans le résumé du job (aucun temps ne fait échouer un
-    job).
+    job) ;
+  - `release.yml` : sur une étiquette d'un commit de `master` qui vaut la
+    version de `VERSION.txt`, construit les trois paquets (`.deb`, `.pkg`,
+    `.exe`), les installe et refait des tests avec eux (`tests/find_package`),
+    puis les attache à la GitHub Release de l'étiquette ; sur une pull request
+    qui change ce workflow, `CMakeLists.txt` ou `cmake/`, construit les paquets
+    et les garde comme artefacts du run, sans Release.
 - **Le déclenchement** : sur chaque pull request (`manual.yml` et
-  `performance.yml` seulement si leurs chemins changent), sur un push vers
+  `performance.yml` seulement si leurs chemins changent, `performance.yml`
+  seulement vers `dev`), sur un push vers
   `master` ou `dev` (`dev` depuis #322, le 13 novembre ; `configure-clean` est
   supprimée le 17 novembre et les filtres des workflows ne la nomment plus
   depuis #387 ; sauf `performance.yml`, qui ne tourne que sur les pull requests,
@@ -1148,20 +1162,29 @@ git ls-remote --heads origin
   #391 (PJ.3 : les registres de la version, de `dev` dans `master` ; fusionnée
   le 19 novembre à 16 h 11 UTC, `a3428f2`, 2.3, 3.57 et 7.58), puis #392 (hors des points : les mingw-w64 dont le `fma()` et le `round()`
   sont ceux de leur bibliothèque, acceptés avec `-mfma`) à 11 h 56 UTC
-  (`cb2474b`, 2.3, 3.58 et 7.59), puis, le 19 novembre, #393 (hors des points :
+  (`cb2474b`, 2.3, 3.58 et 7.59), puis #395 (hors des points : `performance.yml`
+  pour les seules pull requests vers `dev`) à 14 h 48 UTC (`c365e68`, 2.3),
+  puis, le 19 novembre, #393 (hors des points :
   `gaol_fma()`, le `fma()` calculé avec des entiers, et `gaol_fma()` exporté) à
   9 h 58 UTC (`53db490`, 2.3, 3.59 et 7.60), et #396 (hors des points : les
   sources du manuel pour ces deux pull requests) à 11 h 25 UTC (`a30f7dd`, 2.3,
   3.59 et 7.61, la couverture : 7.62), et #397 (hors des points : les paquets de la
-  Release avec FMA) à 20 h 22 UTC (`f4b691d`, 2.3, 3.60 et 7.63) ; l'audit du 13 octobre a vérifié dans
+  Release avec FMA) à 20 h 22 UTC (`f4b691d`, 2.3, 3.60 et 7.63), et #398 (hors
+  des points : les textes du `.deb` de la Release) à 22 h 10 UTC (`e733f87`,
+  2.3, 3.60 et 7.64), puis, le 20 novembre, #399 (hors des points : les
+  corrections de la relecture complète ; 2.3, 3.61 et 7.65) ; l'audit du 13
+  octobre a vérifié dans
   `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
-- **En cours** : au 19 novembre, #391 est fusionnée (`a3428f2`) #397 est fusionnée (`f4b691d`, 20 h 22 UTC : le
-  `.deb` et le `.exe` avec FMA, le `.pkg` pour macOS 15 et plus) et la seule pull
-  request ouverte est #398 (leurs textes, de `release-fma-texts` vers `master` ;
-  l'étiquette `v5.0.0` est posée sur son commit de fusion : `TODO_DONE.md` 2.3,
-  3.60, 7.63 et 7.64) : #393 (hors des points : `gaol_fma()`, le `fma()` calculé
-  avec des entiers ; `mingw-soft-fma`) est fusionnée, ses registres faits
+- **En cours** : au 20 novembre, #391 est fusionnée (`a3428f2`), #397
+  (`f4b691d`, 20 h 22 UTC : le `.deb` et le `.exe` avec FMA, le `.pkg` pour macOS
+  15 et plus), #398 (`e733f87`, 22 h 10 UTC : leurs textes) et #399 aussi (les
+  corrections de la relecture complète, de `release-review-fixes` vers
+  `master` ; l'étiquette `v5.0.0` est posée sur son commit de fusion :
+  `TODO_DONE.md` 2.3, 3.60, 3.61 et 7.63 à 7.65) ; aucune pull request n'est
+  ouverte : #393 (hors des
+  points : `gaol_fma()`, le `fma()` calculé avec des entiers ;
+  `mingw-soft-fma`) est fusionnée, ses registres faits
   (`TODO_DONE.md` 2.3, 3.59 et 7.60), de même que #396 (les sources du manuel ;
   `manual-fma-393`, 2.3 et 7.61) ; #373 (le
   diagnostic d'un échec sous Rosetta ; `todo-rosetta-diagnostic-pow2`)
@@ -1199,8 +1222,15 @@ git ls-remote --heads origin
   et #383 (`manual-pj-coverage`) et #385 (`remove-expr-visitor`) et #386
   (`internal-expressions`) et #387 (`todo-pj8-configure-clean-traces`) et #388
   (`manual-pj3-coverage`), #390 (`dev` dans `master`), #391 (les registres de
-  la version, de `dev` dans `master`) et #392 (`mingw-round`) sont fusionnées,
-  leurs registres faits ; `dev` est au commit de ces registres (7.59), après
+  la version, de `dev` dans `master`), #392 (`mingw-round`) et #395
+  (`performance-dev-only`) sont fusionnées,
+  leurs registres faits ; `dev` est au commit `56201f1`, les registres de la
+  couverture refaite (`TODO_DONE.md` 7.62), après `0173d0a`, la fusion de
+  `master` dans `dev` (le 19 novembre à 11 h 57 UTC, avant #391 : elle
+  n'apporte que `313ef2d`, et `dev` n'a ni #391, ni #397, ni #398, ni #399, qu'une
+  fusion de `master` lui donnera), `fd1194f` (7.61), `a30f7dd`, la fusion de
+  #396, `8d04887`, `3df7f08` et `f72b7d3` (7.60), `53db490`, la fusion de #393,
+  `c365e68`, la fusion de #395, `137c990` (7.59),
   `cb2474b`, la fusion de #392, `2166289` (7.58), `5b4cb29` (7.57),
   `313ef2d`, la fusion de #390 dans `master`, `c38417e` (7.56), `fc8b9ac`, la
   fusion de #388, `9665f49` (7.54), `8a308a7`, la fusion de #387, `5d07c3a`,
@@ -1277,10 +1307,13 @@ git ls-remote --heads origin
   sont dans leurs issues et `TODO_AFTER.md` 2.6, avec l'accord du mainteneur),
   et la version (PJ) est publiée : la fusion de `dev` dans `master` par #390
   (section 13), les registres par #391, les paquets avec FMA par #397 et leurs
-  textes par #398, puis l'étiquette annotée `v5.0.0`, que la session a posée sur
-  le commit de fusion de #398 quand toute la CI était verte, et qui a lancé la Release de `release.yml` (*décidé le 12 novembre* :
+  textes par #398, les corrections de la relecture complète des 19 et 20
+  novembre par #399, puis l'étiquette annotée `v5.0.0`, que la session a posée
+  sur le commit de fusion de #399 quand toute la CI était verte, et qui a lancé
+  la Release de `release.yml` (*décidé le 12 novembre* :
   `TODO_DONE.md` 3.36 ; le message de l'étiquette, le 17 novembre : 3.55 ; 3.56
-  et 3.57). La couverture et le PDF du manuel sont ceux de #388, au code de la
+  et 3.57). La couverture (97,6 % des 8 077 lignes, `TODO_DONE.md` 7.62) et le
+  PDF du manuel (395 pages, 7.61) sont refaits le 19 novembre, au code de la
   version ; les temps de PJ.2 ne sont pas remesurés (*décidé le 17 novembre*).
   Après la version : l'annonce à Frédéric Goualard (reportée, faute d'adresse :
   l'issue #389 et `TODO_AFTER.md` 1.7) et la licence des cas d'IBEX et de Codac,
@@ -1295,8 +1328,8 @@ git ls-remote --heads origin
 ## 13. Une version : `dev` → `master`
 
 `dev` est la branche des versions (*décidé le 17 novembre* : `configure-clean`,
-qui retirait les notes, est supprimée). La première, v5.0.0, est publiée le 19
-novembre, après les tâches PU à PZ (*décidé le 13 novembre*).
+qui retirait les notes, est supprimée). La première, v5.0.0, est publiée après
+les tâches PU à PZ et la relecture complète des 19 et 20 novembre (*décidé le 13 novembre*).
 
 1. **Quand.** Le mainteneur le dit. Les tâches de `TODO.md` qui précèdent la
    version sont faites, et la CI de `dev` est verte.
@@ -1318,7 +1351,8 @@ novembre, après les tâches PU à PZ (*décidé le 13 novembre*).
    donnent exactement les fichiers de `git archive HEAD`, que `.gitattributes`
    prive des notes : `buildsystems-dist` le contrôle à chaque push et à chaque
    pull request. La couverture, les mesures de PJ.2 et le PDF du manuel se
-   refont si le code ou les textes ont changé (`TODO.md`, PJ).
+   refont si le code ou les textes ont changé (`TODO_DONE.md` 3.54 ; pour
+   v5.0.0, 7.61 et 7.62).
 4. **La pull request.** Le mainteneur fusionne lui-même celle de `dev` vers
    `master` (*décidé le 12 novembre*), une vraie fusion ; le 17 novembre il a
    demandé à la session de l'ouvrir (#390). Puis la session pose l'étiquette,
@@ -1328,11 +1362,11 @@ novembre, après les tâches PU à PZ (*décidé le 13 novembre*).
    avant l'étiquette, que le mainteneur fusionne aussi (#391) ; pendant qu'elle
    est ouverte, aucun push sur `dev` sans son accord (il relance la CI de la
    pull request), et une pull request fusionnée dans `dev` pendant ce temps
-   entre aussi dans `master` et dans l'étiquette (#392, le 18 novembre :
-   `TODO_DONE.md` 3.58 ; #393 et #396, le 19 : 3.59 et 7.61). Une pull request
+   entre aussi dans `master` et dans l'étiquette (#392 et #395, le 18 novembre :
+   `TODO_DONE.md` 3.58 et 2.3 ; #393 et #396, le 19 : 3.59 et 7.61). Une pull request
    vers `master` doit porter, avec les registres, le manuel (les sources et le
    PDF) et le reste de ce que le code change (*demande du mainteneur, 19
-   novembre*) : elle se vérifie avant de la dire prête. Un changement qui doit entrer après la fusion de `dev` et avant l'étiquette passe par une pull request de plus, d'une branche à part vers `master` : pour v5.0.0, #397 (les paquets avec FMA, *décidé le 19 novembre* : `TODO_DONE.md` 3.60), puis #398 (leurs textes, que #397 avait fusionnée avant leur correction), dont le commit de fusion porte l'étiquette ; `dev` reçoit ensuite `master`. Pour v5.0.0, il a demandé que ces registres disent la
+   novembre*) : elle se vérifie avant de la dire prête. Un changement qui doit entrer après la fusion de `dev` et avant l'étiquette passe par une pull request de plus, d'une branche à part vers `master` : pour v5.0.0, #397 (les paquets avec FMA, *décidé le 19 novembre* : `TODO_DONE.md` 3.60), puis #398 (leurs textes, que #397 avait fusionnée avant leur correction) et #399 (les corrections de la relecture complète que le mainteneur a demandée avant l'étiquette, `TODO_DONE.md` 3.61), dont le commit de fusion porte l'étiquette ; `dev` reçoit ensuite `master`. Pour v5.0.0, il a demandé que ces registres disent la
    version
    publiée avant même l'étiquette (*décidé le 18 novembre* : `TODO_DONE.md`
    3.57), pour que `master` n'ait rien à rattraper après elle. Les notes sont

@@ -1,14 +1,16 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit de fusion de #398 dans `master` (le
-19 novembre : les textes du `.deb` corrigés, qui demande x86-64-v3 ; l'étiquette
-`v5.0.0` est posée sur ce commit), et avant au commit `f4b691d` de `master` (la
+Ce qui reste à faire sur GAOL v5 au commit de fusion de #399 dans `master` (les
+corrections de la relecture complète des 19 et 20 novembre ; l'étiquette `v5.0.0`
+est posée sur ce commit), et avant au commit `e733f87` de `master` (la fusion de
+#398 le 19 novembre à 22 h 10 UTC : les textes du `.deb` corrigés, qui demande
+x86-64-v3), et avant au commit `f4b691d` de `master` (la
 fusion de #397 le 19 novembre à 20 h 22 UTC : le `.deb` et le `.exe` construits
 avec les instructions FMA, le `.pkg` pour macOS 15 et plus), et avant au commit
 `a3428f2` de `master` (la fusion de #391 le 19 novembre à 16 h 11
 UTC : les registres de la version, de `dev` dans `master`), et avant au commit
 `0173d0a` de `dev` (la fusion de
-`master` dans `dev` par le mainteneur le 19 novembre à 12 h 57 UTC, sans
+`master` dans `dev` par le mainteneur le 19 novembre à 11 h 57 UTC, sans
 changement de fichier : l'arbre est celui de `fd1194f`, qui porte le PDF du manuel
 refait, 395 pages, et les registres de #396 ; la couverture est refaite dans le
 commit de registres qui suit, 97,6 % des 8 077 lignes de `gaol/`, 7.62), et avant
@@ -17,12 +19,13 @@ des points : les sources du manuel pour #392 et #393), et avant au commit `53db4
 de `dev` (la fusion de #393 le 19 novembre à 9 h 58 UTC, hors des points : `gaol_fma()`, le `fma()`
 calculé avec des entiers pour les mingw-w64 avant 12 et Cygwin sans FMA, ses
 trois chemins rapides et `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788`,
-après les registres de #392, `137c990`), et avant au commit `cb2474b` de `dev`
+après la fusion de #395 le 18 novembre à 14 h 48 UTC, `c365e68`, hors des
+points : `performance.yml` pour les seules pull requests vers `dev`, et les
+registres de #392, `137c990`), et avant au commit `cb2474b` de `dev`
 (la fusion de #392 le 18 novembre à 11 h 56 UTC, hors des points : les
 mingw-w64 dont le `fma()` et le `round()` sont ceux de leur bibliothèque sont
 acceptés avec `-mfma`, après les registres de PJ écrits d'avance, `2166289`), et
-avant au commit de fusion de #391 dans `master` (les registres de la version,
-de `dev` dans `master` ; PJ est faite, sans étiquette), et avant au commit `313ef2d`
+avant au commit `313ef2d`
 de `master` (la fusion de #390 le 17 novembre à 22 h 20 UTC : `dev`, à
 `c38417e`, entre dans `master`), et avant au commit `fc8b9ac` de `dev` (la
 fusion de #388 le 17 novembre à 21 h 21 UTC, PJ.3 : le tableau de couverture du
@@ -114,10 +117,20 @@ avant la correction des textes du `.deb` : son `libgaol.a` est celui de #391 oct
 pour octet, le GCC du runner visant x86-64-v3, de sorte qu'il demande AVX2 et BMI
 comme FMA (Intel Haswell et AMD Excavator, 2013-2015, et plus), non AMD
 Piledriver. #398 (`release-fma-texts`, vers `master` : `doc/building.md`, le
-`ChangeLog`, l'en-tête de `release.yml`, `TODO_AFTER.md` 21 et les registres) est
-fusionnée par le mainteneur, la CI de sa tête au vert, et l'étiquette `v5.0.0`,
-annotée, est posée par la session sur son commit de fusion : la version 5.0.0
-est publiée (`TODO_DONE.md` 2.3, 3.60, 7.63 et 7.64). #393 (hors
+`ChangeLog`, l'en-tête de `release.yml`, `TODO_AFTER.md` 5.21 et les registres) est
+fusionnée le 19 novembre à 22 h 10 UTC par la session, sur le mot du mainteneur
+(`e733f87`), la CI de sa tête au vert, et celle de `master` aussi (cinq
+workflows, 60 contrôles) ; l'étiquette n'y est pas posée : le mainteneur demande
+d'abord une relecture complète (`TODO_DONE.md` 3.61). #399 (hors des points :
+les corrections de la relecture, `release-review-fixes`, vers `master` : les
+licences installées, GAOL refusé par CMake et meson quand un flag de
+l'utilisateur fait échouer les tests des flags d'intervalles, ces flags après
+ceux de l'utilisateur avec meson, la parité de meson et d'autotools, les
+crédits de Raphaël Chenouard, les renvois à IBEX retirés de `CMakeLists.txt`,
+les 88 constats de texte, le manuel et son PDF, les registres) est fusionnée par
+le mainteneur, la CI de sa tête au vert, et l'étiquette `v5.0.0`, annotée, est
+posée par la session sur son commit de fusion : la version 5.0.0 est publiée
+(`TODO_DONE.md` 2.3, 3.60, 3.61 et 7.63 à 7.65). #393 (hors
 des points : `gaol_fma()`, le `fma()` calculé avec des entiers, pour
 les mingw-w64 avant 12 et Cygwin sans FMA ; `mingw-soft-fma`, ouverte par la
 session « mingw FMA » sur la demande du mainteneur, qui avait répondu « Ne pas
@@ -139,7 +152,12 @@ ceux de mingw-w64) est fusionnée le 18 novembre à 11 h 56 UTC par le mainteneu
 la CI de sa tête au vert (les sept workflows), ses registres faits
 (`TODO_DONE.md` 2.3, 3.58 et 7.59) ; elle est entrée dans `dev` alors que #391,
 dont la tête est `dev`, était ouverte : l'étiquette `v5.0.0` porte son code
-(`TODO_DONE.md` 3.57). #391 (les registres de la version :
+(`TODO_DONE.md` 3.57). #395 (hors des points : `performance.yml` ne tourne plus
+que sur les pull requests vers `dev`, non sur celles des versions vers
+`master` ; `performance-dev-only`) est fusionnée le 18 novembre à 14 h 48 UTC
+par le mainteneur (`c365e68`), la CI de sa tête au vert sauf un job de macOS
+annulé, ses registres faits (`TODO_DONE.md` 2.3) ; elle entre aussi dans
+`master` à la fusion de #391. #391 (les registres de la version :
 `TODO.md`, `TODO_DONE.md` et `process.md`, de `dev` dans `master`, pour que
 `master` les ait avant l'étiquette) est fusionnée le 19 novembre à 16 h 11 UTC
 par le mainteneur (`a3428f2`), la CI de sa tête au vert (les sept workflows) et
@@ -310,13 +328,184 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 
 ## Les tâches restantes
 
-Aucune : PJ, la dernière, est faite le 19 novembre (la fusion de `dev` dans
-`master` par #390, les registres par #391, les paquets avec FMA par #397 et leurs
-textes par #398, puis l'étiquette `v5.0.0` : `TODO_DONE.md` 3.56, 3.57 et 3.60). Le texte de son point 34 est dans `TODO_DONE.md`
-(section 5, point Y).
+PJ, la version, est faite (la fusion de `dev` dans `master` par #390, les
+registres par #391, les paquets avec FMA par #397 et leurs textes par #398, les
+corrections de la relecture complète par #399, puis l'étiquette `v5.0.0` :
+`TODO_DONE.md` 3.56, 3.57, 3.60 et 3.61). Le texte de son point 34 est dans
+`TODO_DONE.md` (section 5, point Y). Restent, pour `dev`, les tâches VA à VI de
+la relecture, que le mainteneur donne une à une : ne commence rien sans lui.
+
+| Tâche | Contenu | Points | Taille |
+| --- | --- | --- | --- |
+| VA | Deux défauts du code : un drapeau levé à tort, un zéro signé écrit | VA.1, VA.2 | S |
+| VB | Le build CMake | VB.1 à VB.4 | S |
+| VC | Les tests qui protègent moins que ce qu'ils disent | VC.1 à VC.6 | S |
+| VD | La CI | VD.1 à VD.8 | M |
+| VE | Les exemples | VE.1 à VE.3 | S |
+| VF | Les restes des corrections de la relecture | VF.1 à VF.5 | S |
+| VG | Les crédits d'IBEX hors de `CMakeLists.txt` | VG.1 | à décider |
+| VH | Les 29 constats vus et non rapportés | VH.1 | M |
+| VI | Ce que la relecture n'a pas lu | VI.1 à VI.3 | M |
+
+Les tâches VA à VI viennent de la relecture complète des 19 et 20 novembre,
+faite avant l'étiquette `v5.0.0` sur la demande du mainteneur (`TODO_DONE.md`
+3.61) : 17 relecteurs, un par dimension, sur l'arbre de `master` à `e733f87`
+(tree `4376a4c`), chaque constat vérifié par un ou deux sceptiques, 130
+constats confirmés, aucun bloquant. #399 en corrige 108 (les licences, les
+flags d'intervalles perdus en silence, la parité de meson et d'autotools, les
+88 constats de texte et les registres) ; le mainteneur a demandé de réunir les
+22 autres en une dizaine de tâches, pour `dev`, après la version. Le rapport,
+les données de chaque constat et les programmes de preuve sont hors du dépôt,
+dans `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_review_2026-11-19/`
+(`rapport.md`, `findings.json`, `repro/`) ; « R12 » renvoie au constat 12 du
+rapport, avec sa preuve et la correction que le relecteur propose. Les numéros
+de ligne sont ceux de `4376a4c` : les relire contre l'arbre. « Démontré » : un
+programme le montre (`repro/`) ; sinon, vérifié en lisant. Chaque point est une
+pull request vers `dev`, avec un test qui a des dents (process.md §5).
 
 Ce qui vient après la version est dans `TODO_AFTER.md` (issue #178) : l'annonce
 à Frédéric Goualard, faute d'adresse (1.7, issue #389), la licence des cas
 d'IBEX et de Codac (1.8, #281), et le ménage de la fin, dont ces registres à
-vider (1.6). Le mainteneur donne les tâches ou les points un par un : ne
-commence rien sans lui.
+vider (1.6).
+
+## VA. Deux défauts du code [S]
+
+1. **`powRev1` lève FE_OVERFLOW pour un résultat fini ou vide** (R12, mineur,
+   démontré) : le pas de Newton de `root_of_power_near()`
+   (`gaol/core/gaol_interval_relational.cpp`, ligne 638) calcule `s = r - r*t`
+   avant de tester `s <= largest`, et déborde quand c^(1/y) est juste au-dessus
+   de DBL_MAX. `powRev1([-0.998046875], [0, DBL_MIN], [1, 10])` est vide et
+   lève FE_OVERFLOW, `powRev1([-0.998046875], [DBL_MIN, 0.5], [1, 10])` est fini
+   et le lève aussi (`repro/t11.cpp`). Correction : tester avant le calcul, ou
+   le faire sans débordement, et un test du drapeau.
+2. **`exact_string()` écrit une borne nulle -0 en `-0x0p+0`** (R17, mineur,
+   démontré) : IEEE 1788-2015 13.4.1 veut un zéro de bit de signe 0 ;
+   `write_hexa_bound()` (`gaol/core/gaol_interval_io.cpp`, ligne 666) prend le
+   signe du bit 63. `exact_string(interval(-0.0, 1.0))` donne `[-0x0p+0,
+   0x1p+0]`, `exact_string(sqr([-1, 2]))` `[-0x0p+0, 0x1p+2]` (`repro/t16.cpp`) ;
+   `tests/numbers.cpp`, ligne 1060, fige ce texte. Correction : écrire `0x0p+0`
+   pour les deux zéros, et changer le test.
+
+## VB. Le build CMake [S]
+
+1. **`gaol::gaol` donne `-mno-daz-ftz` à tout GCC 13 ou plus, quelle que soit
+   l'architecture** (R32, mineur, démontré en partie) : `CMakeLists.txt`, ligne
+   1453 (`GAOL_LINK_FLAGS_GCC13`). Clang 20 et 21 prennent l'option pour aarch64
+   sans rien dire (Clang 18 la refuse), donc un GAOL construit par Clang 20 sur
+   ARM la transmet à un programme construit par GCC, qui la refuse sur ARM.
+   Correction : la condition GCC 13 seulement sur x86, ou l'option seulement si
+   le compilateur du programme est celui qui a construit GAOL.
+2. **`-DCMAKE_BUILD_TYPE=debug`, en minuscules, compile avec `-g` sans
+   `GAOL_DEBUGGING`** (R34, mineur, démontré) : `CMakeLists.txt`, lignes 857 et
+   1963, comparent la casse exacte, alors que CMake choisit les flags sans elle.
+   Correction : comparer en majuscules (`string(TOUPPER)`).
+3. **`CPACK_SOURCE_IGNORE_FILES` ne suit pas `.gitignore` pour
+   `/.github/corelocks/`** (R108, mineur) : les verrous de `gcore` entrent dans
+   l'archive de CMake, non dans celles de `make dist` et de `meson dist`.
+   Correction : l'ajouter (et `\.loTAGS`).
+4. **`<immintrin.h>` et `<cstdint>` inclus à l'intérieur de `namespace
+   gaol_core`** (R6, mineur) : `gaol/core/gaol_interval_core.cpp`, ligne 500,
+   et `gaol/core/gaol_interval_sse_impl.h`, ligne 21. Correction : les inclure
+   en tête du fichier.
+
+## VC. Les tests qui protègent moins que ce qu'ils disent [S]
+
+1. **Les racines n-ièmes des 60 000 doubles au hasard acceptées à 16 puis 512
+   doubles des bornes** (R66) : `tests/arithmetic.cpp`, lignes 2505 et 2506 ; la
+   limite de 2 de `doc/accuracy.md` ne vaut que pour les 27 points extrêmes, un
+   reste de la fusion de #21. Correction : passer `root_limit` (2).
+2. **`sin` et `cos` : les bornes -1 et 1 non exigées exactes** (R67) :
+   `tests/elementary.cpp`, ligne 208, et `at_known_intervals()`, lignes 430 à 435.
+3. **La concordance de `GAOL_SOFT_FMA` compare une copie de l'en-tête de
+   portage** (R20) : `tests/core_math.cpp`, lignes 66 à 98, recopie
+   `gaol/math/gaol_core_math_port.h` au lieu de l'inclure : elle ne peut pas
+   échouer.
+4. **`compoundm1` ne tire presque jamais de sous-normal** (R68) :
+   `tests/compoundm1.cpp`, ligne 613, `rnd(-1074, 1023)` sort de la plage de
+   `Random::operator()`.
+5. **`TEST_PEQ` reste dans `non_arithmetic.cpp` et `misc.cpp`** (R69), plus
+   faible que le `TEST_EQ` retiré par #379.
+6. **Un contrôle de `expressions.cpp` ne peut pas échouer** (R71) : ligne 1455,
+   « the empty one is printed ».
+
+## VD. La CI [M]
+
+1. **Le chemin AVX-512 compilé par GCC ne tourne presque jamais** (R52) : les
+   runners Linux sont le plus souvent sans AVX-512 et la configuration ne fait
+   qu'avertir (`.github/actions/linux-cmake/action.yml`, ligne 89). Correction :
+   Intel SDE sous Linux, comme sous Windows, ou échouer au lieu d'avertir.
+2. **La couverture de la CI prend le gcovr du jour (8.x)** (R54) :
+   `.github/actions/linux-coverage/action.yml`, ligne 32 ; épingler 7.2, ou
+   dédoublonner par ligne.
+3. **Le `LDFLAGS` des sanitizers LLVM de macOS n'atteint pas l'édition de
+   liens** (R55) : `.github/actions/macos-sanitizers/action.yml`, ligne 66.
+4. **Cygwin n'a pas d'audit des trois builds, et le job meson ne vérifie que
+   `-mfma`** (R53) : `.github/workflows/build-systems.yml`, ligne 715.
+5. **La clé du cache de performance de MSYS2 ne contient pas la version de la
+   chaîne** (R56) : `.github/workflows/performance.yml`, ligne 240.
+6. **`manual.yml` ne tourne que si `manual/` change** (R57), alors que les règles
+   de la cible `pdf` sont dans `CMakeLists.txt`, `meson.build` et `configure.ac`.
+7. **Le job des archives lit `VERSION.txt` sans retirer la marque d'ordre des
+   octets ni les CR** (R58) : `.github/actions/buildsystems-dist/action.yml`,
+   ligne 67.
+8. **Le contrôle `/MD` de `release.yml` ne lit pas `gaol_core_math.vcxproj`**
+   (R59), dont les objets sont dans `gaol.lib`.
+
+## VE. Les exemples [S]
+
+1. **L'exemple 13 imprime une affirmation fausse avec le chemin AVX-512 et
+   l'arrondi préservé** (R94, démontré sur le i7) : « the other operations leave
+   it upward », puis « and the direction is restored »
+   (`examples/13_rounding_environment.cpp`, lignes 425 à 430).
+2. **`examples.md` dit prouvée chaque affirmation de la sortie, « 4 times too
+   wide » compris** (R95), que l'exemple 03 imprime sans la vérifier.
+3. **L'exemple 16 calcule une variante aux constantes doubles du programme du
+   manuel** (R102) : le commentaire est corrigé par #399 ; à décider, écrire `w`
+   avec des entiers et `interval(-2, 2)`, comme le manuel.
+
+## VF. Les restes des corrections de la relecture [S]
+
+1. **Le test de meson « honours the rounding direction » échoue sur tout
+   avertissement** (`meson.build`, `compiles()` avec `-Werror`), comme celui de
+   configure que #399 corrige (R46) : chercher le message plutôt (un
+   `run_command()` du compilateur).
+2. **Le commentaire de `gaol/parser/gaol_expression.h`, lignes 871 à 873**
+   (« which the reader of strings builds too »), semble périmé : le lecteur
+   calcule les fonctions sur des intervalles et ne construit pas d'`exp2_node`
+   (`gaol_interval_parser.ypp`, ligne 586).
+3. **`doc/three-builds.md`, lignes 168 à 171**, reste ambigu : avec configure,
+   le `--enable-debug` du projet parent passe à GAOL et touche ses tests.
+4. **`RUN_TESTS` sans Xcode** : `CMakeLists.txt` (le commentaire des tests),
+   `doc/building.md` et `doc/continuous-integration.md`, ligne 14, disent
+   « RUN_TESTS with Visual Studio » ; le manuel cite les deux.
+5. **`doc/continuous-integration.md`, ligne 175**, passe 80 colonnes.
+
+## VG. Les crédits d'IBEX hors de `CMakeLists.txt` [à décider]
+
+1. #399 retire de `CMakeLists.txt` les renvois au CMake d'IBEX et à sa licence
+   (LGPL v3), sur la décision du mainteneur (« il ne reste plus grand chose
+   d'IBEX dans le CMake », `TODO_DONE.md` 3.61). `doc/differences.md`
+   (« The CMake build, derived from the CMake build of GAOL in IBEX ») et le
+   chapitre des contributeurs du manuel (« GAOL v5 takes up […] the CMake build
+   of GAOL in IBEX, by Cyril Bouvier and Gilles Chabert ») le disent encore, et
+   `cmake/gaol_configuration.h.in` (« Origin: the version […] with which IBEX
+   builds GAOL with CMake »). À décider : garder le crédit (une origine, non
+   une dérivation), ou le retirer comme dans `CMakeLists.txt`.
+
+## VH. Les 29 constats vus et non rapportés [M]
+
+1. Chaque relecteur rapportait 15 constats au plus. Ceux de la CI (5 omis),
+   des builds autotools et meson (5), des registres (5), du build CMake (3), de
+   ce que publie la version (3), des textes pour l'utilisateur (2), des tests
+   (2), du manuel, seconde moitié (2), de la configuration (1) et des textes
+   pour les développeurs (1) en ont vu 29 de plus, non décrits. Relancer ces
+   dimensions sans plafond, sur l'arbre de la version, et en faire des points.
+
+## VI. Ce que la relecture n'a pas lu [M]
+
+1. La preuve d'erreur de la phase rapide de `compoundm1`
+   (`gaol/math/gaol_compoundm1.h`, `fast_log_small/large`, `fast_rho`) n'est
+   pas refaite.
+2. Les correctifs 1 à 8 proposés en amont à CORE-MATH (`3rd/README.md`,
+   environ les lignes 560 à 1690) ne sont pas relus.
+3. `doc/compare/` n'est que survolé.

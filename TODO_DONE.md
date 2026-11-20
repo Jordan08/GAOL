@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 19 novembre
-2026 (le commit de fusion de #398 dans `master`, celui de l'étiquette `v5.0.0` ;
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 20 novembre
+2026 (le commit de fusion de #399 dans `master`, celui de l'étiquette `v5.0.0` ;
 `configure-clean`, qui était à `83e2f69`, la fusion de #321, est supprimée le 17
 novembre : voir la section 1). Ce fichier est dans `dev` et dans `master`
 (depuis #390), non dans les archives des sources. Ce fichier fait foi : l'issue
@@ -48,21 +48,25 @@ est supprimé. Le reste du travail est dans deux autres registres :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
   classement. Ce qui restait à faire était classé en tâches dans
   `TODO.md`, où il n'en reste aucune depuis le 18 novembre.
-- Ce qui sert encore des rapports des agents est dans
-  [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
-  `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
-  ; la procédure suivie pour chaque point est dans `process.md`.
+- Ce qui sert encore des rapports des agents est dans `todo-notes/synthese.md`,
+  retiré du dépôt par #387 (`git show 5d07c3a2:todo-notes/synthese.md`), leurs
+  originaux au commit `16a2f60` (`todo-notes/`, ceux du 30 septembre dans
+  `todo-notes/2026-09-30/`) ; la procédure suivie pour chaque point est dans
+  `process.md`.
 
-Sommaire : 1. L'état au 18 novembre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 20 novembre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 19 novembre 2026
+## 1. L'état au 20 novembre 2026
 
-- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #398
-  (le 19 novembre : les textes du `.deb` corrigés), celui de l'étiquette `v5.0.0`
-  (3.60) : la version 5.0.0 est publiée. Avant, il était au commit `f4b691d` (la
+- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #399
+  (les corrections de la relecture complète des 19 et 20 novembre), celui de
+  l'étiquette `v5.0.0` (3.61) : la version 5.0.0 est publiée. Avant, il était au
+  commit `e733f87` (la fusion de #398 le 19 novembre à 22 h 10 UTC, par la
+  session sur le mot du mainteneur : les textes du `.deb` corrigés, 3.60), et
+  avant au commit `f4b691d` (la
   fusion de #397 le 19 novembre à 20 h 22 UTC : le `.deb` et le `.exe` avec FMA, le
   `.pkg` pour macOS 15 et plus), et avant au commit `a3428f2` (la fusion de #391 le 19 novembre à 16 h 11
   UTC : les registres de la version, de `dev` dans `master`, 3.57), et avant au
@@ -70,13 +74,20 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `c38417e`, y entre, 2 338 commits et 980 fichiers ; l'arbre de `master` est
   celui de `dev`).
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `a30f7dd` (la fusion de #396 le 19 novembre à 11 h 25 UTC, hors des
-  points : les sources du manuel pour #392 et #393 ; le PDF est refait dans le
-  commit de registres qui suit, 395 pages (3.59 et 7.61)), et avant au commit
+  commit `56201f1` (la couverture refaite, 97,6 % des 8 077 lignes de `gaol/`,
+  7.62), après `0173d0a` (la fusion de `master` dans `dev` par le mainteneur le
+  19 novembre à 11 h 57 UTC, qui n'apporte que `313ef2d` : `dev` n'a ni
+  `a3428f2` (#391), ni `f4b691d` (#397), ni `e733f87` (#398), 3.60) et `fd1194f`
+  (le PDF du manuel refait, 395 pages, et les registres de #396, 7.61), et avant
+  au commit `a30f7dd` (la fusion de #396 le 19 novembre à 11 h 25 UTC, hors des
+  points : les sources du manuel pour #392 et #393 (3.59), après les registres
+  de #393, `f72b7d3`, `3df7f08` et `8d04887` (7.60)), et avant au commit
   `53db490` (la fusion de #393 le 19 novembre à 9 h 58 UTC, hors des
   points : `gaol_fma()`, le `fma()` calculé avec des entiers pour les mingw-w64
   avant 12 et Cygwin sans FMA, `gaol_fma_upward()` et ses trois chemins rapides,
-  `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788` (3.59), après les
+  `gaol_fma()` exporté dans `gaol` et `gaol_ieee1788` (3.59), après la fusion de
+  #395 le 18 novembre à 14 h 48 UTC, `c365e68` (hors des points :
+  `performance.yml` pour les seules pull requests vers `dev`, 2.3), et les
   registres de #392, `137c990` (7.59)), et avant au commit `cb2474b` (la fusion
   de #392 le 18 novembre à 11 h 56 UTC, hors des
   points : les mingw-w64 dont le `fma()` et le `round()` sont ceux de leur
@@ -127,10 +138,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   depuis 16 h 43 UTC après les registres de ses décisions, `07dca51` (7.36), et
   ceux de #319, #321 et #322, `03f3783` (7.35), eux-mêmes après la fusion de
   #322 à 10 h 53 UTC, `f7046b9`, les registres de la relecture, `5d047c0` et
-  `474a7c6` (7.34), et la fusion de #319 à 10 h 17 UTC, `45efbd1`) ; elle seule
-  a les notes de travail. **`configure-clean`**, la branche des versions, est
-  supprimée le 17 novembre (3.50) : elle était au commit `83e2f69` (la fusion de
-  #321 à 10 h 52 UTC, qui en retire les notes).
+  `474a7c6` (7.34), et la fusion de #319 à 10 h 17 UTC, `45efbd1`) ; elle a
+  les notes de travail, comme `master` depuis #390. **`configure-clean`**, la
+  branche des versions, est supprimée le 17 novembre (3.50) : elle était au
+  commit `83e2f69` (la fusion de #321 à 10 h 52 UTC, qui en retire les notes).
   Les deux partent de `9d59e0c` (7.33), après `f006421` (la fusion de #318 le 12
   novembre à 19 h 56 UTC, après celle de #317 à 17 h 31 UTC (`9cd5113`), après
   celle de #316 à 15 h 30 UTC (`1afb90a`), après celle de #315 à 15 h 20 UTC
@@ -310,14 +321,17 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   le même jour (3.26) ; PQ, les deux petits changements décidés le 8 novembre,
   est faite par #298 et #299, PT, les relevés et les vérifications jamais faits,
   par #301, #303 et #304, et PP, le FIXME de `div_rel` en SSE2, par #302 (2.3) ;
-  le tableau de Clang 21 est remesuré par #316 (PJ.2, 3.34) ; il reste les
-  signalements de PH (dans leurs issues et `TODO_AFTER.md` 2.6, 3.48 et 3.49 ;
-  ses textes de GAOL sont faits par #382) et la publication (PJ, préparée par
-  #383 : la fusion de `configure-clean` dans `master`, que le
-  mainteneur fait lui-même, l'étiquette `v5.0.0` et sa Release, l'annonce à
-  Frédéric Goualard ; 3.36), qui attend les
-  constats de la relecture du 13 novembre (PU à PZ, 3.37 et 3.38, sont faites) :
-  voir `TODO.md`. Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est
+  le tableau de Clang 21 est remesuré par #316 (PJ.2, 3.34) ; PJ, la
+  publication, est faite par #383 (la couverture, le manuel), #388 (le tableau
+  de couverture), #390 (`dev` dans `master`), #391 (les registres), #397 et #398
+  (les paquets de la Release) et #399 (les corrections de la relecture complète
+  des 19 et 20 novembre), puis l'étiquette `v5.0.0` et sa Release (3.36, 3.56,
+  3.57, 3.60 et 3.61). Restent les signalements de PH (dans leurs issues et
+  `TODO_AFTER.md` 2.6, 3.48 et 3.49 ; ses textes de GAOL sont faits par #382),
+  l'annonce à Frédéric Goualard, la licence des cas d'IBEX et de Codac et le
+  ménage de la fin (`TODO_AFTER.md` 1.6 à 1.8), et les tâches VA à VI de
+  `TODO.md`, les constats de la relecture des 19 et 20 novembre que #399 ne
+  corrige pas (3.61). Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est
   réparti dans les trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
@@ -364,11 +378,16 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   CI) : #335 écrit alors une borne plus large, mais sûre.
 - **Issues ouvertes** : les issues « À communiquer… » #125 (CORE-MATH), #126
   (GCC), #127 (mingw-w64), #129 (ITF1788), #130 (Boost.Interval), #131
-  (Microsoft), #132 (Apple), #133 (LLVM/Clang), #134 (gmpy2), #135 (musl), #136
-  (benchmark de Tang et al.), #137 (libieeep1788), #138 (glibc) et #175
-  (Cygwin), dont rien n'est envoyé ; #67 (décorations, reportée indéfiniment le
-  22 octobre) ; #198 (`x / y` des intervalles NEON avec `FPCR.AH`, remarqué
-  pendant la tâche PD, revenu le 28 octobre sur Windows arm64) ; et les trois
+  (Microsoft), #134 (gmpy2), #136 (benchmark de Tang et al.) et #175 (Cygwin),
+  dont rien n'est envoyé (#135, musl, et #137, libieeep1788, sont fermées le 17
+  novembre : 3.50 ; #132, Apple, #133, LLVM/Clang, et #138, glibc, le sont aussi,
+  à 9 h 28 UTC, sans commentaire) ; #67
+  (décorations, reportée indéfiniment le 22 octobre) ; #198 (`x / y` des
+  intervalles NEON avec `FPCR.AH`, remarqué pendant la tâche PD, revenu le 28
+  octobre sur Windows arm64) ; #374 (le
+  rapport pour GCC du défaut de GCC 12.2 pour aarch64, 3.48) ; #389 (l'annonce
+  de v5.0.0 à Frédéric Goualard, `TODO_AFTER.md` 1.7) ; #394 (le défaut de GCC
+  14.2, 15.3 et 16.2 pour x86 32 bits, `_BitInt(128)`, 3.59) ; et les trois
   registres #177, #178 et #179. #128
   (l'annonce à Frédéric Goualard) est fermée depuis le 18 octobre ; le brouillon
   est dans Gmail. #107 (`parse_interval(nullptr)`, corrigé par #147) et #159
@@ -4806,11 +4825,11 @@ tournait au moment des registres.
   demande (« met à jours les registre comme si PJ est fini directement dans la
   PR #391 »), un commit de plus (7.58) y dit la tâche PJ faite. Fusionnée par le
   mainteneur le 19 novembre à 16 h 11 UTC (`a3428f2`, 54 commits, 74 fichiers :
-  avec #392, #393 et #396 elle porte leur code, leurs tests et leurs textes, le
-  PDF du manuel de 395 pages et la couverture refaite, 7.61 et 7.62) ; la CI de
-  sa tête (`56201f1`) est verte, les sept workflows, et celle de `master` à
-  `a3428f2` aussi, six workflows et 61 contrôles. L'étiquette n'est pas posée sur
-  ce commit : #398 (3.60).
+  avec #392, #395, #393 et #396 elle porte leur code, leurs tests et leurs
+  textes, le PDF du manuel de 395 pages et la couverture refaite, 7.61 et
+  7.62) ; la CI de sa tête (`56201f1`) est verte, les sept workflows, et celle
+  de `master` à `a3428f2` aussi, six workflows et 61 contrôles. L'étiquette
+  n'est pas posée sur ce commit : #398 (3.60).
 
 - #392 (hors des points : GAOL appelle son propre `round()` et l'instruction FMA
   là où le `fma()` et le `round()` de la bibliothèque sont ceux de mingw-w64 ;
@@ -4933,11 +4952,23 @@ tournait au moment des registres.
   `.github`), `<limits.h>` avant les macros simulées (macOS x86_64).
   `doc/differences.md` et le `ChangeLog` corrigés dans la branche, sur la
   décision du mainteneur (3.58 et 3.59).
+- #395 (hors des points : `performance.yml` pour les seules pull requests vers
+  `dev` ; `performance-dev-only`, 1 commit, 2 fichiers,
+  `.github/workflows/performance.yml` et `doc/continuous-integration.md`, 16
+  lignes ajoutées et 7 retirées) : fusionnée le 18 novembre à 14 h 48 UTC par le
+  mainteneur (`c365e68`, tête `3e42dc7`) ; ouverte à 14 h 08 UTC, sur sa
+  décision (« restreint performance.yml au PR vers dev »). Performance a
+  `branches: [dev]` sous `pull_request` : il ne mesure plus la pull request de
+  `dev` vers `master`, dont les changements sont mesurés un par un par les pull
+  requests vers `dev` (sur #391, dont la tête est `dev`, il lançait 22 jobs à
+  chaque push sur `dev`). La CI de sa tête au vert, sauf un job de macOS annulé
+  (« macOS 26 universal, CMake and meson, and Rosetta »). Elle est dans `dev`
+  avant #393, donc dans `master` par #391 (3.57).
 - #396 (hors des points : les sources du manuel pour #392 et #393 ;
   `manual-fma-393`, 1 commit, 4 fichiers : `02_installation.tex`,
   `04_rounding.tex`, `14_tests_ci.tex` et `15_migration.tex`) : fusionnée le 19
   novembre à 11 h 25 UTC par le mainteneur (`a30f7dd`, tête `3b5cd4d`) ; ouverte
-  à 11 h 52 UTC, sur sa réponse « corriger les sources .tex maintenant » à la
+  à 10 h 52 UTC, sur sa réponse « corriger les sources .tex maintenant » à la
   question de la session. Le manuel disait encore l'état d'avant #392 : les
   mingw-w64 dont le `fma()` est faux et Cygwin sans FMA refusés, le refus pour ARM
   « non testé ». Elle les aligne sur `doc/three-builds.md`,
@@ -4969,12 +5000,33 @@ tournait au moment des registres.
   `release-fma-texts`, vers `master`, sur la réponse « Corriger d'abord (#398) »
   du mainteneur, 3.60) : un commit de correction, cherry-pick de `5952951`,
   `.github/workflows/release.yml` (l'en-tête seulement), `doc/building.md`,
-  `ChangeLog` et `TODO_AFTER.md` 21, et les registres ; ni le code, ni le
+  `ChangeLog` et `TODO_AFTER.md` 5.21, et les registres ; ni le code, ni le
   workflow, ni le manuel. Le `.deb` demande AVX2, BMI et FMA (Intel Haswell et
   AMD Excavator, 2013-2015, et plus), non AMD Piledriver : le `libgaol.a` de
   #397 est celui de #391 octet pour octet, le GCC du runner visant x86-64-v3
-  (3.60). Fusionnée par le mainteneur, la CI de sa tête au vert, et l'étiquette
-  `v5.0.0` est posée sur son commit de fusion.
+  (3.60). Fusionnée le 19 novembre à 22 h 10 UTC par la session, sur le mot du
+  mainteneur (`e733f87`), la CI de sa tête au vert (six workflows, 65 contrôles)
+  et celle de `master` aussi ; l'étiquette n'est pas posée sur ce commit : le
+  mainteneur demande d'abord une relecture complète, que #399 corrige (3.61).
+
+- #399 (hors des points : les corrections de la relecture complète des 19 et 20
+  novembre ; `release-review-fixes`, vers `master`, sur la demande du
+  mainteneur, 3.61) : les licences installées par les trois builds dans
+  `share/doc/gaol` et vérifiées dans les paquets (R103) ; CMake et meson
+  refusent GAOL quand un flag de l'utilisateur fait échouer les tests de
+  `-frounding-math`, `-ffp-contract=off` et `-fno-fast-math` (R41 : GAOL était
+  construit sans eux, sans rien dire, et 15 de ses 56 tests échouaient), avec un
+  test de `tests/automatic_configuration.cmake` et une étape de la CI ; meson
+  donne ces flags aux bibliothèques et aux tests après ceux de l'utilisateur
+  (R42) ; la parité de meson et d'autotools (R43 à R47) ; l'avertissement de
+  `-DGAOL_FMA=OFF` avec un compilateur qui vise x86-64-v3 (R33) ; le copyright
+  de Raphaël Chenouard dans les six fichiers de meson, son nom dans `AUTHORS` et
+  le manuel ; les renvois à IBEX et à sa licence retirés de `CMakeLists.txt` ;
+  les 88 constats de texte, commentaires du code compris, et les suites que les
+  agents ont trouvées ; le manuel et son PDF ; les registres, avec les tâches VA
+  à VI de `TODO.md` pour les 22 constats qui restent. Fusionnée par le
+  mainteneur, la CI de sa tête au vert, et l'étiquette `v5.0.0` est posée sur
+  son commit de fusion.
 
 ### 2.4 Fermées sans fusion
 
@@ -8444,7 +8496,7 @@ le
   avec un commentaire (« non planifiée »). #132, #133, #134 et #138 (« rien, ou
   »
   un envoi facultatif) restent ouvertes, comme #126, #127, #129 à #131, #136,
-  #175 et #125, dont l'envoi attend le mainteneur.
+  #175 et #125, dont l'envoi attend le mainteneur. #132, #133 et #138 sont pourtant fermées sur GitHub le 17 novembre à 9 h 28 UTC (« completed », sans commentaire), ce que la relecture du 20 novembre a trouvé (3.61).
 - **La branche `todo-rosetta-diagnostic-pow2`** (#373, fermée) : supprimée sur
   GitHub à la demande du mainteneur, après avoir vérifié qu'elle est contenue
   dans `dev`. **La CI de #384** (le mainteneur écrit « #364 », dont la CI était
@@ -8720,7 +8772,7 @@ fusion du master, vu que l'on ne peux pas faire de push directe dans le master
   (3.56), donc rien ne peut y entrer après l'étiquette sans une pull request de
   plus. La session pousse sur `dev`, la tête de #391, un commit (7.58) qui dit
   la tâche PJ faite : #391 fusionnée, l'étiquette `v5.0.0` posée sur son commit
-  de fusion (finalement celui de #398, 3.60), la Release lancée par
+  de fusion (finalement celui de #399, 3.61), la Release lancée par
   `release.yml`. Elle écrit ces faits avant
   qu'ils soient vrais : la fusion par le mainteneur, la CI verte de la nouvelle
   tête et l'étiquette viennent après le commit. Ce commit relance la CI de #391
@@ -8736,8 +8788,10 @@ fusion du master, vu que l'on ne peux pas faire de push directe dans le master
   de `gaol/`, et le PDF de 389 pages), et ceux de #392, que le mainteneur a
   fusionnée dans `dev` le 18 novembre à 11 h 56 UTC (`cb2474b`), après la
   rédaction de ces registres et avant la fusion de #391, dont la tête est `dev`
-  (3.58), puis ceux de #393 (9 h 58 UTC) et de #396 (11 h 25 UTC : les sources du
-  manuel, et son PDF refait, 395 pages), fusionnées le 19 novembre (3.59) ; les
+  (3.58), puis ceux de #395 (le 18 novembre à 14 h 48 UTC : `performance.yml`
+  et `doc/continuous-integration.md`, 2.3), puis ceux de #393 (9 h 58 UTC) et de
+  #396 (11 h 25 UTC : les sources du manuel, et son PDF refait, 395 pages),
+  fusionnées le 19 novembre (3.59) ; les
   trois commits de notes qui suivent `fc8b9ac` (`b2f04bf`,
   `c38417e`, `5b4cb29`), puis celui de 7.58, n'ont changé que `TODO*.md` et
   `process.md`, que `.gitattributes` prive des archives. La
@@ -8747,9 +8801,9 @@ fusion du master, vu que l'on ne peux pas faire de push directe dans le master
   `git archive HEAD`, que `buildsystems-dist` contrôle.
 - **L'étiquette** : annotée, de Jordan08, « GAOL 5.0.0: CORE-MATH bounds, IEEE
   1788-2015, three alike builds, a new manual » (3.55), posée par la session sur
-  le commit de fusion de #398 (3.60 ; elle était prévue sur celui de #391, que le
-  mainteneur a fusionné le 19 novembre sans qu'elle y soit posée, puis sur celui
-  de #397) quand toute la
+  le commit de fusion de #399 (3.61 ; elle était prévue sur celui de #391, que le
+  mainteneur a fusionné le 19 novembre sans qu'elle y soit posée, puis sur ceux
+  de #397 et de #398) quand toute la
   CI est verte (celle de `master`, six workflows, et celle de la pull request),
   les jobs sans runner relancés par `rerun-failed-jobs`. Elle lance `release.yml` : le job `tag` (le commit est
   sur `master`, l'étiquette vaut `VERSION.txt`), les trois paquets (le `.deb`,
@@ -8970,7 +9024,7 @@ Les décisions du mainteneur :
   `fma()` logiciel (3.59) : `tan` 253 ns contre 29, `log` 169 contre 29, `pow(x,
   3)` 37 contre 11. `doc/building.md` et le `ChangeLog` le disent ; un `.deb` et
   un `.exe` sans FMA, pour les autres processeurs, sont reportés
-  (`TODO_AFTER.md` 21).
+  (`TODO_AFTER.md` 5.21).
 - **Ce que la CI de #397 montre du `.deb`** : son `libgaol.a` (1 928 672 octets,
   sha256 `70e3803b…`) est identique, octet pour octet, à celui du `.deb` de
   #391, construit avec `-DGAOL_FMA=OFF` et des flags de FMA vides (le journal de
@@ -8991,7 +9045,7 @@ Les décisions du mainteneur :
   recommandait le premier) ; si GitHub ou Canonical change le GCC par défaut du
   runner, le `.deb` change sans que rien le dise. Le manuel et `doc/building.md`
   disent que `-DGAOL_FMA=OFF` fait un paquet pour tout processeur : faux avec un
-  compilateur qui vise plus haut par défaut, reporté (`TODO_AFTER.md` 21, le PDF
+  compilateur qui vise plus haut par défaut, reporté (`TODO_AFTER.md` 5.21, le PDF
   est à refaire alors).
 - **La fusion de #397 et la correction (#398)** : le mainteneur fusionne #397 le
   19 novembre à 20 h 22 UTC (`f4b691d`, tête `54dc207`), pendant que la session
@@ -9019,16 +9073,21 @@ Les décisions du mainteneur :
   request changeant `release.yml`. Le mainteneur la fusionne le 19 novembre à
   20 h 22 UTC (`f4b691d`), avant le commit de correction de la puce suivante ;
   l'étiquette `v5.0.0` est prévue sur le commit de fusion de la dernière pull
-  request (#398), non sur celui de #391 que 3.57 prévoyait. `dev` n'a pas ces commits : une fusion de `master` dans `dev` les
-  lui donne (le mainteneur l'a faite le 19 novembre à 12 h 57 UTC, 7.62).
+  request (#399, 3.61), non sur celui de #391 que 3.57 prévoyait. `dev` n'a pas ces
+  commits, ni ceux de #398, ni la fusion de #391 : une fusion de `master` dans
+  `dev` les lui donnera, et reste à faire (celle du mainteneur, `0173d0a`, le 19
+  novembre à 11 h 57 UTC, avant #391, n'apportait que `313ef2d` : 7.62).
 - **Après l'étiquette** (réponses aux questions de la session) : l'étiquette, la
   Release avec ses trois paquets, puis la correction des issues #179 et #178
   (registres), pas avant ; le texte de la Release est un court paragraphe en
   anglais (trois ou quatre lignes : ce qui change, la compatibilité avec GAOL 4,
   les plateformes refusées, un lien vers `doc/differences.md`), qui remplace les
-  notes de GitHub, et il dit que le `.deb` et le `.exe` demandent FMA et le
-  `.pkg` macOS 15 ; aucune tâche ensuite tant que le mainteneur n'en donne pas,
-  et aucun rapport envoyé aux autres projets (PH).
+  notes de GitHub (`release.yml` crée la Release avec `--generate-notes` : son
+  corps est à remplacer après le job), et il dit que le `.deb` et le `.exe`
+  demandent AVX2 et FMA (Intel Haswell et AMD Excavator, 2013-2015, et plus, non
+  AMD Piledriver : la puce de la CI de #397 ci-dessus) et le `.pkg` macOS 15 ;
+  aucune tâche ensuite tant que le mainteneur n'en donne pas, et aucun rapport
+  envoyé aux autres projets (PH).
 - **La couverture du lexeur et du parseur des chaînes**
   (`gaol/parser/gaol_interval_lexer.cpp` et `gaol_interval_parser.cpp`) : la
   session Boulot6 puis la session constatent que ces deux fichiers, générés, ne
@@ -9039,6 +9098,66 @@ Les décisions du mainteneur :
   % de 8 077 lignes ne les comptent pas. Le mainteneur : « Laisse tel quel. Ce
   n'est pas important si ces fichiers ne sont pas couverts. » Rien n'est changé.
 
+
+### 3.61 Les 19 et 20 novembre : la relecture complète avant l'étiquette (#399)
+
+Le 19 novembre au soir, la CI de #398 tournant, le mainteneur écrit : « Dès que
+la CI est bonne, tu peux fusionner. S'il y a des jobs qui échouent, relance-les
+ou corrige la PR. Après la fusion, ne marque pas l'étiquette tout de suite. Fais
+une relecture complète : mets tous les sous-agents dont tu as besoin. Et
+fais-moi un rapport. » La session fusionne #398 à 22 h 10 UTC (`e733f87`), la CI
+de `master` est verte (cinq workflows, 60 contrôles), et l'étiquette attend.
+
+- **La relecture** : 17 relecteurs, un par dimension (le cœur, les noyaux, les
+  fonctions élémentaires, les relations et IEEE 1788, les entrées-sorties, la
+  configuration, CMake, autotools et meson, la CI, les tests, les textes pour
+  l'utilisateur et pour les développeurs, le manuel en deux moitiés, les
+  exemples, ce que publie la version, les registres), sur une copie figée de
+  l'arbre de `master` à `e733f87` (tree `4376a4c`), sans rien compiler ; chaque
+  constat donné à un ou deux sceptiques chargés de le réfuter. 161 agents,
+  environ 14 millions de tokens, en deux passes : la première est coupée par la
+  limite d'usage de 5 heures, la seconde reprend du cache. 130 constats, tous
+  confirmés, aucun bloquant : 2 majeurs, 40 mineurs, 88 textes ; 29 autres vus
+  et non rapportés (15 au plus par relecteur). Aucune borne fausse n'est trouvée
+  dans le code de l'arithmétique. Le rapport, les données et les programmes de
+  preuve sont hors du dépôt, dans
+  `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_review_2026-11-19/` (`rapport.md`,
+  `findings.json`, `repro/`).
+- **Vérifié en exécutant** : la session lance les commandes de sept constats,
+  avec au plus 4 cœurs : `exact_string()` écrit `-0x0p+0` (R17), `powRev1` lève
+  FE_OVERFLOW (R12), Clang 20 et 21 prennent `-mno-daz-ftz` pour aarch64 (R32),
+  `-DCMAKE_BUILD_TYPE=debug` est sans `GAOL_DEBUGGING` (R34), meson construit
+  GAOL sans `-frounding-math` avec `-Dcpp_args=-Wstrict-prototypes` (R41) et
+  laisse un `-ffp-contract=fast` de l'utilisateur l'emporter (R42), l'exemple 13
+  se contredit avec le chemin AVX-512 (R94). Puis : CMake fait de même pour R41
+  (« Interval arithmetic flags: » vide, SSE2 OFF, aucun `-frounding-math`), et
+  la bibliothèque ainsi construite échoue à 15 des 56 tests.
+- **Les réponses du mainteneur** (20 novembre, « Fait la PR que tu proposes vers
+  master ») : R41, « Refuser avec un message » : CMake et meson s'arrêtent et
+  disent pourquoi ; les licences (R103), « share/doc/gaol, trois builds » :
+  `COPYING.LIB` et `LICENSE.CORE-MATH`, les deux textes dans l'écran de licence
+  du `.pkg` et du `.exe` ; le périmètre : « La liste, plus les 88 constats de
+  texte, commentaires de code compris, plus l'ordre des drapeaux de meson (R42)
+  et la parité de meson et d'autotools (R43 à R47) ; le reste réuni et trié en
+  une dizaine de tâches dans TODO.md » ; les crédits : « Ajoute Chenouard et son
+  copyright dans les six fichiers de meson. Enlève les références à IBEX et à sa
+  licence dans le CMakeLists.txt (il ne reste plus grand chose d'IBEX dans le
+  CMake) ».
+- **#399** les fait (2.3). Six agents corrigent les textes, fichier par fichier,
+  sans conflit, puis un septième les suites qu'ils trouvent hors de leurs
+  fichiers ; la session fait le code des builds, les tests et la CI, relit tout,
+  régénère le PDF du manuel et écrit les registres. Les 22 constats qui restent
+  deviennent les tâches VA à VI de `TODO.md`. Laissé : R93 (la seconde moitié du
+  manuel) ne tient pas : « 1.5 to 2.1 » est juste à la mesure (30,984 / 21,350 =
+  1,451), le manuel le garde ; les crédits d'IBEX hors de `CMakeLists.txt`
+  (`doc/differences.md`, le chapitre des contributeurs,
+  `cmake/gaol_configuration.h.in`) sont à décider (VG). Trouvé en chemin : #132,
+  #133 et #138 sont fermées sur GitHub depuis le 17 novembre (section 1 et 3.50
+  corrigées).
+- **L'étiquette** : sur le commit de fusion de #399, sur le mot du mainteneur,
+  quand la CI de `master` est verte ; puis la Release, son court paragraphe (le
+  `.deb` et le `.exe` demandent AVX2, BMI et FMA, le `.pkg` macOS 15), les
+  issues #179 et #178 (3.60).
 
 ## 4. Les points faits, par lettre
 
@@ -11658,7 +11777,7 @@ leurs registres n'étaient pas faits :
 
 - Les registres de #393, en un commit direct sur `dev` (la demande du mainteneur,
   3.59) : `TODO.md` (l'en-tête et les pull requests), `TODO_AFTER.md` (l'en-tête,
-  le point 3.5, la question ouverte de #205, et le nouveau point 20), ce fichier
+  le point 3.5, la question ouverte de #205, et le nouveau point 5.20), ce fichier
   (l'en-tête de la section 1, 1, 2.3, 3.58, 3.59 et 7.60) et `process.md`
   (l'en-tête et §12). Les issues #179 et #178 ne sont pas mises à jour : elles ne
   le sont qu'après l'étiquette (3.57) ; #177 non. #205 est une pull request
@@ -11690,7 +11809,7 @@ leurs registres n'étaient pas faits :
 
 - Le mainteneur écrit « refais la couverture maintenant dans la PR #391 » et
   demande d'y inclure NEON et AVX-512, avec les sessions Boulot6 et MACarm5. Il
-  fait aussi, le 19 novembre à 12 h 57 UTC, une fusion de `master` dans `dev`
+  fait aussi, le 19 novembre à 11 h 57 UTC, une fusion de `master` dans `dev`
   (`0173d0a`) et demande de vérifier qu'elle est sans erreur : l'arbre est celui
   de `fd1194f` (`daa77b1`), `master` n'a aucun commit que `dev` n'a pas, le commit
   de fusion de #390 (`313ef2d`) entre dans l'ascendance de `dev`, la pull request
@@ -11735,7 +11854,7 @@ leurs registres n'étaient pas faits :
   paquet et l'étape qui lit « Fused multiply-add flags » du journal, le champ
   `minos` du `.pkg` et l'étape de `otool -l`, l'en-tête), `ChangeLog`,
   `doc/building.md`, puis les registres : `TODO.md` (l'en-tête, #391 et #397,
-  les tâches restantes), `TODO_AFTER.md` (l'en-tête, 6, 7, le point 21), ce
+  les tâches restantes), `TODO_AFTER.md` (l'en-tête, 1.6, 1.7, le point 5.21), ce
   fichier (l'en-tête, 1, 2.3, 3.57, 3.60 et 7.63) et `process.md` (l'en-tête,
   §1, §12 et §13).
 - Vérifié avant le push : `actionlint` ne dit que l'étiquette `ubuntu-26.04`,
@@ -11763,6 +11882,26 @@ leurs registres n'étaient pas faits :
   les tâches restantes), ce fichier (l'en-tête, 1, 2.3, 3.57, 3.60, 7.63 et
   7.64) et `process.md` (l'en-tête, §1, §12 et §13). Les issues #179 et #178
   sont mises à jour après l'étiquette.
+
+### 7.65 Le 20 novembre (la relecture : #399)
+
+- La branche `release-review-fixes`, à partir de `e733f87`, dans un clone à part
+  (`GAOL_review_2026-11-19/pr`) : les commits du code des builds et des tests,
+  des textes, du PDF du manuel et des registres (`TODO.md` : l'en-tête, #398 et
+  #399, les tâches restantes et VA à VI ; `TODO_AFTER.md` : l'en-tête, 2.6, 6, 7
+  ; ce fichier : l'en-tête, 1, 2.3, 3.50, 3.57, 3.60, 3.61 et 7.65 ;
+  `process.md` : l'en-tête, §1, §12 et §13), et les corrections des registres de
+  la relecture (R2 à R130 de ces fichiers).
+- Vérifié avant le push : un build complet avec les tests et les exemples
+  (CMake, Release, 4 cœurs), tous les tests passés ;
+  `tests/automatic_configuration.cmake` passe, et échoue contre le
+  `CMakeLists.txt` d'avant ; les installations de CMake, d'autotools (avec la
+  désinstallation) et de meson mettent les deux licences dans `share/doc/gaol` ;
+  `refused_options.sh` avec `GAOL_SSE2_UNALIGNED_STORAGE` ; `actionlint` (seules
+  les étiquettes de runner qu'il ne connaît pas). Le piège : `autoreconf` lance
+  autoheader, qui écrase `gaol/gaol_configuration.h.in`, écrit à la main ; il
+  est restauré de sa copie `~`. Régénérer `configure` et les `Makefile.in` avec
+  `aclocal -I m4`, `autoconf` et `automake`, jamais `autoreconf`.
 
 ## 8. Le ménage fait
 
