@@ -1123,8 +1123,10 @@ functional operation computes the hull of the image of the part of its
 argument within the domain of IEEE 1788-2015, and gives the empty set for an
 argument with no point of that domain. The elementary functions take their
 values from CORE-MATH, which is correctly rounded: their bounds are the
-tightest ones, where GAOL~4 depended on
-the mathematical library of the system. The power is hybrid: an integer
+tightest ones, where GAOL~4 depended on the library it was built with: by
+default mathlib, whose values it moved one double outward, and the
+mathematical library of the system for the hyperbolic functions. The power
+is hybrid: an integer
 exponent, whatever its type, takes the integer power \ieee{pown}, with the
 negative bases, and any other exponent the real power \ieee{pow}, at the
 price of a result that is not monotone for the inclusion of the exponent;

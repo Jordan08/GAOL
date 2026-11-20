@@ -283,7 +283,8 @@ namespace gaol_core {
 
     /*
       No constructor from strings (GAOL v5): textToInterval() reads them,
-      textToInterval("0.1") being [0.09999,0.10001], and textToInterval(sl,
+      textToInterval("0.1") being the tightest interval of doubles
+      containing 0.1, [0.09999999...,0.100...01], and textToInterval(sl,
       sr) takes the left bound of sl and the right bound of sr, as the
       constructor from two strings did. interval(const char*) converted any
       const char* implicitly: interval(0) was ambiguous, and x + nullptr
@@ -583,7 +584,7 @@ namespace gaol_core {
     static const __m128d lbrbsignmask;
     /// <0, 0>
     static const __m128d m128_zero;
-    ///<-1, -1>
+    /// -1 in the lane 0, +1 in the lane 1
     static const __m128d m128_minus_one;
     ///<NaN Nan>
     static const __m128d m128_nan;
@@ -1440,7 +1441,8 @@ namespace gaol_core {
     for e = 0, the empty set for an empty I, and for [0] and e < 0. Its bounds
     are the tightest, or one double beyond where x^e is within twice the
     bound of the error of the products of a double (2^-98 relatively at
-    e = 3, 2^-62 at most, never for e = 2), and exact where x^e is a double
+    e = 3, at most 2^-65 for e > 0 and about 1.25 2^-62 for e < 0, never
+    for e = 2), and exact where x^e is a double
     (GAOL v5): from exact products within the ints, from CORE-MATH's pow
     beyond them, the tightest where e is a double, and within three doubles
     of them for an e of more than 53 bits that is no double (gaol_pown_ll()).

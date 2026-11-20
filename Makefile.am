@@ -13,9 +13,9 @@
 # COPYING.LIB file for information.
 
 
-# 3rd/ builds nothing: the sources of CORE-MATH are compiled into libgaol by
-# gaol/Makefile.am. DIST_SUBDIRS is what make dist and make distclean go
-# through (GAOL v5).
+# 3rd/ compiles the sources of CORE-MATH into a convenience library,
+# libgaolcoremath.la, that gaol/Makefile.am puts into libgaol. DIST_SUBDIRS is
+# what make dist and make distclean go through (GAOL v5).
 SUBDIRS = 3rd gaol tests examples
 DIST_SUBDIRS = 3rd gaol tests examples manual
 ACLOCAL_AMFLAGS = -I m4
@@ -27,6 +27,18 @@ AM_DISTCHECK_CONFIGURE_FLAGS = --with-tests --with-examples
 # configure again. With --enable-maintainer-mode, make also generates configure
 # again (the m4_include of VERSION.txt in configure.ac) (GAOL v5)
 CONFIG_STATUS_DEPENDENCIES = $(top_srcdir)/VERSION.txt
+
+# The licences, in $(docdir) (share/doc/gaol), as CMake and meson install them:
+# GAOL, under the GNU LGPL v2 (COPYING.LIB), and the functions of CORE-MATH
+# compiled into libgaol, under the MIT licence, whose notice goes with every
+# copy (3rd/math-core/LICENSE, installed as LICENSE.CORE-MATH) (GAOL v5: no
+# build installed them)
+dist_doc_DATA = COPYING.LIB
+install-data-local:
+	$(MKDIR_P) '$(DESTDIR)$(docdir)'
+	$(INSTALL_DATA) '$(srcdir)/3rd/math-core/LICENSE' '$(DESTDIR)$(docdir)/LICENSE.CORE-MATH'
+uninstall-local:
+	rm -f '$(DESTDIR)$(docdir)/LICENSE.CORE-MATH'
 
 # make check runs the unit tests of tests/ (--with-tests) and the examples of
 # examples/ (--with-examples), make test the unit tests only, as with CMake and

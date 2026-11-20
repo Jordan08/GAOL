@@ -89,10 +89,10 @@ struct Paving {
 
 // SIVIA as Codac's regular_pave() and IBEX's lab2 write it: each box is
 // tested, and a box the test cannot decide is cut at ratio of its widest
-// side, or kept as a boundary box when it is narrower than eps. The cut is a
-// double that the program computes (Box::bisect), rounded upward by default
-// and to nearest when GAOL is built with GAOL_PRESERVE_ROUNDING: the numbers
-// of boxes differ a little between the two, and the brackets hold in both.
+// side, or kept as a boundary box when it is narrower than eps. The cut is
+// computed with intervals (Box::bisect), whose bounds do not depend on the
+// rounding direction the program is in: the pavings are the same whether GAOL
+// is built with GAOL_PRESERVE_ROUNDING or not.
 template <class Test>
 Paving sivia(const Box& initial, double eps, double ratio, Test test)
 {

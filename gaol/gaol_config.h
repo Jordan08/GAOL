@@ -18,8 +18,8 @@
 
   This file contains the declarations of all the macros used to control the
   way gaol is compiled, depending on the host. It acts as a front-end for
-  the configuration file created by configure and the one used when
-  compiling gaol with Borland C++ Builder.
+  gaol/gaol_configuration.h, the configuration file that CMake, configure or
+  meson writes.
 
 
   \author Frederic Goualard, Jordan NININ
@@ -538,7 +538,7 @@
    neither fma.o nor round.o. So mingw-w64 for 64-bit ARM before version 12 is
    accepted (GAOL v5; it was refused before): GAOL calls its own gaol_round()
    there, as on x86, and takes fma() as the instruction, __builtin_fma() of Clang
-   being fmadd at every level of optimization (gaol_fma() is for x86 only, an
+   being fmadd at every level of optimization (gaol_fma_upward() is for x86 only, an
    ARM64 having the instruction); no object of the library calls fma() or
    round(), which the job "llvm-mingw 20230320" of windows.yml checks, and runs
    the tests of GAOL with that Clang (MSYS2 CLANGARM64, which links the UCRT,
@@ -576,7 +576,7 @@
 #if defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR) \
     && !defined(__x86_64__) && !defined(__i386__) && GAOL_MINGW_OWN_MATH \
     && !(defined(__aarch64__) && __MINGW64_VERSION_MAJOR < 12)
-#  error "GAOL cannot be compiled with this mingw-w64 for ARM: its fma() and round() are those of mingw-w64's own math library, whose round() GAOL v5 replaces with its own gaol_round(). On 32-bit ARM its fma() is not fused (fmacd is vmla.f64, a product and a sum each rounded); on 64-bit ARM only mingw-w64 before version 12 is tested (llvm-mingw 20230320), not 12 or later linked with msvcrt.dll rather than the UCRT. Build GAOL with a mingw-w64 of version 12 or later linking the UCRT, with mingw-w64 11 for 64-bit ARM, or with Visual Studio"
+#  error "GAOL cannot be compiled with this mingw-w64 for ARM: its fma() and round() are those of mingw-w64's own math library, whose round() GAOL v5 replaces with its own gaol_round(). On 32-bit ARM its fma() is not fused (fmacd is vmla.f64, a product and a sum each rounded); on 64-bit ARM only mingw-w64 before version 12 is tested (llvm-mingw 20230320), not 12 or later linked with msvcrt.dll rather than the UCRT. For 64-bit ARM, build GAOL with a mingw-w64 of version 12 or later linking the UCRT, with mingw-w64 11, or with Visual Studio; for 32-bit ARM no mingw-w64 builds it, Clang, its only compiler there, being refused"
 #endif
 
 #endif /* GAOL_CONFIG_H */

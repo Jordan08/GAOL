@@ -172,7 +172,7 @@ took for an undeclared function and did not link.
 /*---------------------------------------------------------------------------
 round() of mingw-w64's own math library, which is wrong
 
-Fifteen sources (exp.c, sin.c...) call __builtin_round() in the
+Thirteen sources (exp.c, sin.c...) call __builtin_round() in the
 roundeven_finite() they use where the processor has neither AVX nor SSE4.1 nor
 ARMv8 (-mfma gives GCC and Clang AVX, so not with GAOL_FMA), and there the
 round() of mingw-w64 is wrong for the doubles next to 1/2; pow.c calls it to

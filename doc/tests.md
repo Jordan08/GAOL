@@ -231,7 +231,7 @@ which `numbers` checks there too.
   bounds, `erf(-X)` being `-erf(X)` and `erfc(-X)` within `2 - erfc(X)`, and
   empty for the empty set (GAOL v5). The values are in `elementary_values.h`,
   which `elementary_values.py` generates.
-- **`rounding_direction`:** about 110 operations of GAOL's interface, called
+- **`rounding_direction`:** about 130 operations of GAOL's interface, called
   with the rounding direction upward, to nearest, downward and toward zero (and
   on x86, with the x87 and SSE directions differing), have to give the results
   they give when called rounding upward, and leave the rounding direction
@@ -1886,8 +1886,16 @@ which `numbers` checks there too.
   Haswell and Piledriver, an Atom, an ARMv7 without VFPv4) names in the message
   that leaves them out, its own line of flags being empty; and a machine whose
   check that runs a program fails, which `-DGAOL_MACHINE_RUNS_FMA=0` makes on any
-  machine, and which leaves the instructions out and says which flags. Run
-  against the CMake build before this
+  machine, and which leaves the instructions out and says which flags;
+  `-DGAOL_FMA=OFF` with `-mfma` in `CMAKE_CXX_FLAGS`, standing for a compiler
+  whose default target has the instructions (x86-64-v3), which warns that the
+  library keeps them; and, with GCC, `-Wstrict-prototypes` in
+  `CMAKE_CXX_FLAGS` and `-Wnon-virtual-dtor` in `CMAKE_C_FLAGS`, which fail the
+  checks of the flags of interval arithmetic and stop the configuration with
+  the reason, or, with CMake 3.14, whose checks do not count the warning,
+  pass them, the cache showing each check passed (GAOL v5: GAOL was built
+  without these flags; the last two parts fail against the CMake build before
+  them, on the warning and on the refusal). Run against the CMake build before this
   change, it fails on the 128-bit integer message, on `GAOL_ARM64`, on
   `GAOL_DEBUGGING`, on the settings of the exceptions and of the verbose mode,
   and on both cross-compilations. The script takes

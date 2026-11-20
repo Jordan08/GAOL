@@ -29,7 +29,6 @@ kind of machine (`.github/workflows/build-systems.yml`).
 
 `<label>.json` is the default options and `<label>-<variant>.json` each set of
 options (`GAOL_AUDIT_VARIANTS` lists the sets to audit, none for the default
-options alone; the audit of MSYS2 MINGW32 leaves out `no-fma`, which
-`gaol/gaol_config.h` refuses there). A build that did not configure, a probe of the C or C++ sources
+options alone). A build that did not configure, a probe of the C or C++ sources
 that failed, or builds that differ, fail `compare.py --check`;
 `python3 .github/audit/test_compare.py` checks that on made-up results.

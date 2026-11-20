@@ -462,16 +462,14 @@ the x86-64 builds have no x87 instruction, whatever the compiler.
 #endif
 
 /*
-GAOL_RND_NEAREST_ENTER() and GAOL_RND_NEAREST_LEAVE() frame the evaluations
-of the mathematical library of an operation, made with the functions of
-gaol::nearest, which need the rounding direction to nearest (GAOL v5):
-the direction is set twice for both bounds of an interval rather than twice
-for each bound, which cost 11 ns more in sin() and cos() on an Intel
-i7-1185G7 with glibc. After GAOL_RND_NEAREST_LEAVE(), the direction is
+GAOL_RND_NEAREST_ENTER() and GAOL_RND_NEAREST_LEAVE() frame the computations
+of an operation that need the rounding direction to nearest (GAOL v5): today
+only the two_sum() calls of difference_at_least() (gaol/core/gaol_interval_core.cpp),
+exact to nearest, by which cancel_minus() and cancel_plus() compare the
+differences of the bounds, the elementary functions being computed upward
+(gaol/math/gaol_double_op.h). After GAOL_RND_NEAREST_LEAVE(), the direction is
 upward, or the one GAOL_RND_NEAREST_ENTER() found with
-GAOL_PRESERVE_ROUNDING. Between them, an operation only negates and compares
-doubles, which the direction does not change: its computations rounded
-upward precede GAOL_RND_NEAREST_ENTER(). A double computed between them,
+GAOL_PRESERVE_ROUNDING. A double computed between them,
 which the direction changes, goes through rnd_keep() before
 GAOL_RND_NEAREST_LEAVE(): GCC computes it after, in the direction set back,
 where it is wrong (bug 34678 above), which the TwoSum of the differences of
@@ -903,7 +901,8 @@ namespace gaol_core {
   crtfastmath.o, whose constructor runs after GAOL initializes itself with
   GCC, and so does one that loads a plug-in built so. -mno-daz-ftz, which
   gaol.pc and gaol::gaol give to the link where the compiler has it (GCC 13
-  and later on x86, and from 11.4 and 12.4 in the series 11 and 12), only
+  and later on x86, from 11.4 and 12.4 in the series 11 and 12, and Clang 20
+  and later), only
   keeps crtfastmath.o out of the program: this probe is the one defence
   against the plug-in, and against the other platforms (GAOL v5,
   tests/rounding_direction.cpp, tests/fast_math_link.cpp).

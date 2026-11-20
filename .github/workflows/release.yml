@@ -7,11 +7,20 @@
 #   gaol-<version>-macos-arm64.pkg    macOS 26 arm64, AppleClang, for macOS 15
 #                                     and later (CMAKE_OSX_DEPLOYMENT_TARGET),
 #                                     installed in /usr/local (not signed:
-#                                     Gatekeeper asks to open it with a right
-#                                     click, or sudo installer -pkg ... -target /)
+#                                     Gatekeeper blocks it until Open Anyway
+#                                     of System Settings > Privacy & Security
+#                                     allows it (no right click since macOS
+#                                     15), or sudo installer -pkg ... -target /)
 #   gaol-<version>-windows-x64.exe    Windows Server 2025, Visual C++ 2026 x64,
 #                                     /MD (MultiThreadedDLL), installed in
-#                                     C:\Program Files\gaol
+#                                     C:\Program Files\gaol; a static library
+#                                     of the toolset 14.50, which the linker
+#                                     of Visual Studio 2026 or a later one
+#                                     links (not that of 2022)
+#
+# Each package holds the licences of GAOL (COPYING.LIB) and of CORE-MATH
+# (LICENSE.CORE-MATH) in share/doc/gaol, which a step checks once it is
+# installed.
 #
 # The newest LTS Ubuntu, macOS and Visual C++ that GitHub runs. The packages
 # for x86-64 take the fused multiply-add instructions, which the build takes
@@ -25,10 +34,11 @@
 # path (GAOL_PREFER_AVX512=OFF,
 # see doc/building.md), which would leave out the processors without those
 # instructions. Each package is built after the unit tests pass, and installed
-# on the runner, where the unit tests are built and run again with the
-# installed GAOL (tests/find_package). The Release of the tag is made where it
-# does not exist, with notes GitHub generates, and the packages are attached to
-# it, replacing those of the same names.
+# on the runner, where six of the unit tests (arithmetic, elementary,
+# rounding_direction, numbers, other_functions, reverse) are built and run
+# again with the installed GAOL (tests/find_package). The Release of the tag
+# is made where it does not exist, with notes GitHub generates, and the
+# packages are attached to it, replacing those of the same names.
 #
 # A pull request that changes this workflow or the files of CPack builds the
 # three packages and keeps them as artifacts of the run, without a Release.
@@ -216,6 +226,17 @@ jobs:
           $exe = (Get-ChildItem packages\gaol-*.exe).FullName
           Start-Process -FilePath $exe -ArgumentList '/S' -Wait
           Get-ChildItem -Recurse 'C:\Program Files\gaol' | Select-Object -First 40 FullName
+      # The licences of GAOL and of CORE-MATH, which libgaol holds
+      - name: The licences are installed
+        run: |
+          case "${{ matrix.cfg.generator }}" in
+            DEB) dir=/usr/share/doc/gaol ;;
+            productbuild) dir=/usr/local/share/doc/gaol ;;
+            NSIS) dir="/c/Program Files/gaol/share/doc/gaol" ;;
+          esac
+          ls -l "$dir"
+          grep -q "GNU LIBRARY GENERAL PUBLIC LICENSE" "$dir/COPYING.LIB"
+          grep -q "Permission is hereby granted" "$dir/LICENSE.CORE-MATH"
       - name: Tests built with the installed GAOL
         run: |
           case "${{ matrix.cfg.generator }}" in

@@ -1,7 +1,8 @@
-# fma() computed by gaol_fma() of gaol/math/gaol_fma.h, with integers, which is
-# what GAOL calls where the C library's fma() is wrong and the build has no
-# fused multiply-add instruction (the MinGW-w64 before version 12 or linked with
-# msvcrt.dll, and Cygwin; GAOL_SOFT_FMA of gaol/gaol_config.h): built and tested
+# fma() computed by gaol_fma_upward() and gaol_fma() of gaol/math/gaol_fma.h,
+# with integers, which is what GAOL calls where the C library's fma() is wrong
+# and the build has no fused multiply-add instruction (the MinGW-w64 before
+# version 12 or linked with msvcrt.dll, and Cygwin; GAOL_SOFT_FMA of
+# gaol/gaol_config.h): built and tested
 # on an ordinary machine, where the fma() of the library is right and
 # tests/core_math.cpp compares gaol_fma() with it, or with the instruction when
 # the build keeps -mfma (the input opts is empty), so that the path is checked
@@ -54,7 +55,7 @@ runs:
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON \
           -DGAOL_FMA_SOFTWARE=ON ${{ inputs.opts }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
           -DCMAKE_C_COMPILER=${{ inputs.cc }} -DCMAKE_CXX_COMPILER=${{ inputs.cxx }} | tee configure.log
-        grep -q "fma(): gaol_fma() of gaol/math/gaol_fma.h" configure.log
+        grep -q "fma(): gaol_fma_upward() and gaol_fma() of gaol/math/gaol_fma.h" configure.log
         # Every source of CORE-MATH compiled with the macro, and with -mfma
         # exactly where the instruction was not left out: the sources are in
         # gaol_core_math, which the definitions of gaol do not reach (as

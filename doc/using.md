@@ -172,8 +172,9 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 ```
 
 `gaol::gaol` carries the include directory, the flags above, the link option
-above for the code built by GCC 13 or a later one, or by the compiler that
-built GAOL, of its major version and not older (another compiler, as Clang 18,
+above for the code built by GCC 13 or a later one, by Clang 20 or a later one
+(not on Windows), or by the compiler that built GAOL, of its major version and
+not older (another compiler, as Clang 18,
 would stop on it, and so would GCC 12.0 to 12.3 with a GAOL built by GCC 11.4:
 GCC has the option from 11.4 and 12.4 in the series 11 and 12 only), and no
 longer `__GAOL_PUBLIC__=` for Visual C++ (GAOL v5): GAOL is a static library
@@ -343,9 +344,10 @@ program names them through one of two namespaces, which `gaol/gaol.h` declares
 and does not open:
 
 - `gaol`, GAOL under its own names, to stay compatible with GAOL 4: a program
-  written for GAOL 4 keeps its names there and, but for the results that
-  change (see [What differs from GAOL](differences.md)), its results, its `pow`
-  taking the integer power for an integer exponent, a negative base included;
+  written for GAOL 4 keeps most of its names there and, but for the results
+  that change (see [What differs from GAOL](differences.md), which gives the
+  names that are gone too), its results, its `pow` taking the integer power for
+  an integer exponent, a negative base included;
 - `gaol_ieee1788`, GAOL under the names of IEEE 1788-2015, to follow the
   standard: its operations have the names, the arguments and the results the
   standard gives them (below).
@@ -1221,7 +1223,7 @@ back to itself to nearest, then comes back one double above, and one more at
 each round trip. Another C library may convert to nearest whatever the
 direction: the example reports what the one it runs with does. Sums are
 biased: each addition rounds up, so 0.1 added ten million times ends 5.5·10⁻⁴
-above the exact 10⁶ × 0.1, where to nearest it ends 1.6·10⁻⁴ below. And
+above the exact 10⁷ × 0.1, where to nearest it ends 1.6·10⁻⁴ below. And
 TwoSum, the algorithm that recovers the error of a sum,
 
 ```cpp
@@ -1574,9 +1576,13 @@ functions of the rare cases, which a call or an asm with a "memory" clobber
 that restores the direction finds written: the products they hold are computed
 before it, with the direction upward. That is how the compilers treat it (GCC
 15 for 32-bit ARM, the stores precede `bl fesetround`), not a rule of the
-language, and no test holds it: `GAOL_RND_KEEP()` would make it one, for 2.6 ns
-more with `GAOL_PRESERVE_ROUNDING`, and the former product and `x + y` did
-without.
+language: `GAOL_RND_KEEP()` would make it one, for 2.6 ns more with
+`GAOL_PRESERVE_ROUNDING`, and the former product and `x + y` did without.
+Tests hold it instead: the checks of `tests/rounding_direction.cpp` that run
+`x *= y`, `x /= y` and `x %= y` in a loop changing the rounding direction fail
+where a product is computed after the direction is restored, and the jobs of
+GCC and Clang with the FPU intervals and `GAOL_PRESERVE_ROUNDING`
+(`.github/workflows/linux.yml`) run them.
 
 The processors and compilers of the continuous integration that took the FPU
 intervals were measured in turn too (Visual C++ and clang-cl for arm64 take the

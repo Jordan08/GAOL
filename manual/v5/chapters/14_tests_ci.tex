@@ -217,6 +217,9 @@ check applies.
     the literals of IEEE 1788-2015, the bases 16, 8 and 2, the five output
     formats, the flags of the streams, the locales, the subnormals under
     the flush modes\\
+  \code{bad\_snprintf} & (Linux, a static libgaol) The bounds written still
+    rounded outward with an \code{snprintf()} that writes zeros after the
+    17th significant digit, as the \file{msvcrt.dll} of Windows does\\
   \code{other\_functions} & Midpoints, widths, radii, distances, splitting,
     \code{max}, \code{min}, the tools of interval algorithms, the
     comparisons of IEEE 1788-2015, the reverse functions of \code{max},
@@ -235,6 +238,9 @@ check applies.
     chains, the allocations that fail\\
   \code{u128} & The two 64-bit halves of the 128-bit integer against the
     native type of the compiler\\
+  \code{u128\_select} & (in C, not linked with GAOL) The choice between two
+    128-bit integers of \file{gaol/math/gaol\_u128.h}, which GCC 14.2, 15.3
+    and 16.2 for 32-bit x86 compile wrongly with \code{\_BitInt(128)}\\
   \code{extended\_precision} & The arguments the x87 unit rounds wrongly:
     fails when GAOL is built on it\\
   \code{reverse} & The relational functions against the reverse functions
@@ -252,6 +258,22 @@ check applies.
     \option{-ffinite-math-only} and \option{-ffast-math}, accepted
     without; \file{refused\_options.sh} and \code{refused\_options} check as well
     the three cases of the tests \code{refused\_aligned\_new*}\\
+  \code{refused\_no\_\allowbreak signed\_zeros},\newline
+    \code{refused\_no\_\allowbreak trapping\_math},\newline
+    \code{refused\_unsafe\_math},\newline
+    \code{refused\_\allowbreak reciprocal\_math} (CMake) & The compilation
+    refused with \option{-fno-signed-zeros}, \option{-fno-trapping-math},
+    \option{-funsafe-math-optimizations} and \option{-freciprocal-math},
+    where the compiler shows them by a macro (GCC~12 and later)\\
+  \code{refused\_arm64ec} (CMake) & The compilation refused for ARM64EC,
+    \code{\_M\_ARM64EC} defined by hand\\
+  \code{refused\_mingw\_arm32},\newline
+    \code{refused\_mingw\_\allowbreak arm64\_msvcrt},\newline
+    \code{mingw\_arm64\_\allowbreak before\_12\_\allowbreak accepted},\newline
+    \code{mingw\_arm64\_\allowbreak ucrt\_accepted} (CMake) & On x86, with
+    the macros of a mingw-w64 for ARM defined by hand: refused for 32-bit
+    ARM and for 64-bit ARM of version 12 or later linked with
+    \file{msvcrt.dll}, accepted before 12 and with the UCRT\\
   \code{refused\_aligned\_new},\newline
     \code{refused\_aligned\_\allowbreak new\_cxx17},\newline
     \code{refused\_aligned\_\allowbreak new\_positive} (CMake) & The SSE2 intervals on
@@ -261,7 +283,8 @@ check applies.
   \code{cpack\_stale\_configure} & (CMake) The warning of CPack when the
     committed \file{configure} was generated for another version\\
   \code{automatic\_configuration} & (CMake) The configuration GAOL decides
-    by itself, and the settings of the developers\\
+    by itself, the settings of the developers, and the flags of the user that
+    fail the checks of the flags of interval arithmetic\\
   \code{arithmetic\_operators}, \code{assignment}, \code{constants},
     \code{constructor}, \code{float\_functions},
     \code{generic\_functions}, \code{input\_output},
@@ -387,7 +410,7 @@ them.\newinvfive{} The values are in \file{elementary\_values.h}, which
 
 \subsection{The rounding direction and the floating-point \texorpdfstring{\mbox{environment}}{environment}}
 
-\code{rounding\_direction} calls about 110 operations of GAOL's interface
+\code{rounding\_direction} calls about 130 operations of GAOL's interface
 with the rounding direction upward, to nearest, downward and toward zero
 (and on x86 with the x87 and the SSE directions differing): they have to
 give the results they give rounding upward, and to leave the direction
@@ -946,7 +969,9 @@ two versions, and that CPack configures the copy again and names the archive
 after the new version. \code{automatic\_configuration} configures GAOL
 several times in one directory, with the defaults, \option{GAOL\_SIMD=OFF},
 the AVX-512 path refused and asked for, the Debug build type, the settings
-of the developers and a cross-compilation, and holds
+of the developers, a cross-compilation, and flags of the user that fail the
+checks of the flags of interval arithmetic (GCC), which have to stop the
+configuration, and holds
 \file{gaol\_configuration.h} and the messages of CMake to what each asks for
 and to what the checks found; it builds nothing and takes about ten seconds.
 Only the CMake build has these two scripts: \cmd{configure} and meson are
@@ -1054,7 +1079,7 @@ would:
 \begin{cmdshell}
 % cmake -S examples -B build-examples -DCMAKE_PREFIX_PATH=@var^prefix~
 % cmake --build build-examples
-% ctest --test-dir build-examples
+% (cd build-examples && ctest)
 \end{cmdshell}
 
 \noindent
@@ -1333,7 +1358,8 @@ the platforms GAOL supports is in the chapter on the installation
     Ubuntu 24.04, 26.04 & x86\_64, arm64 & GCC, Clang; the sanitizers;
       \option{-Wall -Wextra -Werror}; CMake 3.14; GCC 11 and Clang 14 of
       Ubuntu 22.04; GCC 9; a shared library; autotools, meson\\
-    Debian 12, 13 (containers) & amd64, arm64, armhf; Debian 12 on i386 &
+    Debian 12, 13 (containers) & amd64, arm64, armhf; Debian 12, 13 and 14
+      on i386 &
       GCC; built for size on Debian 13 armhf; autotools and meson on i386
       and armhf\\
     manylinux\_2\_28 & x86\_64, aarch64 & CMake\\
@@ -1345,9 +1371,10 @@ the platforms GAOL supports is in the chapter on the installation
       universal build & AppleClang, the Clang of LLVM, GCC; CMake,
       autotools, meson, the generator of Xcode; the sanitizers\\
     Windows & x86, x64, arm64 & Visual Studio 2022 and 2026 (Release and
-      Debug); clang-cl; MinGW-w64 15 and 14 (x86, x64), 13 and 12 (x86);
-      MSYS2 UCRT64 (GCC), CLANG64 and CLANGARM64 (Clang), MINGW32
-      (autotools, meson); Cygwin (GCC, x86-64); Clang with the target of
+      Debug); clang-cl; MinGW-w64 15, 14, 13, 12 and 11 (x86, x64);
+      MSYS2 UCRT64 (GCC), MINGW64 (GCC, Clang), CLANG64 and CLANGARM64
+      (Clang), MINGW32 (GCC; autotools, meson); llvm-mingw 20230320
+      (Clang 16, arm64); Cygwin (GCC, x86-64); Clang with the target of
       Visual C++ and the driver of GCC; meson with Visual Studio\\
     \hline
   \end{tabular}
@@ -1371,7 +1398,7 @@ runs with \code{CC="ccache gcc"} and a Ninja outside \env{PATH}, which it has
 to pass on to the copies of the tree it configures, and the tests run with
 the \code{FE\_*} values of Cygwin (newlib, 0 to 3) put over those of glibc
 for the sources of CORE-MATH. The containers build Debian 12 and 13 on
-amd64, arm64 and armhf, Debian 12 on i386, manylinux\_2\_28 and Alpine
+amd64, arm64 and armhf, Debian 12, 13 and 14 on i386, manylinux\_2\_28 and Alpine
 (musl) on x86\_64 and aarch64, Debian 13 under qemu on s390x, ppc64le and
 riscv64, and Ubuntu 24.04 (GCC 13) under qemu for POWER9; two jobs build for
 size (\code{MinSizeRel}, \option{-Os}) on Debian 13 armhf and for POWER9,
@@ -1400,11 +1427,13 @@ arm64, in Release and Debug. On x64 and x86 the intervals are the SSE2 ones
 arm64 the NEON ones, with Visual C++ and clang-cl, which a step of each job
 checks.\newinvfive{} A job on x86 and two on arm64 ask for the FPU intervals
 (\option{GAOL\_SIMD=OFF}), so that their code, and the rounding direction
-they keep through the x87 unit and MXCSR, stay covered. Three x64 jobs ask for
-the AVX-512 path (\option{GAOL\_PREFER\_AVX512}), two with Visual C++ and one with clang-cl, which they take where the
+they keep through the x87 unit and MXCSR, stay covered. Four x64 configurations
+ask for the AVX-512 path (\option{GAOL\_PREFER\_AVX512}), three with Visual C++
+(2022 Debug, 2026 Release, 2026 Release with \option{/W4 /WX}) and one with
+clang-cl, which they take where the
 runner has the instructions, with a warning where it has not; since the
 runners have them or not according to the machine GitHub gives, five more
-jobs run the unit tests that compute with intervals under Intel SDE, which
+configurations run the unit tests that compute with intervals under Intel SDE, which
 emulates a processor with them
 (Visual Studio 2022 and 2026, Release and Debug, and clang-cl). clang-cl,
 the Clang of Visual Studio, builds x64 in Release and Debug with Visual

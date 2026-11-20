@@ -179,9 +179,8 @@ the C sources had `-msse2 -msse3 -fvisibility=hidden` with CMake alone and the
 standard of the compiler with configure, `gnu11` with meson, `gnu99` with CMake);
 the continuous integration runs it on each kind of machine, with the default
 options and with five sets of options: the rounding direction preserved, with and
-without the AVX-512 path, the FPU intervals, no fused multiply-add instruction
-(not with MSYS2 MINGW32, which `gaol/gaol_config.h` refuses without it), no
-exceptions and the verbose mode (GAOL v5: the default options alone).
+without the AVX-512 path, the FPU intervals, no fused multiply-add instruction,
+no exceptions and the verbose mode (GAOL v5: the default options alone).
 
 ## What the options are worth
 
@@ -344,7 +343,7 @@ first runs found what Cygwin needed. Its `<stdlib.h>` does not declare
 there). Its `fma()` is not correctly rounded (`fma(1 + 2^-30, 1 - 2^-30, -1)`
 gives 0), and `std::fma` is a call of it without optimization: GAOL calls
 `__builtin_fma` (`fma_once()`), which is the instruction with `-mfma` at -O0 and
-at -O3 (both checked), and `gaol_fma()` where the build has no `-mfma`
+at -O3 (both checked), and `gaol_fma_upward()` where the build has no `-mfma`
 (`GAOL_SOFT_FMA`, see [the older MinGW-w64](#the-fma-and-round-of-mingw-w64)). Its
 `nextafter(-DBL_MAX, -oo)` is `-DBL_MAX` in the rounding direction upward, which
 `previous_float()` and `next_float()` now tell apart (the lower bound of
@@ -585,12 +584,14 @@ too:
   instructions (`.github/scripts/check-gcc-windows-fma.sh`);
 - where the build has no instruction (`GAOL_FMA=OFF`, or a processor without the
   instructions, for which the builds do not take `-mfma`), `fma()` is
-  `gaol_fma()` (`gaol/math/gaol_fma.h`): `a*b + c` rounded once, in the
-  direction in effect, computed with integers (`GAOL_SOFT_FMA` of
-  `gaol/gaol_config.h` is then 1). The library calls no `fma()` of the C
-  library in either case, which `.github/scripts/check-no-fma-call.sh` reads in
-  its objects. Nothing changes where the library's `fma()` is right: Linux,
-  macOS, Visual C++, the UCRT of mingw-w64 12 and later.
+  `gaol_fma_upward()` (`gaol/math/gaol_fma.h`): `a*b + c` rounded once upward,
+  the direction GAOL runs in, computed with integers (`GAOL_SOFT_FMA` of
+  `gaol/gaol_config.h` is then 1); `fma_exact()`, which the `gaol_fma()` of
+  GAOL's interface calls, is the `gaol_fma()` of that header, right in the four
+  directions. The library calls no `fma()` of the C library in either case,
+  which `.github/scripts/check-no-fma-call.sh` reads in its objects. Nothing
+  changes where the library's `fma()` is right: Linux, macOS, Visual C++, the
+  UCRT of mingw-w64 12 and later.
 
 `gaol_fma_upward()`, which GAOL calls, is slower than the instruction: it is
 there for the processors without it (before Intel Haswell and AMD Piledriver)
@@ -605,7 +606,7 @@ builds) has GAOL call it on any machine, as the continuous integration does on
 Ubuntu x86-64 with GCC and Clang.
 
 `tests/core_math.cpp` checks the two functions first, on every platform: that of
-the C library, and `gaol_round()` and `gaol_fma()` where GAOL calls them. On
+the C library, and `gaol_round()`, `gaol_fma_upward()` and `gaol_fma()` where GAOL calls them. On
 32-bit x86, mingw-w64 computes them on the x87 unit: there its `round()` is
 right, and the `fma()` of mingw-w64 11 (MinGW-Builds GCC 12 and 13) keeps its
 partial sums in extended precision and passes the tests, though it is not
@@ -613,7 +614,7 @@ correctly rounded (125 results of 400,000 were one double off); that of the
 mingw-w64 9 of WinLibs, compiled without optimization, rounds each of them to a
 double; that of a mingw-w64 12 or later linking `msvcrt.dll` (MSYS2 MINGW32) is
 that of mingw-w64 too. GAOL calls none of them: the instruction, or
-`gaol_fma()`.
+`gaol_fma_upward()`.
 
 On 64-bit ARM, mingw-w64 before version 12 is accepted (GAOL v5): the `fma()`
 of its `libmingwex` is not the code above but the instruction. In the
@@ -621,7 +622,7 @@ of its `libmingwex` is not the code above but the instruction. In the
 d0, d1, d2`, a move and a return, which is the instruction that `__builtin_fma()`
 of Clang is at every level of optimization; its `round()` is the code above,
 computed in doubles. GAOL calls `gaol_round()` and the instruction, and
-`gaol_fma()` is for x86 only (`GAOL_SOFT_FMA` is 0), a processor for 64-bit ARM
+`gaol_fma_upward()` is for x86 only (`GAOL_SOFT_FMA` is 0), a processor for 64-bit ARM
 having the instruction. That is read in the code, not taken from a comment:
 `.github/scripts/check-arm64-fma.sh` reads the disassembly of the `fma()` of
 the library and requires one `fmadd` and nothing else that computes, requires

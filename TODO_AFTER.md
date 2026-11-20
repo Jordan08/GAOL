@@ -1,7 +1,7 @@
 # Reporté
 
 Tout ce qui est reporté sur GAOL v5 au 19 novembre 2026 (v5.0.0 est publiée :
-`TODO_DONE.md` 3.57 et 3.60) : ce qui vient après la version v5.0.0, ce que le
+`TODO_DONE.md` 3.57, 3.60 et 3.61) : ce qui vient après la version v5.0.0, ce que le
 mainteneur a reporté indéfiniment, ce qu'il a écarté en laissant une porte
 ouverte, et ce qui attend du matériel. Ce fichier et l'issue #178 ont le même
 contenu. Ce qui restait à faire avant la version était dans `TODO.md` (issue
@@ -37,9 +37,9 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
      algorithmes actuels supposent l'arrondi vers le haut, et ne sont pas
      valables au plus proche : les noyaux SSE2 calculent `<-inf, sup>` par un
      seul arrondi vers le haut (`_mm_add_pd`, `_mm_mul_pd`, `_mm_div_pd` de
-     `gaol/core/gaol_interval_sse.cpp`), et `sup` pourrait alors passer sous la
-     valeur exacte ; CORE-MATH lit le sens dans MXCSR, `f_up(x)` y est la borne
-     supérieure et `previous_float(f_up(x))` l'inférieure
+     `gaol/core/gaol_interval_sse_impl.h`), et `sup` pourrait alors passer sous
+     la valeur exacte ; CORE-MATH lit le sens dans MXCSR, `f_up(x)` y est la
+     borne supérieure et `previous_float(f_up(x))` l'inférieure
      (`gaol/math/gaol_double_op.h`). Ce qu'il faut, c'est un arrondi dirigé,
      non un changement de sens :
      - sur le chemin AVX-512 (`GAOL_PREFER_AVX512`), `+ - * / sqrt sqr` et les
@@ -228,14 +228,14 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
 6. **Le ménage de la fin** : l'image Docker `i386/debian:trixie` de #111 reste
    sur la machine (`debian:trixie` et `ubuntu:24.04` ont été supprimées le 31
    octobre : `TODO_DONE.md`, 8.1) ; les registres `TODO.md`, `TODO_DONE.md` et
-   `TODO_AFTER.md` sont à vider après la version (publiée le 19 novembre), et
+   `TODO_AFTER.md` sont à vider après la version (publiée), et
    leurs issues #177 à #179 à fermer ou à garder alors. `todo-notes/` (ramené de
    la branche `todo-status`, supprimée) est retiré du dépôt le 17 novembre par
    #387 : ses rapports restent au commit `16a2f60` et le reste, la synthèse
    comprise, au commit `5d07c3a2` (`git show 5d07c3a2:todo-notes/synthese.md`).
 7. **71 (PJ.4), l'annonce de GAOL v5.0.0 à Frédéric Goualard** [accord] (issue
    #389, suite de #128, fermée le 18 octobre) : annoncer la version à l'auteur
-   de GAOL une fois l'étiquette `v5.0.0` posée (le 19 novembre). *Reporté le 17
+   de GAOL une fois l'étiquette `v5.0.0` posée. *Reporté le 17
    novembre* (« Reporter (créer une issue) ») faute d'une adresse vérifiée : le
    brouillon Gmail « GAOL v5.0.0 » (13 novembre) n'a pas de destinataire, et
    l'adresse de #128, d'une liste de 2020 et d'un échange de 2014, ne se lit
@@ -342,13 +342,16 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
      pull request, dont le test manque, est à décider.
    - #131 Microsoft : trois rapports sur la Developer Community (compte
      Microsoft), un quatrième facultatif.
-   - #132 Apple : rien ; un Feedback facultatif (Feedback Assistant, Apple ID).
-   - #133 LLVM : rien ; une demande facultative (github.com/llvm/llvm-project).
+   - #132 Apple : rien ; un Feedback facultatif (Feedback Assistant, Apple ID) ;
+     issue fermée le 17 novembre.
+   - #133 LLVM : rien ; une demande facultative (github.com/llvm/llvm-project) ;
+     issue fermée le 17 novembre.
    - #134 gmpy2 : rien à l'amont ; un bogue Launchpad facultatif.
    - #135 musl et #137 libieeep1788 : rien ; issues fermées le 17 novembre.
    - #136 Tang et al. : une issue sur github.com/geometryprocessing/intervals
      (dépôt inactif depuis 2023).
-   - #138 glibc : rien, ou `asin` seul (Bugzilla de sourceware).
+   - #138 glibc : rien, ou `asin` seul (Bugzilla de sourceware) ; issue fermée
+     le 17 novembre.
    - #175 newlib et Cygwin : un correctif et une remarque sur `fma()` à
      newlib@sourceware.org, un e-mail à cygwin@cygwin.com (`llistxattr()`, la
      cause du défaut du lien `README` de CPack) ; rien à CMake.
@@ -469,10 +472,11 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    novembre) : les commits sont sous `refs/pull/251/head`. *À rouvrir* si le
    mainteneur accepte que ces deux drapeaux changent.
 9. **`div_rel()` en SSE2, le cas P1 M : une division vectorielle** (*décidé le
-   12 novembre* : on laisse comme ça). Le cas P1 M
-   (`gaol/core/gaol_interval_sse_impl.h`) calcule deux `_mm_div_sd` de même
-   numérateur, que l'on pourrait ramener à une division vectorielle comme #302
-   l'a fait pour N1 M, dont la mesure n'a montré aucun gain sur l'i7-1185G7
+   12 novembre* : on laisse comme ça). Le cas P1 M (le `div_rel()` de
+   `GAOL_USING_SSE2_INSTRUCTIONS`, `gaol/core/gaol_interval_relational.cpp`
+   depuis #308) calcule deux `_mm_div_sd` de même numérateur, que l'on
+   pourrait ramener à une division vectorielle comme #302 l'a fait pour N1 M,
+   dont la mesure n'a montré aucun gain sur l'i7-1185G7
    (`TODO_DONE.md` 7.25). Non mesuré, non demandé. *À rouvrir* si une mesure
    montre un gain, ou si le banc a une ligne de ce cas.
 10. **`CPACK_GENERATOR "TGZ;DEB"` sans `dpkg`** (PW.9, #345). Le point disait
@@ -680,17 +684,17 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
 1. **`[l, u]` ne départage pas** pi et un autre nombre de même encadrement
    (`[pi, 3.14159265358979323846]`), un nombre loin au-delà des doubles (plus de
    10^311 ou moins de 10^-331 en décimal, environ 2^1026 et 2^-1081 dans les
-   autres bases : `[1e400, 1e399]`, `[1.8e308, 1e400]`), ni des bornes calculées
-   (`[1/3, 0.3333333333333333]`) : le littéral est alors l'intervalle de la
-   borne inférieure de l à la borne supérieure de u, un sur-ensemble du vide,
-   sûr mais pas le plus serré (dit dans `gaol_parser.h`, le manuel,
-   `doc/accuracy.md` et `doc/tests.md`). Pi demanderait un encadrement intégré à
-   plus de chiffres ; les nombres loin au-delà, la comparaison de leurs
-   exposants et de leurs premiers chiffres. Les autres cas (deux nombres entre
-   les mêmes deux doubles) sont départagés exactement depuis #149. *Décidé le 8
-   novembre* (la tâche PM, `TODO_DONE.md` 3.26) : les bornes calculées ne sont
-   pas comparées plus loin, le cas (b) de 12.12.7 est documenté seulement, et
-   `PossiblyUndefinedOperation` reste à l'article 1.4.
+   autres bases : `[1e400, 1e399]`, `[1e400, 1.8e308]`), ni des bornes calculées
+   (`[1/3, 0.3333333333333333333333333333333]`) : le littéral est alors
+   l'intervalle de la borne inférieure de l à la borne supérieure de u, un
+   sur-ensemble du vide, sûr mais pas le plus serré (dit dans `gaol_parser.h`,
+   le manuel, `doc/accuracy.md` et `doc/tests.md`). Pi demanderait un
+   encadrement intégré à plus de chiffres ; les nombres loin au-delà, la
+   comparaison de leurs exposants et de leurs premiers chiffres. Les autres cas
+   (deux nombres entre les mêmes deux doubles) sont départagés exactement
+   depuis #149. *Décidé le 8 novembre* (la tâche PM, `TODO_DONE.md` 3.26) : les
+   bornes calculées ne sont pas comparées plus loin, le cas (b) de 12.12.7 est
+   documenté seulement, et `PossiblyUndefinedOperation` reste à l'article 1.4.
 2. **Trois inversions du banc A/B de `cl`** (#209) : `x / y` et `sqr(x)` sont
    plus lents avec #209 (+54 et +48 ns) et `x - y` plus rapide (−41 ns) dans les
    deux jobs de Visual C++ x64 à direction préservée, sans mécanisme : leurs
@@ -725,11 +729,11 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    `tests/expressions.cpp` ; l'écriture d'intervalles par un second thread
    pendant `intervalToExact()`, `tests/ieee1788.cpp` ;
    `tests/CMakeLists.txt:300-306`), ce que dit `doc/tests.md`. `doc/using.md`
-   (« The output formats ») dit que plusieurs threads écrivent des intervalles
-   et lisent des chaînes sans risque (« checked with ThreadSanitizer ») :
-   vérifié une fois, aucun test de `ctest` ni job de la CI ne le revérifie.
-   *Décidé le 5 novembre* : inscrire la limite ici, sans changer le code, les
-   tests ni `doc/using.md`.
+   (« Common errors », « Threads and the global settings ») dit que plusieurs
+   threads écrivent des intervalles et lisent des chaînes sans risque
+   (« checked with ThreadSanitizer ») : vérifié une fois, aucun test de `ctest`
+   ni job de la CI ne le revérifie. *Décidé le 5 novembre* : inscrire la limite
+   ici, sans changer le code, les tests ni `doc/using.md`.
 
 Les articles 5 à 19 viennent de la relecture du 4 novembre (`TODO_DONE.md`
 3.19), *décidé le 8 novembre* (3.24 et 3.25) : toutes les limites connues
@@ -738,8 +742,9 @@ qu'elle a relevées sont inscrites ici, en une fois, sans rien changer au code
 3.24).
 
 5. **`move_to_side()` reste quadratique en la précision** (#71) :
-   `move_to_side()` (`gaol/core/gaol_interval_core.cpp`, ligne 1666) fait
-   jusqu'à quatre appels à `compare_number_with_double()`.
+   `move_to_side()` (`gaol/core/gaol_interval_io.cpp` depuis #308) fait
+   jusqu'à cinq appels à `compare_number_with_double()`, plus ceux
+   d'`outward_text()` (quatre appels avant #335).
 6. **`pow(y, -1)` sur un état brut** (#245). Il échouait déjà sur la base pour
    la voie stockée `[-0, NaN]` ; noté en fait dans `TODO_DONE.md` 2.3 (#245),
    sans test (`tests/other_functions.cpp` ne teste pas `pow`, qui passe par
@@ -748,38 +753,47 @@ qu'elle a relevées sont inscrites ici, en une fois, sans rien changer au code
    signalant, les mêmes dans la bibliothèque de base : non étudiés ; l'outil
    `maxdiff_neon` n'est pas dans le dépôt. États bruts.
 8. **Un code mort possible dans `get_rounding()`** (#218) : la branche
-   générique, le repli SSE sans `<fenv.h>` (`gaol/gaol_fpu.h`, lignes 822 à 826,
-   841 et 856), où ne passe qu'un compilateur x86 autre que GCC, Clang et Visual
-   C++ (lignes 180 à 186 et 231 à 236).
+   générique, le repli SSE sans `<fenv.h>` (`gaol/gaol_fpu.h`, les
+   `#if GAOL_RND_SSE_REGISTER` de `get_rounding()`, de `set_rounding()` et de
+   `set_rounding_and_flush_modes()` sous `!GAOL_RND_X86_STATE`), où ne passe
+   qu'un compilateur x86 autre que GCC, Clang et Visual C++ (les conditions de
+   `GAOL_RND_X86_DIRECT` et de `GAOL_RND_X86_64_DIRECT`).
 9. **meson ancien** (#95) : avant meson 0.63, GAOL en sous-projet prend la
    norme C++ du projet parent ; de meson 0.53 à 0.56 avec Visual C++,
    `enable-debug` ne donne pas `/Zi`. `doc/using.md` (lignes 205 à 225) et
    `doc/building.md` (ligne 204) n'en disent rien.
 10. **Une clause d'`atanh()` sans test** (#92) : retirer `J.right() == -1.0`
-    (`gaol/core/gaol_interval_core.cpp`, ligne 5817) ne fait échouer aucun
-    test ; la synthèse des rapports, retirée par #387 (`git show
-    5d07c3a2:todo-notes/synthese.md`, lignes 1191 à 1196), proposait de la
-    joindre à R.7, qui est fait.
+    (`atanh_upward()`, `gaol/core/gaol_interval_internal.h` depuis #308) ne
+    fait échouer aucun test ; la synthèse des rapports, retirée par #387
+    (`git show 5d07c3a2:todo-notes/synthese.md`, lignes 1191 à 1196),
+    proposait de la joindre à R.7, qui est fait.
 11. **Les marques de GAOL 4 dans `gaol/float/`** : 12 `TODO` et `FIXME`
-    (`gaol_interval2f.cpp` 8, `gaol_intervalf.cpp` 4) et `tests/interval2f.cpp`
-    1 ; les intervalles de floats sont désactivés (`GAOL_FLOAT_INTERVALS`) et
-    dits inachevés (`doc/differences.md`, lignes 2290 à 2308).
+    (`gaol_interval2f_impl.h` 8, `gaol_intervalf_impl.h` 4) et
+    `tests/interval2f.cpp` 1 ; les intervalles de floats sont désactivés
+    (`GAOL_FLOAT_INTERVALS`) et dits inachevés (`doc/differences.md`, « The
+    intervals of floats are compiled by a developer of GAOL only »).
 12. **Le générateur Xcode avec GAOL inclus par `add_subdirectory`** dans un
     projet parent universel (#205) : non vérifié.
 13. **Les sections à part de Visual C++ arm64** (#262) : « si l'un en montre, la
     même technique s'applique » aux autres noyaux
-    (`gaol/core/gaol_interval_neon.cpp`, lignes 134 à 144). *À rouvrir* si un
-    autre noyau montre le même bruit de placement.
+    (`gaol/core/gaol_interval_neon_impl.h`, le commentaire et les `#pragma
+    code_seg` d'`add_bounds()` et de `sub_bounds()`). *À rouvrir* si un autre
+    noyau montre le même bruit de placement.
 14. **Le temps du banc A/B** (#166) : « on peut retirer des entrées (les trois
     clang-cl, par exemple) si le temps pèse »
-    (`.github/workflows/performance.yml`, lignes 105 à 107). *À rouvrir* si le
-    job devient trop long.
+    (`.github/workflows/performance.yml`, les entrées « Visual Studio 2026
+    clang-cl x64 », « x86 » et « arm64 »). *À rouvrir* si le job devient trop
+    long.
 15. **LTO** : CORE-MATH est construit sans LTO par autotools (`-fno-lto`,
-    `configure.ac` ligne 737 et suivantes, `3rd/Makefile.am` ligne 50) et par
-    CMake (`INTERPROCEDURAL_OPTIMIZATION OFF`, `CMakeLists.txt` ligne 1264), et
-    `meson.build` n'en dit rien ; l'audit des trois builds ne compare pas ce
-    réglage (#201). Aucun job avec `-flto` : *décidé le 23 octobre*
-    (`TODO_DONE.md` 3.6).
+    `CORE_MATH_NO_LTO` de `configure.ac` et de `3rd/Makefile.am`), par CMake
+    (`INTERPROCEDURAL_OPTIMIZATION OFF` de la cible `gaol_core_math`,
+    `CMakeLists.txt`) et par meson (`b_lto=false`, `core_math_overrides` de
+    `gaol/meson.build`, depuis le 20 septembre) ; l'audit des trois builds ne
+    compare pas ce réglage (#201). Aucun job avec `-flto` : *décidé le 23 octobre*
+    (`TODO_DONE.md` 3.6) ; puis, *décidé le 13 novembre* (PU.4, 3.39), un job
+    GCC de `linux.yml` prend l'IPO de CMake
+    (`-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`, la direction préservée, #333),
+    et un second le chemin SSE2 (#336), sans atteindre CORE-MATH.
 16. **Les macros qui appellent les gabarits** (#210) : aucun test ne voit si
     elles le font, c'est une propriété de vitesse.
 17. **`cos(x)` 6 ns plus lent** (#100), de 55,6 à 61,6 ns, sans enquête ; sans

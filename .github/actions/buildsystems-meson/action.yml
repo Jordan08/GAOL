@@ -106,6 +106,21 @@ runs:
       run: |
         meson setup build-no-avx512 -Denable-preserve-rounding=true -Denable-prefer-avx512=false
         ! grep -E "^#define GAOL_(PREFER_AVX512|AVX512_ARITHMETIC) 1" build-no-avx512/gaol/gaol_configuration.h
+    # A flag of cpp_args that GCC says is for C only fails the checks of the
+    # flags of interval arithmetic: meson stops and says why, rather than
+    # building GAOL without them, as CMake does (tests/automatic_configuration.cmake)
+    # (GAOL v5: it built GAOL without them, with no word of it)
+    - name: A flag of cpp_args that fails the checks of interval arithmetic
+      if: runner.os == 'Linux' && inputs.options == ''
+      shell: bash -e {0}
+      run: |
+        if CXX=g++ CC=gcc meson setup build-refused -Dcpp_args=-Wstrict-prototypes > refused.log 2>&1; then
+          cat refused.log
+          echo "::error::meson configured GAOL with -Wstrict-prototypes in cpp_args, which fails the checks of the flags of interval arithmetic"
+          exit 1
+        fi
+        grep -q "which every GCC and Clang take" refused.log || { cat refused.log; exit 1; }
+        rm -rf build-refused refused.log
     - name: Locale writing a decimal comma
       if: runner.os == 'Linux'
       shell: bash -e {0}

@@ -91,8 +91,11 @@ done
 # flags carry on 32-bit Windows, in C++11 and in C++17 (the flags of the
 # autotools build are in C++17 already, which would leave out the case where GCC
 # has no __cpp_aligned_new), and the compilation has to fail with the message
-# of the refusal; with the option it has to succeed. Only where the intervals are the SSE2 ones, and on a system
-# that is not Windows, whose headers take no -U_WIN64.
+# of the refusal; with the option it has to succeed. Only where the intervals
+# are the SSE2 ones, but not in the form of Visual C++ and clang-cl
+# (-DGAOL_SSE2_UNALIGNED_STORAGE=1 in the flags, whose bounds need no aligned
+# memory: tests/CMakeLists.txt leaves that case out too, GAOL v5), and on a
+# system that is not Windows, whose headers take no -U_WIN64.
 aligned_source=$(dirname "$0")/refused_aligned_new.cpp
 aligned_message="need the compiler to ask for aligned memory"
 aligned_flags=$(printf '%s\n' "$GAOL_CXXFLAGS" | sed 's/-faligned-new=8//g')
@@ -100,7 +103,7 @@ case $(uname -s 2>/dev/null) in
   MINGW*|MSYS*|CYGWIN*|Windows*)
     echo "SKIP: aligned new, on a system of Windows" ;;
   *)
-    if printf '#include <gaol/gaol_config.h>\n#if !GAOL_USING_SSE2_INSTRUCTIONS\n#error not the SSE2 intervals\n#endif\n' \
+    if printf '#include <gaol/gaol_config.h>\n#if !GAOL_USING_SSE2_INSTRUCTIONS || GAOL_SSE2_UNALIGNED_STORAGE\n#error not the SSE2 intervals in aligned memory\n#endif\n' \
          | $GAOL_CXX $GAOL_CXXFLAGS -x c++ -fsyntax-only - > /dev/null 2>&1; then
       for standard in -std=c++11 -std=c++17; do
         output=$($GAOL_CXX $aligned_flags $standard -D_WIN32 -U_WIN64 -fsyntax-only "$aligned_source" 2>&1)
@@ -121,7 +124,7 @@ case $(uname -s 2>/dev/null) in
         status=1
       fi
     else
-      echo "SKIP: aligned new, the intervals are not the SSE2 ones"
+      echo "SKIP: aligned new, the intervals are not the SSE2 ones in aligned memory"
     fi ;;
 esac
 

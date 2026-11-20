@@ -124,20 +124,20 @@ namespace gaol_core {
     __m128d r1 = _mm_xor_pd(xmmbounds,interval::lbsignmask); // r1 == < d, c >
     __m128d r2 = _mm_shuffle_pd(r1,r1,1); // r2 == <c, d>
     __m128d r4 = _mm_cmpeq_pd(r2,interval::m128_zero); // r4 == < c==0, d==0 >
-    // r3 == < -1/c, -1/d >, -1 or 1 where c or d is +-0
+    // r3 == < 1/c, -1/d >, -1 or 1 where c or d is +-0
     __m128d r3 = _mm_div_pd(interval::m128_minus_one,_mm_or_pd(r2,_mm_and_pd(r4,_mm_set1_pd(1.0))));
     __m128d r5 = _mm_shuffle_pd(r4,r4,1); // r5 == < d==0, c==0 >
     __m128d r6 = _mm_and_pd(r4,r5); // r6 == < c==0 && d==0, c==0 && d==0 >
     __m128d r7 = _mm_and_pd(r6,interval::m128_nan); // < r7 == < (c==0 && d==0) ? NaN : 0, (c==0 && d==0) ? NaN : 0 >
     __m128d r8 = _mm_and_pd(r4,interval::m128_infinf); // r8 == < (c==0) ? inf : 0, (d==0) ? inf : 0 >
-    __m128d r9 = _mm_andnot_pd(r4,r3); // r9 == < (c!=0) ? -1/c : 0, (d!=0) ? -1/d : 0 >
-    __m128d r10 = _mm_or_pd(r9,r8); // r10 == < (c==0) ? inf : -1/c, (d==0) ? inf : -1/d >
+    __m128d r9 = _mm_andnot_pd(r4,r3); // r9 == < (c!=0) ? 1/c : 0, (d!=0) ? -1/d : 0 >
+    __m128d r10 = _mm_or_pd(r9,r8); // r10 == < (c==0) ? inf : 1/c, (d==0) ? inf : -1/d >
     __m128d r11 = _mm_andnot_pd(r6,r10); // r11 == < (c!=0 || d!=0) ? hi(r10) : 0, (c!=0 || d!=0) ? lo(r10) : 0 >
     __m128d r12 = _mm_or_pd(r11,r7); // r12 == < (c==0 && d==0) ? NaN : hi(r10), (c==0 && d==0) ? NaN : lo(r10) >
     __m128d r13 = _mm_cmpgt_pd(xmmbounds,interval::m128_zero); // r13 == < d>0, (-c)>0 >
     __m128d r14 = _mm_shuffle_pd(r13,r13,1); // r14 == < (-c)>0, d>0 >
     __m128d r15 = _mm_and_pd(r13,r14); // r15 == < d>0 && (-c)>0, (-c)>0 && d>0 >
-    __m128d r16 = _mm_and_pd(r15, interval::m128_infinf); // r14 == < ((-c)>0 && d>0) ? inf : 0, ((-c)>0 && d>0) ? inf : 0 >
+    __m128d r16 = _mm_and_pd(r15, interval::m128_infinf); // r16 == < ((-c)>0 && d>0) ? inf : 0, ((-c)>0 && d>0) ? inf : 0 >
     __m128d r17 = _mm_andnot_pd(r15, r12); // r17 ==  < ((-c)<=0 || d<=0) ? hi(r12) : 0, ((-c)<=0 || d<=0) ? lo(r12) : 0 >
     __m128d r18 = _mm_or_pd(r16,r17); // < ((-c)>0 && d>0) ? inf : hi(r12), ((-c)>0 && d>0) ? inf : lo(r12) >
     return interval(r18, gaol_detail::unchecked_bounds);

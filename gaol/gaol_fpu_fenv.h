@@ -45,16 +45,20 @@ as well; on an x86 processor, 32-bit or x86-64 (GAOL_RND_X86_STATE), the
 rounding bits of the x87 control word and of MXCSR directly, with fnstcw and
 stmxcsr, fldcw and ldmxcsr, the register that differs only (GAOL v5; with
 mingw-w64, fegetround() joins the two units and fesetround() clears the
-exception flags of MXCSR, which showed it first). The get_fpu_cw() and reset_fpu_cw() of GAOL 4 read and wrote the
+exception flags of MXCSR, which showed it first); with the NEON intervals,
+and with GAOL_RND_FPSCR_DIRECT on 32-bit ARM (GAOL_RND_DIRECT), FPCR or
+FPSCR directly (GAOL v5). The get_fpu_cw() and reset_fpu_cw() of GAOL 4 read and wrote the
 control word of the x87 unit on x86 Linux and macOS, which left the direction
 of the SSE instructions unrestored, and 16 bits of the FPCR on 64-bit ARM,
 which left out its rounding bits.
-- gaol::init() calls fesetenv(FE_DFL_ENV), then round_upward(), which sets
+- Without GAOL_PRESERVE_ROUNDING, gaol::init() calls fesetenv(FE_DFL_ENV),
+then round_upward(), which sets
 both units: with glibc 2.31 on x86-64, the x87 control word is then
 0x0b7f and MXCSR 0x5f80, and 1 + 2^-60 is above 1. FE_DFL_ENV sets the
 precision of the x87 unit back to 64 bits (control word 0x037f),
 whatever Init_Lib() set: doubles computed on the x87 unit would be
-wrong, which is why gaol_config.h refuses them.
+wrong, which is why gaol_config.h refuses them. With it, gaol::init()
+leaves the environment as it found it (GAOL v5).
 - GAOL's bounds do not depend on the direction gaol::init() leaves: each
 operation sets it upward when it is not (round_upward_if_needed() in
 gaol_fpu.h), which tests/rounding_direction checks on each platform of

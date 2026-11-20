@@ -28,8 +28,10 @@
  * wrong, so are the bounds, whatever the platform. Where the fma() and the
  * round() are those of mingw-w64's own math library (GAOL_MINGW_OWN_MATH), which
  * are wrong, and Cygwin's fma(), GAOL calls gaol_round() of
- * gaol/math/gaol_round.h, and gaol_fma() of gaol/math/gaol_fma.h where the
- * build has no fused multiply-add instruction (GAOL_SOFT_FMA), which the test
+ * gaol/math/gaol_round.h, and gaol_fma_upward() and gaol_fma() of
+ * gaol/math/gaol_fma.h where the build has no fused multiply-add instruction
+ * (GAOL_SOFT_FMA; gaol_fma_upward() in CORE-MATH and in the operations of GAOL,
+ * which compute upward, gaol_fma() for gaol::gaol_fma()), which the test
  * checks there, and on every platform, apart from the C library. Where that
  * library's fma() is mingw-w64's own on a 64-bit ARM processor, which GAOL does
  * not replace with a function of its own (it is the instruction fmadd, which
@@ -550,7 +552,7 @@ namespace
     The __builtin_round() of the sources of CORE-MATH, with the lines of
     gaol/math/gaol_core_math_port.h that replace it where the round() of the C
     library is that of mingw-w64 (GAOL v5). The sources call it in two ways.
-    The roundeven_finite() of fifteen of them (exp.c, sin.c...), where the
+    The roundeven_finite() of thirteen of them (exp.c, sin.c...), where the
     processor has neither AVX nor SSE4.1 nor ARMv8, takes round(x) for any x
     and corrects the halfway values: the test calls it at the values where a
     wrong round() fails, the doubles next to 1/2, and at those of the table
@@ -724,9 +726,10 @@ namespace
 #endif
 
   /*
-    gaol_fma() of gaol/math/gaol_fma.h, which GAOL calls where the fma() of the
-    C library is wrong and the build has no fused multiply-add instruction
-    (GAOL_SOFT_FMA of gaol/gaol_config.h): a*b + c rounded once, in the four
+    gaol_fma() of gaol/math/gaol_fma.h, which gaol::gaol_fma() calls where the
+    fma() of the C library is wrong and the build has no fused multiply-add
+    instruction (GAOL_SOFT_FMA of gaol/gaol_config.h), the operations of GAOL
+    and CORE-MATH calling gaol_fma_upward(): a*b + c rounded once, in the four
     rounding directions, with integers. It is checked on every platform,
     whether GAOL calls it or not, and apart from the C library:
 
@@ -741,7 +744,7 @@ namespace
     - the zeros of every sign, the infinities and the NaN written out;
     - where the platform has the instruction, or a C library whose fma() is
       right (also with GAOL_FMA_FORCE_SOFTWARE; not where the build has
-      neither, and gaol_fma() is what GAOL calls), against it, at 200000 triples of every magnitude, near cancellations, in
+      neither, and gaol/math/gaol_fma.h is what GAOL calls), against it, at 200000 triples of every magnitude, near cancellations, in
       the subnormal range and at the edge of the overflow.
   */
   void gaol_fma_of_integers()

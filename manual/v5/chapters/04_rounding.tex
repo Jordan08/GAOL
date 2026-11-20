@@ -750,8 +750,12 @@ to the functions of the rare cases, which a call or an asm statement with a
 they hold are computed before it, with the direction upward. That is how the
 compilers treat it (GCC~15 for 32-bit ARM with
 \option{-DGAOL\_RND\_FPSCR\_DIRECT=0}, where the end of an operation is a call
-of \code{fesetround()}: the stores precede \code{bl fesetround}), not a rule of the language, and no test holds it:
-\code{GAOL\_RND\_KEEP()} would make it one, for 2.6~ns more with
+of \code{fesetround()}: the stores precede \code{bl fesetround}), not a rule
+of the language: the checks of \code{x *= y}, \code{x /= y} and \code{x \%= y}
+in the loop of \file{tests/rounding\_direction.cpp} that changes the direction
+fail where a product is computed after the direction is restored, and the jobs
+of the FPU intervals with the rounding direction preserved run them.
+\code{GAOL\_RND\_KEEP()} would make it a rule, for 2.6~ns more with
 \option{GAOL\_PRESERVE\_ROUNDING}, and the former product and \code{x + y}
 did without.
 

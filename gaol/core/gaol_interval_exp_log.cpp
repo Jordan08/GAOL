@@ -168,7 +168,8 @@ namespace gaol_core {
     them correctly rounded in the rounding direction in effect, as it does
     exp2, so the bounds are got the same way: in the upward rounding GAOL keeps,
     the value at a bound rounded upward, and the double below it for a lower
-    bound unless the value is itself a double, which the tests below tell.
+    bound unless the value is itself a double, which the tests below tell
+    (those of the functions of pi x are in gaol_interval_trig.cpp).
   */
 
   // b^x - 1 is a double exactly at 0, and for b = 2 at the integers of

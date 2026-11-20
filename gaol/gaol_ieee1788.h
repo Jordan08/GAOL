@@ -191,7 +191,8 @@ namespace gaol_ieee1788 {
   pow(x, y): the pow of IEEE 1788-2015 (Table 9.1), on the part of x in
   [0, +oo], 0^y having a value only for y > 0. gaol_pow_hybrid(x, y) is that
   pow there, but for a degenerate integer exponent [n], for which it takes
-  pown, the same on x >= 0 (GAOL v5: [-oo, +oo] beyond the ints). x^n is
+  pown, the same on x >= 0 but at 0^0, which is 1 for pown and has no value
+  for pow (GAOL v5: [-oo, +oo] beyond the ints). x^n is
   monotone in x >= 0, so that its
   bounds there are its tightest bounds at the bounds of x: CORE-MATH's pow,
   the limits 0 and +oo at x = 0 and x = +oo, and 1 at x = 1 (GAOL v5):
@@ -538,8 +539,9 @@ namespace gaol_ieee1788 {
     and not in c: c / [b', 0] and c / [0, b'']. The result is the pair (u, v)
     of the standard, of the closures of the parts: (empty, empty), (u, empty)
     for one part, and for two parts the lower one first, u < v (they share 0
-    where b is unbounded on both sides). Each part is div_rel(c, .,
-    entire()), the tightest enclosure of its set.
+    where both reach it, at the infinite bounds of b or where a quotient
+    underflows: see below). Each part is div_rel(c, ., entire()), the
+    tightest enclosure of its set.
   */
   GAOL_NODISCARD inline std::pair<interval, interval> mulRevToPair(const interval& b, const interval& c)
   {
@@ -557,9 +559,11 @@ namespace gaol_ieee1788 {
       if (above.is_empty()) {
         return std::make_pair(below, above);
       }
-      // Two parts, one in x <= 0, the other in x >= 0, which share 0 only
-      // where b is unbounded on both sides (c / [-oo, 0] is [-oo, 0] for
-      // c > 0): the one with the lower bound below the other's comes first
+      // Two parts, one in x <= 0, the other in x >= 0, which share 0 where
+      // each reaches it, from an infinite bound of b (c / [-oo, 0] is
+      // [-oo, 0] for c > 0) or from a finite one whose quotient underflows
+      // (c = [2^-1074, 1] and b = [-DBL_MAX, DBL_MAX] give [-oo, 0] and
+      // [0, +oo]): the one with the lower bound below the other's comes first
       return below.left() < above.left() ? std::make_pair(below, above) : std::make_pair(above, below);
     }
     return std::make_pair(::gaol_core::div_rel(c, b, interval::universe()), interval::emptyset());

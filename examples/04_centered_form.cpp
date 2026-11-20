@@ -143,9 +143,8 @@ int main()
 
   // -------------------------------------------------------------------------
   std::cout << "1. f(x) = x cos(x) on X = [0, 1], as in Codac's manual\n";
-  // 0.0 rather than 0: interval(0, 0) does not compile, 0 being a null
-  // const char* too. [0, 1] has bounds that are doubles, so that the
-  // constructor from two doubles holds it exactly.
+  // [0, 1] has bounds that are doubles, so that the constructor from two
+  // doubles holds it exactly.
   const interval X(0.0, 1.0);
   const interval natural = f(X);
   const interval dfX = f(Dual<1>::variable(X, 0)).d[0];
