@@ -9120,9 +9120,13 @@ de `master` est verte (cinq workflows, 60 contrôles), et l'étiquette attend.
   confirmés, aucun bloquant : 2 majeurs, 40 mineurs, 88 textes ; 29 autres vus
   et non rapportés (15 au plus par relecteur). Aucune borne fausse n'est trouvée
   dans le code de l'arithmétique. Le rapport, les données et les programmes de
-  preuve sont hors du dépôt, dans
-  `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_review_2026-11-19/` (`rapport.md`,
-  `findings.json`, `repro/`).
+  preuve étaient dans un dossier temporaire, hors du dépôt
+  (`GAOL_review_2026-11-19/`) ; sur la demande du mainteneur (« fais en sorte
+  que tous les détails soient dans TODO.md », le 20 novembre), les 24 constats
+  qui restent y sont recopiés en entier (`TODO.md`, annexe 1 : le constat, la
+  correction proposée, la preuve, ce que la session a vu en l'exécutant, l'avis
+  de chaque sceptique), avec ce que chaque relecteur a lu (annexe 2). Les 106
+  autres sont corrigés par #399, ici et en 7.65.
 - **Vérifié en exécutant** : la session lance les commandes de sept constats,
   avec au plus 4 cœurs : `exact_string()` écrit `-0x0p+0` (R17), `powRev1` lève
   FE_OVERFLOW (R12), Clang 20 et 21 prennent `-mno-daz-ftz` pour aarch64 (R32),
@@ -11886,7 +11890,7 @@ leurs registres n'étaient pas faits :
 ### 7.65 Le 20 novembre (la relecture : #399)
 
 - La branche `release-review-fixes`, à partir de `e733f87`, dans un clone à part
-  (`GAOL_review_2026-11-19/pr`) : les commits du code des builds et des tests,
+  et temporaire, puis dans `GAOL_V9` : les commits du code des builds et des tests,
   des textes, du PDF du manuel et des registres (`TODO.md` : l'en-tête, #398 et
   #399, les tâches restantes et VA à VI ; `TODO_AFTER.md` : l'en-tête, 2.6, 6, 7
   ; ce fichier : l'en-tête, 1, 2.3, 3.50, 3.57, 3.60, 3.61 et 7.65 ;
@@ -11917,6 +11921,15 @@ leurs registres n'étaient pas faits :
   `[0.2399999999999999, 0.25]`, vérifié) ; la phrase sur `cmake --install` et
   `ctest --test-dir` remplacée par les commandes des autres générateurs, et
   `gaol::cleanup()` gardé à la fin du programme, que le `README` demande.
+- La relecture recopiée dans `TODO.md`, sur la demande du mainteneur (« fais en
+  sorte que tous les détails soient dans TODO.md » ; le dossier de la relecture
+  est temporaire) : l'annexe 1 donne les 24 constats qui restent, en entier
+  (constat, conséquence, correction proposée, preuve, ce que la session a vu en
+  l'exécutant, l'avis de chaque sceptique), avec la ligne de `e733f87` et celle
+  de l'arbre de #399 ; l'annexe 2, ce que chacun des 17 relecteurs a lu.
+  `TODO.md` passe de 36 à 188 Ko, sous la limite de 262 144 octets du corps
+  d'une issue (#179). Les sorties de R12, R17, R32, R34 et R94 sont relancées
+  le 20 novembre pour être recopiées.
 
 ## 8. Le ménage fait
 
