@@ -599,11 +599,17 @@ base, and \code{gaol} keeps it: its \code{pow} is a hybrid of the two.
   of $x$ in \itv{0}{+\infty} counts, whatever $y$, and \code{pow(x, p)} with a
   number $p$ is \code{pow(x, [p])}, an integer $p$ included, as the standard
   gives no other meaning to it.
-\item In \code{gaol}, \code{pow(x, y)} takes the integer power where the
-  exponent is an integer: an integer type, a double that is an integer, or a
-  degenerate interval \itv{n}{n} holding an integer, beyond the \code{int}s
-  too; any other exponent takes the real power of the standard. There is no
-  \code{pown} in \code{gaol}.
+\item In \code{gaol}, \code{pow(x, y)} is the hull of the function $h$ over
+  $x\times y$, $h(x,y)$ being the integer power $\mathrm{pown}(x,n)$ where $y$
+  is an integer $n$, and the real power of the standard elsewhere.\newinvfive{}
+  An integer type, a double that is an integer, or a degenerate interval
+  \itv{n}{n} holding an integer, beyond the \code{int}s too, takes the integer
+  power. Any other exponent takes the real power of the standard on the part of
+  $x$ in \itv{0}{+\infty}, $1$ where $0$ is in $x$ and in $y$ ($0^0$, which
+  \ieee{pown} gives and \ieee{pow} does not), and, on the negative part of $x$,
+  the integer powers $x^n$ over the integers $n$ of $y$: the powers at the
+  corners of its least and its greatest even integer, and of its least and its
+  greatest odd one, the latter negated. There is no \code{pown} in \code{gaol}.
 \end{itemize}
 
 \begin{table}[htbp]\centering\renewcommand{\arraystretch}{1.1}
@@ -626,7 +632,11 @@ base, and \code{gaol} keeps it: its \code{pow} is a hybrid of the two.
     $\emptyset$\\
     \code{pow(\itv{-1}{4}, 0.5)} & \itv{0}{2} & \itv{0}{2}\\
     \code{pow(\itv{0}{2}, -2)} & \itv{0.25}{+\infty} & \itv{0.25}{+\infty}\\
-    \code{pow(\itv{-4}{-1}, \itv{1.5}{2.5})} & $\emptyset$ & $\emptyset$\\
+    \code{pow(\itv{-4}{-1}, \itv{1.5}{2.5})} & \itv{1}{16} & $\emptyset$\\
+    \code{pow(\itv{-2}{2}, \itv{0.5}{3})} & \itv{-8}{8} & \itv{0}{8}\\
+    \code{pow(\itv{-2}{-1}, \itv{0.5}{3})} & \itv{-8}{4} & $\emptyset$\\
+    \code{pow(\itv{0}{0}, \itv{0}{1})} & \itv{0}{1} & \itv{0}{0}\\
+    \code{pow(\itv{-4}{-1}, \itv{0.5}{0.5})} & $\emptyset$ & $\emptyset$\\
     \hline
   \end{tabular}
 
@@ -635,10 +645,12 @@ base, and \code{gaol} keeps it: its \code{pow} is a hybrid of the two.
 Table~\ref{tab:pow-namespaces} shows the two on some arguments. They agree on
 every exponent that holds no integer alone, and on
 $x\subseteq\itv{0}{+\infty}$ but for $0^0$; they differ where $x$ has a
-negative part and the exponent is an integer, and at $0^0$. The \code{pow} of \code{gaol} is thus not monotone for
-the inclusion of its exponent: \code{pow(\itv{-4}{-1}, \itv{2}{2})} is
-\itv{1}{16}, and \code{pow(\itv{-4}{-1}, \itv{1.5}{2.5})}, whose exponent
-holds $2$, is empty; the \code{pow} of the standard is. Both give the tightest
+negative part and the exponent holds an integer, and at $0^0$. The \code{pow}
+of \code{gaol} is monotone for the inclusion of $x$ and of $y$:
+\code{pow(\itv{-2}{2}, \itv{0.5}{3})} is \itv{-8}{8}, which holds
+\code{pow(\itv{-1}{-1}, \itv{3}{3})}, \itv{-1}{-1}, where it was \itv{0}{8}
+when a degenerate integer exponent alone took the integer power; the
+\code{pow} of the standard is too. Both give the tightest
 bounds, but for the integer power: within the ints it comes from exact
 products, and is one double beyond the tightest where it is within twice the
 bound of the error of its products, never for the square; beyond the ints it
@@ -674,11 +686,12 @@ The rest of GAOL follows the same split. The text \code{"pow([-4,-1],2)"} is rea
 \code{textToInterval} of \code{gaol}, and as the empty set by that of
 \code{gaol\_ieee1788}, which reads \code{pow} as the real power and
 \code{"pown([-4,-1],2)"} as the integer power, a name \code{gaol} does not
-read. The reverse functions are those of the standard in both namespaces:
-\code{pow\_rel} and \code{pow\_exponent\_rel} (\ieee{powRev1} and
-\ieee{powRev2}) reverse the real power, and \code{nth\_root\_rel}
-(\ieee{pownRev}) the integer power, for every integer exponent, where it took
-$n\geq 1$ only.\newinvfive
+read. \ieee{powRev1} and \ieee{powRev2} reverse the real power of the
+standard, which has no negative base; \code{pow\_rel} and
+\code{pow\_exponent\_rel} of \code{gaol} reverse its \code{pow}, the hull of
+the integer power and of the real power, and \code{nth\_root\_rel}
+(\ieee{pownRev}) reverses the integer power, for every integer exponent, where
+it took $n\geq 1$ only.\newinvfive
 
 A program written for GAOL~4, or for IBEX and Codac, whose intervals take the
 \code{pow} of GAOL, opens \code{gaol}; a program that wants the results of the
@@ -879,18 +892,20 @@ last: \code{div\_rel(c, b, x)} contracts a factor of $z=x\cdot y$, and
 \code{sqrt\_rel(c, x)} the argument of a square root. The reverse functions of
 the power follow it: \code{pow\_rel(K, J, I)} is the hull of the $x$ of $I$
 with an $x^y$ in $K$ for a $y$ of $J$, and \code{pow\_exponent\_rel(K, H, I)}
-the hull of the $y$ of $I$ with an $x^y$ in $K$ for an $x$ of $H$; they are
+the hull of the $y$ of $I$ with an $x^y$ in $K$ for an $x$ of $H$, $x^y$ being
+the function $h$ that \code{gaol::pow} takes the hull of: the integer power for
+an integer $y$, the real power of the standard elsewhere.\newinvfive{}
 \ieee{powRev1}$(b,c,x)$ and \ieee{powRev2}$(a,c,x)$ of IEEE 1788-2015 (Table
-10.1), as \code{pow\_rel(c, b, x)} and \code{pow\_exponent\_rel(c, a, x)}, $x$
-being \itv{-\infty}{+\infty} when left out.\newinvfive{} Both reverse the
-\code{pow} of the standard, that of \code{gaol\_ieee1788::pow}, in either
-namespace: $x^y$ is $e^{y\log x}$ for $x>0$, $0$ for $x=0$ and $y>0$, and has
-no value elsewhere, so that no $x<0$ is a solution, and
-\code{pow\_rel([1, 4], [2], [-3, 3])} is \itv{1}{2}. The \code{pow} of
-\code{gaol} takes the integer power for a degenerate integer exponent
-\itv{n}{n}, which has negative bases too: it is not one function of $x$ and
-$y$, and the reverse of $x^n$ is \code{nth\_root\_rel(K, n, I)}, which takes
-every integer $n$ (\pxref{sec:relational-arithmetic}).
+10.1) reverse the \code{pow} of the standard, that of
+\code{gaol\_ieee1788::pow}, in either namespace: $x^y$ is $e^{y\log x}$ for
+$x>0$, $0$ for $x=0$ and $y>0$, and has no value elsewhere, so that no $x<0$ is a
+solution, and \code{powRev1([2], [1, 4], [-3, 3])} is \itv{1}{2}, $x$ being
+\itv{-\infty}{+\infty} when left out. \code{pow\_rel} and
+\code{pow\_exponent\_rel} add to them the solutions of \code{gaol::pow} that
+the standard has not, the negative bases with an integer exponent and
+$0^0=1$: \code{pow\_rel([1, 4], [2], [-3, 3])} is \itv{-2}{2}. The reverse of
+$x^n$ is also \code{nth\_root\_rel(K, n, I)}, which takes every integer $n$
+(\pxref{sec:relational-arithmetic}).
 
 \medskip
 \code{max\_rel(z, y, x)}, \code{min\_rel(z, y, x)}, \code{sign\_rel(z, x)} and

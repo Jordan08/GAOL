@@ -189,10 +189,13 @@ namespace gaol_ieee1788 {
   
   /*!
   pow(x, y): the pow of IEEE 1788-2015 (Table 9.1), on the part of x in
-  [0, +oo], 0^y having a value only for y > 0. gaol_pow_hybrid(x, y) is that
-  pow there, but for a degenerate integer exponent [n], for which it takes
-  pown, the same on x >= 0 but at 0^0, which is 1 for pown and has no value
-  for pow (GAOL v5: [-oo, +oo] beyond the ints). x^n is
+  [0, +oo], 0^y having a value only for y > 0. gaol_pow_hybrid(x, y) is the
+  hull of that pow and of pown, which it takes for the integers of y: it is
+  that pow on x >= 0 but at 0^0, which is 1 for pown and has no value for pow
+  (gaol::pow([0], [0, 1]) is [0, 1], this pow gives [0]), and for a degenerate
+  integer exponent [n], for which it takes pown alone, and has the negative
+  bases with the integers of an exponent that holds some (#400, GAOL v5:
+  [-oo, +oo] beyond the ints). x^n is
   monotone in x >= 0, so that its
   bounds there are its tightest bounds at the bounds of x: CORE-MATH's pow,
   the limits 0 and +oo at x = 0 and x = +oo, and 1 at x = 1 (GAOL v5):
@@ -349,26 +352,28 @@ namespace gaol_ieee1788 {
     return ::gaol_core::div_rel(c, b, interval::universe());
   }
   /*!
-    powRev1(b, c, x): pow_rel(c, b, x), the hull of the x of x with x^y in c
-    for some y of b; powRev2(a, c, x): pow_exponent_rel(c, a, x), the hull of
-    the y of x with a^y in c for some a of a (GAOL v5). Both reverse pow(x, y)
-    of this namespace, the pow of the standard (Table 9.1)
+    powRev1(b, c, x): pow_standard_rel(c, b, x), the hull of the x of x with
+    x^y in c for some y of b; powRev2(a, c, x): pow_standard_exponent_rel(c, a,
+    x), the hull of the y of x with a^y in c for some a of a (GAOL v5). Both
+    reverse pow(x, y) of this namespace, the pow of the standard (Table 9.1),
+    which has no negative base: they are not pow_rel() and pow_exponent_rel() of
+    gaol, which reverse the hybrid gaol::pow, negative bases included (#400)
   */
   GAOL_NODISCARD inline interval powRev1(const interval& b, const interval& c, const interval& x)
   {
-    return ::gaol_core::pow_rel(c, b, x);
+    return ::gaol_core::pow_standard_rel(c, b, x);
   }
   GAOL_NODISCARD inline interval powRev1(const interval& b, const interval& c)
   {
-    return ::gaol_core::pow_rel(c, b, interval::universe());
+    return ::gaol_core::pow_standard_rel(c, b, interval::universe());
   }
   GAOL_NODISCARD inline interval powRev2(const interval& a, const interval& c, const interval& x)
   {
-    return ::gaol_core::pow_exponent_rel(c, a, x);
+    return ::gaol_core::pow_standard_exponent_rel(c, a, x);
   }
   GAOL_NODISCARD inline interval powRev2(const interval& a, const interval& c)
   {
-    return ::gaol_core::pow_exponent_rel(c, a, interval::universe());
+    return ::gaol_core::pow_standard_exponent_rel(c, a, interval::universe());
   }
   /*!
     atan2Rev1(x, c, y): atan2_rel_y(c, x, y), the hull of the y in y with

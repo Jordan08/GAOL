@@ -14,7 +14,9 @@ functions of `gaol/core/gaol_interval_pow.cpp` (`pow_lo()` and `pow_hi()` are in
 `gaol/core/gaol_interval_core.cpp`): `pow_standard()`, the pow of
 IEEE 1788-2015 (Table 9.1), which `gaol_ieee1788::pow` is, the integer power
 that `gaol::pow(x, y)` (`gaol_pow_hybrid()`) and `gaol::pow(x, p)`
-(`gaol_pow_real()`) add to it, the corners of a box (`pow_lo()`, `pow_hi()`,
+(`gaol_pow_real()`) add to it (`gaol::pow` is the hull of the integer power
+for the integers of the exponent and of that pow, 0^0 and the negative bases
+included, #400), the corners of a box (`pow_lo()`, `pow_hi()`,
 `pow_is_double()`), and the integer power itself, `pown` (`pown_products()`,
 `pown_point()`, `pown_upward()` and the powers beyond the ints, GAOL v5). They
 were written when the pow of
@@ -35,7 +37,7 @@ GAOL, or a build with mpmath, and their results are read by whoever changes
 | `diffpow.py` | Builds `diffpow.cpp` against two builds of GAOL or more, runs it and compares the outputs: identical lines, lines that differ only in the sign of zero bounds, lines that differ otherwise |
 | `evalrows.cpp` | Computes `gaol_ieee1788::pow` and `gaol::pow` on the boxes of a rows file |
 | `gen_table.py` | Reads the table of `pow_on_boxes()` into a rows file (`extract`), writes the table from a rows file (`cpp`, `--into` to replace it in `tests/ieee1788.cpp`), and lists the boxes whose bounds differ between two rows files (`diff`) |
-| `checkrows.py` | Checks the bounds of a rows file against the exact power, computed with 500 bits by mpmath: they have to enclose it, within one double of the tightest bounds |
+| `checkrows.py` | Checks the bounds of a rows file against the exact power, computed with 500 bits by mpmath: they have to enclose it, within one double of the tightest bounds. Its `gaol::pow` is the hull of h over the box (#400), the integer power for the integers of the exponent, the pow of the standard elsewhere |
 | `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (106 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
 | `negative_power_rows.py` | Writes the rows `{ x, n, lo, hi }` of the table of large negative powers of `large_powers()` in `tests/arithmetic.cpp`: the tightest bounds of x<sup>n</sup>, n from −2<sup>31</sup> + 1 to −2<sup>27</sup>, computed with mpmath on 2000 bits, for the powers that lie at least 1/16 of the spacing of the doubles from each double |
 | `pown_bound.py` | Checks with rationals the induction of the comment of `pown_products()`, which bounds beforehand the error of the exact products of the integer power, and the bound K drawn from it, for c<sup>m</sup> and c<sup>−m</sup> |

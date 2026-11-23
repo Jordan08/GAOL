@@ -447,13 +447,16 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     hull of the y of I with an x^y in K for an x of H, which are powRev1(J, K,
     I) and powRev2(H, K, I) of IEEE 1788-2015 (10.5.4, Table 10.1).
 
-    They reverse the pow of the standard (Table 9.1), that of
-    gaol_ieee1788::pow and pow_standard(): x^y = e^(y log x) for x > 0, 0^y = 0
-    for y > 0, and no value elsewhere. gaol::pow takes the integer power for a
-    degenerate integer exponent [n], which has negative bases too: an
-    interval function that is not monotone in its exponent
-    (gaol_pow_hybrid()), and has no set of solutions to reverse; the reverse
-    of x^n is nth_root_rel(K, n, I).
+    pow_standard_rel() and pow_standard_exponent_rel() reverse the pow of the
+    standard (Table 9.1), that of gaol_ieee1788::pow and pow_standard(): x^y =
+    e^(y log x) for x > 0, 0^y = 0 for y > 0, and no value elsewhere, so that
+    no x < 0 is a solution; they are the powRev1() and powRev2() of
+    gaol_ieee1788, and the rest of this comment is about them. pow_rel() and
+    pow_exponent_rel() reverse gaol::pow (GAOL v5, #400: they were these
+    functions, and lost the solutions of gaol::pow for a negative base), which
+    is the hull of the function h, pown(x, n) where y is an integer n and the
+    pow of the standard elsewhere: they add the negative bases with an integer
+    exponent, and 0^0 = 1, to the solutions of the standard, below.
 
     The solutions are those of x = 0 (0^y = 0 in K for y > 0) and those of
     x > 0, where x^y is in K, that is in K & ]0, +oo], exactly when y log(x) is
@@ -802,10 +805,11 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   }
 
   /*
-    pow_rel() after its check, made before the bounds are compared (GAOL v5,
-    see gaol/gaol_fpu.h)
+    pow_standard_rel() after its check, made before the bounds are compared
+    (GAOL v5, see gaol/gaol_fpu.h): the reverse of the pow of IEEE 1788, on the
+    bases x >= 0
   */
-  static interval pow_rel_upward(const interval& K, const interval& J, const interval& I)
+  static interval pow_standard_rel_upward(const interval& K, const interval& J, const interval& I)
   {
     // A power or an exponent [+oo] or [-oo] holds no real number: no y and no
     // x (GAOL v5: pow_rel([2], [+oo], I) was [1, 1 + 2^-52] and
@@ -896,21 +900,22 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     return interval(lo, hi);
   }
 
-  interval pow_rel(const interval& K, const interval& J, const interval& I)
+  interval pow_standard_rel(const interval& K, const interval& J, const interval& I)
   {
     GAOL_RND_ENTER();
-    interval res = pow_rel_upward(K, J, I);
+    interval res = pow_standard_rel_upward(K, J, I);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
   }
 
   /*
-    pow_exponent_rel() after its check, made before the bounds are compared
+    pow_standard_exponent_rel() after its check, made before the bounds are
+    compared: the reverse of the pow of IEEE 1788, on the bases x >= 0
   */
-  static interval pow_exponent_rel_upward(const interval& K, const interval& H, const interval& I)
+  static interval pow_standard_exponent_rel_upward(const interval& K, const interval& H, const interval& I)
   {
-    // A power or a base [+oo] or [-oo] holds no real number, as in pow_rel_upward()
+    // A power or a base [+oo] or [-oo] holds no real number, as in pow_standard_rel_upward()
     if (K.is_empty() || H.is_empty() || I.is_empty() || holds_no_real(K) || holds_no_real(H)) {
       return interval::emptyset();
     }
@@ -995,6 +1000,177 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       }
     }
     return interval(lo, hi);
+  }
+
+  interval pow_standard_exponent_rel(const interval& K, const interval& H, const interval& I)
+  {
+    GAOL_RND_ENTER();
+    interval res = pow_standard_exponent_rel_upward(K, H, I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
+    The reverse functions of gaol::pow (GAOL v5, #400): pow_rel(K, J, I) and
+    pow_exponent_rel(K, H, I) of the function h that gaol::pow takes the hull
+    of, h(x, y) = pown(x, n) where y is an integer n, and the pow of IEEE
+    1788 elsewhere. h differs from that pow in two places only: the negative
+    bases x < 0 with an integer exponent, and 0^0 = 1. Each result is the
+    union of the reverse of the pow of IEEE 1788 (pow_standard_rel() and
+    pow_standard_exponent_rel(), the bases x >= 0), of 0 (or 0 as the
+    exponent) where 0 is in the base and in the exponent and 1 in K, and of the
+    part of the negative bases, which the helpers below compute.
+  */
+
+  /*
+    n is the exponent of a solution t of T: t^n in Kp, for the pow of IEEE
+    1788, which is pown for t >= 0 and an integer n (0^n = 0 for n > 0, no value
+    for n < 0). pow_standard_rel() is the tightest there, where nth_root_rel()
+    with p < 0 may be one double wider.
+  */
+  static bool has_solution_for_integer(const interval& Kp, double n, const interval& T)
+  {
+    return !pow_standard_rel_upward(Kp, interval(n), T).is_empty();
+  }
+
+  /*
+    The least and the greatest integer lo and hi of a parity, within side (the
+    part of the exponents on one side of 0, J & [1, +oo] or J & [-oo, -1]),
+    with t^n in Kp for a t of T, the negative bases being -T: false where there
+    is none. On one side of 0, the exponents y with a solution t of T form an
+    interval, the two conditions on y being monotone (for y > 0,
+    inf(T)^y <= sup(Kp) and sup(T)^y >= inf(Kp)), which
+    pow_standard_exponent_rel() bounds. Its rounding may let in an integer
+    with no solution, whose bound is a double or less beyond the real one
+    (K = [-oo, -(8 + 2^-49)], T = [1.5, 2] and the exponents [0.5, 10] give
+    log(8 + 2^-49)/log(2), which is above 3 by less than half a double, so that
+    the exponents start at 3 exactly): the integer is moved by 2 to the inside
+    (at most twice, which is sound where it is not enough: the hull only gets
+    wider), unless the move leaves the doubles: from the odd 2^53 - 1, the
+    odd 2^53 + 1 is no double, and its rounding upward, 2^53 + 2, would pass
+    the solution 2^53 + 1 of the exponents [2^53 - 4, 2^53 + 4] for the base
+    -(1 + 2^-44) and a K around -e^512 (reverse.cpp), so that the integers
+    from 2^53 - 1 on are kept as they are. Beyond 2^53, where every double is
+    an even integer, a degenerate odd exponent has no integer.
+  */
+  static bool extreme_integers(const interval& Kp, const interval& T, const interval& side, int parity,
+                               double& lo, double& hi)
+  {
+    if (side.is_empty() || Kp.is_empty()) {
+      return false;
+    }
+    const interval F = pow_standard_exponent_rel_upward(Kp, T, side);
+    if (F.is_empty()) {
+      return false;
+    }
+    lo = integer_above(F.left(), parity);
+    hi = integer_below(F.right(), parity);
+    // lo + 2 and hi - 2 are doubles for an integer of magnitude below 2^53 - 1 only
+    for (int k = 0; k < 2 && lo <= hi && std::fabs(lo) < 9007199254740991.0 && !has_solution_for_integer(Kp, lo, T); ++k) {
+      lo += 2.0;
+    }
+    for (int k = 0; k < 2 && lo <= hi && std::fabs(hi) < 9007199254740991.0 && !has_solution_for_integer(Kp, hi, T); ++k) {
+      hi -= 2.0;
+    }
+    if (parity == 1 && lo == hi && std::fabs(lo) <= (std::numeric_limits<double>::max)()
+        && !(std::fabs(lo) < 9007199254740992.0)) {
+      return false; // [d] beyond 2^53 is an even integer: no odd one there
+    }
+    return lo <= hi;
+  }
+
+  /*
+    pow_rel() after its check, made before the bounds are compared (GAOL v5,
+    see gaol/gaol_fpu.h)
+  */
+  static interval pow_rel_upward(const interval& K, const interval& J, const interval& I)
+  {
+    // A power or an exponent [+oo] or [-oo] holds no real number, as in
+    // pow_standard_rel_upward(), and so does the x to find: its negative part
+    // would be [-oo] itself, which pow_standard_rel_upward() leaves out by the
+    // empty interval(lo, hi) it makes
+    if (K.is_empty() || J.is_empty() || I.is_empty() || holds_no_real(K) || holds_no_real(J) || holds_no_real(I)) {
+      return interval::emptyset();
+    }
+    interval res = pow_standard_rel_upward(K, J, I); // The bases x >= 0
+    // 0^0 = 1
+    if (I.set_contains(0.0) && J.set_contains(0.0) && K.set_contains(1.0)) {
+      res |= interval(0.0);
+    }
+    /*
+      The bases x < 0, with T = -(I & [-oo, 0]): pown(-t, n) = (-1)^n t^n, so
+      that x^n is in K exactly when t^n is in Kp, K for an even n and -K for an
+      odd one, cut to [0, +oo]. For each parity and each side of 0 (n >= 1 and
+      n <= -1) the extreme integers lo and hi of the exponents with a solution
+      come first (extreme_integers()), and then the solutions of [lo, hi],
+      which are those of the integers lo and hi in the hull: every y of [lo, hi]
+      has solutions, and their bounds, max(inf(T), inf(Kp)^(1/y)) and
+      min(sup(T), sup(Kp)^(1/y)), are monotone in y. The exponent 0 comes
+      apart: x^0 = 1 for every x < 0, where 1 is in K.
+    */
+    const interval negative = I & interval::negative();
+    if (!negative.is_empty() && negative.left() < 0.0) {
+      const interval T = -negative;
+      for (int parity = 0; parity < 2; ++parity) {
+        const interval Kp = ((parity != 0) ? -K : K) & interval::positive();
+        const interval sides[2] = { J & interval(1.0, GAOL_INFINITY), J & interval(-GAOL_INFINITY, -1.0) };
+        for (int s = 0; s < 2; ++s) {
+          double lo, hi;
+          if (extreme_integers(Kp, T, sides[s], parity, lo, hi)) {
+            res |= -pow_standard_rel_upward(Kp, interval(lo, hi), T);
+          }
+        }
+      }
+      if (J.set_contains(0.0) && K.set_contains(1.0)) {
+        res |= negative;
+      }
+    }
+    return res;
+  }
+
+  interval pow_rel(const interval& K, const interval& J, const interval& I)
+  {
+    GAOL_RND_ENTER();
+    interval res = pow_rel_upward(K, J, I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
+    pow_exponent_rel() after its check, made before the bounds are compared
+    (GAOL v5, #400): the exponents of pow_rel_upward() in the same way, the
+    integers lo to hi of each parity and each side being the result
+  */
+  static interval pow_exponent_rel_upward(const interval& K, const interval& H, const interval& I)
+  {
+    if (K.is_empty() || H.is_empty() || I.is_empty() || holds_no_real(K) || holds_no_real(H) || holds_no_real(I)) {
+      return interval::emptyset();
+    }
+    interval res = pow_standard_exponent_rel_upward(K, H, I); // The bases x >= 0
+    // 0^0 = 1
+    if (H.set_contains(0.0) && I.set_contains(0.0) && K.set_contains(1.0)) {
+      res |= interval(0.0);
+    }
+    const interval negative = H & interval::negative();
+    if (!negative.is_empty() && negative.left() < 0.0) {
+      const interval T = -negative;
+      for (int parity = 0; parity < 2; ++parity) {
+        const interval Kp = ((parity != 0) ? -K : K) & interval::positive();
+        const interval sides[2] = { I & interval(1.0, GAOL_INFINITY), I & interval(-GAOL_INFINITY, -1.0) };
+        for (int s = 0; s < 2; ++s) {
+          double lo, hi;
+          if (extreme_integers(Kp, T, sides[s], parity, lo, hi)) {
+            res |= interval(lo, hi);
+          }
+        }
+      }
+      if (I.set_contains(0.0) && K.set_contains(1.0)) {
+        res |= interval(0.0); // x^0 = 1
+      }
+    }
+    return res;
   }
 
   interval pow_exponent_rel(const interval& K, const interval& H, const interval& I)

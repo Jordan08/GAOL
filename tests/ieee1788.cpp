@@ -375,29 +375,38 @@ namespace
     const auto P = [](double p) { return interval(p); };
     const interval none = interval::emptyset(), all = interval::universe();
     // {x, y, gaol_ieee1788::pow(x, y)} where gaol::pow(x, y) is the same, {x, y, gaol_ieee1788::pow(x, y),
-    // gaol::pow(x, y)} where it is not
+    // gaol::pow(x, y)} where it is not: the hull of h(x, y) over the box, h being pown(x, n) where y is an
+    // integer n and the pow of Table 9.1 elsewhere (#400), so that a negative x takes the integers of y, and
+    // 0^0 is 1
     const Box boxes[] = {
       // an empty base or exponent
       {none, P(2), none},
       {P(2), none, none},
       {none, P(2147483648.0), none},
-      // x < 0: no value for the pow of the standard, pown for a degenerate integer exponent of gaol::pow
+      // x < 0: no value for the pow of the standard, pown for the integers of the exponent of gaol::pow:
+      // 2 only in [1.5, 2.5] (x^2 in [1, 16]), none in [0.5, 0.5]
       {I(-4, -1), P(0.5), none},
-      {I(-4, -1), I(1.5, 2.5), none},
+      {I(-4, -1), I(1.5, 2.5), none, I(1, 16)},
+      // The integers 1, 2 and 3 of [0.5, 3], where the pow of the standard has no value for x < 0: the even 2
+      // gives [1, 4], the odd 1 and 3 [-8, -1] (#400)
+      {I(-2, -1), I(0.5, 3), none, I(-8, 4)},
+      {I(-2, 2), I(0.5, 3), I(0, 8), I(-8, 8)},
       {I(-4, -1), P(2), none, I(1, 16)},
       {I(-4, -1), P(3), none, I(-64, -1)},
       {I(-4, -1), P(-2), none, I(0.0625, 1)},
       {I(-oo, -1), P(2), none, I(1, oo)},
       {I(-3, 5), P(0.5), I(0, 0x1.1e3779b97f4a8p+1)},
-      {I(-3, 5), I(0.5, 1.5), I(0, 0x1.65c55827df1d2p+3)},
-      {I(-3, 5), I(-0.5, 1.5), I(0, oo)},
+      {I(-3, 5), I(0.5, 1.5), I(0, 0x1.65c55827df1d2p+3), I(-3, 0x1.65c55827df1d2p+3)},
+      {I(-3, 5), I(-0.5, 1.5), I(0, oo), I(-3, oo)},
       // x cut to {0} (x = {0}, or x from below to 0): 0^y is 0 for y > 0, and has no value for y <= 0
       {P(0), I(1, 2), P(0)},
-      {P(0), I(-1, 2), P(0)},
+      {P(0), I(-1, 2), P(0), I(0, 1)},
       {P(0), P(0.5), P(0)},
       {P(0), P(3), P(0)},
       {P(0), P(-0.5), none},
-      {P(0), I(-2, 0), none},
+      {P(0), I(-2, 0), none, P(1)},
+      // 0^0 = 1 for pown, where the pow of the standard has no value there (#400)
+      {P(0), I(0, 1), P(0), I(0, 1)},
       {P(0), P(0), none, P(1)},
       {P(0), P(-1), none},
       {I(-1, -0.0), P(0.5), P(0)},
@@ -489,7 +498,8 @@ namespace
       {I(0, 3), P(-0.5), I(0x1.279a74590331cp-1, oo)},
       // the limits at the corners, each kind (GAOL v5): x^y is 0 or +oo where x is 0 or +oo or y infinite
       {I(4, oo), P(0.5), I(2, oo)},
-      {I(-oo, 0x1p-1000), I(-oo, -1), I(0x1p+1000, oo)},
+      // (the negative bases of gaol::pow, with the integers -1, -2... of the exponent: [-oo, +oo] (#400))
+      {I(-oo, 0x1p-1000), I(-oo, -1), I(0x1p+1000, oo), I(-oo, oo)},
       {I(2, oo), I(-1.5, -0.5), I(0, 0x1.6a09e667f3bcdp-1)},
       {I(2, oo), I(-1, 0), I(0, 1)},
       {I(2, 3), I(-oo, -1), I(0, 0.5)},
@@ -517,7 +527,7 @@ namespace
       const std::string what = "pow(" + text(box.x) + ", " + text(box.y) + ")";
       check("gaol_ieee1788::pow(x, y) on boxes: the pow of Table 9.1", same(s, box.standard),
             [&] { return what + " is " + text(s) + " rather than " + text(box.standard); });
-      check("gaol::pow(x, y) on boxes: pown for a degenerate integer exponent, the pow of Table 9.1 otherwise",
+      check("gaol::pow(x, y) on boxes: the hull of pown for the integers, and of the pow of Table 9.1 otherwise",
             same(h, box.hybrid), [&] { return what + " is " + text(h) + " rather than " + text(box.hybrid); });
       if (!box.y.is_empty() && box.y.left() == box.y.right()) {
         // With the exponent as a double: the same functions, gaol::pow(x, p) taking pown for an integer p

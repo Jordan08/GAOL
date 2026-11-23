@@ -527,7 +527,7 @@ def root_hull(X, n):
     return idiv((Fraction(1), Fraction(1)), R)
 
 
-def pow_hull(X, Y):
+def pow_standard_hull(X, Y):
     """The pow of IEEE 1788-2015 (Table 9.1) over the box X x Y: the powers of the part of X in [0, +oo],
     0^y being 0 for y > 0 and no value for y <= 0; the integer power on all of X for a degenerate
     integer exponent Y = [n]"""
@@ -561,6 +561,39 @@ def pow_hull(X, Y):
     if not values:
         return None
     return (min(values), max(values))
+
+
+def pow_hull(X, Y):
+    """The hull of h over the box X x Y, which gaol::pow gives (#400): h(x, y) is pown(x, n) where y is an
+    integer n, and the pow of IEEE 1788-2015 (Table 9.1) elsewhere. It adds to pow_standard_hull() the
+    0^0 = 1 of pown, and, for the negative part of X, the integer powers x^n over the least and the greatest
+    integer n of each parity within Y: x^n is monotone in n for a fixed x, so that the hull over the
+    integers is that of the two ends, which are integers of that parity"""
+    if X is None or Y is None:
+        return None
+    if Y[0] == Y[1] and not is_inf(Y[0]) and Y[0].denominator == 1:
+        return ipown(X, int(Y[0]))
+    if is_inf(Y[0]) and Y[0] == Y[1]:
+        return None
+    pieces = [pow_standard_hull(X, Y)]
+    if X[0] <= 0 <= X[1] and Y[0] <= 0 <= Y[1]:
+        pieces.append((Fraction(1), Fraction(1)))
+    if X[0] < 0:
+        if is_inf(Y[0]) or is_inf(Y[1]):
+            raise NotImplementedError('infinite exponent')
+        negative = (X[0], min(X[1], Fraction(0)))
+        for parity in (0, 1):
+            lo, hi = math.ceil(Y[0]), math.floor(Y[1])
+            if lo % 2 != parity:
+                lo += 1
+            if hi % 2 != parity:
+                hi -= 1
+            if lo <= hi:
+                pieces += [ipown(negative, lo), ipown(negative, hi)]
+    pieces = [p for p in pieces if p is not None]
+    if not pieces:
+        return None
+    return (min(p[0] for p in pieces), max(p[1] for p in pieces))
 
 
 #---------------------------------------------------------------------------
@@ -1575,6 +1608,8 @@ def group_powers():
         (318, (-4.0, -1.0), (0.5, 0.5), E, 0),
         (319, (-4.0, -1.0), (0.5, 0.5), E, 0),
         (321, (-4.0, 9.0), (0.5, 0.5), (0.0, 3.0), DEFAULT_EPS),
+        # Codac takes the base in [0, +oo], where GAOL v5 takes the integers 1 and 2 of the exponent on the
+        # negative part of the base too (#400): [-2, 9], the one disagreement
         (323, (-2.0, 3.0), (1.0, 2.0), (0.0, 9.0), DEFAULT_EPS),
         (327, (-2.0, 3.0), (3.0, 3.0), (-8.0, 27.0), 0),
         (329, (-2.0, 3.0), (2.0, 2.0), (0.0, 9.0), 0),
@@ -1819,6 +1854,30 @@ def selftest():
         vals = [p**n for p in pts]
         if A is None or min(vals) < A[0] or max(vals) > A[1]:
             fail('pown %s %d: %s outside %s' % (X, n, (float(min(vals)), float(max(vals))), A))
+
+    # pow_hull (#400), the hull of h over a box of finite bounds, against the enumeration of the integers of the
+    # exponent: the standard pow, 1 for 0^0, and x^n over the negative part for each integer n of Y within the
+    # bounds below (exact fractions for the integer powers; the standard pow comes from mpmath, as in pow_hull)
+    pow_bases = [Fraction(v) for v in (-3, -2, -1, 0, 1, 2, 3)]
+    pow_exponents = [Fraction(v) for v in (-4, -3, Fraction(-5, 2), -1, Fraction(-1, 2), 0, Fraction(1, 2), 1, Fraction(3, 2), 2, 3, 5)]
+    for _ in range(300):
+        X = random_interval(pow_bases)
+        Y = random_interval(pow_exponents)
+        A = pow_hull(X, Y)
+        pieces = [pow_standard_hull(X, Y)]
+        if X[0] <= 0 <= X[1] and Y[0] <= 0 <= Y[1]:
+            pieces.append((Fraction(1), Fraction(1)))
+        if X[0] < 0 and not (Y[0] == Y[1] and Y[0].denominator == 1):
+            negative = (X[0], min(X[1], Fraction(0)))
+            for n in range(-8, 9):
+                if Y[0] <= n <= Y[1]:
+                    pieces.append(ipown(negative, n))
+        pieces = [q for q in pieces if q is not None]
+        B = (min(q[0] for q in pieces), max(q[1] for q in pieces)) if pieces else None
+        if Y[0] == Y[1] and Y[0].denominator == 1:
+            B = ipown(X, int(Y[0]))
+        if A != B:
+            fail('pow_hull %s %s: %s, the enumeration of the integers of the exponent gives %s' % (X, Y, A, B))
 
     # sin, cos, tan, atan over doubles
     for _ in range(120):
