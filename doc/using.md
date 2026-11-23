@@ -412,7 +412,8 @@ documenting them (`gaol_signbit()`, `uintdouble`, `ullidouble`,
 `gaol_core::get_rounding()`.
 
 The `pow` of `gaol` takes the integer power for an integer exponent, a negative
-base included, and the pow of IEEE 1788-2015 for any other exponent (see
+base included, and the pow of IEEE 1788-2015 for any other exponent, and is the
+hull of the two over a box (see
 [the powers in the two namespaces](#the-powers-in-the-two-namespaces)). In
 `gaol_core`, the functions computing it are named apart from `pow`:
 `gaol_pown()`, `gaol_uipow()`, `gaol_pown_ll()`, `gaol_pow_real()` and
@@ -432,28 +433,41 @@ a negative base, and `gaol` keeps it: its `pow` is a hybrid of the two.
   [0, +∞] counts, whatever y, and `pow(x, p)` with a number p is
   `pow(x, [p])`, an integer p included, as the standard gives no other
   meaning to it.
-- In `gaol`, `pow(x, y)` takes the integer power where the exponent is an
-  integer: an integer type n, a double p that is an integer, or a degenerate
-  interval [n] holding an integer, beyond the ints too; any other exponent
-  takes the real power of the standard. There is no `pown` in `gaol`.
+- In `gaol`, `pow(x, y)` is the hull of the function h over x × y, h(x, y)
+  being the integer power pown(x, n) where y is an integer n, and the real power
+  of the standard elsewhere. An integer type n, a double p that is an integer,
+  or a degenerate interval [n] holding an integer, beyond the ints too, takes
+  the integer power. Any other exponent takes the real power of the standard on
+  the part of x in [0, +∞], 1 where 0 is in x and in y (0^0, which pown gives
+  and the standard does not), and, on the negative part of x, the integer
+  powers x^n over the integers n of y, which is where the negative bases are:
+  the powers at the corners of the least and the greatest even integer of y,
+  and of its least and greatest odd one, the latter negated (GAOL v5, #400).
+  There is no `pown` in `gaol`.
 
 | | `gaol` | `gaol_ieee1788` |
 |---|---|---|
 | `pow([-4, -1], 2)`, `pow([-4, -1], [2])` | [1, 16] | ∅ (`pown([-4, -1], 2)` is [1, 16]) |
 | `pow([-2, 3], 3)` | [−8, 27] | [0, 27] |
 | `pow([0], [0])`, `pow([0], 0)` | [1] | ∅ (`pown([0], 0)` is [1]) |
+| `pow([0], [0, 1])` | [0, 1] | [0] |
 | `pow([-2, 2], -1)` | [−∞, +∞] | [0.5, +∞] |
 | `pow([-2, -1], [1e10])` | [1, +∞] | ∅ |
 | `pow([-1, 4], 0.5)` | [0, 2] | [0, 2] |
 | `pow([0, 2], -2)` | [0.25, +∞] | [0.25, +∞] |
-| `pow([-4, -1], [1.5, 2.5])` | ∅ | ∅ |
+| `pow([-2, 2], [0.5, 3])` | [−8, 8] | [0, 8] |
+| `pow([-2, -1], [0.5, 3])` | [−8, 4] | ∅ |
+| `pow([-4, -1], [1.5, 2.5])` | [1, 16] | ∅ |
+| `pow([-4, -1], [0.5])` | ∅ | ∅ |
 
 The two agree on x ⊂ [0, +∞] and on every exponent that holds no integer
-alone; they differ where x has a negative part and the exponent is an
-integer, and at 0^0. The `pow` of `gaol` is thus not monotone for the
-inclusion of its exponent: `pow([-4, -1], [2])` is [1, 16], and
-`pow([-4, -1], [1.5, 2.5])`, whose exponent holds [2], is empty; the `pow`
-of the standard is. Both give the tightest bounds, but for the integer power:
+alone; they differ where x has a negative part and the exponent holds an
+integer, and at 0^0. The `pow` of `gaol` is monotone for the inclusion of x and
+of y (GAOL v5, #400: a degenerate integer exponent took the integer power and
+any other the real power of the standard, so that `pow([-2, 2], [0.5, 3])`
+was [0, 8], which does not hold `pow([-1], [3])`, [-1], and `pow([0], [0, 1])`
+was [0], which does not hold `pow([0], [0])`, [1]); the `pow` of the standard
+is too. Both give the tightest bounds, but for the integer power:
 the real power from the `pow` of CORE-MATH at the corners of the box, the
 integer power from exact products within the ints (one double beyond the
 tightest where the power is within twice the bound of their error of a double,
@@ -462,7 +476,9 @@ n is a double and within three doubles of it otherwise, beyond 2^53 (see
 [Accuracy of the operations](accuracy.md)). A degenerate integer exponent of
 `gaol_ieee1788::pow` takes the integer power too, with its bounds:
 `pow([0x1.fffffffffffffp+1], [7])` has its lower bound one double below the
-tightest.
+tightest. Beyond 2^53 every double is an even integer and the odd integers lie
+between doubles: a degenerate exponent [d] there has no odd integer, and an
+interval of such doubles has them all, which the hull encloses.
 
 The exponent 2 is the square of the intervals: `pow(x, 2)`, `pow(x, [2])`,
 `gaol_ieee1788::pown(x, 2)` and, on the part of x in [0, +∞],
@@ -488,10 +504,13 @@ The rest of GAOL follows the same split:
   `gaol_ieee1788::textToInterval` reads `pow` as the real power, the empty set
   there, and `pown([-4,-1],2)` as the integer power, a name `gaol` does not
   read;
-- the reverse functions, which are those of the standard in both namespaces:
-  `pow_rel` and `pow_exponent_rel` (`powRev1` and `powRev2`) reverse the real
-  power, and `nth_root_rel` (`pownRev`) the integer power, for every integer
-  exponent (GAOL v5: it took n ≥ 1 only).
+- the reverse functions: `powRev1` and `powRev2` reverse the real power of the
+  standard, which has no negative base; `pow_rel` and `pow_exponent_rel` of
+  `gaol` reverse its `pow`, the hull of the integer power and of the real power
+  (GAOL v5, #400: they reversed the real power of the standard, and lost the
+  solutions of `gaol::pow` with a negative base); and `nth_root_rel`
+  (`pownRev`) reverses the integer power, for every integer exponent (GAOL v5:
+  it took n ≥ 1 only).
 
 A program written for GAOL 4, or for IBEX and Codac, whose intervals take
 GAOL's `pow`, opens `gaol`; a program that wants the results of the standard,
@@ -795,21 +814,51 @@ int main()
 
 ### The reverse functions of pow (GAOL v5)
 
-`pow_rel(K, J, I)` is the hull of the x of I with an x^y in K for a y of J, and
-`pow_exponent_rel(K, H, I)` the hull of the y of I with an x^y in K for an x
-of H: they contract the base and the exponent of z = x^y, as `div_rel(K, J,
-I)` contracts a factor of z = x·y, with their arguments in the same order.
-`powRev1(b, c, x)` and `powRev2(a, c, x)` of IEEE 1788-2015 (Table 10.1) are
-`pow_rel(c, b, x)` and `pow_exponent_rel(c, a, x)`, x being [−∞, +∞] when left
-out.
+`pow_rel(K, J, I)` is the hull of the x of I with an h(x, y) in K for a y of J,
+and `pow_exponent_rel(K, H, I)` the hull of the y of I with an h(x, y) in K for
+an x of H, h being the function that `gaol::pow` takes the hull of: the integer
+power for an integer y, the real power of the standard elsewhere. They contract
+the base and the exponent of z = x^y, as `div_rel(K, J, I)` contracts a factor
+of z = x·y, with their arguments in the same order.
 
-Both reverse the pow of the standard, that of `gaol_ieee1788::pow`, in either
-namespace: x^y is e^(y log x) for x > 0, 0 for x = 0 and y > 0, and has no
-value elsewhere, so that no x < 0 is a solution, and `pow_rel([1, 4], [2],
-[-3, 3])` is [1, 2]. The `pow` of `gaol` takes the integer power for a
-degenerate integer exponent [n], which has negative bases too: it is not one
-function of x and y, its result for [n] not being within its result for an
-exponent around n, and the reverse of x^n is `nth_root_rel(K, n, I)`.
+`powRev1(b, c, x)` and `powRev2(a, c, x)` of IEEE 1788-2015 (Table 10.1) are
+`gaol_core::pow_standard_rel(c, b, x)` and `gaol_core::pow_standard_exponent_rel(c, a, x)`,
+x being [−∞, +∞] when left out. They reverse the pow of the standard, that of
+`gaol_ieee1788::pow`: x^y is e^(y log x) for x > 0, 0 for x = 0 and y > 0, and
+has no value elsewhere, so that no x < 0 is a solution, and
+`powRev1([2], [1, 4], [-3, 3])` is [1, 2]. `pow_rel` and `pow_exponent_rel` add
+to them the solutions of `gaol::pow` that the standard has not (GAOL v5, #400:
+they were `powRev1` and `powRev2`, and lost these solutions of the `pow` of
+`gaol`, so that a contractor that computed `pow` and then its reverse lost
+solutions of y = pow(x, e)): the negative bases with an integer exponent, where
+x^n is in K, and 0^0 = 1, so that `pow_rel([1, 4], [2], [-3, 3])` is [-2, 2],
+`pow_rel([-1], [0.5, 3], [-2, 2])` is [-1] (x = -1, y = 3),
+`pow_exponent_rel([-1], [-2, 2], [0.5, 3])` is [1, 3], and
+`pow_rel([1], [0, 1], [0])` is [0].
+
+The negative part needs no loop over the integers. With T = −(I ∩ [−∞, 0]),
+pown(−t, n) = (−1)^n t^n, so that x^n is in K exactly when t^n is in K for an
+even n, and in −K for an odd one, cut to [0, +∞]. For each parity and each side
+of 0 (n ≥ 1 and n ≤ −1), the exponents y that have a solution t of T form an
+interval, since they satisfy two conditions that are monotone in y, and
+`pow_standard_exponent_rel` bounds it; its extreme integers of the parity are
+the first and the last exponents with a solution (an integer that the rounding
+of the interval let in with no solution, within a double of its end, is moved
+by 2 to the inside), and the solutions of the interval between them, from
+`pow_standard_rel`, have the bounds of those of the two extreme integers, the
+bounds of the solutions being monotone in y. The exponent 0 comes apart: x^0 is
+1 for every x < 0 when 1 is in K. The integers of the exponent are not replaced
+by the whole interval J: `pow_rel([4], [2, 4], [-1.9, -1.5])` is empty, no
+integer n of [2, 4] giving x^n = 4 on this base, where `-powRev1([2, 4], [4],
+[1.5, 1.9])` would keep all of [-1.9, -1.5].
+
+The `pow` of `gaol` takes the integer power for a degenerate integer exponent
+[n], whose reverse is also `nth_root_rel(K, n, I)`: `pow_rel(K, [n], I)` is
+within it, the bounds of `nth_root_rel` being the root and then its inverse,
+which for n < 0 may be a double wider than those of `pow_rel(K, [n], I)` on a
+positive base: `nth_root_rel([0.5], -3, [1, 3])` ends at `0x1.428a2f98d728cp+0`
+and `pow_rel([0.5], [-3], [1, 3])` at `0x1.428a2f98d728bp+0`, which is above
+2^(1/3).
 
 `nth_root_rel(K, n, I)` and `pownRev(c, x, n)` take every integer n (they took
 n ≥ 1 only, and `pownRev` threw `std::domain_error` for the others). x^0 is 1

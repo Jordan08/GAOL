@@ -1100,8 +1100,11 @@ powers of the negative part of \var{I} on its magnitude: \code{pow([-4,-1],
 [0.5])} returned $[-1, 2]$. It is now hybrid: a degenerate integer exponent
 $[n]$ takes \code{pow(I, int)}, the \ieee{pown} of the standard, which keeps
 the negative part of \var{I} and gives $0^0 = 1$; any other exponent takes
-the \ieee{pow} of the standard, on the part of \var{I} in $[0, +\infty]$,
-where $0^y$ is 0 for $y > 0$ and has no value for $y \leq 0$:
+the hull of the \ieee{pow} of the standard, on the part of \var{I} in
+$[0, +\infty]$, where $0^y$ is 0 for $y > 0$ and has no value for
+$y \leq 0$, of $1$ where 0 is in \var{I} and in \var{J}, and of the integer
+powers of the negative part of \var{I} over the integers of the exponent, so
+that the result is monotone for the inclusion of the exponent:
 \code{pow([0], [0.5])} was $[0, 4.9 \cdot 10^{-324}]$ and
 \code{pow([0], [-0.5])} was $[\mathrm{MAX}, +\infty]$
 (\pxref{sec:pow-namespaces}).
