@@ -10,9 +10,13 @@
 # build of GAOL (evalrows).
 #
 # S has to be the pow of IEEE 1788-2015 (Table 9.1): the hull of x^y over the
-# x of X in [0, +oo] and the y of Y, x = 0 taking only y > 0; H the same, but
-# for a degenerate integer exponent Y = [n]: pown(X, n) on the whole of X,
-# beyond the ints too (GAOL v5: [-oo, +oo] there before #121).
+# x of X in [0, +oo] and the y of Y, x = 0 taking only y > 0; H the hull of h
+# over X x Y (#400), h(x, y) being pown(x, n) where y is an integer n and that
+# pow elsewhere: for a degenerate integer exponent Y = [n], pown(X, n) on the
+# whole of X, beyond the ints too (GAOL v5: [-oo, +oo] there before #121);
+# otherwise that pow, 1 where 0 is in X and in Y (0^0), and, for the negative
+# part of X, the powers of -x >= 0 over the least and the greatest even integer
+# of Y, and the opposite of those over its least and greatest odd one.
 # For each, the bounds have to enclose
 # the exact hull, and be at most --max-distance doubles (1 by default) from
 # the tightest ones, the doubles on each side of the exact bounds. Each result
@@ -32,6 +36,7 @@
 # COPYING.LIB file for information.
 
 import argparse
+import math
 import struct
 import sys
 
@@ -187,14 +192,47 @@ def exact_pown(X, n):
     return (inv(max(p(a), p(b))), mpmath.inf)
 
 
+def integer_above(a, parity):
+    """The least integer of a parity (0 even, 1 odd) that is at least a; a itself where it is infinite or 2^53 or
+    more in magnitude, where every double is an even integer and the odd ones lie between doubles"""
+    if abs(a) >= 2.0 ** 53:
+        return a
+    n = math.ceil(a)
+    return float(n if n % 2 == parity else n + 1)
+
+
+def integer_below(b, parity):
+    if abs(b) >= 2.0 ** 53:
+        return b
+    n = math.floor(b)
+    return float(n if n % 2 == parity else n - 1)
+
+
 def exact_gaol(X, Y):
-    """gaol::pow(X, Y): pown for a degenerate integer exponent, Table 9.1 otherwise"""
+    """gaol::pow(X, Y): the hull of h over X x Y (#400), h(x, y) = pown(x, n) for an integer y = n and the pow of
+    Table 9.1 elsewhere. For a degenerate integer exponent, pown; otherwise the pow of Table 9.1, 1 for 0^0, and
+    the negative part of X, whose powers x^n = (-1)^n t^n, t = -x, are those of t over the integers n of Y: at
+    the corners of the least and the greatest of each parity, t^y being monotonic in y and in t"""
     if X is None or Y is None:
         return None
     yl, yu = Y
     if yl == yu and abs(yl) < INF and yl == int(yl):
         return exact_pown(X, int(yl))
-    return exact_standard(X, Y)
+    pieces = [exact_standard(X, Y)]
+    if X[0] <= 0.0 <= X[1] and yl <= 0.0 <= yu:
+        pieces.append((mpf(1), mpf(1)))
+    if X[0] < 0.0:
+        T = (-min(X[1], 0.0), -X[0])
+        for parity in (0, 1):
+            lo, hi = integer_above(yl, parity), integer_below(yu, parity)
+            if lo <= hi:
+                P = exact_standard(T, (lo, hi))
+                if P is not None:
+                    pieces.append(P if parity == 0 else (-P[1], -P[0]))
+    pieces = [q for q in pieces if q is not None]
+    if not pieces:
+        return None
+    return (min(q[0] for q in pieces), max(q[1] for q in pieces))
 
 
 def hexa(d):

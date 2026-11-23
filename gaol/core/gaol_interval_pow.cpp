@@ -438,7 +438,12 @@ namespace gaol_core {
       takes the integer power, pown of IEEE 1788, which is defined for a
       negative base too, is 1 at p = 0 for any x, 0 included, and has no value
       at x = 0 for p < 0 (Table 9.1, footnote b), and any other exponent the
-      pow of IEEE 1788, defined for x > 0, and for x = 0 when y > 0.
+      hull of the function h(x, y) over I x J, h(x, y) being pown(x, n) where y
+      is an integer n and the pow of IEEE 1788 elsewhere (defined for x > 0,
+      and for x = 0 when y > 0): the result is monotone for the inclusion of I
+      and J (GAOL v5, #400: gaol::pow([-2, 2], [0.5, 3]) was [0, 8], which
+      does not hold pow([-1], [3]) = [-1], and pow([0], [0, 1]) was [0], which
+      does not hold pow([0], [0]) = [1]).
     */
     if (J.left() == J.right() && std::floor(J.left()) == J.left()) {
       if (J.is_an_int()) {
@@ -448,7 +453,42 @@ namespace gaol_core {
       // +oo] before)
       return pown_double_upward(I, J.left());
     }
-    return pow_standard_upward(I, J);
+    interval res = pow_standard_upward(I, J);
+
+    // h differs from the pow of IEEE 1788 in two places only: 0^0 = 1, where
+    // pown(0, 0) has a value and pow(0, 0) has none, and the negative bases
+    // with an integer exponent, below
+    if (I.set_contains(0.0) && J.set_contains(0.0)) {
+      res |= interval(1.0);
+    }
+
+    /*
+      The negative bases: with T = -(I & [-oo, 0]), x^n = (-1)^n t^n for the
+      integers n of J, whose parity gives the sign, so that the powers are
+      those of the pow of IEEE 1788 on T, over the least and the greatest
+      integer of each parity within J: t^y is monotone in y for a fixed t, and
+      in t for a fixed sign of y, so that its extrema over T x [p_min, p_max]
+      are at the corners, whose exponents are integers of that parity. The
+      union of the two is the hull of x^n over the negative part of I, exact
+      for the bounds of the pow of IEEE 1788 (CORE-MATH, correctly rounded).
+      An exponent bound of 2^53 or more is kept for both parities, and the odd
+      integers between two doubles there are enclosed by the corners
+      (integer_above() and integer_below()).
+    */
+    const interval negative = I & interval::negative();
+    // holds_no_real(): the base [-oo] of a register without a check has no
+    // powers, as [+oo] has none either
+    if (!negative.is_empty() && negative.left() < 0.0 && !holds_no_real(negative)) {
+      const interval T = -negative;
+      for (int parity = 0; parity < 2; ++parity) {
+        const double lo = integer_above(J.left(), parity), hi = integer_below(J.right(), parity);
+        if (lo <= hi) {
+          const interval P = pow_standard_upward(T, interval(lo, hi));
+          res |= (parity != 0) ? -P : P;
+        }
+      }
+    }
+    return res;
   }
 
   interval gaol_pow_hybrid(const interval &I, const interval &J)

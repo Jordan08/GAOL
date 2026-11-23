@@ -252,10 +252,15 @@ the standard: the two powers are compared in Chapter~\ref{chap:overview}
     $\pm(2^{63}-2)$, with the sign and the parity of \var{n}, every power of
     a double but $0$, $\pm1$ and $\pm\infty$ being beyond the doubles
     there.\newinvfive
-  \item[$\bullet$] \textbf{Any other exponent} takes the \emph{real power},
-    \ieee{pow} of IEEE 1788-2015, on the part of \var{I} in \itv{0}{+\infty},
-    where $0^y$ is $0$ for $y>0$ and has no value for $y\leq0$. An infinite
-    or NaN exponent \var{p} gives the empty set.
+  \item[$\bullet$] \textbf{Any other exponent} takes the hull of the
+    \emph{real power}, \ieee{pow} of IEEE 1788-2015, on the part of \var{I} in
+    \itv{0}{+\infty}, where $0^y$ is $0$ for $y>0$ and has no value for
+    $y\leq0$, of $1$ where $0$ is in \var{I} and in \var{J} ($0^0$), and of
+    the integer powers of the negative part of \var{I} over the integers of
+    \var{J}: the powers at the corners of the least and the greatest even
+    integer of \var{J}, and of its least and greatest odd one, the latter
+    negated.\newinvfive{} An infinite or NaN exponent \var{p} gives the empty
+    set.
   \end{itemize}
 \end{deffun}
 
@@ -280,7 +285,7 @@ cout << pow(interval(-4,-1), 2) << ' '
      << pow(interval(-4,-1), interval(2.0)) << ' '
      << pow(interval(-4,9), interval(0.5)) << ' '
      << pow(interval(-4,-1), interval(1.5, 2.5)) << endl;
-@outputs^[1, 16] [1, 16] [0, 3] [empty]~
+@outputs^[1, 16] [1, 16] [0, 3] [1, 16]~
 cout << pow(interval(0.0), interval(0.0)) << ' '
      << pow(interval(-2,2), -2) << ' '
      << pow(interval(4), 0.5) << endl;
@@ -288,13 +293,15 @@ cout << pow(interval(0.0), interval(0.0)) << ' '
 \end{example}
 
 \begin{Rem}\label{rem:arithmetic-pow-monotone}
-The result of \code{pow} is not monotone for the inclusion of \var{J}:
-\code{pow(\itv{-4}{-1}, \itv{2}{2})} is \itv{1}{16}, and
-\code{pow(\itv{-4}{-1}, \itv{1.5}{2.5})} the empty set. The result for a
-degenerate integer exponent $[n]$ is not within the result for an exponent
-around $n$, and \code{pow} is not one function of $x$ and $y$. GAOL~4
-truncated a double exponent \var{p}, and computed the powers of a negative
-base on its magnitude.
+The result of \code{pow} is monotone for the inclusion of \var{I} and of
+\var{J}: it is the hull of the function $h(x,y)$ over $I\times J$, the integer
+power for an integer $y$ and the real power elsewhere.\newinvfive{}
+\code{pow(\itv{-2}{2}, \itv{0.5}{3})} is \itv{-8}{8}, which holds
+\code{pow(\itv{-1}{-1}, \itv{3}{3})}, \itv{-1}{-1} (it was \itv{0}{8}, which
+does not), and \code{pow(\itv{0}{0}, \itv{0}{1})} is \itv{0}{1}, which holds
+\code{pow(\itv{0}{0}, \itv{0}{0})}, \itv{1}{1}. GAOL~4 truncated a double
+exponent \var{p}, and computed the powers of a negative base on its
+magnitude.
 \end{Rem}
 
 \Needspace{42\baselineskip}
@@ -873,17 +880,23 @@ cout << div_rel(interval(1,2), interval(-1,1),
   \code{pow} of IEEE 1788-2015 (Table~9.1), that of
   \code{gaol\_ieee1788::pow}: $e^{y\log x}$ for $x>0$, $0$ for $x=0$ and
   $y>0$, and no value elsewhere, so that no $x<0$ is a solution, in either
-  namespace. The \code{pow} of \code{gaol} takes the integer power for a
-  degenerate integer exponent $[n]$, which has negative bases too
-  (Remark~\ref{rem:arithmetic-pow-monotone}): the reverse of $x^n$ is
-  \code{nth\_root\_rel(K, n, I)}.
+  namespace. The \code{pow} of \code{gaol} takes the integer power for an
+  integer exponent, which has negative bases too
+  (Remark~\ref{rem:arithmetic-pow-monotone}): \code{pow\_rel} reverses the
+  function $h$ that \code{gaol::pow} takes the hull of, the integer power for an
+  integer $y$ and that real power elsewhere, so that it adds to the reverse of
+  the real power of the standard (\ieee{powRev1}, \code{gaol\_core::pow\_standard\_rel})
+  the negative bases with an integer exponent and $0^0=1$. The reverse of
+  $x^n$ is also \code{nth\_root\_rel(K, n, I)}.
 \begin{example}
 cout << pow_rel(interval(4,9), interval(2), interval::universe()) << ' '
      << pow_rel(interval(2,3), interval(1,GAOL_INFINITY), interval(0,1)) << ' '
      << pow_rel(interval(1,4), interval(2), interval(-3,3));
-@outputs^[2, 3] [empty] [1, 2]~
+@outputs^[-3, 3] [empty] [-2, 2]~
 \end{example}
-  $x^y\geq2$ for a $y\geq1$ asks $x>1$: the second result is empty.
+  $x^y\geq2$ for a $y\geq1$ asks $x>1$: the second result is empty. The first
+  and the third have the negative bases, $(-3)^2=9$ and $(-2)^2=4$ being
+  solutions; \ieee{powRev1} gives \itv{2}{3} and \itv{1}{2}.
 \end{deffun}
 
 \begin{deffun}{interval}{pow\_exponent\_rel}{(const interval\& \var{K}, const interval\& \var{H}, const interval\& \var{I})}
@@ -892,8 +905,11 @@ cout << pow_rel(interval(4,9), interval(2), interval::universe()) << ' '
       \exists x\in H\colon z=x^y\}}$}
   \end{operation}
   Returns the \emph{relational exponent} of the power $z=x^y$, the same
-  \code{pow} as \code{pow\_rel()}: the hull of the $y$ of \var{I} with an
-  $x^y$ in \var{K} for an $x$ of \var{H}.\newinvfive
+  function $h$ as \code{pow\_rel()}: the hull of the $y$ of \var{I} with an
+  $x^y$ in \var{K} for an $x$ of \var{H}.\newinvfive{} The integers of the
+  exponent that have a solution on a negative base are bounded by two
+  integers of each parity and each side of $0$, not looked for one by one:
+  \code{pow\_exponent\_rel([-1], [-2, 2], [0.5, 3])} is \itv{1}{3}.
 \begin{example}
 cout << pow_exponent_rel(interval(8), interval(2), interval::universe()) << ' '
      << pow_exponent_rel(interval(3), interval(2,4), interval::universe());
@@ -1128,8 +1144,9 @@ default mathlib, whose values it moved one double outward, and the
 mathematical library of the system for the hyperbolic functions. The power
 is hybrid: an integer
 exponent, whatever its type, takes the integer power \ieee{pown}, with the
-negative bases, and any other exponent the real power \ieee{pow}, at the
-price of a result that is not monotone for the inclusion of the exponent;
+negative bases, and any other exponent the hull of the real power
+\ieee{pow} and of the integer powers of the negative bases over the integers of
+the exponent, a result that is monotone for the inclusion of the exponent;
 the powers of the two namespaces are compared in Chapter~\ref{chap:overview}.
 
 \medskip

@@ -670,7 +670,7 @@ namespace
     const Close close[] = {
       { "pow([0,4],0.5)", [] { return pow(interval(0., 4.), 0.5); }, 0., 2. },
       { "pow([-4,9],0.5), whose negative part is out of the domain", [] { return pow(interval(-4., 9.), 0.5); }, 0., 3. },
-      { "pow([-2,3],[1,2]), whose negative part is out of the domain", [] { return pow(interval(-2., 3.), interval(1., 2.)); }, 0., 9. },
+      { "pow([-2,3],[1,2]), whose negative part takes the integers 1 and 2 (#400)", [] { return pow(interval(-2., 3.), interval(1., 2.)); }, -2., 9. },
       { "pow([-10,10],-2.0)", [] { return pow(interval(-10., 10.), -2.0); }, previous_double(0.01), inf },
     };
     for (const Close& c : close) {
@@ -885,8 +885,9 @@ namespace
       { "pow([0],[0.5]), pow(0,y) = 0 for y > 0", [] { return pow(interval(0.), interval(0.5)); }, 0., 0. },
       { "pow([0],0.5)", [] { return pow(interval(0.), 0.5); }, 0., 0. },
       { "pow([-2,0],[2.5])", [] { return pow(interval(-2., 0.), interval(2.5)); }, 0., 0. },
-      { "pow([0],[0,1]), without y = 0", [] { return pow(interval(0.), interval(0., 1.)); }, 0., 0. },
-      { "pow([0],[-1,1]), without y <= 0", [] { return pow(interval(0.), interval(-1., 1.)); }, 0., 0. },
+      { "pow([0],[0,1]), 0 for y > 0 and pown(0,0) = 1 (#400)", [] { return pow(interval(0.), interval(0., 1.)); }, 0., 1. },
+      { "pow([0],[-1,1]), no value for y < 0 (#400)", [] { return pow(interval(0.), interval(-1., 1.)); }, 0., 1. },
+      { "pow([0],[-1,0]), pown(0,0) = 1 and no value for y < 0 (#400)", [] { return pow(interval(0.), interval(-1., 0.)); }, 1., 1. },
     };
     for (const Equal& e : special) {
       const interval r = evaluate(e.name, e.f, [] { return std::string(); });
@@ -897,7 +898,6 @@ namespace
       { "pow([0],[-0.5]), pow(0,y) for y < 0", [] { return pow(interval(0.), interval(-0.5)); } },
       { "pow([0],-0.5)", [] { return pow(interval(0.), -0.5); } },
       { "pow([-2,0],[-0.5])", [] { return pow(interval(-2., 0.), interval(-0.5)); } },
-      { "pow([0],[-1,0]), pow(0,y) for y <= 0", [] { return pow(interval(0.), interval(-1., 0.)); } },
       { "pow([4],[+oo]), interval(+oo) being the empty set", [] { return pow(interval(4.), interval(inf)); } },
       { "pow([4],[-oo]), interval(-oo) being the empty set", [] { return pow(interval(4.), interval(-inf)); } },
     };

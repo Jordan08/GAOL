@@ -51,7 +51,10 @@ The expectations of IBEX and Codac, with their tolerances (1e-10 absolute for
 IBEX, `Approx` for Codac), are in the scripts and are only compared with the
 exact results: 658 comparisons for the forward tests of IBEX, 702 for the
 backward ones, 580 for the tests of Codac, with no disagreement beyond the
-tolerance of the project. Where an expectation is not an enclosure of the exact
+tolerance of the project but one: Codac's `Interval_operations:323` expects
+`pow([-2, 3], [1, 2])` to be [0, 9], the base being cut to [0, +oo], where
+`gaol::pow` takes the integers 1 and 2 of the exponent on the negative part
+too and gives [-2, 9] (#400). Where an expectation is not an enclosure of the exact
 result at an integer bound, the script says so (23 for the forward tests of
 IBEX, for example `tan02`, which expects [-1, 1] where the exact result is ±(1 +
 2^-52)).

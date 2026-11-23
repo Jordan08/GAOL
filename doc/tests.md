@@ -1663,8 +1663,9 @@ which `numbers` checks there too.
   from `atan2()` of the point, whose bounds are the two doubles around the
   angle. Boxes with bounds in {-oo, -2, -0, 0, 3, +oo} and angles with zero
   and infinite bounds raise no invalid-operation flag.
-  The reverse functions of pow (GAOL v5), `pow_rel` (`powRev1`) and
-  `pow_exponent_rel` (`powRev2`), are checked apart, on the cases of
+  The reverse functions of the pow of the standard (GAOL v5), `powRev1` and
+  `powRev2` (`pow_standard_rel` and `pow_standard_exponent_rel`), are checked
+  apart, on the cases of
   `pow_rel_values.h`, which `pow_rel_values.py` generates: the 804 cases of
   `pow_rev.itl` of ITF1788, random ones, ones whose solutions are doubles
   (x^y = c exactly) and ones where a bound of x is the double next to an end
@@ -1672,8 +1673,9 @@ which `numbers` checks there too.
   enclose the tightest enclosure of the hull, and to lie within the tightest
   enclosure of the solutions in x widened by one double (it is the tightest
   but in the cases next to an end, where a bound of x whose power is within
-  one double of c is kept); the names of the standard, with and without x,
-  give the same bounds. The hulls are computed with mpmath at 2000 bits, by
+  one double of c is kept); `pow_standard_rel` and `pow_standard_exponent_rel`
+  give the same bounds, and `pow_rel` and `pow_exponent_rel`, which add the
+  negative bases, enclose them. The hulls are computed with mpmath at 2000 bits, by
   cells: whether a point is a solution is decided directly, and the answer
   changes only at the points c^(1/y), log(c)/log(x), 0 and the bounds of x,
   between which it is the answer at a middle point. The generator checks
@@ -1689,8 +1691,45 @@ which `numbers` checks there too.
   a check (`gaol_detail::unchecked_bounds`) does, holds
   no real number: with it as c, as the exponent or the base, or as the x or
   y to find, in each of the three places and with eight other values for
-  each of the other two arguments, both functions and the names of the
-  standard (with and without x) have to be empty (GAOL v5).
+  each of the other two arguments, `pow_rel`, `pow_exponent_rel` and the names
+  of the standard (with and without x) have to be empty (GAOL v5).
+  `gaol::pow` and its reverse functions, `pow_rel` and `pow_exponent_rel`,
+  which are those of the function h that `gaol::pow` takes the hull of, the
+  integer power for an integer exponent and the pow of the standard elsewhere
+  (#400), have four checks of their own. The cases of the issue, with their
+  bounds: `pow([-2, 2], [0.5, 3])` is [−8, 8], `pow([0], [0, 1])` [0, 1],
+  `pow_rel([-1], [0.5, 3], [-2, 2])` [−1], `pow_exponent_rel([-1], [-2, 2],
+  [0.5, 3])` [1, 3], `pow_rel([4], [1.5, 4.5], [-3, -1])` [−2, −√2],
+  `pow_exponent_rel([-∞, −(8 + 2^-49)], [-2, -1.5], [0.5, 10])` [5, 9], where
+  the interval of exponents with a solution starts at 3, within half a double
+  of the end, and an exponent beyond 2^53, which has no odd integer where it is
+  a double, and has all the odd integers where it is an interval. Then the three
+  functions against their enumeration over the integers n of the exponent
+  within −60 and 60 (the standard reverse functions, on [n], and `pown`: the
+  enumeration uses the standard functions of the library, which the other
+  tests check, and not the integers it looks for), on the 7 098 boxes that 13
+  bounds for the base and 12 for the exponent make, for `pow` with, for the
+  reverse functions, each of the 45 boxes that 9 bounds make for the power
+  (319 410 boxes), and on 20 000 random boxes. Where the bounds of the
+  exponent are within the enumeration (5 005 boxes for `pow`, 225 225 for each
+  reverse function, and 13 174 random ones), the reverse functions give the same
+  bounds and `pow` the same up to 2^-51 relatively (`pown` and CORE-MATH's
+  `pow` at the corners are not rounded alike); for an exponent box with an
+  infinite bound, whose integers are limits that the enumeration does not
+  reach, the enumeration has to be within the result. 479 872 of the results
+  are not empty. The cases of the issue also hold a K whose bounds are
+  around −e^512, with the exponents [2^53 − 4, 2^53 + 4] and the base
+  −(1 + 2^-44), whose solution has the odd integer 2^53 + 1, no double (a
+  move of the integers that the rounding let in, 2^53 − 1 + 2, had left the
+  doubles and dropped it: both reverse functions were empty), and the base
+  [−∞], which a register without a check makes, has no power for `pow` either. Then the points: for the points (x, y) of 8 000 random
+  boxes, y an integer half of the time, the enclosure of h(x, y) is within
+  `pow(x, y)` and, where it is within c, x is in `pow_rel(c, y, x)` and y in
+  `pow_exponent_rel(c, x, y)` (62 378 solutions, 23 272 with x < 0). And the
+  monotony: the `pow` of 119 160 boxes within a box, 46 950 of them with an
+  exponent that is an integer, is within the `pow` of the box (none is
+  outside it; the check allows 2^-51 relatively, which `pown` and CORE-MATH's
+  `pow` at the corners, not rounded alike, could ask for).
 
 - **`debugging`:** GAOL's headers compiled with `GAOL_DEBUGGING`, which the
   Debug builds define (`CMAKE_BUILD_TYPE=Debug`, `configure --enable-debug`,

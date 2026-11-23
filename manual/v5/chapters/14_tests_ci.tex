@@ -734,7 +734,15 @@ of \file{pow\_rev.itl} of ITF1788, random ones and ones whose solutions are
 doubles, the hulls computed with mpmath at 2000 bits by cells: the generator
 found two results of ITF1788 wider than the tightest enclosure, and by
 sampling over 6\,000 random boxes, 54\,305 points whose power is within $c$
-have to be kept by both functions.
+have to be kept by both functions. \code{pow\_rel} and \code{pow\_exponent\_rel},
+which are the reverse of \code{gaol::pow}, the hull of the integer power and of
+the real power (the negative bases, and $0^0=1$), are checked
+against their enumeration over the integers of the exponent on 319\,410 boxes
+of a grid and 20\,000 random ones (the same bounds where the exponents are
+within the enumeration, 225\,225 boxes of the grid and 13\,174 random ones; the
+result encloses it otherwise), with 62\,378 points of 8\,000 random boxes,
+and \code{gaol::pow} against the same enumeration and for the monotony of its
+result on 119\,160 boxes within a box.
 
 \medskip
 \code{test\_ibex\_codac} checks the cases of the unit tests that IBEX and

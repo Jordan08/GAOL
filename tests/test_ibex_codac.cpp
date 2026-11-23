@@ -3221,7 +3221,7 @@ namespace
     { "Codac Interval_operations:318", { -4.0, -1.0 }, { 0.5, 0.5 }, codac_none },
     { "Codac Interval_operations:319", { -4.0, -1.0 }, { 0.5, 0.5 }, codac_none },
     { "Codac Interval_operations:321", { -4.0, 9.0 }, { 0.5, 0.5 }, { 0.0, 3.0 } },
-    { "Codac Interval_operations:323", { -2.0, 3.0 }, { 1.0, 2.0 }, { 0.0, 9.0 } },
+    { "Codac Interval_operations:323", { -2.0, 3.0 }, { 1.0, 2.0 }, { -2.0, 9.0 } },
     { "Codac Interval_operations:327", { -2.0, 3.0 }, { 3.0, 3.0 }, { -8.0, 27.0 } },
     { "Codac Interval_operations:329", { -2.0, 3.0 }, { 2.0, 2.0 }, { 0.0, 9.0 } },
     { "Codac Interval_operations:332", { 4.0, 4.0 }, { codac_oo, codac_oo }, codac_none },

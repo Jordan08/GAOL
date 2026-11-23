@@ -836,9 +836,13 @@ are given, within the numbers of doubles below.
   accurate, and tightest where the bounds of the quotients are doubles. The
   tests find them accurate, the tightest over the cases of \code{\%}, and
   \code{div\_rel} within 2 doubles of the value it keeps.
-\item[$\bullet$] \textbf{Powers.}\newinvfive{} \code{pow\_rel(c, b, x)} and
-  \code{pow\_exponent\_rel(c, a, x)} (\ieee{powRev1}, \ieee{powRev2}) are
-  tightest. The pieces of the solutions over the signs of the other
+\item[$\bullet$] \textbf{Powers.}\newinvfive{} \ieee{powRev1} and
+  \ieee{powRev2} (\code{pow\_standard\_rel(c, b, x)} and
+  \code{pow\_standard\_exponent\_rel(c, a, x)}) are tightest, and so are
+  \code{pow\_rel(c, b, x)} and \code{pow\_exponent\_rel(c, a, x)}, which add
+  the negative bases with an integer exponent and $0^0=1$ to them, with the
+  same exception, a bound of $x$ kept where it is within a double of the
+  solutions, for the negative bases too. The pieces of the solutions over the signs of the other
   argument ($y>0$, $y<0$; $x>1$, $x<1$), with $0^y=0$ for $y>0$, $x^0=1$
   and $1^y=1$, end at $c^{1/y}$ or $\log(c)/\log(x)$, $c$, $x$ and $y$
   being bounds of the arguments; their bounds are the largest double $d$

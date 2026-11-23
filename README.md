@@ -152,7 +152,8 @@ The main difference between the two is the power. The `pow` of
 `gaol_ieee1788` is the real power of the standard, e^(y log x), defined for
 x > 0 only (and x = 0 when y > 0), and its `pown(x, n)` the integer power;
 the `pow` of `gaol` is GAOL's, which takes the integer power for an integer
-exponent, a negative base included, and the real power otherwise:
+exponent, a negative base included, and, for an interval exponent, the hull of
+the integer power over its integers and of the real power:
 `pow([-4, -1], 2)` is [1, 16] in `gaol` and the empty set in
 `gaol_ieee1788`, where `pown([-4, -1], 2)` is [1, 16]. The other few cases
 where `gaol` differs from the standard are listed in
