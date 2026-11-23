@@ -1228,15 +1228,41 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     the exponent: `pow([4], 0.5)` returned `[1]`. It now computes an integer `e`
     with `pow(I, int)` and any other `e` with `pow(I, J)`.
   - `pow(I, J)` computed the powers of the negative part of `I` on its
-    magnitude: `pow([-4,-1], [0.5])` returned `[-1, 2]`. It is now hybrid: a
-    degenerate integer exponent `[n]` always takes `pow(I, int)`, the `pown` of
-    IEEE 1788, which keeps the negative part of `I` and gives `0^0 = 1`, and,
-    for an `n` beyond the ints, the bounds of the pow of CORE-MATH at the
-    corners of `I`; any other exponent takes the `pow`
-    of IEEE 1788, on the part of `I` in `[0, +oo]`, where `0^y` is `0` for
-    `y > 0` and has no value for `y <= 0`: `pow([0], [0.5])` was
-    `[0, 4.9e-324]`, and `pow([0], [-0.5])` was `[MAX, +oo]`. An exponent
-    `[+oo]` or `[-oo]`, which contains no real number, gives the empty set.
+    magnitude: `pow([-4,-1], [0.5])` returned `[-1, 2]`. It is now the hull,
+    over the box, of the function h(x, y) that is the `pown` of IEEE 1788,
+    `pown(x, n)`, where y is an integer n, and the `pow` of IEEE 1788
+    elsewhere ([issue #400](https://github.com/Jordan08/GAOL/issues/400)),
+    which makes it monotone for the inclusion of `I` and of `J`. A degenerate
+    integer exponent `[n]` always takes `pow(I, int)`, the `pown` of IEEE 1788,
+    which keeps the negative part of `I` and gives `0^0 = 1`, and, for an `n`
+    beyond the ints, the bounds of the pow of CORE-MATH at the corners of `I`.
+    h differs from the `pow` of IEEE 1788, which is defined for `x >= 0`, where
+    `0^y` is `0` for `y > 0` and has no value for `y <= 0`, only for a negative
+    base with an integer exponent and at `0^0 = 1`: the result of any other
+    exponent is the `pow` of IEEE 1788 on the part of `I` in `[0, +oo]`, joined
+    with `[1]` where `0` is in `I` and in `J`, and with the powers of the
+    negative part of `I` for the even integers and for the odd integers of `J`.
+    `pow([-2, -1], [0.5, 3])` is `[-8, 4]`, where it was the empty set, and
+    `pow([0], [0, 1])` is `[0, 1]`, where it was `[0]`; `pow([-4, -1], [0.5])`
+    is the empty set, no integer being in `[0.5]`, `pow([0], [0.5])` is `[0]`
+    and `pow([0], [-0.5])` is the empty set; they were `[0, 4.9e-324]` and
+    `[MAX, +oo]` before the fix of Codac. An exponent `[+oo]` or `[-oo]`,
+    which contains no real number, gives the empty set.
+- **`pow_rel()` and `pow_exponent_rel()` are the reverses of `gaol::pow`**
+  ([issue #400](https://github.com/Jordan08/GAOL/issues/400)): they keep the
+  solutions `x` and `y` of `z = gaol::pow(x, y)` where `x` is negative with an
+  integer `y`, and where `0^0 = 1`, which they lost when `gaol::pow` and they
+  disagreed: `pow_rel([-1], [0.5, 3], [-2, 2])` was the empty set and is
+  `[-1]`, `pow_exponent_rel([-1], [-2, 2], [0.5, 3])` was the empty set and is
+  `[1, 3]`, `pow_rel([1], [0, 1], [0])` was the empty set and is `[0]`. What
+  they were, the reverses of the `pow` of IEEE 1788-2015, are
+  `pow_standard_rel()` and `pow_standard_exponent_rel()` in `gaol_core`, which
+  `gaol_ieee1788::powRev1` and `powRev2` call: they stay the reverses of the
+  `pow` of the standard, and `powRev1([0.5, 3], [-1], [-2, 2])` is still the
+  empty set. The cost of a base with a negative part increases (`pow_rel`
+  from 327 to 1,377 ns and `pow_exponent_rel` from 94 to 982 ns for an exponent
+  that holds two integers, measured once, not by `performance-ab.sh`); that of
+  a positive base does not change.
 - **`pow(I, J)` takes the tightest bounds at the corners of the box**
   ([issue #8](https://github.com/Jordan08/GAOL/issues/8)). x^y increases with y
   for x > 1 and decreases for x < 1, increases with x for y > 0 and decreases
