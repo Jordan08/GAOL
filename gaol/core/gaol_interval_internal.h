@@ -936,6 +936,43 @@ namespace gaol_core {
     return !(a.left() < GAOL_INFINITY && a.right() > -GAOL_INFINITY);
   }
 
+  /*
+    The integers of one parity (0 for the even ones, 1 for the odd ones) that
+    bound the integers of that parity within [a, b], for the powers of a
+    negative base that gaol::pow and its reverse functions take over the
+    integers of an exponent (GAOL v5, #400): integer_above(a, parity) is the
+    least one that is at least a, and integer_below(b, parity) the greatest one
+    that is at most b. An infinite bound is kept, and so is a bound of 2^53 or
+    more, where every double is an even integer (2^53) and the odd integers lie
+    between doubles: a bound is then no integer of an odd parity, but the
+    enclosure of the powers over the odd integers within [a, b] is sound with
+    it, x^y being monotone in y. floor() and ceil() are exact in every rounding
+    direction.
+  */
+  static inline double integer_above(double a, int parity)
+  {
+    if (!(std::fabs(a) < 9007199254740992.0)) {
+      return a;
+    }
+    double n = std::ceil(a);
+    if (static_cast<int>(std::fmod(std::fabs(n), 2.0)) != parity) {
+      n += 1.0; // At most 2^53, which is a double
+    }
+    return n;
+  }
+
+  static inline double integer_below(double b, int parity)
+  {
+    if (!(std::fabs(b) < 9007199254740992.0)) {
+      return b;
+    }
+    double n = std::floor(b);
+    if (static_cast<int>(std::fmod(std::fabs(n), 2.0)) != parity) {
+      n -= 1.0;
+    }
+    return n;
+  }
+
 
   // The body of sqrt() after its check, for nth_root(I, -2), which checks the
   // direction before it (GAOL v5). Inlined by force with GCC

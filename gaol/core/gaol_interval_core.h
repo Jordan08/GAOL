@@ -1469,20 +1469,30 @@ namespace gaol_core {
   /*!
     \brief I^J, gaol::pow(I, J) (GAOL v5)
 
-    A degenerate integer exponent J = [n] always takes the integer power
-    gaol_pown(), the pown of IEEE 1788, which is defined for a
-    negative base too, gives x^0 = 1 for any x, 0 included, and has no value
-    at 0 for n < 0, beyond the ints too (GAOL v5: [-oo,+oo] there). Any
-    other exponent takes the pow of IEEE 1788 on the part of I in [0,+oo],
-    where 0^y is 0 for y > 0 and has no value for y <= 0, its tightest
-    bounds: CORE-MATH's pow at the corners of the box, and the limits of x^y,
-    0 or +oo, where the base is 0 or +oo or the exponent infinite (1 for a
-    base 1 or an exponent 0).
+    The hull of the function h over I x J, h(x, y) being the integer power
+    pown(x, n), the pown of IEEE 1788, where y is an integer n, and the pow of
+    IEEE 1788 (Table 9.1) elsewhere. pown is defined for a negative base too,
+    gives x^0 = 1 for any x, 0 included, and has no value at 0 for n < 0; the
+    pow of IEEE 1788 is defined for x > 0, and for x = 0 where y > 0 (0^y is 0
+    there). h differs from that pow in two places only, the negative bases with
+    an integer exponent and 0^0 = 1. A degenerate integer exponent J = [n]
+    takes the integer power gaol_pown(), beyond the ints too (GAOL v5: [-oo,+oo]
+    there). Any other exponent takes the union of the pow of IEEE 1788 on the
+    part of I in [0,+oo], its tightest bounds (CORE-MATH's pow at the corners
+    of the box, and the limits of x^y, 0 or +oo, where the base is 0 or +oo or
+    the exponent infinite, 1 for a base 1 or an exponent 0), of 1 where 0 is
+    in I and in J, and of the powers of the negative part of I over the
+    integers of J: the powers at the corners of the least and the greatest even
+    integer of J, and of its least and greatest odd one, the latter negated.
+    The result is monotone for the inclusion of I and of J (GAOL v5, #400: it
+    was not, pow([-2,2],[0.5,3]) was [0,8] where pow([-1],[3]) is [-1]).
     pow([-4,9],[0.5]) is [0,3], pow([4,+oo],[0.5]) is [2,+oo],
-    pow([0],[0,1]) is [0], and pow([-4,-1],[1.5,2.5]) and pow([0],[-0.5])
+    pow([0],[0,1]) is [0,1], pow([-2,2],[0.5,3]) is [-8,8],
+    pow([-2,-1],[0.5,3]) is [-8,4], and pow([-4,-1],[0.5]) and pow([0],[-0.5])
     are empty. An exponent [+oo] or [-oo] contains no real number, and gives
-    the empty set. The result is thus not monotone for the inclusion of J:
-    pow([-4,-1],[2]) is [1,16], and pow([0],[0]) is [1].
+    the empty set. The odd integers beyond 2^53 lie between doubles: an
+    exponent [d] is an even integer there, so that it has no odd one, but an
+    interval of such doubles has them all, and they are in the hull.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_pow_hybrid(const interval &I, const interval &J);
 
@@ -1494,6 +1504,16 @@ namespace gaol_core {
     powers.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval pow_standard(const interval &I, const interval &J);
+
+  /*
+    The reverse functions of the pow of IEEE 1788-2015 (Table 9.1), the bases
+    x >= 0 (GAOL v5, #400), after one check of the rounding direction:
+    gaol_ieee1788::powRev1() and powRev2() are these functions, as
+    gaol_ieee1788::pow() is pow_standard(). pow_rel() and pow_exponent_rel()
+    below are those of gaol::pow. Defined in gaol/core/gaol_interval_relational.cpp.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow_standard_rel(const interval& K, const interval& J, const interval& I);
+  GAOL_NODISCARD extern GAOL_PUBLIC interval pow_standard_exponent_rel(const interval& K, const interval& H, const interval& I);
 
 } // namespace gaol_core
 
@@ -1553,27 +1573,38 @@ namespace gaol_core {
   GAOL_NODISCARD extern GAOL_PUBLIC  interval gaol_pow_real(const interval& I, double p);
 
   /*!
-    \brief The reverse functions of pow: the x of I, and the y of I, with an
-    x^y in K (GAOL v5)
+    \brief The reverse functions of gaol::pow: the x of I, and the y of I, with
+    an h(x, y) in K (GAOL v5)
 
-    pow_rel(K, J, I) = hull{x in I | exists y in J: x^y in K}, the base, and
-    pow_exponent_rel(K, H, I) = hull{y in I | exists x in H: x^y in K}, the
-    exponent: powRev1(J, K, I) and powRev2(H, K, I) of IEEE 1788-2015
-    (10.5.4, Table 10.1), the arguments in the order of div_rel(K, J, I).
-    x^y is the pow of the standard (Table 9.1), that of gaol_ieee1788::pow:
-    e^(y log x) for x > 0, 0 for x = 0 and y > 0, and no value elsewhere, so
-    that no x < 0 is a solution. gaol::pow takes the integer power for a
-    degenerate integer exponent [n], whose negative bases these functions
-    leave out: the reverse of x^n is nth_root_rel(K, n, I).
-    pow_rel([4, 9], [2], interval::universe()) is [2, 3],
+    pow_rel(K, J, I) = hull{x in I | exists y in J: h(x, y) in K}, the base, and
+    pow_exponent_rel(K, H, I) = hull{y in I | exists x in H: h(x, y) in K}, the
+    exponent, the arguments in the order of div_rel(K, J, I). h is the function
+    of which gaol::pow takes the hull: pown(x, n) where y is an integer n, and
+    the pow of IEEE 1788-2015 (Table 9.1), e^(y log x) for x > 0, 0 for x = 0
+    and y > 0, and no value elsewhere, for any other y (GAOL v5, #400: these
+    functions were the reverse of the pow of IEEE 1788, which has no negative
+    base, and lost the solutions of gaol::pow there). So that they are the
+    reverse of gaol::pow, they add to those of the pow of IEEE 1788
+    (pow_standard_rel() and pow_standard_exponent_rel(), which
+    gaol_ieee1788::powRev1() and powRev2() keep) the negative bases x < 0 with
+    an integer exponent n, with x^n in K, and 0^0 = 1 (0, or the exponent 0,
+    where 0 is in both and 1 in K); of the integers of J, only the least
+    and the greatest of each parity are needed, the solutions between them being
+    inside the hull. pow_exponent_rel() gives integers for the negative bases.
+    pow_rel([-1], [0.5, 3], [-2, 2]) is [-1] (x = -1, y = 3),
+    pow_rel([-8], [0.5, 3], [-3, 3]) is [-2],
+    pow_rel([4], [1.5, 4.5], [-3, -1]) is [-2, -sqrt(2)],
+    pow_rel([1, 4], [2], [-3, 3]) is [-2, 2] (the pow of IEEE 1788 gives [1, 2]),
+    pow_exponent_rel([-1], [-2, 2], [0.5, 3]) is [1, 3],
+    pow_rel([4, 9], [2], interval::universe()) is [-3, 3] (powRev1 gives [2, 3]),
     pow_rel([2, 3], [1, +oo], [0, 1]) is empty (x^y >= 2 asks x > 1), and
     pow_exponent_rel([8], [2], interval::universe()) is [3].
 
-    The bounds are the tightest: those of c^(1/y) and log(c)/log(x) proved
-    with CORE-MATH's pow, correctly rounded. A bound of I is kept where the
-    solutions start between it and the next double and its power is within
-    one double of the bound of K, where proving that it is no solution
-    would take knowing whether that power is a double:
+    The bounds of the bases x >= 0 are the tightest: those of c^(1/y) and
+    log(c)/log(x) proved with CORE-MATH's pow, correctly rounded. A bound of I
+    is kept where the solutions start between it and the next double and its
+    power is within one double of the bound of K, where proving that it is no
+    solution would take knowing whether that power is a double:
     pow_rel([1 + 2^-52], [0.5], [0, 1 + 2^-51]) is [1 + 2^-51] rather than
     empty, within the tightest result for I one double wider.
   */
