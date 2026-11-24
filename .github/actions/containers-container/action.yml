@@ -5,7 +5,8 @@ description: The job container of containers.yml for one configuration
 inputs:
   archive:
     description: >-
-      'true' for a Debian release out of support, whose packages, security
+      'true' for a Debian release out of support, from Debian 11 on (its
+      security suite is <codename>-security), whose packages, security
       updates included, are on archive.debian.org only (tools: apt)
     default: ''
   desc:

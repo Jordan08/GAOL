@@ -345,9 +345,10 @@ jobs:
           before_label: 'FPU intervals, C library'
           after_label: 'NEON intervals, FPCR'
       # GCC 10.2, which stopped with an internal compiler error on three
-      # sources of the NEON intervals (GCC bug 99037, neon_detail::stored()
-      # of gaol/core/gaol_interval_neon.h); Debian 11 is out of support since
-      # August 2026, and its packages are on archive.debian.org (GAOL v5)
+      # sources of GAOL with the NEON intervals (GCC bug 99037,
+      # neon_detail::stored() of gaol/core/gaol_interval_neon.h); Debian 11 is
+      # out of support since August 2026, and its packages are on
+      # archive.debian.org (GAOL v5)
       - id: c6
         name: 'Debian 11 Bullseye arm64 (GCC 10.2)'
         if: ${{ !cancelled() }}

@@ -74,8 +74,8 @@ GAOL v5). The badges of
     `tests/u128_select.c` checks (issue #394);
   - Debian 11 on arm64, with GCC 10.2, its packages taken from
     archive.debian.org (GAOL v5): GCC 9.3 and 10.2 for 64-bit ARM stopped
-    with an internal compiler error on the constructors of the NEON
-    intervals (below, *Crashes and builds that failed*);
+    with an internal compiler error on the constructors and the kernels of
+    the NEON intervals (below, *Crashes and builds that failed*);
   - manylinux_2_28 on x86_64 and aarch64;
   - Alpine (musl) on x86_64 and aarch64;
   - Debian 13 under qemu on s390x, ppc64le and riscv64, and Ubuntu 24.04

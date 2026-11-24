@@ -198,8 +198,8 @@ namespace neon_detail {
     error in output_constant_pool_2, at -O1 and above, on gaol_interval_core.cpp,
     gaol_interval_pow.cpp and gaol_interval_relational.cpp. Clang 18 and 21 give the same
     instructions for both forms, and GCC 12.2 too for two variables; for a constant first lane,
-    GCC 12.2 gives one instruction less (1.0), or a load of the pair from the constant pool in
-    place of three moves (-0)
+    GCC 12.2 gives one instruction less (1.0), or a load of <-0, -0> from the constant pool, the
+    second lane then inserted, in place of three moves (-0)
   */
   GAOL_INLINE float64x2_t stored(double minus_left, double right)
   {
