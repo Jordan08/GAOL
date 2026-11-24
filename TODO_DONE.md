@@ -1,7 +1,9 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 23 novembre
-2026 (le commit de fusion de #402 dans `master`, celui de l'étiquette `v5.0.1`,
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 24 novembre
+2026 (le commit `eeb1f1c` de `dev`, la fusion de #404, après celle de #403, les
+registres de 5.0.1 ; avant, le commit de fusion de #402 dans `master`, celui de
+l'étiquette `v5.0.1`,
 après celui de #399, celui de l'étiquette `v5.0.0` ;
 `configure-clean`, qui était à `83e2f69`, la fusion de #321, est supprimée le 17
 novembre : voir la section 1). Ce fichier est dans `dev` et dans `master`
@@ -60,7 +62,7 @@ par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 23 novembre 2026
+## 1. L'état au 24 novembre 2026
 
 - **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #402
   (`dc16487`, le 23 novembre à 12 h 49 UTC : `dev` avec la version 5.0.1), celui
@@ -77,12 +79,15 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `c38417e`, y entre, 2 338 commits et 980 fichiers ; l'arbre de `master` est
   celui de `dev`).
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `37cd7c6` (la fusion de #401 le 23 novembre à 11 h 22 UTC : l'issue
-  #400, 3.62), après `a281719` (le commit de fusion de #399, que `dev` a reçu de
-  `master` le 20 novembre : même arbre) ; il a `VERSION.txt` à 5.0.0 jusqu'à la
-  pull request des registres de 5.0.1, qui y fait entrer `master`. Avant, il
-  était au commit `56201f1` (la couverture refaite, 97,6 % des 8 077 lignes de
-  `gaol/`,
+  commit `eeb1f1c` (la fusion de #404 le 24 novembre à 7 h 48 UTC, hors des
+  points : GCC 9.3 et 10.2 pour aarch64, qui s'arrêtaient sur une erreur
+  interne, et Debian 11 arm64 dans la CI, 3.63), après `ba4028f` (la fusion de
+  #403 à 7 h 46 UTC : les registres de 5.0.1, qui fait entrer `master` dans
+  `dev` ; `VERSION.txt` y vaut 5.0.1, 7.66). Avant, il était au commit `37cd7c6`
+  (la fusion de #401 le 23 novembre à 11 h 22 UTC : l'issue #400, 3.62), après
+  `a281719` (le commit de fusion de #399, que `dev` a reçu de `master` le 20
+  novembre : même arbre), et avant au commit `56201f1` (la couverture refaite,
+  97,6 % des 8 077 lignes de `gaol/`,
   7.62), après `0173d0a` (la fusion de `master` dans `dev` par le mainteneur le
   19 novembre à 11 h 57 UTC, qui n'apporte que `313ef2d` : `dev` n'a ni
   `a3428f2` (#391), ni `f4b691d` (#397), ni `e733f87` (#398), 3.60) et `fd1194f`
@@ -5081,6 +5086,42 @@ tournait au moment des registres.
   jobs macOS arm64 que GitHub n'avait pas servis (« not acquired by Runner of
   type hosted »).
 
+- #403 (les registres de 5.0.1 ; `ccr-d1f3c85b-cy4e5l`, de `master` vers `dev`,
+  3.62) : `ChangeLog`, `doc/differences.md`, `TODO.md` (la tâche VJ), ce fichier
+  et `process.md` (7.66). Fusionnée par le mainteneur le 24 novembre à 7 h 46
+  UTC (`ba4028f`) : `dev` a `master`, `VERSION.txt` à 5.0.1 compris.
+
+- #404 (hors des points : GCC 9.3 et 10.2 pour aarch64 ; `neon-gcc10-aarch64`,
+  vers `dev`, 3.63) : avec GCC 10.2.1 (Debian 11) et 9.3.0 pour aarch64,
+  `gaol_interval_core.cpp`, `gaol_interval_pow.cpp` et
+  `gaol_interval_relational.cpp` s'arrêtaient sur une erreur interne du
+  compilateur (« in output_constant_pool_2 », de `-O1` à `-O3`, les deux
+  premières à `-Os` aussi), v5.0.0 comprise : `vcombine_f64()` d'une constante
+  autre que +0 et d'une variable (`interval(0.0, r)` pose `<-0, r>`) met dans la
+  table des constantes la paire de la constante et de l'entier 0 (bogues 99037
+  et 100441 de GCC, corrigés dans GCC 8.5, 9.4 et 10.3). Vu dans le job
+  « Debian Bullseye arm64 » de la CI de Codac (codac-team/codac#475), qui
+  télécharge `master`. `neon_detail::stored()` passe dans
+  `gaol_interval_neon.h` et pose les deux voies par `vsetq_lane_f64(right,
+  vdupq_n_f64(minus_left), 1)` ; les deux constructeurs NEON l'appellent. La
+  configuration *Debian 11 Bullseye arm64 (GCC 10.2)* de `containers.yml` (job
+  *Containers arm64*, 6 configurations) prend ses paquets sur
+  archive.debian.org par l'entrée `archive` de
+  `.github/actions/containers-container` ; `doc/continuous-integration.md` et
+  deux chapitres du manuel (sans son PDF). Le code : identique avec Clang 18 et
+  21 sur des fonctions seules ; avec Apple clang 21, 15 objets sur 16 de la
+  bibliothèque identiques octet pour octet (dans
+  `gaol_interval_relational.cpp.o`, `negative_roots_upward()` n'est plus en
+  ligne dans `nth_root_rel()`) et
+  `gaol_performance` identique ; avec GCC 12.2, 31 fonctions sur 585 changent,
+  29 raccourcissent (407 instructions de moins). Les temps arm64
+  (`performance.yml`, base / PR) : 0,97 à 1,02 avec GCC 13.3, 0,99 à 1,01 avec
+  Clang 18 (Ubuntu 24.04 arm64), 0,97 à 1,01 sur un Apple M2 (la session
+  MACarm5), dans le bruit des runners ailleurs. Fusionnée par le mainteneur le
+  24 novembre à 7 h 48 UTC (`eeb1f1c`, tête `5ae1fbf`), la CI de sa tête au
+  vert (sept workflows, 83 contrôles ; la nouvelle configuration : GCC 10.2.1,
+  les intervalles NEON, 48 tests sur 48).
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -9256,6 +9297,27 @@ version vers 5.0.1, fusionne et ensuite met le tag 5.0.1 » : #402.
   la Release étaient celles que GitHub engendre, avec les titres des pull
   requests en français.
 
+### 3.63 Le 24 novembre : GCC 10.2 pour aarch64 et Debian 11 arm64 (#404)
+
+Le mainteneur demande de regarder si le job « Debian Bullseye arm64 » de la CI
+de Codac (codac-team/codac#475) montre un bogue de GAOL : c'est une erreur
+interne de GCC 10.2 pour aarch64 (2.3, #404), que GAOL contourne.
+
+- **Décidé** (réponses du mainteneur aux questions de la session) : une pull
+  request vers `dev` avec le contournement et une configuration Debian 11 arm64
+  dans la CI, comme test qui a des dents (« PR vers dev + job CI »), plutôt que
+  le refus de ces GCC ou une issue ; la correction va dans `master` avec la
+  prochaine version (« dev, puis master à la version suivante »), sans pull
+  request à part vers `master` : le job de Codac reste rouge jusque-là.
+- **Fait avec d'autres sessions** : la session de Codac avait écrit le même
+  contournement (`vsetq_lane_f64()` aux trois mêmes endroits, et dans le
+  `rnd_keep()` de Visual C++, que #404 ne touche pas) et un exemple minimal qui
+  a corrigé la cause que la session donnait d'abord (une seconde voie +0) ; la
+  session MACarm5 (Apple M2, macOS 27, Apple clang 21, sans Docker) a construit
+  et testé la branche, comparé les objets et mesuré l'A/B (2.3). Le mainteneur
+  demande d'accuser réception de chacun de ses messages (« ok »).
+- **À décider** : Debian 11 amd64 et armhf dans la CI (`TODO.md` VD.9).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -12038,6 +12100,15 @@ leurs registres n'étaient pas faits :
 - Pas faits : le PDF du manuel (`pdflatex` n'est pas installé), les issues #177
   à #179 (après la fusion), `doc/compare/special_cases.md` (VJ.3).
 
+### 7.67 Le 24 novembre (#404 : les registres)
+
+- Directement sur `dev`, après la fusion de #404 (`eeb1f1c`) : `TODO.md`
+  (l'en-tête, VD.9), ce fichier (l'en-tête, 1, 2.3 pour #403 et #404, 3.63, 7.67
+  et 8.1), `process.md` (l'en-tête et §12) et l'issue #179 (le texte joint de
+  `TODO.md`, que #403 n'avait pas mis à jour) ; `TODO_AFTER.md` ne change pas.
+- Pas fait : le PDF du manuel, que la pull request du manuel refera (les sources
+  de `02_installation.tex` et `14_tests_ci.tex` changent avec #404).
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -12339,6 +12410,13 @@ leurs registres n'étaient pas faits :
   de la session (`git branch -d`) ; `experiment-pw11-paths`, la branche jetable
   de l'essai de `paths-ignore`, sur GitHub et en local, après l'essai. `git
   ls-remote --heads origin` ne montre que `configure-clean`, `dev` et `master`.
+
+- [x] Celle de #404 (`neon-gcc10-aarch64`), sur GitHub (supprimée à la fusion le
+  24 novembre) et dans GAOL_V8 (`git branch -d`) ; celle de #401 à #403
+  (`ccr-d1f3c85b-cy4e5l`) n'est plus sur GitHub (constaté le 24 novembre). `git
+  ls-remote --heads origin` montre `dev`, `master` et `release-fma-packages`
+  (#397). Les images Docker de l'enquête (`gaol-bullseye-cross`, avec GCC 10.2
+  et 9.3 pour aarch64) sont supprimées.
 
 ### 8.2 Les branches inachevées
 

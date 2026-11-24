@@ -14,7 +14,10 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 23 novembre 2026, au commit de fusion de #402 dans
+Dernière mise à jour : 24 novembre 2026, au commit `eeb1f1c` de `dev` (la
+fusion de #404 : GCC 9.3 et 10.2 pour aarch64, et Debian 11 arm64 dans la CI,
+après celle de #403, les registres de 5.0.1, qui fait entrer `master` dans
+`dev`), et avant au commit de fusion de #402 dans
 `master` (`dc16487` : la version 5.0.1, avec le correctif de l'issue #400 ;
 l'étiquette `v5.0.1` est posée sur ce commit), et avant au commit de fusion de
 #399 dans `master` (les corrections de la relecture complète des 19 et 20
@@ -991,17 +994,17 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   est passé sur `master` le 17 novembre), fais les registres dans un clone du
   scratchpad, dont tu pousses `origin` vers GitHub par SSH, sans le toucher.
 
-## 12. Où en est le travail (18 novembre 2026)
+## 12. Où en est le travail (24 novembre 2026)
 
-Il ne reste plus de tâche dans `TODO.md` (l'issue #179) depuis la version, le
-18 novembre ; ce
-qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
-`TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté est
-dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les commandes
-ci-dessous, les trois fichiers et les issues font foi. Avant de commencer un
-point, regarde les pull requests ouvertes et les branches distantes : une autre
-session peut déjà le traiter (le 19 octobre, la même mise à jour de `TODO.md` a
-été faite deux fois).
+Les tâches de `TODO.md` (l'issue #179) sont, depuis la version, celles de la
+relecture des 19 et 20 novembre (VA à VI) et les restes de l'issue #400 (VJ) ;
+ce qui est fait et décidé (pull requests fusionnées, décisions, mesures) est
+dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté
+est dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les
+commandes ci-dessous, les trois fichiers et les issues font foi. Avant de
+commencer un point, regarde les pull requests ouvertes et les branches
+distantes : une autre session peut déjà le traiter (le 19 octobre, la même
+mise à jour de `TODO.md` a été faite deux fois).
 
 ```sh
 gh api 'repos/Jordan08/GAOL/pulls?state=open' --jq '.[] | "#\(.number) \(.head.ref) \(.title)"'
@@ -1175,11 +1178,19 @@ git ls-remote --heads origin
   Release avec FMA) à 20 h 22 UTC (`f4b691d`, 2.3, 3.60 et 7.63), et #398 (hors
   des points : les textes du `.deb` de la Release) à 22 h 10 UTC (`e733f87`,
   2.3, 3.60 et 7.64), puis, le 20 novembre, #399 (hors des points : les
-  corrections de la relecture complète ; 2.3, 3.61 et 7.65) ; l'audit du 13
+  corrections de la relecture complète ; 2.3, 3.61 et 7.65), puis, le 23
+  novembre, #401 (l'issue #400 : `gaol::pow` enveloppe de `pown` et de `pow`) et
+  #402 (la version 5.0.1, vers `master`, l'étiquette `v5.0.1` ; 3.62), et, le 24
+  novembre, #403 (les registres de 5.0.1, `master` dans `dev`, 7.66) à 7 h 46
+  UTC et #404 (hors des points : GCC 9.3 et 10.2 pour aarch64, Debian 11 arm64
+  dans la CI ; 2.3, 3.63 et 7.67) à 7 h 48 UTC (`eeb1f1c`) ; l'audit du 13
   octobre a vérifié dans
   `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
-- **En cours** : au 20 novembre, #391 est fusionnée (`a3428f2`), #397
+- **En cours** : au 24 novembre, aucune pull request n'est ouverte : #401 à
+  #404 sont fusionnées, leurs registres faits, et `dev` est au commit `eeb1f1c`
+  (la fusion de #404). Avant, au 20 novembre, #391 est fusionnée (`a3428f2`),
+  #397
   (`f4b691d`, 20 h 22 UTC : le `.deb` et le `.exe` avec FMA, le `.pkg` pour macOS
   15 et plus), #398 (`e733f87`, 22 h 10 UTC : leurs textes) et #399 aussi (les
   corrections de la relecture complète, de `release-review-fixes` vers
@@ -1304,29 +1315,30 @@ git ls-remote --heads origin
   L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28 octobre*)
   : GitHub borne le corps d'une issue à 262 144 octets et le texte joint en fait
   plus de 270 000 (voir `TODO_DONE.md` 7.8).
-- **À faire** : rien dans `TODO.md` depuis le 18 novembre. Les constats de la
-  relecture du 13 novembre sont faits (PU à PZ), PH est faite par #382 (les
-  textes de GAOL que les signalements rendent faux ; les signalements eux-mêmes
-  sont dans leurs issues et `TODO_AFTER.md` 2.6, avec l'accord du mainteneur),
-  et la version (PJ) est publiée : la fusion de `dev` dans `master` par #390
-  (section 13), les registres par #391, les paquets avec FMA par #397 et leurs
-  textes par #398, les corrections de la relecture complète des 19 et 20
-  novembre par #399, puis l'étiquette annotée `v5.0.0`, que la session a posée
-  sur le commit de fusion de #399 quand toute la CI était verte, et qui a lancé
-  la Release de `release.yml` (*décidé le 12 novembre* :
-  `TODO_DONE.md` 3.36 ; le message de l'étiquette, le 17 novembre : 3.55 ; 3.56
-  et 3.57). La couverture (97,6 % des 8 077 lignes, `TODO_DONE.md` 7.62) et le
-  PDF du manuel (395 pages, 7.61) sont refaits le 19 novembre, au code de la
-  version ; les temps de PJ.2 ne sont pas remesurés (*décidé le 17 novembre*).
-  Après la version : l'annonce à Frédéric Goualard (reportée, faute d'adresse :
-  l'issue #389 et `TODO_AFTER.md` 1.7) et la licence des cas d'IBEX et de Codac,
-  que la version n'a pas attendue (`TODO_AFTER.md` 1.8 ; *décidé le 17 novembre*
-  : 3.55), puis le ménage de la fin, dont les registres à vider (1.6). Ce qui
-  est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
-  décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les
-  dépendances entre points sont écrites dans chaque tâche. Le mainteneur donne
-  les tâches ou les points un par un (« traite la tâche PF », « traite le point
-  129 ») : ne commence pas le suivant sans lui.
+- **À faire** : les tâches VA à VJ de `TODO.md`, que le mainteneur donne une à
+  une (VD.9, Debian 11 amd64 et armhf dans la CI, est à décider). Les constats
+  de la relecture du 13 novembre sont faits (PU à PZ), PH est faite par #382
+  (les textes de GAOL que les signalements rendent faux ; les signalements
+  eux-mêmes sont dans leurs issues et `TODO_AFTER.md` 2.6, avec l'accord du
+  mainteneur), et la version (PJ) est publiée : la fusion de `dev` dans `master`
+  par #390 (section 13), les registres par #391, les paquets avec FMA par #397
+  et leurs textes par #398, les corrections de la relecture complète des 19 et
+  20 novembre par #399, puis l'étiquette annotée `v5.0.0`, que la session a
+  posée sur le commit de fusion de #399 quand toute la CI était verte, et qui a
+  lancé la Release de `release.yml` (*décidé le 12 novembre* : `TODO_DONE.md`
+  3.36 ; le message de l'étiquette, le 17 novembre : 3.55 ; 3.56 et 3.57). La
+  couverture (97,6 % des 8 077 lignes, `TODO_DONE.md` 7.62) et le PDF du manuel
+  (395 pages, 7.61) sont refaits le 19 novembre, au code de la version ; les
+  temps de PJ.2 ne sont pas remesurés (*décidé le 17 novembre*). Après la
+  version : l'annonce à Frédéric Goualard (reportée, faute d'adresse : l'issue
+  #389 et `TODO_AFTER.md` 1.7) et la licence des cas d'IBEX et de Codac, que la
+  version n'a pas attendue (`TODO_AFTER.md` 1.8 ; *décidé le 17 novembre* :
+  3.55), puis le ménage de la fin, dont les registres à vider (1.6). Ce qui est
+  reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les décorations,
+  ce qui attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre
+  points sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les
+  points un par un (« traite la tâche PF », « traite le point 129 ») : ne
+  commence pas le suivant sans lui.
 
 ## 13. Une version : `dev` → `master`
 
