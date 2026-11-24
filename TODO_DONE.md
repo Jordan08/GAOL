@@ -1,7 +1,9 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 24 novembre
-2026 (le commit `eeb1f1c` de `dev`, la fusion de #404, après celle de #403, les
+2026 (la version 5.0.2, publiée : le commit de fusion de #405 dans `master`,
+celui de l'étiquette `v5.0.2`, que #406 fait entrer dans `dev` ; le commit
+`eeb1f1c` de `dev`, la fusion de #404, après celle de #403, les
 registres de 5.0.1 ; avant, le commit de fusion de #402 dans `master`, celui de
 l'étiquette `v5.0.1`,
 après celui de #399, celui de l'étiquette `v5.0.0` ;
@@ -64,11 +66,22 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 24 novembre 2026
 
-- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #402
+- **La version 5.0.2 est publiée.** #405 (`release-5.0.2`, de `dev` vers
+  `master`, 2.3 et 3.64) : `dev` à `13f2705` avec `VERSION.txt` et `configure` à
+  5.0.2, l'entrée du `ChangeLog`, le PDF du manuel refait et ces registres,
+  fusionnée par le mainteneur le 24 novembre à 9 h 21 UTC (`c4438d9`) ; la CI de
+  `master` sur ce commit au vert (six workflows, 61 contrôles), la session y a
+  posé l'étiquette annotée `v5.0.2` à 9 h 57 UTC, et `release.yml` (run
+  45370113656, ses cinq jobs réussis) a publié la Release « GAOL 5.0.2 » à 10 h
+  02 UTC avec `libgaol-dev_5.0.2_amd64.deb`, `gaol-5.0.2-macos-arm64.pkg` et
+  `gaol-5.0.2-windows-x64.exe` (7.69). #406 fait entrer `master` dans `dev`.
+- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #405
+  (`c4438d9`, le 24 novembre à 9 h 21 UTC : `dev` avec la version 5.0.2), celui
+  de l'étiquette `v5.0.2`. Avant, il était au commit de fusion de #402
   (`dc16487`, le 23 novembre à 12 h 49 UTC : `dev` avec la version 5.0.1), celui
-  de l'étiquette `v5.0.1` (3.62) : la version 5.0.1 est publiée. Avant, il était
-  au commit de fusion de #399 (les corrections de la relecture complète des 19
-  et 20 novembre), celui de l'étiquette `v5.0.0` (3.61), et avant au commit
+  de l'étiquette `v5.0.1` (3.62), et avant au commit de fusion de #399 (les
+  corrections de la relecture complète des 19 et 20 novembre), celui de
+  l'étiquette `v5.0.0` (3.61), et avant au commit
   `e733f87` (la fusion de #398 le 19 novembre à 22 h 10 UTC, par la
   session sur le mot du mainteneur : les textes du `.deb` corrigés, 3.60), et
   avant au commit `f4b691d` (la
@@ -5122,6 +5135,25 @@ tournait au moment des registres.
   vert (sept workflows, 83 contrôles ; la nouvelle configuration : GCC 10.2.1,
   les intervalles NEON, 48 tests sur 48).
 
+- #405 (la version 5.0.2 ; `release-5.0.2`, de `dev` vers `master`, sur la
+  demande du mainteneur « Fait une PR de dev dans master avec un passage a la
+  version 5.0.2 », 3.64) : `VERSION.txt` à 5.0.2 et `configure` régénéré par
+  `autoconf` 2.72 (seules les 12 chaînes de la version changent ; les trois
+  builds lisent 5.0.2), l'entrée de 5.0.2 du `ChangeLog`, #404 dans
+  `doc/differences.md` et le chapitre 15 du manuel, le PDF du manuel refait par
+  la cible `pdf` de CMake (397 pages, aucune erreur ni référence indéfinie, les
+  mêmes 7 « Overfull » ; il porte aussi les textes de #401, que le PDF de 5.0.1
+  n'avait pas) et ces registres. La fusion d'essai avec `master` est sans
+  conflit, son arbre celui de la branche (`7469599`). Fusionnée par le
+  mainteneur le 24 novembre à 9 h 21 UTC (`c4438d9`, tête `de355d6`), la CI de
+  sa tête au vert (six workflows, 61 contrôles), puis celle de `master` ;
+  l'étiquette `v5.0.2` est posée sur son commit de fusion (1 et 7.69).
+
+- #406 (`master` dans `dev` après 5.0.2 ; `master-into-dev-5.0.2`, de `master`
+  vers `dev`, comme #403 après 5.0.1) : les commits de #405 et son commit de
+  fusion, et les registres de la publication (7.69). `dev` n'avait aucun commit
+  que `master` n'a pas.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -9316,7 +9348,39 @@ interne de GCC 10.2 pour aarch64 (2.3, #404), que GAOL contourne.
   session MACarm5 (Apple M2, macOS 27, Apple clang 21, sans Docker) a construit
   et testé la branche, comparé les objets et mesuré l'A/B (2.3). Le mainteneur
   demande d'accuser réception de chacun de ses messages (« ok »).
-- **À décider** : Debian 11 amd64 et armhf dans la CI (`TODO.md` VD.9).
+- **À décider** : Debian 11 amd64 et armhf dans la CI (`TODO.md` VD.9), décidé
+  le même jour (3.64).
+- **Remarqué par la relecture de #404, sans correction** : la configuration
+  Debian 11 arm64 ne construit qu'en Release (`-O3`) ; le 24 novembre, les 16
+  sources de `gaol/` compilent avec GCC 9.3 et 10.2 pour aarch64 à `-O1`, `-O2`,
+  `-Os` et `-O3`, et le `vcombine_f64()` de `pown`
+  (`gaol_interval_neon_impl.h`), qui recombine les voies d'un paramètre,
+  pourrait voir une première voie constante si un autre niveau le mettait en
+  ligne autrement.
+
+### 3.64 Le 24 novembre : la version 5.0.2 (#405)
+
+Le mainteneur demande : « Fait une PR de dev dans master avec un passage a la
+version 5.0.2 » : #405.
+
+- **Décidé** (sa réponse à la question de la session) : la pull request porte
+  la version, l'entrée du `ChangeLog` et de `doc/differences.md`, le PDF du
+  manuel refait et les registres (« Version, PDF, registres »), comme le veut
+  `process.md` §13.4 (*demande du 19 novembre*), et non la seule version comme
+  #402 ; la couverture n'est pas refaite : le tableau 14.8 et `coverage/`
+  gardent celle du 19 novembre (7.62), alors que #401 et #404 ont changé le
+  code.
+- **Décidé ensuite** (ses réponses aux questions de la session, le même jour) :
+  - la date de l'édition du manuel (`GAOL_V5_UPDATED`, « 12 November 2026 »)
+    reste, comme pour 5.0.1 : elle ne suit pas les versions correctives ;
+  - le mainteneur fusionne #405, puis la session pose l'étiquette annotée
+    `v5.0.2` sur le commit de fusion, quand la CI de `master` est verte, et suit
+    `release.yml` ;
+  - Debian 11 reste dans la CI pour arm64 seulement : amd64 et armhf
+    construisent les intervalles SSE2 et FPU, que Debian 12 et 13 couvrent
+    (`TODO.md` VD.9, close sans code) ;
+  - la session prévient la session de Codac (codac-c2, codac-team/codac#475,
+    qui télécharge `master`) une fois l'étiquette posée.
 
 ## 4. Les points faits, par lettre
 
@@ -12108,6 +12172,31 @@ leurs registres n'étaient pas faits :
   `TODO.md`, que #403 n'avait pas mis à jour) ; `TODO_AFTER.md` ne change pas.
 - Pas fait : le PDF du manuel, que la pull request du manuel refera (les sources
   de `02_installation.tex` et `14_tests_ci.tex` changent avec #404).
+
+### 7.68 Le 24 novembre (la version 5.0.2 : #405)
+
+- La branche `release-5.0.2`, à partir de `13f2705` : `VERSION.txt` et
+  `configure`, `ChangeLog`, `doc/differences.md`, le chapitre 15 du manuel et
+  son PDF, et les registres : ce fichier (l'en-tête, 1, 2.3, 3.64 et 7.68),
+  `TODO.md` (l'en-tête) et `process.md` (l'en-tête, §12 et §13.7).
+- La CI de `dev` à `eeb1f1c` (la fusion de #404) tournait quand #405 s'est
+  ouverte ; celle de #405 porte sur l'arbre de la version.
+
+### 7.69 Le 24 novembre (la publication de 5.0.2 : l'étiquette et la Release)
+
+- Après la fusion de #405 (`c4438d9`) et la CI de `master` au vert, la session
+  pose l'étiquette annotée `v5.0.2` (« GAOL 5.0.2: builds with GCC 9.3 and 10.2
+  for aarch64 (#404) », l'objet `07184ee`) et la pousse par SSH depuis GAOL_V8 ;
+  `release.yml` (run 45370113656) : « The tag, of master and of VERSION.txt »,
+  le `.deb` (Ubuntu 26.04 x86_64 GCC), le `.pkg` (macOS 26 arm64 AppleClang) et
+  le `.exe` (Windows Server 2025, Visual C++ 2026 x64 `/MD`), puis la Release, à
+  10 h 02 UTC. Les notes de la Release sont celles que GitHub engendre.
+- La session prévient la session de Codac (codac-c2) : le job « Debian Bullseye
+  arm64 » de codac-team/codac#475 peut se relancer sur ce `master`.
+- La branche `master-into-dev-5.0.2`, à partir de `c4438d9` : ce fichier
+  (l'en-tête, 1, 2.3 et 7.69) et `process.md` (l'en-tête et §12) ; #406, vers
+  `dev`. La branche de #405 (`release-5.0.2`) est supprimée sur GitHub à sa
+  fusion.
 
 ## 8. Le ménage fait
 

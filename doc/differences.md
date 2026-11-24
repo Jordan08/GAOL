@@ -823,7 +823,13 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
 - **On 64-bit ARM processors the intervals are computed with NEON**
   (`GAOL_SIMD`; see [The NEON intervals](using.md#the-neon-intervals)), with
   every compiler of them: Visual C++, clang-cl and the Clang of MinGW-w64 and
-  MSYS2 as well as GCC, Clang and AppleClang under Linux and macOS. GAOL 4
+  MSYS2 as well as GCC, Clang and AppleClang under Linux and macOS. GCC 9.3 and
+  10.2 for 64-bit ARM (Debian 11) build them since GAOL 5.0.2
+  ([pull request #404](https://github.com/Jordan08/GAOL/pull/404)): they
+  stopped with an internal compiler error on three sources of GAOL, for the
+  combination of a constant first lane and a variable by `vcombine_f64()` (GCC
+  bugs 99037 and 100441), and the two lanes of an interval are set with
+  `vsetq_lane_f64()` instead. GAOL 4
   computed the intervals of every ARM processor with the FPU, and 32-bit ARM,
   whose NEON has no vector of doubles, still does. The two bounds are the two
   lanes of a `float64x2_t`, as the SSE2 intervals keep them in a `__m128d`, and

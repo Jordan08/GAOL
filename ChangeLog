@@ -1,3 +1,31 @@
+2026-11-24  Jordan Ninin  <jordan.ninin@ensta.fr>
+
+	GAOL 5.0.2: GAOL builds again with GCC 9.3 and 10.2 for 64-bit ARM
+	(Debian 11), and Debian 11 arm64 is in the continuous integration
+	(pull request #404).
+
+	* gaol/core/gaol_interval_neon.h (neon_detail::stored): the two lanes
+	of an interval are set by vsetq_lane_f64() rather than combined by
+	vcombine_f64().  For a constant other than +0 and a variable, as in
+	interval(0.0, r), whose first lane is -0, GCC 9.3 and 10.2 for
+	aarch64 put the constant and the integer 0 into the constant pool,
+	and stopped with an internal compiler error in output_constant_pool_2
+	on gaol_interval_core.cpp, gaol_interval_pow.cpp and
+	gaol_interval_relational.cpp, from -O1 on (GCC bugs 99037 and 100441,
+	fixed in GCC 9.4 and 10.3).  Both NEON constructors call stored(),
+	which gaol_interval_neon_kernels.h no longer defines.  Clang gives the
+	same instructions as before.
+	* .github/workflows/containers.yml,
+	.github/actions/containers-container/action.yml: the configuration
+	Debian 11 Bullseye arm64 (GCC 10.2), its packages taken from
+	archive.debian.org (the input archive).
+	* doc/continuous-integration.md, doc/differences.md, manual/v5/chapters
+	(02_installation, 14_tests_ci, 15_migration): Debian 11 arm64 in the
+	continuous integration, and the internal compiler error.  The PDF of
+	the manual is rebuilt, with the texts of 5.0.1 too.
+
+	* VERSION.txt, configure: the version is 5.0.2.
+
 2026-11-23  Jordan Ninin  <jordan.ninin@ensta.fr>
 
 	GAOL 5.0.1: gaol::pow is monotone for inclusion, and pow_rel and

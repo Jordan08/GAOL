@@ -1,6 +1,7 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `eeb1f1c` de `dev` (la fusion de
+Ce qui reste à faire sur GAOL v5 à la version 5.0.2 (#405, de `dev` vers
+`master`, le 24 novembre), au commit `eeb1f1c` de `dev` (la fusion de
 #404 le 24 novembre à 7 h 48 UTC, hors des points : GCC 9.3 et 10.2 pour
 aarch64, qui s'arrêtaient sur une erreur interne, et Debian 11 arm64 dans la CI,
 après celle de #403 à 7 h 46 UTC, `ba4028f`, les registres de 5.0.1, qui fait
@@ -352,7 +353,7 @@ commence rien sans lui.
 | VA | Deux défauts du code : un drapeau levé à tort, un zéro signé écrit | VA.1, VA.2 | S |
 | VB | Le build CMake | VB.1 à VB.4 | S |
 | VC | Les tests qui protègent moins que ce qu'ils disent | VC.1 à VC.6 | S |
-| VD | La CI | VD.1 à VD.9 | M |
+| VD | La CI | VD.1 à VD.8 | M |
 | VE | Les exemples | VE.1 à VE.3 | S |
 | VF | Les restes des corrections de la relecture | VF.1 à VF.5 | S |
 | VG | Les crédits d'IBEX hors de `CMakeLists.txt` | VG.1 | à décider |
@@ -471,19 +472,6 @@ vider (1.6).
    ligne 67.
 8. **Le contrôle `/MD` de `release.yml` ne lit pas `gaol_core_math.vcxproj`**
    (R59), dont les objets sont dans `gaol.lib`.
-9. **À décider : Debian 11 amd64 et armhf** (une question ouverte de #404, le 24
-   novembre). #404 remet Debian 11 dans la CI pour arm64 seulement (*Debian 11
-   Bullseye arm64 (GCC 10.2)*, ses paquets pris sur archive.debian.org, que
-   l'entrée `archive` de `.github/actions/containers-container` prend) : son GCC
-   10.2 s'arrêtait sur trois sources des intervalles NEON. archive.debian.org
-   sert aussi amd64 et armhf, dont les intervalles SSE2 et FPU sont construits
-   par Debian 12 et 13. Remarqué par la relecture de #404, sans correction : la
-   configuration ne construit qu'en Release (`-O3`) ; le 24 novembre, les 16
-   sources de `gaol/` compilent avec GCC 9.3 et 10.2 pour aarch64 à `-O1`,
-   `-O2`, `-Os` et `-O3`, et le `vcombine_f64()` de `pown`
-   (`gaol_interval_neon_impl.h`), qui recombine les voies d'un paramètre,
-   pourrait voir une première voie constante si un autre niveau le mettait en
-   ligne autrement.
 
 ## VE. Les exemples [S]
 
