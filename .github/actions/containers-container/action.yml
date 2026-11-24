@@ -3,6 +3,11 @@
 name: containers-container
 description: The job container of containers.yml for one configuration
 inputs:
+  archive:
+    description: >-
+      'true' for a Debian release out of support, whose packages, security
+      updates included, are on archive.debian.org only (tools: apt)
+    default: ''
   desc:
     description: The key desc of the row of the matrix of the job
     default: ''
@@ -65,6 +70,14 @@ runs:
           gcc_options="-DCMAKE_C_COMPILER=gcc-$GCC_VERSION -DCMAKE_CXX_COMPILER=g++-$GCC_VERSION"
           gcc_show="gcc-$GCC_VERSION --version && g++-$GCC_VERSION --version"
         fi
+        # A Debian out of support: deb.debian.org no longer serves its
+        # security repository, which its image lists, and archive.debian.org
+        # has both repositories (Debian 11 on 24 November 2026, GAOL v5)
+        apt_sources=''
+        if [ "${{ inputs.archive }}" = true ]; then
+          [ "${{ inputs.tools }}" = apt ] || { echo "archive: needs tools: apt" >&2; exit 1; }
+          apt_sources='rm -f /etc/apt/sources.list.d/* && . /etc/os-release && printf "deb http://archive.debian.org/debian %s main\ndeb http://archive.debian.org/debian-security %s-security main\n" "$VERSION_CODENAME" "$VERSION_CODENAME" > /etc/apt/sources.list && '
+        fi
         # Debian has no locale writing a decimal comma until one is
         # generated, which numbers reads and writes numbers under, and the
         # job checks it did; Alpine and manylinux have none to generate
@@ -73,7 +86,7 @@ runs:
         comma_check=true
         case "${{ inputs.tools }}" in
           apt)
-            tools="apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq g++ cmake make ca-certificates locales $gcc_packages > /dev/null"
+            tools="${apt_sources}apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq g++ cmake make ca-certificates locales $gcc_packages > /dev/null"
             comma_generate='sh .github/scripts/comma-locale.sh generate'
             comma_check='sh .github/scripts/comma-locale.sh check /tmp/build'
             ;;
