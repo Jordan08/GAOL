@@ -14,9 +14,12 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 20 novembre 2026, au commit de fusion de #399 dans
-`master` (les corrections de la relecture complète des 19 et 20 novembre ;
-l'étiquette `v5.0.0` est posée sur ce commit), et avant au commit `e733f87` de
+Dernière mise à jour : 23 novembre 2026, au commit de fusion de #402 dans
+`master` (`dc16487` : la version 5.0.1, avec le correctif de l'issue #400 ;
+l'étiquette `v5.0.1` est posée sur ce commit), et avant au commit de fusion de
+#399 dans `master` (les corrections de la relecture complète des 19 et 20
+novembre ; l'étiquette `v5.0.0` est posée sur ce commit), et avant au commit
+`e733f87` de
 `master` (la fusion de #398 : les textes du `.deb` corrigés), et avant au commit
 `f4b691d` de `master` (la fusion de #397 : le `.deb`
 et le `.exe` avec FMA, le `.pkg` pour macOS 15 et plus), et avant au commit
@@ -1373,3 +1376,30 @@ les tâches PU à PZ et la relecture complète des 19 et 20 novembre (*décidé 
    alors dans l'arbre de `master`, non dans ses archives.
 5. **Après la version**, le développement continue dans `dev`, que `master`
    rattrape à chaque version.
+
+6. **Pour v5.0.1** (23 novembre, l'issue #400 : `TODO_DONE.md` 3.62). Un
+   correctif de `dev` (#401), puis la version : `VERSION.txt` et les chaînes de
+   `configure` qui portent la version, à la main quand l'autoconf de la machine
+   n'est pas celui du fichier (2.71 contre 2.72 : la différence ne porte alors
+   que la version), dans une pull request de `dev` vers `master` (#402), que le
+   mainteneur a demandé à la session de fusionner (« fusionne »), puis
+   d'étiqueter : une exception à §3.2, valable pour cette demande. Dans la
+   session : `gh pr create` échoue (GraphQL, HTTP 403) ; la pull request s'ouvre
+   par `gh api repos/Jordan08/GAOL/pulls -f title=... -f head=... -f base=...
+   -F body=@fichier`, et la fusion par `gh api -X PUT
+   repos/Jordan08/GAOL/pulls/402/merge -f merge_method=merge`. Les
+   relances de la CI sont celles du §10 : la configuration « Coverage » de
+   `linux.yml` (le délai de 300 s de `numbers`, de 66 s à plus de 300 s sur le
+   même code), puis trois jobs macOS arm64 sans runner (« The job was not
+   acquired by Runner of type hosted »), `gh api -X POST
+   repos/Jordan08/GAOL/actions/runs/<id>/rerun-failed-jobs` ; de même pour le
+   `.pkg` de `release.yml`. **Le conteneur de la session ne peut pas pousser
+   l'étiquette** : son proxy refuse l'écriture des références hors de sa branche
+   (HTTP 403 pour `git push origin v5.0.1`, et « Write access to this GitHub API
+   path is not permitted » pour l'API `git/tags`). La session crée l'étiquette
+   annotée en local, donne au mainteneur les commandes (`git tag -a v5.0.1
+   <commit> -m "GAOL 5.0.1: ..."`, `git push origin v5.0.1`) et regarde
+   `release.yml` une fois l'étiquette poussée. Les notes de la Release sont
+   celles que GitHub engendre à partir des titres des pull requests, en français
+   : le mainteneur les a écrites à la main pour v5.0.0, en anglais. Les
+   registres suivent dans une pull request de `master` vers `dev`.
