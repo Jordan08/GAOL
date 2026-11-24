@@ -1,6 +1,14 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit de fusion de #399 dans `master` (les
+Ce qui reste à faire sur GAOL v5 à la version 5.0.2 (#405, de `dev` vers
+`master`, le 24 novembre), au commit `eeb1f1c` de `dev` (la fusion de
+#404 le 24 novembre à 7 h 48 UTC, hors des points : GCC 9.3 et 10.2 pour
+aarch64, qui s'arrêtaient sur une erreur interne, et Debian 11 arm64 dans la CI,
+après celle de #403 à 7 h 46 UTC, `ba4028f`, les registres de 5.0.1, qui fait
+entrer `master` dans `dev`), et avant au commit de fusion de #402 dans `master`
+(`dc16487`, le 23 novembre : la version 5.0.1, avec le correctif de l'issue #400
+de #401 ; l'étiquette `v5.0.1` est posée sur ce commit), et avant au commit de
+fusion de #399 dans `master` (les
 corrections de la relecture complète des 19 et 20 novembre ; l'étiquette `v5.0.0`
 est posée sur ce commit), et avant au commit `e733f87` de `master` (la fusion de
 #398 le 19 novembre à 22 h 10 UTC : les textes du `.deb` corrigés, qui demande
@@ -335,8 +343,10 @@ PJ, la version, est faite (la fusion de `dev` dans `master` par #390, les
 registres par #391, les paquets avec FMA par #397 et leurs textes par #398, les
 corrections de la relecture complète par #399, puis l'étiquette `v5.0.0` :
 `TODO_DONE.md` 3.56, 3.57, 3.60 et 3.61). Le texte de son point 34 est dans
-`TODO_DONE.md` (section 5, point Y). Restent, pour `dev`, les tâches VA à VI de
-la relecture, que le mainteneur donne une à une : ne commence rien sans lui.
+`TODO_DONE.md` (section 5, point Y). La version 5.0.1 (l'issue #400, #401 et
+#402 : `TODO_DONE.md` 3.62) laisse la tâche VJ. Restent, pour `dev`, les tâches
+VA à VI de la relecture et la tâche VJ, que le mainteneur donne une à une : ne
+commence rien sans lui.
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
@@ -349,6 +359,7 @@ la relecture, que le mainteneur donne une à une : ne commence rien sans lui.
 | VG | Les crédits d'IBEX hors de `CMakeLists.txt` | VG.1 | à décider |
 | VH | Les 29 constats vus et non rapportés | VH.1 | M |
 | VI | Ce que la relecture n'a pas lu | VI.1 à VI.3 | M |
+| VJ | Les restes de l'issue #400 (`gaol::pow`) | VJ.1 à VJ.9 | à décider |
 
 Les tâches VA à VI viennent de la relecture complète des 19 et 20 novembre,
 faite avant l'étiquette `v5.0.0` sur la demande du mainteneur (`TODO_DONE.md`
@@ -384,7 +395,11 @@ vider (1.6).
    de DBL_MAX. `powRev1([-0.998046875], [0, DBL_MIN], [1, 10])` est vide et
    lève FE_OVERFLOW, `powRev1([-0.998046875], [DBL_MIN, 0.5], [1, 10])` est fini
    et le lève aussi (annexe 1, R12). Correction : tester avant le calcul, ou
-   le faire sans débordement, et un test du drapeau.
+   le faire sans débordement, et un test du drapeau. Depuis #401, ce code est
+   `pow_standard_rel_upward()` (la ligne 638 est celle de `e733f87`), que
+   `powRev1` appelle et, pour les bases non négatives, `pow_rel`, la réciproque
+   de `gaol::pow` : le défaut vaut a priori pour `pow_rel` aussi, ce que le test
+   du drapeau doit montrer.
 2. **`exact_string()` écrit une borne nulle -0 en `-0x0p+0`** (R17, mineur,
    démontré) : IEEE 1788-2015 13.4.1 veut un zéro de bit de signe 0 ;
    `write_hexa_bound()` (`gaol/core/gaol_interval_io.cpp`, ligne 666) prend le
@@ -520,6 +535,55 @@ Ce que chaque relecteur a lu est dans l'annexe 2 ; ce qu'aucun n'a lu :
 2. Les correctifs 1 à 8 proposés en amont à CORE-MATH (`3rd/README.md`,
    environ les lignes 560 à 1690) ne sont pas relus.
 3. `doc/compare/` n'est que survolé.
+
+## VJ. Les restes de l'issue #400 [à décider]
+
+`gaol::pow` est l'enveloppe de h, `pow_rel` et `pow_exponent_rel` en sont les
+réciproques (#401, `TODO_DONE.md` 3.62). Ce que la pull request a laissé, et que
+le mainteneur n'a pas encore tranché ou donné :
+
+1. **L'issue #400 est ouverte** : #401 la corrige sans la fermer (« Issue
+   #400 », non « Closes #400 »). À fermer, avec un renvoi à #401, #402 et à la
+   version 5.0.1.
+2. **Les noms** `pow_standard_rel` et `pow_standard_exponent_rel` (dans
+   `gaol_core`, exportés comme `pow_standard`, absents de `gaol`) sont ceux que
+   l'issue propose « par exemple », sur le modèle de `pow_standard()`. À
+   confirmer ; les changer touche `gaol_interval_core.h`, `gaol_ieee1788.h`,
+   `gaol_interval_relational.cpp`, `tests/reverse.cpp`, la documentation et le
+   manuel.
+3. **`doc/compare/special_cases.md`** n'est pas régénéré : il est écrit par
+   `doc/compare/code/run_cases.sh` avec les autres bibliothèques. Sa colonne
+   « GAOL, `gaol` » est périmée pour `pow([-2, 3], [1, 2])` ([0, 9] devient
+   [-2, 9]), `pow([0], [0, 1])` et `pow([0], [-1, 1])` ([0] devient [0, 1]) et
+   `pow([0], [-1, 0])` (∅ devient [1]), et ses phrases de décompte (« 280 cas,
+   2, 6 »).
+4. **Le manuel et la couverture** : les chapitres `03_using`, `07_arithmetic`,
+   `11_accuracy`, `14_tests_ci` et `15_migration` sont corrigés par #401, non
+   compilés (`pdflatex` n'est pas installé dans la session) :
+   `manual/Manual_GAOLv5.pdf` est à refaire, et la couverture (`TODO_DONE.md`
+   7.62) pour le code nouveau.
+5. **Codac** : `Interval_operations:323` attend `pow([-2, 3], [1, 2])` = [0, 9]
+   (la base coupée à [0, +∞]) ; `gaol::pow` donne [-2, 9]. C'est le seul
+   désaccord de `tests/tools/ibex_codac/codac_cases.py` avec les 580 attendus de
+   Codac. Les effets sur IBEX et sur Codac ne sont pas vérifiés (`process.md`
+   §4.11).
+6. **Le coût** des bases avec une partie négative augmente : mesure ad hoc,
+   non `performance-ab.sh` (GCC 13.3, `-O2`, le meilleur de 7 passages) :
+   `pow_rel` de 327 à 1 377 ns, `pow_exponent_rel` de 94 à 982 ns pour un
+   exposant qui contient deux entiers ; celui des bases positives ne change pas.
+   À mesurer avec `performance-ab.sh`.
+7. **La monotonie** de `gaol::pow` est testée avec une marge de 2^-51 en
+   relatif, par prudence : `pown` (produits exacts) et la `pow` de CORE-MATH aux
+   coins ne s'arrondissent pas pareil, et rien ne prouve qu'un `[n]` est
+   toujours dans le résultat de l'exposant qui l'entoure à la dernière décimale.
+   Sur les 119 160 boîtes du test, aucune ne sort sans la marge.
+8. **Le second déplacement de 2** (`k < 2`) de `extreme_integers()` n'est vu par
+   aucun test : le mutant `k < 1` survit, un seul pas suffisant tant que
+   l'intervalle des exposants n'est élargi que d'un double. C'est une marge de
+   sûreté de l'issue ; à garder avec un test, ou à retirer.
+9. **`gaol::pow([+∞] de registre, [-3, -0.5])` rend [0, 0]**, ce qui contredit
+   la convention des réciproques, où `[+∞]` est vide. Le défaut est déjà dans
+   `dev` avant #401 (`pow_standard_upward` n'est pas modifiée).
 
 ## Annexe 1. Les constats de la relecture qui restent, en entier
 

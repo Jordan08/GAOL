@@ -1,3 +1,77 @@
+2026-11-24  Jordan Ninin  <jordan.ninin@ensta.fr>
+
+	GAOL 5.0.2: GAOL builds again with GCC 9.3 and 10.2 for 64-bit ARM
+	(Debian 11), and Debian 11 arm64 is in the continuous integration
+	(pull request #404).
+
+	* gaol/core/gaol_interval_neon.h (neon_detail::stored): the two lanes
+	of an interval are set by vsetq_lane_f64() rather than combined by
+	vcombine_f64().  For a constant other than +0 and a variable, as in
+	interval(0.0, r), whose first lane is -0, GCC 9.3 and 10.2 for
+	aarch64 put the constant and the integer 0 into the constant pool,
+	and stopped with an internal compiler error in output_constant_pool_2
+	on gaol_interval_core.cpp, gaol_interval_pow.cpp and
+	gaol_interval_relational.cpp, from -O1 on (GCC bugs 99037 and 100441,
+	fixed in GCC 9.4 and 10.3).  Both NEON constructors call stored(),
+	which gaol_interval_neon_kernels.h no longer defines.  Clang gives the
+	same instructions as before.
+	* .github/workflows/containers.yml,
+	.github/actions/containers-container/action.yml: the configuration
+	Debian 11 Bullseye arm64 (GCC 10.2), its packages taken from
+	archive.debian.org (the input archive).
+	* doc/continuous-integration.md, doc/differences.md, manual/v5/chapters
+	(02_installation, 14_tests_ci, 15_migration): Debian 11 arm64 in the
+	continuous integration, and the internal compiler error.  The PDF of
+	the manual is rebuilt, with the texts of 5.0.1 too.
+
+	* VERSION.txt, configure: the version is 5.0.2.
+
+2026-11-23  Jordan Ninin  <jordan.ninin@ensta.fr>
+
+	GAOL 5.0.1: gaol::pow is monotone for inclusion, and pow_rel and
+	pow_exponent_rel are its reverses (issue #400, pull request #401).
+
+	* gaol/core/gaol_interval_pow.cpp (pow_hybrid_upward): gaol::pow(x,
+	y) is the hull, over the box, of h(x, y) = pown(x, n) for an integer
+	y = n and of the pow of IEEE 1788-2015 for any other y.  It took
+	pown only for a degenerate integer exponent [n], and the pow of IEEE
+	1788 on the part of x in [0, +oo] for every other exponent, so that
+	it was not monotone for the inclusion of the exponent.  h differs
+	from that pow only for a negative x with an integer exponent and at
+	0^0 = 1: the result is the pow of IEEE 1788, joined with [1] where 0
+	is in x and in y, and with the powers of the negative part of x for
+	the even integers and for the odd integers of y, whose extrema are at
+	the corners.  pow([-2, -1], [0.5, 3]) is [-8, 4], where it was the
+	empty set, and pow([0], [0, 1]) is [0, 1], where it was [0].  What
+	[n], a double exponent (gaol_pow_real) and huge_root() give does not
+	change, and the pow of the parser of gaol is gaol::pow.
+	* gaol/core/gaol_interval_relational.cpp: pow_rel and
+	pow_exponent_rel are the reverses of gaol::pow, on the *_upward
+	bodies with one check of the rounding direction.  They keep the
+	negative bases with an integer exponent and 0^0 = 1, where they lost
+	solutions of y = pow(x, e): pow_rel([-1], [0.5, 3], [-2, 2]) was
+	empty, it is [-1].  What they were, the reverses of the pow of IEEE
+	1788-2015, is pow_standard_rel and pow_standard_exponent_rel (in
+	gaol_core, not in gaol), which gaol_ieee1788::powRev1 and powRev2
+	call: they stay the reverses of the pow of the standard.
+	* gaol/core/gaol_interval_internal.h: integer_above() and
+	integer_below(), the extreme integers of a parity in an interval.
+	* gaol/core/gaol_interval_core.h, gaol/gaol_ieee1788.h, README.md,
+	doc/using.md, doc/tests.md, doc/accuracy.md, manual/v5/chapters
+	(03_using, 07_arithmetic, 11_accuracy, 14_tests_ci, 15_migration):
+	what pow, pow_rel and pow_exponent_rel are, and what powRev1 and
+	powRev2 stay.  The PDF of the manual is not rebuilt.
+	* tests/reverse.cpp: the reverses of gaol::pow against the integers
+	of an interval by enumeration, their enclosure of every solution, the
+	monotony of gaol::pow for the inclusion on 119,160 boxes, and the
+	values of the issue; tests/ieee1788.cpp, tests/elementary.cpp and
+	tests/test_ibex_codac.cpp: the expected values of the old pow.
+	pow([-2, 3], [1, 2]) is [-2, 9], where Codac gives [0, 9]
+	(tests/tools/ibex_codac).  tests/tools/pow: the tools that check the
+	rows of the issue with mpmath and that mutate the sources.
+
+	* VERSION.txt, configure: the version is 5.0.1.
+
 2026-09-27  Jordan Ninin  <jordan.ninin@ensta.fr>
 
 	GAOL v5, version 5.0.0, continues GAOL 4.2.2. doc/differences.md

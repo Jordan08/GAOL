@@ -72,6 +72,10 @@ GAOL v5). The badges of
     GCC 14.2, 15.3 and 16.2 for 32-bit x86 miscompile the choice between two
     `_BitInt(128)` values, which `gaol/math/gaol_u128.h` does not give them, as
     `tests/u128_select.c` checks (issue #394);
+  - Debian 11 on arm64, with GCC 10.2, its packages taken from
+    archive.debian.org (GAOL v5): GCC 9.3 and 10.2 for 64-bit ARM stopped
+    with an internal compiler error on the constructors and the kernels of
+    the NEON intervals (below, *Crashes and builds that failed*);
   - manylinux_2_28 on x86_64 and aarch64;
   - Alpine (musl) on x86_64 and aarch64;
   - Debian 13 under qemu on s390x, ppc64le and riscv64, and Ubuntu 24.04
@@ -536,7 +540,7 @@ refusal.
 | The SSE2 intervals on 32-bit Windows, compiled without aligned `new` | **Crash.** GCC takes the memory of `new` to be aligned on 16 bytes, which the C runtime of 32-bit Windows aligns on 8, and a `std::vector` of SSE2 intervals crashes on its first `movaps`: with MinGW-w64 14.2 and 15.2 for x86, in Release and in Debug, `arithmetic`, `other_functions`, `reverse` and `rounding_direction` crash. With `-faligned-new=8` the tests pass, but the code using GAOL needs that flag too. Visual C++ and clang-cl have no such flag: `/Zc:alignedNew` does nothing in C++14 with `cl` (the warning C4316 stays, and `std::allocator` calls `operator new(size_t)`), and with clang-cl it makes the STL fail to compile (`align_val_t` is not an enumeration there); only `/std:c++17` turns the aligned `new` on (Compiler Explorer, MSVC 19.51 and clang-cl 22 for x86). | CMake, configure and meson take the SSE2 intervals on 32-bit Windows with GCC and Clang (MinGW-w64, MSYS2), with `-faligned-new=8` given to the library and to the code using it (`gaol::gaol`, `gaol.pc`, `gaol_dep`); `gaol/gaol_config.h` refuses them compiled without (the tests `refused_aligned_new*` check it). Visual C++ and clang-cl take them with their two bounds kept as two doubles of alignment 8 (`GAOL_SSE2_UNALIGNED_STORAGE`), which need no aligned memory: `test_intervals_aligned_on_8_bytes` of `tests/misc.cpp` runs a representative set of operations on intervals at an address of 8 modulo 16, and stops the program with an aligned load. A compiler that does not take the flag keeps the FPU intervals. On 64-bit Windows (MinGW-w64, MSYS2, Visual C++, clang-cl) the SSE2 intervals are compiled and pass the tests. |
 | The NEON intervals on 32-bit ARM | **Not offered.** The NEON intervals need the vectors of two doubles of 64-bit ARM, which the NEON of 32-bit ARM does not have, and write the rounding direction into FPCR with `mrs` and `msr` in the inline assembly of GCC and Clang, or through `_ReadStatusReg()` and `_WriteStatusReg()` with Visual C++ (`gaol/gaol_config.h`). | `GAOL_ARM64`, `--enable-arm64` and `-Denable-arm64` are ignored there, and the FPU computes the intervals, as before; `gaol/gaol_config.h` stops the compilation of NEON intervals elsewhere (GAOL v5). The Visual Studio jobs check that Visual C++ and clang-cl take the NEON intervals on arm64, and those of MSYS2 CLANGARM64 too (`windows.yml`), and the armhf jobs the FPU ones (`containers.yml`). |
 | Doubles computed on the x87 unit of 32-bit x86 | **Wrong results rounded to nearest, and wrong bounds.** The x87 unit computes with 64-bit significands and 15-bit exponents, and CORE-MATH assumes every operation on doubles rounded to a double (`FLT_EVAL_METHOD` 0, see `3rd/math-core/README.md`). With GCC 12 on Debian 12 i386, CORE-MATH rounded to nearest gives the other neighbour of the exact value at 175 of the arguments compared with SSE2, its results being rounded twice: `exp(-0x1.74910d52d3051p+9)` is 0 rather than 2^-1074, `tanh(0x1.30fc1931f09c9p+4)` 1 rather than 1 − 2^-53. With GCC 9 on x86-64 (`-mfpmath=387`), which turns into doubles at compile time, rounded to nearest, the constants CORE-MATH rounds in the direction in effect (`0x1p-1074 * 0.5`, `-1.0 + 0x1p-54`), GAOL's bounds of `exp2(-1075)`, `exp10(-400)`, `expm1(-800)` and of `atan2()` of a tiny and a huge number do not enclose the exact values. | Refused by `gaol/gaol_config.h`; the builds compile with `-msse2 -mfpmath=sse` on 32-bit x86. `tests/extended_precision.cpp` checks these arguments, CORE-MATH in the four rounding directions and GAOL's bounds, and fails on the x87 unit. |
-| Debian 11 Bullseye (amd64, arm64, armhf) | **Cannot be installed.** Out of support since August 2026: deb.debian.org lists packages of its security repository that it no longer serves (`libc-dev-bin 2.31-13+deb11u14`...), so that `g++` cannot be installed in the container; without that repository the packages are broken, and archive.debian.org does not have it yet. GAOL v5 itself builds and passes its tests there, with GCC 10.2 and CMake 3.18.4 installed from snapshot.debian.org. | Left out of the continuous integration. Debian 12 and 13 are built. |
+| Debian 11 Bullseye (amd64, armhf) | **Out of support** since August 2026: deb.debian.org lists packages of its security repository that it no longer serves (`libc-dev-bin 2.31-13+deb11u14`...), so that `g++` cannot be installed from it; without that repository the packages are broken. archive.debian.org had both repositories on 24 November 2026, and not yet in September. On 21 September 2026, GAOL v5 built and passed its tests there, with GCC 10.2 and CMake 3.18.4 installed from snapshot.debian.org. | Left out of the continuous integration: Debian 12 and 13 are built. Debian 11 arm64 is built, from archive.debian.org, for its GCC 10.2, which the NEON intervals made stop (GAOL v5, see the containers above). |
 | The intervals of floats (`gaol::intervalf`, `gaol::interval2f`) | **Unfinished.** `sqrt(intervalf)` returns its argument and `interval2f::inverse()` aborts; neither IBEX nor Codac uses them. | Compiled by none of the three builds, which have no option for them: only a developer of GAOL defines `GAOL_FLOAT_INTERVALS` (`gaol/gaol_config.h`). The audit still compares it between the builds, none of which defines it. |
 
 ## What these platforms showed
@@ -598,6 +602,19 @@ change with its measures.
     `tests/expressions.cpp`; `tests.sh`, which links them with the installed
     one, does not any more, the headers of the expressions being no longer
     installed (GAOL v5).
+  - GCC 9.3 and 10.2 for 64-bit ARM (Debian 11 has GCC 10.2) stopped with an
+    internal compiler error in `output_constant_pool_2`, from `-O1` on, on
+    `gaol_interval_core.cpp`, `gaol_interval_pow.cpp` and
+    `gaol_interval_relational.cpp`, once the NEON intervals were the
+    default: for `vcombine_f64()` of a constant other than +0 and a
+    variable, as in `interval(0.0, r)`, they put into the constant pool the
+    constant with an integer 0 as its other half (GCC bugs 99037 and 100441,
+    fixed in GCC 9.4 and 10.3). The constructors and the kernels set the
+    two lanes with `vsetq_lane_f64()` instead (`neon_detail::stored()` of
+    `gaol/core/gaol_interval_neon.h`), which gives the same instructions
+    with Clang 18 and 21, and with GCC 12.2 for two variables, and *Debian
+    11 Bullseye arm64 (GCC 10.2)* builds and tests GAOL with that compiler
+    (GAOL v5).
 - **Reports of the sanitizers that were suppressed at first**, and are fixed
   now: the nodes the parser did not free (`lsan.supp`,
   [issue #4](https://github.com/Jordan08/GAOL/issues/4)). Nothing is
