@@ -188,6 +188,24 @@ namespace neon_detail {
 #  endif
   }
 
+  /*
+    <minus_left, right>: the first lane set to both, then the second to right, rather than
+    vcombine_f64() of two halves (GAOL v5). For vcombine_f64() of a constant other than +0 and a
+    variable, as in interval(0.0, r), whose first lane is -0, GCC 9.3 and 10.2 for 64-bit ARM
+    (Debian 11) load the constant with move_lo_quad, whose zero high half is the integer 0
+    rather than a double (GCC bugs 99037 and 100441, fixed in GCC 9.4 and 10.3): the pair
+    <constant, integer 0> goes into the constant pool, and they stop with an internal compiler
+    error in output_constant_pool_2, at -O1 and above, on gaol_interval_core.cpp,
+    gaol_interval_pow.cpp and gaol_interval_relational.cpp. Clang 18 and 21 give the same
+    instructions for both forms, and GCC 12.2 too for two variables; for a constant first lane,
+    GCC 12.2 gives one instruction less (1.0), or a load of the pair from the constant pool in
+    place of three moves (-0)
+  */
+  GAOL_INLINE float64x2_t stored(double minus_left, double right)
+  {
+    return vsetq_lane_f64(right, vdupq_n_f64(minus_left), 1);
+  }
+
 } // namespace neon_detail
 
 // An infinite v gives the empty set, as in IBEX: IEEE 1788-2015 has no
@@ -203,7 +221,7 @@ GAOL_INLINE interval::interval(double v)
     neon_detail::keep_branch();
     neonbounds = vdupq_n_f64(std::numeric_limits<double>::quiet_NaN());
   } else {
-    neonbounds = vcombine_f64(vdup_n_f64(-v), vdup_n_f64(v));
+    neonbounds = neon_detail::stored(-v, v);
   }
 }
 
@@ -219,7 +237,7 @@ GAOL_INLINE interval::interval(double l, double r)
   GAOL_FPU_SCALAR(l);
   GAOL_FPU_SCALAR(r);
   if (neon_detail::valid_bounds(l, r)) {
-    neonbounds = vcombine_f64(vdup_n_f64(-l), vdup_n_f64(r));
+    neonbounds = neon_detail::stored(-l, r);
   } else {
     neonbounds = vdupq_n_f64(std::numeric_limits<double>::quiet_NaN());
   }

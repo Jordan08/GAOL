@@ -82,10 +82,8 @@ namespace gaol_core {
     return vcombine_f64(vneg_f64(vget_low_f64(y)), vget_high_f64(y));
   }
   GAOL_INLINE float64x2_t nan_pair() { return vdupq_n_f64(std::numeric_limits<double>::quiet_NaN()); }
-  GAOL_INLINE float64x2_t stored(double minus_left, double right)
-  {
-    return vcombine_f64(vdup_n_f64(minus_left), vdup_n_f64(right));
-  }
+  // stored(minus_left, right), <minus_left, right>, is in gaol_interval_neon.h, whose
+  // constructors use it too
 
   /*
     The tests on the bounds of the divisor of 1 / y (GAOL v5) are made on the bits of
