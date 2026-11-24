@@ -1,8 +1,9 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 24 novembre
-2026 (la version 5.0.2, de `dev` vers `master` par #405 ; le commit `eeb1f1c` de
-`dev`, la fusion de #404, après celle de #403, les
+2026 (la version 5.0.2, publiée : le commit de fusion de #405 dans `master`,
+celui de l'étiquette `v5.0.2`, que #406 fait entrer dans `dev` ; le commit
+`eeb1f1c` de `dev`, la fusion de #404, après celle de #403, les
 registres de 5.0.1 ; avant, le commit de fusion de #402 dans `master`, celui de
 l'étiquette `v5.0.1`,
 après celui de #399, celui de l'étiquette `v5.0.0` ;
@@ -65,16 +66,22 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 24 novembre 2026
 
-- **La version 5.0.2** entre dans `master` par #405 (`release-5.0.2`, de `dev`
-  vers `master`, 2.3 et 3.64), que le mainteneur fusionne : `dev` à `13f2705`
-  avec `VERSION.txt` et `configure` à 5.0.2, l'entrée du `ChangeLog`, le PDF du
-  manuel refait et ces registres. L'étiquette `v5.0.2` se pose sur son commit
-  de fusion.
-- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #402
+- **La version 5.0.2 est publiée.** #405 (`release-5.0.2`, de `dev` vers
+  `master`, 2.3 et 3.64) : `dev` à `13f2705` avec `VERSION.txt` et `configure` à
+  5.0.2, l'entrée du `ChangeLog`, le PDF du manuel refait et ces registres,
+  fusionnée par le mainteneur le 24 novembre à 9 h 21 UTC (`c4438d9`) ; la CI de
+  `master` sur ce commit au vert (six workflows, 61 contrôles), la session y a
+  posé l'étiquette annotée `v5.0.2` à 9 h 57 UTC, et `release.yml` (run
+  45370113656, ses cinq jobs réussis) a publié la Release « GAOL 5.0.2 » à 10 h
+  02 UTC avec `libgaol-dev_5.0.2_amd64.deb`, `gaol-5.0.2-macos-arm64.pkg` et
+  `gaol-5.0.2-windows-x64.exe` (7.69). #406 fait entrer `master` dans `dev`.
+- **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #405
+  (`c4438d9`, le 24 novembre à 9 h 21 UTC : `dev` avec la version 5.0.2), celui
+  de l'étiquette `v5.0.2`. Avant, il était au commit de fusion de #402
   (`dc16487`, le 23 novembre à 12 h 49 UTC : `dev` avec la version 5.0.1), celui
-  de l'étiquette `v5.0.1` (3.62) : la version 5.0.1 est publiée. Avant, il était
-  au commit de fusion de #399 (les corrections de la relecture complète des 19
-  et 20 novembre), celui de l'étiquette `v5.0.0` (3.61), et avant au commit
+  de l'étiquette `v5.0.1` (3.62), et avant au commit de fusion de #399 (les
+  corrections de la relecture complète des 19 et 20 novembre), celui de
+  l'étiquette `v5.0.0` (3.61), et avant au commit
   `e733f87` (la fusion de #398 le 19 novembre à 22 h 10 UTC, par la
   session sur le mot du mainteneur : les textes du `.deb` corrigés, 3.60), et
   avant au commit `f4b691d` (la
@@ -5137,7 +5144,15 @@ tournait au moment des registres.
   la cible `pdf` de CMake (397 pages, aucune erreur ni référence indéfinie, les
   mêmes 7 « Overfull » ; il porte aussi les textes de #401, que le PDF de 5.0.1
   n'avait pas) et ces registres. La fusion d'essai avec `master` est sans
-  conflit, son arbre celui de la branche (`7469599`). Ouverte le 24 novembre.
+  conflit, son arbre celui de la branche (`7469599`). Fusionnée par le
+  mainteneur le 24 novembre à 9 h 21 UTC (`c4438d9`, tête `de355d6`), la CI de
+  sa tête au vert (six workflows, 61 contrôles), puis celle de `master` ;
+  l'étiquette `v5.0.2` est posée sur son commit de fusion (1 et 7.69).
+
+- #406 (`master` dans `dev` après 5.0.2 ; `master-into-dev-5.0.2`, de `master`
+  vers `dev`, comme #403 après 5.0.1) : les commits de #405 et son commit de
+  fusion, et les registres de la publication (7.69). `dev` n'avait aucun commit
+  que `master` n'a pas.
 
 ### 2.4 Fermées sans fusion
 
@@ -12166,6 +12181,22 @@ leurs registres n'étaient pas faits :
   `TODO.md` (l'en-tête) et `process.md` (l'en-tête, §12 et §13.7).
 - La CI de `dev` à `eeb1f1c` (la fusion de #404) tournait quand #405 s'est
   ouverte ; celle de #405 porte sur l'arbre de la version.
+
+### 7.69 Le 24 novembre (la publication de 5.0.2 : l'étiquette et la Release)
+
+- Après la fusion de #405 (`c4438d9`) et la CI de `master` au vert, la session
+  pose l'étiquette annotée `v5.0.2` (« GAOL 5.0.2: builds with GCC 9.3 and 10.2
+  for aarch64 (#404) », l'objet `07184ee`) et la pousse par SSH depuis GAOL_V8 ;
+  `release.yml` (run 45370113656) : « The tag, of master and of VERSION.txt »,
+  le `.deb` (Ubuntu 26.04 x86_64 GCC), le `.pkg` (macOS 26 arm64 AppleClang) et
+  le `.exe` (Windows Server 2025, Visual C++ 2026 x64 `/MD`), puis la Release, à
+  10 h 02 UTC. Les notes de la Release sont celles que GitHub engendre.
+- La session prévient la session de Codac (codac-c2) : le job « Debian Bullseye
+  arm64 » de codac-team/codac#475 peut se relancer sur ce `master`.
+- La branche `master-into-dev-5.0.2`, à partir de `c4438d9` : ce fichier
+  (l'en-tête, 1, 2.3 et 7.69) et `process.md` (l'en-tête et §12) ; #406, vers
+  `dev`. La branche de #405 (`release-5.0.2`) est supprimée sur GitHub à sa
+  fusion.
 
 ## 8. Le ménage fait
 

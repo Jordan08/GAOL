@@ -15,8 +15,10 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
 Dernière mise à jour : 24 novembre 2026, à la version 5.0.2 (#405, de `dev`
-vers `master`), au commit `eeb1f1c` de `dev` (la
-fusion de #404 : GCC 9.3 et 10.2 pour aarch64, et Debian 11 arm64 dans la CI,
+vers `master`, fusionnée à `c4438d9`, l'étiquette `v5.0.2` posée sur ce commit
+et la Release publiée ; #406 fait entrer `master` dans `dev`), au commit
+`eeb1f1c` de `dev` (la fusion de #404 : GCC 9.3 et 10.2 pour aarch64, et
+Debian 11 arm64 dans la CI,
 après celle de #403, les registres de 5.0.1, qui fait entrer `master` dans
 `dev`), et avant au commit de fusion de #402 dans
 `master` (`dc16487` : la version 5.0.1, avec le correctif de l'issue #400 ;
@@ -1188,9 +1190,10 @@ git ls-remote --heads origin
   octobre a vérifié dans
   `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
-- **En cours** : au 24 novembre, #405 (la version 5.0.2, de `release-5.0.2`
-  vers `master`) est ouverte, ses registres écrits d'avance ; #401 à #404 sont
-  fusionnées, leurs registres faits, et `dev` est au commit `13f2705` (les
+- **En cours** : au 24 novembre, #406 (`master` dans `dev` après 5.0.2) est
+  ouverte ; #405 (la version 5.0.2) est fusionnée à `c4438d9`, l'étiquette
+  `v5.0.2` posée et la Release publiée (`TODO_DONE.md` 1 et 7.69) ; #401 à #404
+  sont fusionnées, leurs registres faits, et `dev` est au commit `13f2705` (les
   registres de #404, après `eeb1f1c`, la fusion de #404). Avant, au 20
   novembre, #391 est fusionnée (`a3428f2`), #397
   (`f4b691d`, 20 h 22 UTC : le `.deb` et le `.exe` avec FMA, le `.pkg` pour macOS
