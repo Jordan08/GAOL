@@ -1318,29 +1318,28 @@ git ls-remote --heads origin
   : GitHub borne le corps d'une issue à 262 144 octets et le texte joint en fait
   plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire** : les tâches VA à VJ de `TODO.md`, que le mainteneur donne une à
-  une (VD.9, Debian 11 amd64 et armhf dans la CI, est à décider). Les constats
-  de la relecture du 13 novembre sont faits (PU à PZ), PH est faite par #382
-  (les textes de GAOL que les signalements rendent faux ; les signalements
-  eux-mêmes sont dans leurs issues et `TODO_AFTER.md` 2.6, avec l'accord du
-  mainteneur), et la version (PJ) est publiée : la fusion de `dev` dans `master`
-  par #390 (section 13), les registres par #391, les paquets avec FMA par #397
-  et leurs textes par #398, les corrections de la relecture complète des 19 et
-  20 novembre par #399, puis l'étiquette annotée `v5.0.0`, que la session a
-  posée sur le commit de fusion de #399 quand toute la CI était verte, et qui a
-  lancé la Release de `release.yml` (*décidé le 12 novembre* : `TODO_DONE.md`
-  3.36 ; le message de l'étiquette, le 17 novembre : 3.55 ; 3.56 et 3.57). La
-  couverture (97,6 % des 8 077 lignes, `TODO_DONE.md` 7.62) et le PDF du manuel
-  (395 pages, 7.61) sont refaits le 19 novembre, au code de la version ; les
-  temps de PJ.2 ne sont pas remesurés (*décidé le 17 novembre*). Après la
-  version : l'annonce à Frédéric Goualard (reportée, faute d'adresse : l'issue
-  #389 et `TODO_AFTER.md` 1.7) et la licence des cas d'IBEX et de Codac, que la
-  version n'a pas attendue (`TODO_AFTER.md` 1.8 ; *décidé le 17 novembre* :
-  3.55), puis le ménage de la fin, dont les registres à vider (1.6). Ce qui est
-  reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les décorations,
-  ce qui attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre
-  points sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les
-  points un par un (« traite la tâche PF », « traite le point 129 ») : ne
-  commence pas le suivant sans lui.
+  une. Les constats de la relecture du 13 novembre sont faits (PU à PZ), PH est
+  faite par #382 (les textes de GAOL que les signalements rendent faux ; les
+  signalements eux-mêmes sont dans leurs issues et `TODO_AFTER.md` 2.6, avec
+  l'accord du mainteneur), et la version (PJ) est publiée : la fusion de `dev`
+  dans `master` par #390 (section 13), les registres par #391, les paquets avec
+  FMA par #397 et leurs textes par #398, les corrections de la relecture
+  complète des 19 et 20 novembre par #399, puis l'étiquette annotée `v5.0.0`,
+  que la session a posée sur le commit de fusion de #399 quand toute la CI était
+  verte, et qui a lancé la Release de `release.yml` (*décidé le 12 novembre* :
+  `TODO_DONE.md` 3.36 ; le message de l'étiquette, le 17 novembre : 3.55 ; 3.56
+  et 3.57). La couverture (97,6 % des 8 077 lignes, `TODO_DONE.md` 7.62) et le
+  PDF du manuel (395 pages, 7.61) sont refaits le 19 novembre, au code de la
+  version ; les temps de PJ.2 ne sont pas remesurés (*décidé le 17 novembre*).
+  Après la version : l'annonce à Frédéric Goualard (reportée, faute d'adresse :
+  l'issue #389 et `TODO_AFTER.md` 1.7) et la licence des cas d'IBEX et de Codac,
+  que la version n'a pas attendue (`TODO_AFTER.md` 1.8 ; *décidé le 17 novembre*
+  : 3.55), puis le ménage de la fin, dont les registres à vider (1.6). Ce qui
+  est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
+  décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les
+  dépendances entre points sont écrites dans chaque tâche. Le mainteneur donne
+  les tâches ou les points un par un (« traite la tâche PF », « traite le point
+  129 ») : ne commence pas le suivant sans lui.
 
 ## 13. Une version : `dev` → `master`
 
@@ -1424,5 +1423,6 @@ les tâches PU à PZ et la relecture complète des 19 et 20 novembre (*décidé 
    `autoconf` 2.72 : seules les chaînes de la version changent), l'entrée du
    `ChangeLog` et de `doc/differences.md`, le PDF du manuel refait (la cible
    `pdf` de CMake, `-DWITH_DOC=ON`) et les registres ; la couverture n'est pas
-   refaite (sa réponse). Ni fusion ni étiquette sans sa demande : la pull
-   request donne la commande de l'étiquette.
+   refaite (sa réponse). Le mainteneur fusionne, puis la session pose
+   l'étiquette annotée sur le commit de fusion, la CI de `master` au vert
+   (`TODO_DONE.md` 3.64).

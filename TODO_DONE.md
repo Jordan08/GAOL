@@ -9333,7 +9333,15 @@ interne de GCC 10.2 pour aarch64 (2.3, #404), que GAOL contourne.
   session MACarm5 (Apple M2, macOS 27, Apple clang 21, sans Docker) a construit
   et testé la branche, comparé les objets et mesuré l'A/B (2.3). Le mainteneur
   demande d'accuser réception de chacun de ses messages (« ok »).
-- **À décider** : Debian 11 amd64 et armhf dans la CI (`TODO.md` VD.9).
+- **À décider** : Debian 11 amd64 et armhf dans la CI (`TODO.md` VD.9), décidé
+  le même jour (3.64).
+- **Remarqué par la relecture de #404, sans correction** : la configuration
+  Debian 11 arm64 ne construit qu'en Release (`-O3`) ; le 24 novembre, les 16
+  sources de `gaol/` compilent avec GCC 9.3 et 10.2 pour aarch64 à `-O1`, `-O2`,
+  `-Os` et `-O3`, et le `vcombine_f64()` de `pown`
+  (`gaol_interval_neon_impl.h`), qui recombine les voies d'un paramètre,
+  pourrait voir une première voie constante si un autre niveau le mettait en
+  ligne autrement.
 
 ### 3.64 Le 24 novembre : la version 5.0.2 (#405)
 
@@ -9347,10 +9355,17 @@ version 5.0.2 » : #405.
   #402 ; la couverture n'est pas refaite : le tableau 14.8 et `coverage/`
   gardent celle du 19 novembre (7.62), alors que #401 et #404 ont changé le
   code.
-- **Pas demandé, donc pas fait** : la fusion et l'étiquette. La pull request
-  donne la commande de l'étiquette annotée sur le commit de fusion.
-- **Gardé** : la date de l'édition du manuel (`GAOL_V5_UPDATED`, « 12 November
-  2026 »), comme pour 5.0.1 (une question ouverte de #405).
+- **Décidé ensuite** (ses réponses aux questions de la session, le même jour) :
+  - la date de l'édition du manuel (`GAOL_V5_UPDATED`, « 12 November 2026 »)
+    reste, comme pour 5.0.1 : elle ne suit pas les versions correctives ;
+  - le mainteneur fusionne #405, puis la session pose l'étiquette annotée
+    `v5.0.2` sur le commit de fusion, quand la CI de `master` est verte, et suit
+    `release.yml` ;
+  - Debian 11 reste dans la CI pour arm64 seulement : amd64 et armhf
+    construisent les intervalles SSE2 et FPU, que Debian 12 et 13 couvrent
+    (`TODO.md` VD.9, close sans code) ;
+  - la session prévient la session de Codac (codac-c2, codac-team/codac#475,
+    qui télécharge `master`) une fois l'étiquette posée.
 
 ## 4. Les points faits, par lettre
 
