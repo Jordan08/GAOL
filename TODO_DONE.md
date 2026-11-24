@@ -74,7 +74,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   posé l'étiquette annotée `v5.0.2` à 9 h 57 UTC, et `release.yml` (run
   45370113656, ses cinq jobs réussis) a publié la Release « GAOL 5.0.2 » à 10 h
   02 UTC avec `libgaol-dev_5.0.2_amd64.deb`, `gaol-5.0.2-macos-arm64.pkg` et
-  `gaol-5.0.2-windows-x64.exe` (7.69). #406 fait entrer `master` dans `dev`.
+  `gaol-5.0.2-windows-x64.exe` (7.69). #406 a fait entrer `master` dans `dev`
+  (`bc25407`, 10 h 20 UTC).
 - **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #405
   (`c4438d9`, le 24 novembre à 9 h 21 UTC : `dev` avec la version 5.0.2), celui
   de l'étiquette `v5.0.2`. Avant, il était au commit de fusion de #402
@@ -92,6 +93,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `c38417e`, y entre, 2 338 commits et 980 fichiers ; l'arbre de `master` est
   celui de `dev`).
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
+  commit `bc25407` (la fusion de #406 le 24 novembre à 10 h 20 UTC : `master`,
+  la version 5.0.2 publiée, et ses registres), après `13f2705` (les registres de
+  #404, 7.67). Avant, il était au
   commit `eeb1f1c` (la fusion de #404 le 24 novembre à 7 h 48 UTC, hors des
   points : GCC 9.3 et 10.2 pour aarch64, qui s'arrêtaient sur une erreur
   interne, et Debian 11 arm64 dans la CI, 3.63), après `ba4028f` (la fusion de
@@ -5152,7 +5156,10 @@ tournait au moment des registres.
 - #406 (`master` dans `dev` après 5.0.2 ; `master-into-dev-5.0.2`, de `master`
   vers `dev`, comme #403 après 5.0.1) : les commits de #405 et son commit de
   fusion, et les registres de la publication (7.69). `dev` n'avait aucun commit
-  que `master` n'a pas.
+  que `master` n'a pas. Fusionnée par le mainteneur le 24 novembre à 10 h 20 UTC
+  (`bc25407`, tête `2f35241`), la CI de sa tête au vert (six workflows, 61
+  contrôles) ; `dev` a `VERSION.txt` à 5.0.2. La branche est supprimée sur
+  GitHub à la fusion et en local.
 
 ### 2.4 Fermées sans fusion
 
