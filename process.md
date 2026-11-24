@@ -14,7 +14,8 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 24 novembre 2026, au commit `eeb1f1c` de `dev` (la
+Dernière mise à jour : 24 novembre 2026, à la version 5.0.2 (#405, de `dev`
+vers `master`), au commit `eeb1f1c` de `dev` (la
 fusion de #404 : GCC 9.3 et 10.2 pour aarch64, et Debian 11 arm64 dans la CI,
 après celle de #403, les registres de 5.0.1, qui fait entrer `master` dans
 `dev`), et avant au commit de fusion de #402 dans
@@ -1187,10 +1188,11 @@ git ls-remote --heads origin
   octobre a vérifié dans
   `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
-- **En cours** : au 24 novembre, aucune pull request n'est ouverte : #401 à
-  #404 sont fusionnées, leurs registres faits, et `dev` est au commit `eeb1f1c`
-  (la fusion de #404). Avant, au 20 novembre, #391 est fusionnée (`a3428f2`),
-  #397
+- **En cours** : au 24 novembre, #405 (la version 5.0.2, de `release-5.0.2`
+  vers `master`) est ouverte, ses registres écrits d'avance ; #401 à #404 sont
+  fusionnées, leurs registres faits, et `dev` est au commit `13f2705` (les
+  registres de #404, après `eeb1f1c`, la fusion de #404). Avant, au 20
+  novembre, #391 est fusionnée (`a3428f2`), #397
   (`f4b691d`, 20 h 22 UTC : le `.deb` et le `.exe` avec FMA, le `.pkg` pour macOS
   15 et plus), #398 (`e733f87`, 22 h 10 UTC : leurs textes) et #399 aussi (les
   corrections de la relecture complète, de `release-review-fixes` vers
@@ -1415,3 +1417,12 @@ les tâches PU à PZ et la relecture complète des 19 et 20 novembre (*décidé 
    celles que GitHub engendre à partir des titres des pull requests, en français
    : le mainteneur les a écrites à la main pour v5.0.0, en anglais. Les
    registres suivent dans une pull request de `master` vers `dev`.
+
+7. **Pour v5.0.2** (24 novembre, #404 : `TODO_DONE.md` 3.64). Une pull request
+   de `dev` vers `master` (#405), sur la demande du mainteneur, qui porte, comme
+   le veut le 4, la version (`VERSION.txt`, et `configure` régénéré par
+   `autoconf` 2.72 : seules les chaînes de la version changent), l'entrée du
+   `ChangeLog` et de `doc/differences.md`, le PDF du manuel refait (la cible
+   `pdf` de CMake, `-DWITH_DOC=ON`) et les registres ; la couverture n'est pas
+   refaite (sa réponse). Ni fusion ni étiquette sans sa demande : la pull
+   request donne la commande de l'étiquette.

@@ -1,7 +1,8 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 24 novembre
-2026 (le commit `eeb1f1c` de `dev`, la fusion de #404, après celle de #403, les
+2026 (la version 5.0.2, de `dev` vers `master` par #405 ; le commit `eeb1f1c` de
+`dev`, la fusion de #404, après celle de #403, les
 registres de 5.0.1 ; avant, le commit de fusion de #402 dans `master`, celui de
 l'étiquette `v5.0.1`,
 après celui de #399, celui de l'étiquette `v5.0.0` ;
@@ -64,6 +65,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 24 novembre 2026
 
+- **La version 5.0.2** entre dans `master` par #405 (`release-5.0.2`, de `dev`
+  vers `master`, 2.3 et 3.64), que le mainteneur fusionne : `dev` à `13f2705`
+  avec `VERSION.txt` et `configure` à 5.0.2, l'entrée du `ChangeLog`, le PDF du
+  manuel refait et ces registres. L'étiquette `v5.0.2` se pose sur son commit
+  de fusion.
 - **`master`**, GAOL 4.3.2 jusqu'au 17 novembre, est au commit de fusion de #402
   (`dc16487`, le 23 novembre à 12 h 49 UTC : `dev` avec la version 5.0.1), celui
   de l'étiquette `v5.0.1` (3.62) : la version 5.0.1 est publiée. Avant, il était
@@ -5122,6 +5128,17 @@ tournait au moment des registres.
   vert (sept workflows, 83 contrôles ; la nouvelle configuration : GCC 10.2.1,
   les intervalles NEON, 48 tests sur 48).
 
+- #405 (la version 5.0.2 ; `release-5.0.2`, de `dev` vers `master`, sur la
+  demande du mainteneur « Fait une PR de dev dans master avec un passage a la
+  version 5.0.2 », 3.64) : `VERSION.txt` à 5.0.2 et `configure` régénéré par
+  `autoconf` 2.72 (seules les 12 chaînes de la version changent ; les trois
+  builds lisent 5.0.2), l'entrée de 5.0.2 du `ChangeLog`, #404 dans
+  `doc/differences.md` et le chapitre 15 du manuel, le PDF du manuel refait par
+  la cible `pdf` de CMake (397 pages, aucune erreur ni référence indéfinie, les
+  mêmes 7 « Overfull » ; il porte aussi les textes de #401, que le PDF de 5.0.1
+  n'avait pas) et ces registres. La fusion d'essai avec `master` est sans
+  conflit, son arbre celui de la branche (`7469599`). Ouverte le 24 novembre.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -9318,6 +9335,23 @@ interne de GCC 10.2 pour aarch64 (2.3, #404), que GAOL contourne.
   demande d'accuser réception de chacun de ses messages (« ok »).
 - **À décider** : Debian 11 amd64 et armhf dans la CI (`TODO.md` VD.9).
 
+### 3.64 Le 24 novembre : la version 5.0.2 (#405)
+
+Le mainteneur demande : « Fait une PR de dev dans master avec un passage a la
+version 5.0.2 » : #405.
+
+- **Décidé** (sa réponse à la question de la session) : la pull request porte
+  la version, l'entrée du `ChangeLog` et de `doc/differences.md`, le PDF du
+  manuel refait et les registres (« Version, PDF, registres »), comme le veut
+  `process.md` §13.4 (*demande du 19 novembre*), et non la seule version comme
+  #402 ; la couverture n'est pas refaite : le tableau 14.8 et `coverage/`
+  gardent celle du 19 novembre (7.62), alors que #401 et #404 ont changé le
+  code.
+- **Pas demandé, donc pas fait** : la fusion et l'étiquette. La pull request
+  donne la commande de l'étiquette annotée sur le commit de fusion.
+- **Gardé** : la date de l'édition du manuel (`GAOL_V5_UPDATED`, « 12 November
+  2026 »), comme pour 5.0.1 (une question ouverte de #405).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -12108,6 +12142,15 @@ leurs registres n'étaient pas faits :
   `TODO.md`, que #403 n'avait pas mis à jour) ; `TODO_AFTER.md` ne change pas.
 - Pas fait : le PDF du manuel, que la pull request du manuel refera (les sources
   de `02_installation.tex` et `14_tests_ci.tex` changent avec #404).
+
+### 7.68 Le 24 novembre (la version 5.0.2 : #405)
+
+- La branche `release-5.0.2`, à partir de `13f2705` : `VERSION.txt` et
+  `configure`, `ChangeLog`, `doc/differences.md`, le chapitre 15 du manuel et
+  son PDF, et les registres : ce fichier (l'en-tête, 1, 2.3, 3.64 et 7.68),
+  `TODO.md` (l'en-tête) et `process.md` (l'en-tête, §12 et §13.7).
+- La CI de `dev` à `eeb1f1c` (la fusion de #404) tournait quand #405 s'est
+  ouverte ; celle de #405 porte sur l'arbre de la version.
 
 ## 8. Le ménage fait
 

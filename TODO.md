@@ -1,6 +1,7 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `eeb1f1c` de `dev` (la fusion de
+Ce qui reste à faire sur GAOL v5 à la version 5.0.2 (#405, de `dev` vers
+`master`, le 24 novembre), au commit `eeb1f1c` de `dev` (la fusion de
 #404 le 24 novembre à 7 h 48 UTC, hors des points : GCC 9.3 et 10.2 pour
 aarch64, qui s'arrêtaient sur une erreur interne, et Debian 11 arm64 dans la CI,
 après celle de #403 à 7 h 46 UTC, `ba4028f`, les registres de 5.0.1, qui fait
