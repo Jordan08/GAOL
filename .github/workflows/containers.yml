@@ -136,8 +136,6 @@ jobs:
           platform: 'linux/amd64'
           image: 'alpine:3.22'
           tools: 'apk'
-      # security repository lists packages that are no longer downloadable
-      # (libc-dev-bin 2.31-13+deb11u14...), so that g++ cannot be installed
       - id: c8
         name: 'manylinux_2_28 x86_64'
         if: ${{ !cancelled() }}
@@ -290,7 +288,7 @@ jobs:
           opts: '-DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_C_FLAGS=-mcpu=power9 -DCMAKE_CXX_FLAGS=-mcpu=power9'
 
   c7:
-    name: 'Containers arm64 (5 configurations)'
+    name: 'Containers arm64 (6 configurations)'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 360
     steps:
@@ -346,12 +344,28 @@ jobs:
           before: '-DGAOL_SIMD=OFF'
           before_label: 'FPU intervals, C library'
           after_label: 'NEON intervals, FPCR'
+      # GCC 10.2, which stopped with an internal compiler error on three
+      # sources of GAOL with the NEON intervals (GCC bug 99037,
+      # neon_detail::stored() of gaol/core/gaol_interval_neon.h); Debian 11 is
+      # out of support since August 2026, and its packages are on
+      # archive.debian.org (GAOL v5)
+      - id: c6
+        name: 'Debian 11 Bullseye arm64 (GCC 10.2)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/containers-container
+        timeout-minutes: 180
+        with:
+          desc: 'Debian 11 Bullseye arm64 (GCC 10.2)'
+          platform: 'linux/arm64'
+          image: 'debian:bullseye'
+          tools: 'apt'
+          archive: 'true'
       - name: Results of the configurations
         if: ${{ always() }}
         shell: bash
         env:
           OUTCOMES: >-
-            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }}
         run: |
           status=0
           printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Containers arm64' >> "$GITHUB_STEP_SUMMARY"
@@ -362,6 +376,7 @@ jobs:
               c3) name='Alpine 3.22 aarch64 (musl)' ;;
               c4) name='manylinux_2_28 aarch64' ;;
               c5) name='Rounding direction preserved, arm64: FPCR with the NEON intervals or the C library' ;;
+              c6) name='Debian 11 Bullseye arm64 (GCC 10.2)' ;;
             esac
             printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
             [ "${kv#*=}" = success ] || status=1
