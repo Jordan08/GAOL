@@ -1370,6 +1370,8 @@ the platforms GAOL supports is in the chapter on the installation
       on i386 &
       GCC; built for size on Debian 13 armhf; autotools and meson on i386
       and armhf\\
+    Debian 11 (container) & arm64 & GCC 10.2, the packages taken from
+      archive.debian.org\\
     manylinux\_2\_28 & x86\_64, aarch64 & CMake\\
     Alpine (musl) & x86\_64, aarch64 & CMake\\
     Debian 13 under qemu & s390x, ppc64le, riscv64 & CMake; Ubuntu 24.04
@@ -1406,7 +1408,8 @@ runs with \code{CC="ccache gcc"} and a Ninja outside \env{PATH}, which it has
 to pass on to the copies of the tree it configures, and the tests run with
 the \code{FE\_*} values of Cygwin (newlib, 0 to 3) put over those of glibc
 for the sources of CORE-MATH. The containers build Debian 12 and 13 on
-amd64, arm64 and armhf, Debian 12, 13 and 14 on i386, manylinux\_2\_28 and Alpine
+amd64, arm64 and armhf, Debian 12, 13 and 14 on i386, Debian 11 on arm64
+(GCC 10.2), manylinux\_2\_28 and Alpine
 (musl) on x86\_64 and aarch64, Debian 13 under qemu on s390x, ppc64le and
 riscv64, and Ubuntu 24.04 (GCC 13) under qemu for POWER9; two jobs build for
 size (\code{MinSizeRel}, \option{-Os}) on Debian 13 armhf and for POWER9,
@@ -1791,12 +1794,14 @@ September 2026, building it past its refusal.
     values. & Refused by \file{gaol/gaol\_config.h}; the builds compile with
     \option{-msse2 -mfpmath=sse} on 32-bit x86, and
     \code{extended\_precision} fails on the x87 unit.\\
-  Debian 11 Bullseye (amd64, arm64, armhf) & Cannot be installed: out of
-    support since August 2026, its security repository lists packages it no
-    longer serves, so that \cmd{g++} cannot be installed in the container.
-    GAOL v5 builds and passes its tests there, with GCC 10.2 and CMake
-    3.18.4 installed from snapshot.debian.org. & Left out of the continuous
-    integration. Debian 12 and 13 are built.\\
+  Debian 11 Bullseye (amd64, armhf) & Out of support since August 2026:
+    deb.debian.org lists packages of its security repository that it no
+    longer serves, so that \cmd{g++} cannot be installed from it;
+    archive.debian.org had both repositories on 24 November 2026. On 21
+    September 2026, GAOL v5 built and passed its tests there, with GCC 10.2
+    and CMake 3.18.4 installed from snapshot.debian.org. & Left out of the
+    continuous integration: Debian 12 and 13 are built. Debian 11 arm64 is
+    built, from archive.debian.org, for its GCC 10.2.\\
   The intervals of floats (\code{gaol::\allowbreak intervalf},
     \code{gaol::\allowbreak interval2f})
     & Unfinished: \code{sqrt(intervalf)} returns its argument and
@@ -1859,7 +1864,15 @@ change with its measures (Chapter~\ref{chap:changes}).
   library jobs of the three builds, whose tests link with \file{libgaol.so},
   build \file{tests/expressions.cpp}; the tests that \file{tests.sh} links with
   the installed one no longer include it, the headers of the expressions not
-  being installed.
+  being installed. GCC 9.3 and 10.2 for 64-bit ARM (Debian 11 has GCC 10.2)
+  stopped with an internal compiler error on three sources of GAOL once the
+  NEON intervals were the default: for the combination of a constant other
+  than $+0$ and a variable, as in \code{interval(0.0, r)}, they put into the
+  constant pool the constant with an integer 0 as its other half (GCC bugs
+  99037 and 100441, fixed in GCC 9.4 and 10.3). The two lanes are
+  now set with \code{vsetq\_lane\_f64()}, which gives the same instructions
+  with Clang 18 and 21, and with GCC 12.2 for two variables, and a job
+  builds and tests GAOL on Debian 11 arm64.
 \item[$\bullet$] \textbf{Reports of the sanitizers that were suppressed at
   first}, and are fixed now: the nodes the parser did not free. Nothing is
   suppressed any more.
@@ -2154,7 +2167,7 @@ overflow, has no test, since the text is read through two more copies of
 it; the checks of several threads reading or writing at once are commented
 out, the tests running no thread; the refusal of the mingw-w64 of ARM is tested with macros defined by
 hand on an x86 system, not with a toolchain for ARM, which no job builds; Debian 11 is left out of the
-continuous integration, and the intervals of floats are compiled by none of
+continuous integration, except on arm64, and the intervals of floats are compiled by none of
 the builds. The next chapter turns to the programs written for GAOL~4: how
 to compile and link them with GAOL v5, which results change, and the
 register of the differences by theme.
