@@ -60,8 +60,11 @@ runs:
     # of the repository: a file is made in the tree for each of their
     # patterns, which git has to ignore and the archive to leave out, as the
     # comparison below checks (GAOL v5: the lock files of gcore,
-    # .github/corelocks/, and the *.loTAGS of libtool went into it). The step
-    # comes after meson dist, and last, the tree keeping these files
+    # .github/corelocks/, and the *.loTAGS of libtool went into it). The
+    # directories made for them hold no other file, and enter the archive
+    # empty, which the comparison, of the files alone, does not see. The step
+    # makes the last of the three archives, after meson dist, since the tree
+    # keeps these files
     - name: dist of CMake (package_source), with a file for each pattern of the .gitignore files
       shell: bash -e {0}
       run: |
