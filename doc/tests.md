@@ -415,10 +415,10 @@ which `numbers` checks there too.
   more, `pow([2^-1074], [1.5 2^1014])`, where CORE-MATH's `pow` overflows
   multiplying the exponent by that of the base...) have to
   give their tightest bounds, computed apart with exact arithmetic and, for
-  the tangent, mpmath (a double or two more for the fifth root, for
-  `nth_root([DBL_MAX], -3)` and for `pow_rel()` with an exponent next to
-  2^-1074, as the test says), with neither flag, and the same bounds in a
-  child process that enabled both exceptions.
+  the tangent and the root 2^(512/511), mpmath (a double or two more for the
+  fifth root, for `nth_root([DBL_MAX], -3)` and for `pow_rel()` with an
+  exponent next to 2^-1074, as the test says), with neither flag, and the same
+  bounds in a child process that enabled both exceptions.
   Every
   operation has to keep the exception flags the program raised (the five of
   IEEE 754, and on x86 the six of the SSE control register) and the exception

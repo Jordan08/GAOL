@@ -2856,12 +2856,11 @@ namespace
     its tightest bounds, computed apart with exact arithmetic (mpmath for the
     tangent and the root), when the exceptions are masked, and the same when
     they are enabled. Three give a double or two more, which the table says
-    with its slack: the fifth root,
-    whose proofs round (2 doubles, as nth_root() documents), the inverse of
-    the enclosure of the cube root, nth_root(x, -3) (its upper bound is one
-    double above the tightest one), and pow_rel() for an exponent next to
-    2^-1074, whose hull is {0} and which gives [0, 2^-1074], the bound c^(1/y)
-    being beyond the doubles
+    with its slack: the fifth root, whose proofs round (2 doubles, as
+    nth_root() documents), the inverse of the enclosure of the cube root,
+    nth_root(x, -3) (its upper bound is one double above the tightest one),
+    and pow_rel() for an exponent next to 2^-1074, whose hull is {0} and
+    which gives [0, 2^-1074], the bound c^(1/y) being beyond the doubles
   */
   struct TrapCase
   {
