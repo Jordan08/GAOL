@@ -417,6 +417,13 @@ namespace
                                      && r.right() >= std::max(u.above, v.above), describe);
           break;
       }
+      // The minimum cosh(0) = 1 is a double: over the intervals that hold 0, the
+      // lower bound is 1 exactly. The table has 0 among the arguments of cosh, so
+      // that these intervals hold it at a bound, [-1, 0] and [0, 2^-1074], and are
+      // checked above as decreasing and increasing, within 1 double
+      if (f.variation == Variation::even && u.x <= 0.0 && 0.0 <= v.x) {
+        check(name + ": the lower bound cosh(0) = 1", !r.is_empty() && r.left() == 1.0, describe);
+      }
     }
   }
 
@@ -462,14 +469,15 @@ namespace
     for (const Known& k : known) {
       const interval r = evaluate(k.name, k.f, [] { return std::string(); });
       expect_close(k.name, r, k.below, k.above, [&] { return hex(r); });
-      // A bound -1 or 1 of the table is the tightest one (the extrema of sin
-      // and cos, cos(1e-10) rounded upward, the limits of tanh, exp(0) and
-      // cosh(0)): the result's has to be it, not the double beyond, which the
-      // distance of one double lets pass
-      const bool below_one = std::fabs(k.below) == 1.0, above_one = std::fabs(k.above) == 1.0;
-      if (below_one || above_one) {
-        check(std::string(k.name) + ": -1 and 1 exact", (!below_one || r.left() == k.below)
-              && (!above_one || r.right() == k.above), [&] { return hex(r); });
+      // A finite bound of the table that is an integer is the tightest one,
+      // the value of the function itself but for cos(1e-10), rounded upward
+      // to 1 (the extrema of sin and cos, the limits of tanh, exp(-oo) and
+      // exp(0), log(1), sqrt(0) and sqrt(4), cosh(0)): the result's has to be
+      // it, not the double beyond, which the distance of one double lets pass
+      const auto integer = [](double b) { return std::isfinite(b) && b == std::floor(b); };
+      if (integer(k.below) || integer(k.above)) {
+        check(std::string(k.name) + ": the integer bounds exact", (!integer(k.below) || r.left() == k.below)
+              && (!integer(k.above) || r.right() == k.above), [&] { return hex(r); });
       }
     }
 

@@ -205,8 +205,10 @@ which `numbers` checks there too.
   double of the tightest bounds at every magnitude, `sin([1e-10])` and
   `cos([2^60])` included, and over 649 intervals next to their extrema and
   poles, of width about π and 2π, and of consecutive doubles up to the largest,
-  -1, 1 and `[-oo, +oo]` being exact, as at the intervals whose image is known
-  (`sin([1, 2])`, `cos([0, 7])`...). `tan([-M_PI_2, M_PI_2])` has to be the
+  -1, 1 and `[-oo, +oo]` being exact, as are the bounds that are integers at
+  the intervals whose image is known (`sin([1, 2])`, `cos([0, 7])`,
+  `log([0, 1])`, `sqrt([-4, 4])`...) and the lower bound 1 of `cosh` over the
+  intervals that hold 0. `tan([-M_PI_2, M_PI_2])` has to be the
   tightest enclosure, ±1.63e16: its width is the double below π, and it holds
   no pole. tan has to be within one double of the tightest bounds over 158
   intervals whose bounds are next to two consecutive poles, of a width within
