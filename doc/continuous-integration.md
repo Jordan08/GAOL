@@ -48,7 +48,10 @@ GAOL v5). The badges of
   direction preserved, and again with the arithmetic on the SSE2 path, in a job
   of its own, whatever the runner has), which GAOL neither offers nor refuses (see
   [Three builds](three-builds.md#interprocedural-optimization-is-not-offered),
-  GAOL v5); the test `automatic_configuration` configures GAOL several
+  GAOL v5); the AVX-512 path without the fused multiply-add instructions is
+  built, not run, with `-Wall -Wextra -Werror` (GCC of Ubuntu 26.04, the path
+  taken on the word of `-DGAOL_MACHINE_RUNS_AVX512=1`, the runners seldom
+  having the instructions; GAOL v5); the test `automatic_configuration` configures GAOL several
   times, with the settings of a user and of a developer and in a
   cross-compilation, and holds the header and the messages to what the checks
   found (the fused multiply-add instructions, the AVX-512 path, the 128-bit
