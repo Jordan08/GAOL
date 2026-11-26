@@ -103,6 +103,14 @@ differing too.
 // Mask for SSE arithmetic (53 bits precision, rounding nearest, all exceptions masked)
 #  define GAOL_SSE_MASK _MM_MASK_MASK
 #endif
+// The intrinsics of MXCSR that the x86 registers below read and write, where
+// they do: included at the global scope, as every header of the system, and not
+// in gaol_core below (GAOL v5: included there, they did nothing, gaol_fpu.h
+// having included them before in every configuration gaol_config.h accepts)
+#if ((defined(__i386__) || defined(__x86_64__)) && (defined(__GNUC__) || defined(__clang__))) \
+    || (defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64)))
+#  include <xmmintrin.h>
+#endif
 
 
 namespace gaol_core {
@@ -231,7 +239,6 @@ namespace gaol_core {
   #if (defined(__i386__) || defined(__x86_64__)) && (defined(__GNUC__) || defined(__clang__))
   #  define GAOL_RND_X86_REGISTERS 1
   #  define GAOL_RND_X86_CONTROL_WORD 1
-  #  include <xmmintrin.h>
 
   /*
   The control word of the x87 unit and MXCSR, read in one asm statement and
@@ -265,7 +272,6 @@ namespace gaol_core {
   }
   #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
   #  define GAOL_RND_X86_REGISTERS 1
-  #  include <xmmintrin.h>
 
   #  if defined(_M_IX86)
   #    define GAOL_RND_X86_CONTROL_WORD 1
