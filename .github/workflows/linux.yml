@@ -651,7 +651,7 @@ jobs:
   l7:
     name: 'Ubuntu 26.04 x86_64, GCC (5 configurations)'
     runs-on: ubuntu-26.04
-    timeout-minutes: 270
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v7
       - id: c1
@@ -695,8 +695,9 @@ jobs:
           ASAN_OPTIONS: 'detect_leaks=1'
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
       # The AVX-512 path of the arithmetic without the fused multiply-add
-      # instructions (-DGAOL_FMA=OFF, as on a processor with AVX-512 and
-      # without FMA, or by request), which no other configuration builds:
+      # instructions (-DGAOL_FMA=OFF, and a cross-compilation given
+      # -DGAOL_MACHINE_RUNS_AVX512=1 without -DGAOL_MACHINE_RUNS_FMA=1),
+      # which no other configuration builds:
       # gaol_interval_core.cpp is then the first to include <immintrin.h>,
       # which it does at the global scope, and checks it (GAOL v5: it
       # included it in gaol_core). Built and not run (linux-warnings), the
