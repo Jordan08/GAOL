@@ -681,13 +681,15 @@ GAOL v5 defends itself:
   `check_cxx_source_compiles()` with `CMAKE_REQUIRED_LINK_OPTIONS`,
   `AC_LINK_IFELSE` with `-Werror` and the `LDFLAGS` of the user,
   `has_link_argument()`. `gaol::gaol` gives it to a program built by GCC 13 or
-  a later one, by Clang 20 or a later one (not on Windows, where the option was
-  not tried with Clang: the compiler that built GAOL alone is trusted with it),
-  or by the compiler that built
+  a later one where GAOL is built for x86, by Clang 20 or a later one (not on
+  Windows, where the option was not tried with Clang: the compiler that built
+  GAOL alone is trusted with it), or by the compiler that built
   GAOL, of its major version and not older: GCC has the option from 11.4 and
   12.4 in the series 11 and 12 only, and a GAOL built by GCC 11.4 gave it to
   GCC 12.3, which stops on it; a GAOL built by GCC gave it to no program built
-  by Clang, which has it from 20 (GAOL v5).
+  by Clang, which has it from 20; GCC has it for x86 alone, whereas Clang 20
+  and 21 take it for every processor, and a GAOL built by Clang 21 for 64-bit
+  ARM gave it to GCC 15 there, which stops on it (GAOL v5).
   `gaol.pc`, written for that compiler, gives it to every
   program, and a program linked by a compiler that refuses it (Clang 18, a GCC
   before 11.4, GCC 12.0 to 12.3, GCC for ARM) is to be linked without it.

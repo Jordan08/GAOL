@@ -1492,22 +1492,36 @@ if(MSVC)
   set_source_files_properties(gaol/parser/gaol_interval_parser.cpp PROPERTIES COMPILE_OPTIONS "/wd4702")
 endif()
 # To the link of the code using GAOL, when it is built by a compiler that takes
-# the option: GCC 13 or a later one, Clang 20 or a later one (not on Windows,
-# where clang-cl links with the linker of Visual C++ and the option was not
-# tried: only the compiler that built GAOL is trusted with it there), or the
+# the option: GCC 13 or a later one for x86, Clang 20 or a later one (not on
+# Windows, where clang-cl links with the linker of Visual C++ and the option was
+# not tried: only the compiler that built GAOL is trusted with it there), or the
 # compiler that built GAOL, of its major version and not older than it. Another
 # compiler, as Clang 18, would stop on the option, and the option is not in
 # every later release: GCC has it from 11.4 in the series 11 and from 12.4 in
 # the series 12, so that a GAOL built by GCC 11.4 (Ubuntu 22.04) and a program
 # built by GCC 12.3 (its g++-12) have it and do not (GAOL v5:
-# gcc/config/i386/i386.opt of the release tags). Clang took the option in 2024
-# (llvm-project #80475) and has it in 20 and 21, which were tried; 19, which
-# is likely to have it too, was not, and is left out
+# gcc/config/i386/i386.opt of the release tags). GCC has it for x86 alone,
+# that file being the one of the x86 targets, and stops on it for the other
+# processors, whereas Clang 20 and 21 take it whatever the processor: a GAOL
+# built by Clang 21 for 64-bit ARM gave it to GCC 15 for 64-bit ARM, which
+# stopped on it (GAOL v5). The target of GAOL being the one of the code using
+# it, GCC 13 and later have it where GAOL is built for x86 only. Clang took the
+# option in 2024 (llvm-project #80475) and has it in 20 and 21, which were
+# tried; 19, which is likely to have it too, was not, and is left out
 if(GAOL_LINK_FLAGS)
   string(REGEX MATCH "^[0-9]+" GAOL_COMPILER_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
   math(EXPR GAOL_COMPILER_NEXT_MAJOR "${GAOL_COMPILER_MAJOR} + 1")
   set(GAOL_LINK_FLAGS_SERIES "$<AND:$<CXX_COMPILER_ID:${CMAKE_CXX_COMPILER_ID}>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,${CMAKE_CXX_COMPILER_VERSION}>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,${GAOL_COMPILER_NEXT_MAJOR}>>")
-  set(GAOL_LINK_FLAGS_GCC13 "$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,13>>")
+  check_cxx_source_compiles("
+    #if !defined(__x86_64__) && !defined(__i386__)
+    #error not an x86 target
+    #endif
+    int main() { return 0; }"
+    GAOL_TARGET_IS_X86)
+  set(GAOL_LINK_FLAGS_GCC13 0)
+  if(GAOL_TARGET_IS_X86)
+    set(GAOL_LINK_FLAGS_GCC13 "$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,13>>")
+  endif()
   set(GAOL_LINK_FLAGS_CLANG20 0)
   if(NOT WIN32)
     set(GAOL_LINK_FLAGS_CLANG20 "$<AND:$<CXX_COMPILER_ID:Clang>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,20>>")

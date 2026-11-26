@@ -221,7 +221,8 @@ above where the compiler that built GAOL accepts it. It names no math library
 of `<fenv.h>`, `sqrt()`, `floor()`, `fma()` where the processor has no such
 instruction...), which the C++ compiler links itself. `gaol.pc` is written for
 that compiler: a program linked by one that refuses `-mno-daz-ftz` (Clang 18, a
-GCC before 11.4, GCC 12.0 to 12.3) stops on it, and is to be linked without it:
+GCC before 11.4, GCC 12.0 to 12.3, GCC for a processor other than x86) stops on
+it, and is to be linked without it:
 
 ```bash
 export PKG_CONFIG_PATH=<prefix>/lib/pkgconfig
