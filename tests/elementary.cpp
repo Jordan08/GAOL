@@ -205,8 +205,13 @@ namespace
           + hex(t.least_below) + ", " + hex(t.greatest_above) + "]";
       };
       if (check(name + ": encloses", !r.is_empty() && r.left() <= t.least_below && r.right() >= t.greatest_above, describe)) {
-        check_distance(name, std::max(doubles_between(r.left(), t.least_below), doubles_between(t.greatest_above, r.right())),
-                       1, describe);
+        // A bound of the hull that is a double, -1 or 1 at an extremum of sin
+        // and cos, has to be it, as in pow_of_boxes()
+        const int distance = std::max((t.least_below == t.least_above) ? 2*doubles_between(r.left(), t.least_below)
+                                      : doubles_between(r.left(), t.least_below),
+                                      (t.greatest_below == t.greatest_above) ? 2*doubles_between(t.greatest_above, r.right())
+                                      : doubles_between(t.greatest_above, r.right()));
+        check_distance(name, distance, 1, describe);
       }
     }
   }
@@ -457,6 +462,15 @@ namespace
     for (const Known& k : known) {
       const interval r = evaluate(k.name, k.f, [] { return std::string(); });
       expect_close(k.name, r, k.below, k.above, [&] { return hex(r); });
+      // A bound -1 or 1 of the table is the tightest one (the extrema of sin
+      // and cos, cos(1e-10) rounded upward, the limits of tanh, exp(0) and
+      // cosh(0)): the result's has to be it, not the double beyond, which the
+      // distance of one double lets pass
+      const bool below_one = std::fabs(k.below) == 1.0, above_one = std::fabs(k.above) == 1.0;
+      if (below_one || above_one) {
+        check(std::string(k.name) + ": -1 and 1 exact", (!below_one || r.left() == k.below)
+              && (!above_one || r.right() == k.above), [&] { return hex(r); });
+      }
     }
 
     // The functions where their value is a double, pi, pi/2 or pi/4, sinh and
