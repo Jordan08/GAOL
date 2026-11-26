@@ -651,15 +651,18 @@ namespace
       std::fprintf(stderr, "random_double: the exponents from %d to %d are not within -1074 to 1023\n", lo, hi);
       std::abort();
     }
+    // The exponent, the sign, then the significand, drawn one at a time: the
+    // order in which the operands of an expression are evaluated is
+    // unspecified, so that two calls of gen() in one could draw other doubles
+    // with another compiler (GCC 15, Clang 18 and 21 took the sign first)
     const int exponent = lo + static_cast<int>(gen() % static_cast<std::uint64_t>(hi - lo + 1));
+    const std::uint64_t sign = gen() & 1;
     std::uint64_t u;
     if (exponent >= -1022) {
       const std::uint64_t e = static_cast<std::uint64_t>(exponent + 1023);
-      u = ((gen() & 1) << 63) | (e << 52) | (gen() & 0x000fffffffffffffull);
+      u = (sign << 63) | (e << 52) | (gen() & 0x000fffffffffffffull);
     } else {
-      // The sign, then the significand, one at a time
       const std::uint64_t top = static_cast<std::uint64_t>(1) << (exponent + 1074);
-      const std::uint64_t sign = gen() & 1;
       u = (sign << 63) | top | (gen() & (top - 1));
     }
     double x;
