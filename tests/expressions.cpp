@@ -1448,11 +1448,12 @@ namespace
             power.str() == "(-2)^2", [&] { return power.str(); });
     }
 
-    // the empty expression, whose evaluation is an error
+    // the empty expression, whose evaluation is an error: printed as its node,
+    // :null:
     expression empty;
     std::ostringstream o;
     o << empty;
-    check("built expression: the empty one is printed", true);
+    check("built expression: the empty one is printed", o.str() == ":null:", [&] { return o.str(); });
   }
 
   /* The empty expressions, of every thread, point to one node, the_null_expr,
