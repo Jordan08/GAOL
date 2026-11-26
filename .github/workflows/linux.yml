@@ -721,6 +721,8 @@ jobs:
     timeout-minutes: 270
     steps:
       - uses: actions/checkout@v7
+      # The installed GAOL built by Clang 21, and a test built with it by
+      # GCC 15, which takes -mno-daz-ftz on x86: gaol::gaol gives it (GAOL v5)
       - id: c1
         name: 'Ubuntu 26.04 x86_64 Clang'
         if: ${{ !cancelled() }}
@@ -730,6 +732,8 @@ jobs:
           desc: 'Ubuntu 26.04 x86_64 Clang'
           cc: 'clang'
           cxx: 'clang++'
+          other-cxx: 'g++'
+          other-cxx-daz-ftz: 'true'
       - id: c2
         name: 'Ubuntu 26.04 x86_64 Clang, -Wall -Wextra -Werror'
         if: ${{ !cancelled() }}
@@ -822,6 +826,9 @@ jobs:
         env:
           ASAN_OPTIONS: 'detect_leaks=1'
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+      # The installed GAOL built by Clang 21, which takes -mno-daz-ftz for
+      # arm64, and a test built with it by GCC, which refuses it there:
+      # gaol::gaol does not give it to GCC (GAOL v5)
       - id: c4
         name: 'Ubuntu 26.04 arm64 Clang'
         if: ${{ !cancelled() }}
@@ -831,6 +838,8 @@ jobs:
           desc: 'Ubuntu 26.04 arm64 Clang'
           cc: 'clang'
           cxx: 'clang++'
+          other-cxx: 'g++'
+          other-cxx-daz-ftz: 'false'
       - id: c5
         name: 'Ubuntu 26.04 arm64 Clang, -Wall -Wextra -Werror'
         if: ${{ !cancelled() }}
