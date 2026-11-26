@@ -302,7 +302,9 @@ copies the files of git itself, without the ones whose name starts with a dot
 archive is not the one of the other two; without `--formats gztar` it makes
 `gaol-<version>.tar.xz`, as `ninja dist` of meson does. The job *Archives of
 the sources* of the continuous integration makes the three and checks that
-they hold the same files. The archives are not the same bytes: the order and
+they hold the same files, the archive of CPack being made after a file was
+written in the tree for each pattern of the `.gitignore` files (GAOL v5: the
+lock files of `gcore` went into it). The archives are not the same bytes: the order and
 the dates of the entries are those of each tool, and `make dist` writes
 `README`, a symbolic link to `README.md` in the repository, as a copy of the
 file, where the other two keep the link.

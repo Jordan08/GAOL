@@ -49,17 +49,46 @@ runs:
         ../configure
         make dist
         make -j4 distcheck
-    - name: dist of CMake (package_source)
-      shell: bash -e {0}
-      run: |
-        cmake -S . -B build-cmake
-        cmake --build build-cmake --target dist
     - name: meson dist
       shell: bash -e {0}
       run: |
         meson setup build-meson
         # meson dist builds the archive with meson and runs its tests too
         meson dist -C build-meson --formats gztar
+    # CPack archives the files of the tree, git's or not, less those that
+    # CPACK_SOURCE_IGNORE_FILES leaves out, which follow the .gitignore files
+    # of the repository: a file is made in the tree for each of their
+    # patterns, which git has to ignore and the archive to leave out, as the
+    # comparison below checks (GAOL v5: the lock files of gcore,
+    # .github/corelocks/, and the *.loTAGS of libtool went into it). The
+    # directories made for them hold no other file, and enter the archive
+    # empty, which the comparison, of the files alone, does not see. The step
+    # makes the last of the three archives, after meson dist, since the tree
+    # keeps these files
+    - name: dist of CMake (package_source), with a file for each pattern of the .gitignore files
+      shell: bash -e {0}
+      run: |
+        # A pattern of a .gitignore file, x for each *, a/ for each **/, a
+        # file x in a directory of a pattern that ends with /, relative to the
+        # directory of the file (a negation, !, excepts a file from the patterns)
+        git ls-files '*.gitignore' | while read -r ignore; do
+          dir=$(dirname "$ignore")/
+          [ "$dir" != ./ ] || dir=
+          grep -v -e '^#' -e '^!' -e '^[[:space:]]*$' "$ignore" | while read -r pattern; do
+            path=${pattern#/}
+            case "$path" in */) path="${path}x" ;; esac
+            path=$dir$(printf '%s' "$path" | sed -e 's#[*][*]/#a/#g' -e 's#[*]#x#g')
+            mkdir -p "$(dirname "$path")"
+            : > "$path"
+            if ! git check-ignore -q "$path"; then
+              echo "::error::$path, made for the pattern $pattern of $ignore, is not ignored by git"
+              exit 1
+            fi
+            echo "$path ($pattern of $ignore)"
+          done
+        done
+        cmake -S . -B build-cmake
+        cmake --build build-cmake --target dist
     - name: The three archives have the same name and hold the same files
       shell: bash -e {0}
       run: |
