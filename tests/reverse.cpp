@@ -1108,14 +1108,15 @@ namespace
     }
   }
 
-  // An interval of random bounds, of magnitudes from 2^emin to 2^emax, zero
-  // or infinite now and then
-  interval random_box_side(Random& random, int emin, int emax)
+  // An interval of random bounds, of magnitudes from 2^emin to 2^emax, zero,
+  // infinite or, with subnormals, subnormal now and then
+  interval random_box_side(Random& random, int emin, int emax, bool subnormals)
   {
     double b[2];
     for (double& d : b) {
       const int kind = random.integer(0, 9);
-      d = (kind == 0) ? 0.0 : (kind == 1) ? ((random.integer(0, 1) == 0) ? -inf : inf) : random(emin, emax);
+      d = (kind == 0) ? 0.0 : (kind == 1) ? ((random.integer(0, 1) == 0) ? -inf : inf)
+        : (kind == 2 && subnormals) ? random.subnormal() : random(emin, emax);
     }
     const interval v = gaol_tests::hull(b[0], b[1]);
     return v.is_empty() ? interval(-1.0, 1.0) : v;
@@ -1155,8 +1156,8 @@ namespace
       }
       const interval c = gaol_tests::hull(a, b);
       const bool any = random.integer(0, 2) == 0;
-      const interval y = random_box_side(random, any ? -1074 : -20, any ? 1023 : 20);
-      const interval x = random_box_side(random, any ? -1074 : -20, any ? 1023 : 20);
+      const interval y = random_box_side(random, any ? -1022 : -20, any ? 1023 : 20, any);
+      const interval x = random_box_side(random, any ? -1022 : -20, any ? 1023 : 20, any);
       sample(c, y, x, random, undecided);
     }
 

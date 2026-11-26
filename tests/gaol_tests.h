@@ -932,9 +932,11 @@ namespace gaol_tests
       }
 
       // A double with a random sign and mantissa, and an exponent from emin to
-      // emax
+      // emax, from -1023 to 1023 (exponents()): -1023 gives the subnormal
+      // doubles and zero, which subnormal() draws of every length
       double operator()(int emin, int emax)
       {
+        exponents(emin, emax);
         // The exponent, the sign, then the mantissa in make(), drawn one at a
         // time: the order in which the arguments of a call are evaluated is
         // unspecified, and GCC and Clang drew different doubles from
@@ -945,10 +947,29 @@ namespace gaol_tests
       }
 
       // A positive double with a random mantissa and an exponent from emin to
-      // emax
+      // emax, as above
       double positive(int emin, int emax)
       {
+        exponents(emin, emax);
         return make(0u, static_cast<std::uint64_t>(1023 + integer(emin, emax)));
+      }
+
+      // A subnormal double with a random sign and from 1 to 52 significant
+      // bits, each number of bits as likely: from 2^-1074 to the double below
+      // 2^-1022 at every scale, where the mantissas of operator() at the
+      // exponent -1023, drawn over 52 bits, have 46 bits or more 127 times
+      // in 128
+      double subnormal()
+      {
+        // The number of bits, the sign, then the mantissa, one at a time as
+        // in operator()
+        const int length = integer(1, 52);
+        const std::uint64_t sign = bits() & 1u;
+        const std::uint64_t top = static_cast<std::uint64_t>(1) << (length - 1);
+        const std::uint64_t b = (sign << 63) | top | (bits() & (top - 1u));
+        double x;
+        std::memcpy(&x, &b, sizeof x);
+        return x;
       }
 
       // Any finite double, subnormal ones included, with a random sign,
@@ -968,6 +989,19 @@ namespace gaol_tests
       }
 
     private:
+
+      // The biased exponent 1023 + e is 11 bits wide and 2047 is that of the
+      // infinities and NaN: e from -1023 to 1023. An exponent outside spilled
+      // into the sign and gave other doubles (rnd(-1074, 1023) drew normal
+      // ones of exponent 974 to 1023 for -1074 to -1025, and an infinity or a
+      // NaN for -1024): the program stops rather than draw them (GAOL v5)
+      static void exponents(int emin, int emax)
+      {
+        if (emin < -1023 || emax > 1023 || emin > emax) {
+          std::fprintf(stderr, "Random: the exponents from %d to %d are not within -1023 to 1023\n", emin, emax);
+          std::abort();
+        }
+      }
 
       double make(std::uint64_t sign, std::uint64_t biased_exponent)
       {
