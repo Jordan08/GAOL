@@ -3032,7 +3032,6 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   that its result, `z`, encloses the range, and why it is wider. The example
   checks its output (exact integer bounds computed apart), fails if a check
   fails, and prints its time in milliseconds (`Elapsed time: N ms`).
-- **The CMake build**, derived from the CMake build of GAOL in IBEX
-  (Cyril Bouvier, Gilles Chabert), with the compilation flags of the IBEX fork
-  of Fabrice Le Bars.
+- **The CMake build**, which takes the list of sources of GAOL's meson build;
+  what Visual C++ needs follows the fork of GAOL of Fabrice Le Bars.
 - **The tests** of `tests/`, after the rounding tests of Codac.

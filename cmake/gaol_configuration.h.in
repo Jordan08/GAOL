@@ -14,12 +14,7 @@
    read. What GAOL needs to know of the processor and the system, and the
    sizes of the integer types, come from the macros of the compiler
    (gaol/gaol_config.h). Every compiler includes this header, through
-   gaol/gaol_config.h. (GAOL v5)
-
-   Origin: the version of gaol/gaol_configuration.h.in with which IBEX builds
-   GAOL with CMake (https://github.com/ibex-team/ibex-lib,
-   interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0/, Cyril Bouvier and Gilles
-   Chabert), itself generated from GAOL's configure.ac. */
+   gaol/gaol_config.h. (GAOL v5) */
 
 #ifndef GAOL_CONFIGURATION_H
 #define GAOL_CONFIGURATION_H
