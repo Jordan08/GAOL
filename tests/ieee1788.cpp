@@ -1159,6 +1159,23 @@ namespace
     check("operator<< in interval_format::hexa writes exact_string",
           s.str() == gaol::exact_string(third) + " [empty]", [&] { return s.str(); });
     interval::format(saved);
+    // A zero bound is written 0x0p+0 whatever its sign, the zero of 13.4.1,
+    // and read back as the same set, which is written the same (GAOL v5: -0
+    // was written -0x0p+0, the lower bound of sqr([-1, 2]) with the SSE2 and
+    // the NEON intervals, whose text was then not that of the FPU ones). One
+    // call per case: GCC 12.2 for aarch64 misread loops over local tables
+    const auto zero_bound = [](const interval& x, const char* text) {
+      const std::string exact = intervalToExact(x);
+      const interval back = exactToInterval(exact);
+      check("intervalToExact: a zero bound of either sign written 0x0p+0, read back as the same set and text",
+            exact == text && exact == gaol::exact_string(x) && back.set_eq(x) && intervalToExact(back) == exact,
+            [&] { return hex(x) + " written " + exact + " rather than " + text; });
+    };
+    zero_bound(interval(-0.0, 1.0), "[0x0p+0, 0x1p+0]");
+    zero_bound(interval(0.0, 1.0), "[0x0p+0, 0x1p+0]");
+    zero_bound(interval(-1.0, -0.0), "[-0x1p+0, 0x0p+0]");
+    zero_bound(interval(-1.0, 0.0), "[-0x1p+0, 0x0p+0]");
+    zero_bound(sqr(interval(-1.0, 2.0)), "[0x0p+0, 0x1p+2]");
   }
 
   /*
