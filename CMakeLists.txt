@@ -1770,13 +1770,17 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # tree, git's or not, and a file that git ignores went into the archive where
   # no expression matched it, as the 14 files that a build of the manual leaves
   # in manual/v5/build/, the lock files of gcore (.github/corelocks/), the
-  # *.loTAGS of libtool and a manual_gaolv5.dvi (GAOL v5). The job Archives of
-  # the sources of the continuous integration makes in the tree a file for each
-  # pattern of these .gitignore files, x/y/build and x/y.libs/x as well, before
-  # the archive of CPack, and checks that the archive holds the files of git
-  # archive alone (.github/actions/buildsystems-dist). The cache of clangd,
-  # .cache/, and the compile_commands.json that an editor reads, often a link
-  # to the one of a build, at the top of the sources, are left out too
+  # *.loTAGS of libtool, a manual_gaolv5.dvi, a file x/y/build (*/*/build,
+  # which git ignores as it does a directory) and a directory x/y.libs/
+  # (*/*.libs/) (GAOL v5). The job Archives of the sources of the continuous
+  # integration makes in the tree a file for each pattern of these .gitignore
+  # files before the archive of CPack, and checks that the archive holds the
+  # files of git archive alone (.github/actions/buildsystems-dist). The
+  # expression of the directories *.libs/ starts at the sources, whose path
+  # could match it too (a directory my.libs/ above them would leave every file
+  # out). The cache of clangd, .cache/, and the compile_commands.json that an
+  # editor reads, often a link to the one of a build, at the top of the
+  # sources, are left out too
   set(CPACK_SOURCE_IGNORE_FILES
     "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/" "/\\.continue/"
     "/compile_commands\\.json$"
@@ -1784,7 +1788,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     "/autom4te\\.cache/" "/doc/compare/code/work[^/]*/" "/doc/compare/itf1788/work/"
     "/doc/compare/tang2021/work[^/]*/" "/tests/meson_subproject/subprojects/"
     "/coverage/[^/]*\\.(css|js)$" "/coverage/coverage\\.json$"
-    "\\.o$" "\\.lo$" "\\.a$" "\\.so$" "\\.la$" "\\.libs/" "/\\.deps/" "\\.dirstamp$"
+    "\\.o$" "\\.lo$" "\\.a$" "\\.so$" "\\.la$" "^${_gaol_source_regex}/.*\\.libs/" "/\\.deps/" "\\.dirstamp$"
     "\\.loTAGS(\\.tmp)?$"
     "/check/performances_result\\.txt$"
     "/3rd/math-core/perf\\.data$" "/3rd/math-core/src/[^/]+/[^/]+/(check_exhaustive|check_worst|check_special|perf)$"
