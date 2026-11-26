@@ -248,7 +248,8 @@ change of its text. The third section gives their reasons.
   stops the reading. The reader knows every function of GAOL, and
   \code{gaol\_ieee1788::textToInterval} reads the names of IEEE 1788-2015
   (\code{pown}, \code{rootn}\ldots). The format \code{hexa} writes interval
-  literals, which are read back bit for bit; the decimal formats round the
+  literals, which are read back bit for bit, a zero bound as $+0$; the
+  decimal formats round the
   bounds outward whatever the C library, and the format \code{agreeing} keeps
   the digits of each bound (Chapter~\ref{chap:io}).
 \item[$\bullet$] \textbf{New operations.} \code{atan2()} is implemented, and
@@ -1426,8 +1427,8 @@ not a zero, and $[1.25, 1.2567]$ was written \code{1.25\textasciitilde{}[, ]}, w
 nothing of the right bound; it is \code{1.25\textasciitilde{}[0, 67]} now, and $[1, 10]$
 is written with its bounds, where it was \code{1\textasciitilde{}[., 0]}. The hexadecimal
 format writes an interval literal, \code{[0x1.999999999999ap-4, ...]}, read
-back bit for bit, where GAOL~4 wrote the sixteen hexadecimal digits of each
-double, which no parser read; \code{exact\_string(I)} gives that text
+back bit for bit (a zero bound as $+0$), where GAOL~4 wrote the sixteen
+hexadecimal digits of each double, which no parser read; \code{exact\_string(I)} gives that text
 without the global output format, and \code{gaol\_ieee1788::intervalToText()}
 writes a literal with the digits of \code{interval::precision()}, whatever
 the format and the locale. \code{operator<<} leaves the stream as it found

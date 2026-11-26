@@ -758,7 +758,8 @@ int main()
 
   std::cout << "What to do\n"
             << "  read data with textToInterval(\"0.3\"), which encloses 3/10 in every direction, not with strtod()\n"
-            << "  write data with exact_string() or %a, read back to the same bits in every direction\n"
+            << "  write data with exact_string() or %a, read back to the same bits in every direction"
+               " (a zero but for its sign with exact_string())\n"
             << "  call gaol::cleanup() right after the last use of GAOL, and gaol::restore_rounding() after each phase\n";
 
   if (failures != 0) {

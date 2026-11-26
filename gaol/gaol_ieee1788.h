@@ -526,8 +526,8 @@ namespace gaol_ieee1788 {
   interval_format::hexa, whose bounds in the hexadecimal-significand form
   exactToInterval() reads back as the same doubles (13.4), a zero bound but
   for its sign: it is written 0x0p+0, the zero of 13.4.1, and read back as
-  +0. "[a]" for a point interval, and "[0x0p+0]" for a zero one, read back
-  as the same set.
+  +0. A point interval is written "[a]", and a zero one "[0x0p+0]", read
+  back as the same set.
   It leaves the global output format alone: switching it to hexa and back
   left it in hexa if the output threw, and showed it to the other threads
   meanwhile.

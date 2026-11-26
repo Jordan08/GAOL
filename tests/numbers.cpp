@@ -8,7 +8,8 @@
  * number is one, whatever the C library, and whether the processor flushes the
  * subnormals to zero or not. Each number is compared exactly with the bounds
  * read. The constants have to be the tightest intervals enclosing
- * pi, 2pi and pi/2, and the hexadecimal output to be read back bit for bit.
+ * pi, 2pi and pi/2, and the hexadecimal output to be read back bit for bit,
+ * a zero bound as +0.
  * The constructors have to give the empty set where their arguments are not
  * an interval: an infinite lower bound of +oo, an upper bound of -oo, bounds
  * in the wrong order, and NaN bounds. The interval literals of IEEE 1788-2015
