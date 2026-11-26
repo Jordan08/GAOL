@@ -377,7 +377,8 @@ namespace {
     return results;
   }
 
-  // The exact texts of intervals, which tell them apart bit for bit
+  // The exact texts of intervals, which tell them apart bit for bit, but for
+  // the sign of a zero bound, written 0x0p+0 (none of the seven has one)
   std::vector<std::string> exact_texts(const std::vector<interval>& xs)
   {
     std::vector<std::string> texts;
@@ -587,7 +588,8 @@ int main()
   }
 
   /* exact_string() writes the bounds in hexadecimal, which textToInterval()
-     reads back bit for bit, and %a the same for a double, which strtod()
+     reads back bit for bit (a zero bound is written 0x0p+0 and read back as
+     +0), and %a the same for a double, which strtod()
      reads back: exact, in any direction. A double written with 17 decimal
      digits and read back while rounding upward can move up by one double at
      each round trip, with the GNU C library. */

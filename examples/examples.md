@@ -318,9 +318,11 @@ without exceptions (`-DGAOL_EXCEPTIONS_ENABLED=OFF`, `--disable-exceptions` of
 configure, `-Denable-exception=false` of meson), its reader ends the program on
 a malformed text, and the example reads such a text, in sections 1.2 and 1.3,
 with `gaol_ieee1788::textToInterval()`, which returns the empty set.
-`exact_string()` reads back bit for bit. The second part writes one contractor
-step with the names of the standard (`numsToInterval`, `pown`, `mulRev`,
-`sqrRev`, `precedes`…) in a function that opens `gaol_ieee1788` alone.
+`exact_string()` reads back bit for bit, a zero bound but for its sign: it is
+written `0x0p+0`, the zero of IEEE 1788-2015. The second part writes one
+contractor step with the names of the standard (`numsToInterval`, `pown`,
+`mulRev`, `sqrRev`, `precedes`…) in a function that opens `gaol_ieee1788`
+alone.
 
 **16 — The example of GAOL 4.** It times a million evaluations of the
 Goldstein-Price function and prints `z = [-87881320, 147125080]`, the natural
@@ -487,9 +489,10 @@ intervals and automatic differentiation. With GAOL:
 GAOL's reader is an expression language that encloses what it reads, the
 literals of IEEE 1788 included, and its decimal output is rounded outward, so
 that the text read back encloses the interval; `exact_string()` (or the hexa
-format) reads back bit for bit. `operator<<` writes with the digits of
-`interval::precision()`, not those of `std::setprecision`, and leaves the
-stream's own precision as it was; `std::setw` pads the whole interval.
+format) reads back bit for bit, but for the sign of a zero bound, written
+`0x0p+0`. `operator<<` writes with the digits of `interval::precision()`, not
+those of `std::setprecision`, and leaves the stream's own precision as it was;
+`std::setw` pads the whole interval.
 `operator>>` reads one interval per line, the blank lines before it skipped:
 at the end of the input it sets `failbit`, so that `while (in >> x)` ends
 there, and a line that is no interval sets `failbit` and throws

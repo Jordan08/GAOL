@@ -16,7 +16,8 @@
  * reader ends the program on such a text, and sections 1.2 and 1.3 read with
  * gaol_ieee1788::textToInterval(). Written in decimal, the bounds are rounded
  * outward, so that the text still encloses the interval; the hexadecimal
- * text of exact_string() reads back bit for bit. Part 2 writes one step of a
+ * text of exact_string() reads back bit for bit, a zero bound but for its
+ * sign (0x0p+0, the zero of IEEE 1788-2015). Part 2 writes one step of a
  * contractor (the HC4-revise of 2 x^2 in c over x, as IBEX's and Codac's
  * contractors do it) twice: under GAOL's names, and in a function that opens
  * gaol_ieee1788, under the names of the standard (numsToInterval, pown,
@@ -279,7 +280,7 @@ namespace {
 
     // exact_string() reads back as the same doubles: the way to save an
     // interval and read it again, in a file or between programs
-    const interval saved[] = { third, interval(0.1), interval::pi(), interval(-0.0, 1.0),
+    const interval saved[] = { third, interval(0.1), interval::pi(),
                                interval(1, std::numeric_limits<double>::infinity()), interval::emptyset() };
     bool exact = true;
     for (const interval& x : saved) {
@@ -287,7 +288,13 @@ namespace {
     }
     show("exact_string(pi)", exact_string(interval::pi()), "reads back as the same doubles",
          same_bits(gaol::textToInterval(exact_string(interval::pi())), interval::pi()));
-    show("the same round trip for", std::string("1/3, 0.1, [-0, 1], [1, +oo), [empty]"), "bit for bit", exact);
+    show("the same round trip for", std::string("1/3, 0.1, [1, +oo), [empty]"), "bit for bit", exact);
+    // A zero bound is written 0x0p+0 whatever its sign, the zero of IEEE
+    // 1788-2015 (13.4.1): [-0, 1] reads back as [+0, 1], the same set
+    const interval from_zero(-0.0, 1.0);
+    show("exact_string([-0, 1])", exact_string(from_zero), "0x0p+0, read back as the same set",
+         exact_string(from_zero) == "[0x0p+0, 0x1p+0]"
+           && gaol::textToInterval(exact_string(from_zero)).set_eq(from_zero));
     // A point is written [a], as in decimal, and a zero [0x0p+0] whatever the
     // signs of its bounds: [-0, 0] reads back as the same set, {0}
     const interval zero(-0.0, 0.0);
