@@ -346,8 +346,9 @@ corrections de la relecture complète par #399, puis l'étiquette `v5.0.0` :
 `TODO_DONE.md` 3.56, 3.57, 3.60 et 3.61). Le texte de son point 34 est dans
 `TODO_DONE.md` (section 5, point Y). La version 5.0.1 (l'issue #400, #401 et
 #402 : `TODO_DONE.md` 3.62) laisse la tâche VJ. Restent, pour `dev`, les tâches
-VA à VI de la relecture et la tâche VJ, que le mainteneur donne une à une : ne
-commence rien sans lui.
+VA à VI de la relecture, la tâche VJ, et les tâches VK et VL, ajoutées le 26
+novembre à la demande du mainteneur (deux estimations faites en lisant le code),
+que le mainteneur donne une à une : ne commence rien sans lui.
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
@@ -361,6 +362,8 @@ commence rien sans lui.
 | VH | Les 29 constats vus et non rapportés | VH.1 | M |
 | VI | Ce que la relecture n'a pas lu | VI.1 à VI.3 | M |
 | VJ | Les restes de l'issue #400 (`gaol::pow`) | VJ.1 à VJ.9 | à décider |
+| VK | Aucune option pour le code qui utilise GAOL | VK.1 à VK.10 | L |
+| VL | Les suites de l'étude d'un passage au C | VL.1, VL.2 | à décider |
 
 Les tâches VA à VI viennent de la relecture complète des 19 et 20 novembre,
 faite avant l'étiquette `v5.0.0` sur la demande du mainteneur (`TODO_DONE.md`
@@ -585,6 +588,140 @@ le mainteneur n'a pas encore tranché ou donné :
 9. **`gaol::pow([+∞] de registre, [-3, -0.5])` rend [0, 0]**, ce qui contredit
    la convention des réciproques, où `[+∞]` est vide. Le défaut est déjà dans
    `dev` avant #401 (`pow_standard_upward` n'est pas modifiée).
+
+## VK. Aucune option pour le code qui utilise GAOL [L]
+
+Ajoutée le 26 novembre à la demande du mainteneur, que gênent les options que
+`gaol::gaol`, les deux `gaol.pc` et `gaol_dep` imposent au code qui inclut
+GAOL. C'est une estimation faite le 25 novembre en lisant `dev` à `e226d87`
+(les lignes citées sont celles de ce commit), sans rien compiler ni exécuter :
+chaque point est à vérifier avant d'écrire du code. Le but : que ces cibles ne
+donnent plus que l'en-tête et la bibliothèque (`-I` et `-lgaol`), sans rien
+perdre de la sûreté des bornes ; les options de GAOL lui-même restent, PRIVATE
+et choisies par les trois builds (GCC n'a pas `#pragma STDC FENV_ACCESS`).
+
+Le principe : n'avoir en ligne, dans les en-têtes installés, que des opérations
+exactes (négation, min et max, comparaisons, mélanges des voies,
+`integer_neighbours()`), qui donnent le même résultat dans toutes les directions
+d'arrondi, même évaluées à la compilation au plus près ; toute opération
+arrondie est compilée dans libgaol, avec les options de GAOL. C'est déjà le cas
+de `+ - * /` et de `sqr` : `gaol_detail::add_bounds()` et les autres sont des
+appels dans la bibliothèque (`gaol/core/gaol_interval_sse.h`, ligne 286,
+`gaol/core/gaol_interval_neon.h`, ligne 339, et les opérateurs d'affectation de
+`gaol_interval_fpu_impl.h` pour le FPU), comme le dit
+`doc/compare/performance.md` (ligne 23). Ce que la tâche corrige en plus :
+aujourd'hui, une unité compilée sans les options peut imposer sa copie d'une
+fonction en ligne à tout le programme (l'éditeur de liens n'en garde qu'une),
+et `PUBLIC` donne `-mfma` et `-frounding-math` à tous les fichiers du projet
+utilisateur, même ceux qui n'incluent pas GAOL.
+
+1. **`width()`, `mid_rad()` et `rad()` dans la bibliothèque** : ce sont, à la
+   lecture, les seules fonctions en ligne des en-têtes installés qui
+   arrondissent (`gaol/core/gaol_interval_core.h`, lignes 2375, 2441 et
+   2462 : une soustraction des bornes vers le haut, avec `GAOL_RND_ENTER()` et
+   `rnd_reread()`). Compilées dans libgaol, elles rendent inutiles pour le code
+   utilisateur `-frounding-math -ffp-contract=off` et `/fp:strict` (le `#error`
+   de `gaol/gaol_config.h`, ligne 334, ne vaut plus alors que pour la
+   compilation de GAOL). À faire avec : relire les quelque 250 définitions en
+   ligne des en-têtes installés, pour confirmer qu'aucune autre n'arrondit.
+   Coût estimé : un appel de plus, 1 à 2 ns, pour `width()` et `rad()`
+   seulement.
+2. **`-fno-fast-math` : le refus suffit** : `is_empty()` teste en ligne des
+   bornes NaN, et le `#error` de `-ffast-math` et de `-ffinite-math-only`
+   (`gaol/gaol_config.h`, lignes 243 et 268) reste. Les compilateurs ne les
+   donnent pas par défaut : l'option n'a plus à être passée.
+3. **`-mfma` et `/arch:AVX2`** : `gaol_fma()` (`gaol_interval_core.h`, ligne
+   1819) et `GAOL_FMA_AS_INSTRUCTION` (`gaol/gaol_fpu.h`, ligne 358) lisent le
+   `__FMA__` du compilateur de l'utilisateur. Après le point 1, plus rien de ce
+   qu'ils décident n'arrondit dans le code utilisateur, et `gaol_fma()` donne la
+   même valeur dans ses deux branches. Le processeur doit toujours avoir les
+   instructions FMA, que libgaol emploie, mais le code utilisateur n'a plus à
+   être compilé pour elles.
+4. **`-msse2 -msse3` sur x86-64** : SSE2 est la base de x86-64, et les en-têtes
+   installés n'emploient que des intrinsèques SSE2 ;
+   `GAOL_USING_SSE3_INSTRUCTIONS` ne sert qu'aux intervalles de floats,
+   réservés aux développeurs
+   (`gaol/gaol_config.h`, ligne 108). À vérifier par un programme compilé sans
+   elles.
+5. **x86 32 bits** (à décider) : `-msse2 -mfpmath=sse`, `-faligned-new=8` et
+   `-ffloat-store` viennent de ce que l'intervalle y garde un `__m128d`
+   (alignement 16, registres SSE) que le code en ligne manipule, et des refus de
+   `gaol/gaol_config.h` (lignes 340 et 419). Garder les deux bornes en deux
+   doubles, comme `GAOL_SSE2_UNALIGNED_STORAGE` le fait déjà pour Visual C++ et
+   clang-cl (`gaol_interval_core.h`, ligne 700), et ne passer aux noyaux que
+   des références, ôterait les trois. Cela change la disposition de
+   l'intervalle, donc l'ABI, sur 32 bits seulement : pour une version majeure,
+   ou garder ces options sur 32 bits.
+6. **`-fno-section-anchors`** (GCC 12 pour arm64) : il contourne un défaut de
+   GCC 12 qui ne se montre qu'avec `-frounding-math` (`CMakeLists.txt`, lignes
+   437 à 467) ; il part avec lui pour le code utilisateur, et reste pour GAOL.
+7. **`-mno-daz-ftz` à l'édition de liens** : `round_upward_if_needed()` remet
+   déjà à zéro FTZ et DAZ (`gaol/gaol_fpu.h`, lignes 50 à 56), et
+   `crtfastmath.o` n'est lié qu'avec `-ffast-math`, `-Ofast` ou
+   `-funsafe-math-optimizations` à l'édition de liens. L'option paraît
+   redondante : à vérifier par un programme lié avec `-Ofast`. VB.1 (R32)
+   disparaît avec elle.
+8. **Les réglages des développeurs** `GAOL_U128_FORCE_EMULATION` et
+   `GAOL_FMA_FORCE_SOFTWARE`, `PUBLIC` dans le build CMake (`CMakeLists.txt`,
+   lignes 1451 et 1469) : les écrire dans le `gaol_configuration.h` installé
+   plutôt que sur la ligne de commande du code utilisateur.
+9. **Les trois builds, la documentation et les tests** : `gaol::gaol`,
+   `cmake/gaol.pc.in`, `gaol.pc.in` (configure) et `gaol_dep` (meson) ne donnent
+   plus que l'en-tête et la bibliothèque ; `doc/using.md` (sa première section :
+   sa première phrase, « GAOL's interval operations are inline », est déjà en
+   retard sur le code pour `+ - * /`), le `README.md` et le manuel ; un test
+   qui a des dents (process.md §5) : un programme compilé sans autre option que
+   `-I` et `-l`, dans les trois builds et la CI, avec un cas où le `width()` en
+   ligne d'aujourd'hui, évalué à la compilation au plus près, donne une largeur
+   trop petite.
+10. **Le code de l'utilisateur et la direction vers le haut** (à décider) :
+    avec `GAOL_PRESERVE_ROUNDING=OFF`, le défaut, GAOL laisse la direction vers
+    le haut à tout le programme, et `-frounding-math` rend aujourd'hui le code
+    de l'utilisateur cohérent avec elle. Sans lui, les constantes de ce code
+    sont évaluées au plus près à la compilation et ses opérations vers le haut
+    à l'exécution : les bornes de GAOL n'en changent pas, mais les nombres du
+    programme peuvent différer d'un ulp de ceux d'aujourd'hui. Le dire dans
+    `doc/using.md`, ou garder ces options dans une cible à part pour qui veut
+    ce code cohérent ; `GAOL_PRESERVE_ROUNDING=ON` ne laisse rien fuir, avec
+    son coût hors du chemin AVX-512 (la colonne gaol5p de
+    `doc/compare/performance.md`).
+
+Estimation : 2 à 3 semaines pour x86-64 et ARM64 (2 à 3 jours pour le point 1,
+1 à 2 pour les points 3, 4 et 8, 2 à 3 pour les builds et la documentation, 3 à
+5 pour les tests, 1 à 2 pour la CI), une de plus pour le point 5. Sur x86-64 et
+ARM64, l'ABI reste compatible : des symboles en plus, et un programme déjà
+compilé garde ses copies en ligne, compilées avec les options (une 5.1.0) ; le
+point 5 change celle de 32 bits.
+
+## VL. Les suites de l'étude d'un passage au C [à décider]
+
+Le 25 novembre, le mainteneur a demandé s'il serait intéressant de passer GAOL
+en C ; estimation faite en lisant le code, sans rien compiler, ajoutée ici le
+26 novembre à sa demande. Conclusion : non. 3,5 à 7 mois de travail pour une
+personne (le cœur, environ 31 000 lignes de C++ écrites à la main, les 33 000
+lignes des tests, les exemples, la documentation et le manuel), pour perdre les
+opérateurs, les surcharges (les entiers au-delà de 2^53, les deux `pow` de
+`gaol` et de `gaol_ieee1788`), les exceptions, l'initialisation automatique et
+les flux à locale propre, sans gain de vitesse attendu : les noyaux sont déjà
+des intrinsèques, qui sont une API C, et GCC et Clang optimisent le C et le C++
+de la même façon. CORE-MATH est déjà en C. Deux pistes en restent :
+
+1. **Une API C mince** (`gaol_c.h`, `extern "C"`), si l'interopérabilité est
+   voulue (Python, Julia, Fortran, Rust) : une structure de deux doubles à la
+   frontière, les exceptions attrapées et rendues en codes d'erreur, sans
+   toucher au cœur ; 1 000 à 2 000 lignes et leurs tests, 1 à 3 semaines. Un
+   programme C reste lié au runtime C++ (automatique avec `libgaol.so`,
+   `-lstdc++` à ajouter en statique).
+2. **Un constructeur de copie trivial** : `interval(const interval&)` est écrit
+   à la main (`gaol/core/gaol_interval_sse.h`, ligne 120,
+   `gaol_interval_neon.h`, ligne 251, `gaol_interval_fpu.h`, ligne 154) et ne
+   fait que ce que ferait celui du compilateur. Sous l'ABI Itanium (Linux,
+   macOS), une classe dont le constructeur de copie n'est pas trivial est rendue
+   par un pointeur caché : `sin(x)`, hors ligne, écrit son résultat en mémoire
+   au lieu de `xmm0`. `= default` le rendrait trivial ; gain sans doute faible
+   (un stockage et un chargement par appel, à côté des dizaines de ns de
+   CORE-MATH), à mesurer avec `performance-ab.sh`. Change l'ABI : pour une
+   version majeure.
 
 ## Annexe 1. Les constats de la relecture qui restent, en entier
 
