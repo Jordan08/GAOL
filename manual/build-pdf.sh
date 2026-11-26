@@ -63,21 +63,39 @@ fi
 export TEXINPUTS=".:$source_dir:"
 export BIBINPUTS="$source_dir:"
 export BSTINPUTS="$source_dir:"
+# makeindex writes the index from the page numbers of the pass before, in
+# $job.idx; index_read keeps the checksum of what it read
+index() {
+  ${MAKEINDEX:-makeindex} "$job.idx" -o "$job.ind"
+  index_read=$(cksum < "$job.idx")
+}
 $latex $main > pdflatex-1.log || { tail -40 pdflatex-1.log; exit 1; }
 ${BIBTEX:-bibtex} "$job"
-${MAKEINDEX:-makeindex} "$job.idx" -o "$job.ind"
+index
 $latex $main > pdflatex-2.log || { tail -40 pdflatex-2.log; exit 1; }
 # The index of the first pass holds the page numbers of a text where the
 # references were not resolved yet: it is made again, after each pass
-${MAKEINDEX:-makeindex} "$job.idx" -o "$job.ind"
+index
 $latex $main > pdflatex-3.log || { tail -40 pdflatex-3.log; exit 1; }
-# The page numbers of a long manual may need more than three passes
+# The page numbers of a long manual may need more than three passes: one more
+# when LaTeX asks for it, or when a page number of the index moved in the last
+# pass, which LaTeX does not report (in a build directory of its own, the third
+# pass moved an entry of chapter 11 to the next page, and the index printed
+# the page before)
 for pass in 4 5; do
-  grep -q "Rerun to get cross-references right" pdflatex-$((pass - 1)).log || break
-  ${MAKEINDEX:-makeindex} "$job.idx" -o "$job.ind"
+  if ! grep -q "Rerun to get cross-references right" pdflatex-$((pass - 1)).log \
+     && [ "$(cksum < "$job.idx")" = "$index_read" ]; then
+    break
+  fi
+  index
   $latex $main > pdflatex-$pass.log || { tail -40 pdflatex-$pass.log; exit 1; }
   cp pdflatex-$pass.log pdflatex-3.log
 done
+# An index made from the page numbers of an earlier pass is an error
+if [ "$(cksum < "$job.idx")" != "$index_read" ]; then
+  echo "the page numbers of the index still moved in the last pass" >&2
+  exit 1
+fi
 # A reference or a citation left undefined is an error
 if grep -E "LaTeX Warning: (Reference|Citation) .* undefined" pdflatex-3.log; then
   exit 1
