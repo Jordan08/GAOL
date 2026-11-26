@@ -731,8 +731,8 @@ which `numbers` checks there too.
   `[0x1.8p+0, 0x1.8p+0]`, `[-0x0p+0, 0x0p+0]` for `interval::zero()` with
   the SSE2 and the NEON intervals, and `[-0x0p+0, 0x1p+0]` for [−0, 1]); the
   bounds read back are compared with `==`, which does not tell −0 from +0.
-  `operator<<` has to leave the precision of the stream as it was, and `std::setw`
-  to pad the whole interval, adjusted to the right, to the left
+  `operator<<` has to leave the precision of the stream as it was, and
+  `std::setw` to pad the whole interval, adjusted to the right, to the left
   or inside (with `std::internal`, the fill follows the sign of the midpoint
   in the width and center formats, and that of the shared digits in the
   agreeing format), and after `0x` in the hexadecimal floating-point
@@ -994,10 +994,13 @@ which `numbers` checks there too.
   and a number; the functions of C on numbers, by `static_assert`.
   `intervalToExact()` has to be `exact_string()`, read back bit for bit, and
   to leave the global output format alone; a zero bound of either sign has
-  to be written `0x0p+0` and read back as the same set, written the same
-  again (`[-0, 1]`, `[-1, -0]`, `sqr([-1, 2])`: GAOL v5); the check of it
-  by a second thread writing intervals meanwhile is commented out, the tests
-  running no thread. `textToInterval(intervalToText(x))` has to
+  to be written `0x0p+0` and read back as +0, the same set, written the same
+  again (`[-0, 1]`, `[-1, -0]`, `sqr([-1, 2])`: GAOL v5), and a subnormal
+  bound to keep its sign under each mode that flushes the subnormals to zero
+  the processor honours (a test of the zero by `x != 0.0` would write
+  `[-2^-1074, 1]` with a positive lower bound under denormals-are-zero); the
+  check of it by a second thread writing intervals meanwhile is commented
+  out, the tests running no thread. `textToInterval(intervalToText(x))` has to
   contain x for a point interval x, `interval(0.1)` first: it was
   the empty set (GAOL v5); and to be x itself for a text `[a]`. The point
   interval of a double written by `operator<<` in the hexadecimal
