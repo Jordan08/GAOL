@@ -132,12 +132,18 @@ runs:
     # build it, as a project that takes GAOL by find_package() with the
     # compiler of the machine: gaol::gaol gives it -mno-daz-ftz where that
     # compiler takes the option, and only there (GAOL v5: a GAOL built by
-    # Clang 21 for arm64 gave it to GCC 15 for arm64, which stopped on it)
+    # Clang 21 for arm64 gave it to GCC for arm64, which stopped on it)
     - name: A test built with the installed GAOL by another compiler
       if: inputs.other-cxx != ''
       shell: bash -e {0}
       run: |
         ${{ inputs.other-cxx }} --version | head -1
+        # The installed GAOL gives the option to a compiler: without it, the
+        # check below would test nothing
+        if ! grep -q -- -mno-daz-ftz "$(find gaol-install -name gaolTargets.cmake)"; then
+          echo "::error::the installed GAOL gives -mno-daz-ftz to no compiler: the check below would test nothing"
+          exit 1
+        fi
         cmake -S tests/find_package -B build-find-package-other -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ inputs.other-cxx }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
         cmake --build build-find-package-other --target gaol_test_rounding_direction
         given=false
