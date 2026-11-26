@@ -909,8 +909,13 @@ endif()
 # name is overwritten. With a generator of several configurations (Visual
 # Studio, Xcode), whose configurations share gaol/gaol_configuration.h,
 # GAOL_DEBUGGING is given to the sources of GAOL in the Debug configuration
-# below.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR GAOL_DEBUG)
+# below. The name of the build type is compared in capitals, as CMake reads it
+# to choose CMAKE_<LANG>_FLAGS_<CONFIG> and $<CONFIG:...> does (GAOL v5:
+# -DCMAKE_BUILD_TYPE=debug compiled GAOL with -g and without NDEBUG, as Debug,
+# but without GAOL_DEBUGGING, and had the target perf of the builds that do
+# not debug).
+string(TOUPPER "${CMAKE_BUILD_TYPE}" _gaol_build_type)
+if(_gaol_build_type STREQUAL "DEBUG" OR GAOL_DEBUG)
   set(GAOL_DEBUG ON)
   set(GAOL_DEBUGGING ON)
 else()
@@ -2036,9 +2041,11 @@ if(GAOL_COVERAGE)
   if(NOT (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
     message(FATAL_ERROR "GAOL_COVERAGE needs GCC or Clang, and this build uses ${CMAKE_CXX_COMPILER_ID}.")
   endif()
-  if(CMAKE_BUILD_TYPE STREQUAL "Release")
+  # In capitals, as for the Debug build type above (GAOL v5: release had no
+  # warning)
+  if(_gaol_build_type STREQUAL "RELEASE")
     message(WARNING
-      "GAOL_COVERAGE with CMAKE_BUILD_TYPE=Release: the optimizations move the code around, and the counts "
+      "GAOL_COVERAGE with CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}: the optimizations move the code around, and the counts "
       "no longer follow the source. Configure with -DCMAKE_BUILD_TYPE=Debug.")
   endif()
   message(STATUS "Coverage: ON, target coverage (report in ${CMAKE_CURRENT_SOURCE_DIR}/coverage)")

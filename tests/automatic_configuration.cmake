@@ -20,8 +20,8 @@
 #     -DGAOL_PREFER_AVX512=OFF refuses it under GAOL_PRESERVE_ROUNDING, =ON asks
 #     for it without, and an error says so where no compiler could take it;
 #   - the Debug build type is the build for debugging, GAOL_DEBUGGING follows it,
-#     and nothing but it and -DGAOL_DEBUG=ON sets it: -DGAOL_DEBUGGING=ON is
-#     overwritten;
+#     whatever the case of its name (debug too), and nothing but it and
+#     -DGAOL_DEBUG=ON sets it: -DGAOL_DEBUGGING=ON is overwritten;
 #   - -DGAOL_FMA=OFF leaves the fused multiply-add instructions out, and so does
 #     a C compiler that refuses their flag; -DGAOL_U128_EMULATION=ON has the two
 #     halves of the 128-bit integer; -DGAOL_FMA_SOFTWARE=ON has fma() computed
@@ -335,6 +335,11 @@ configure_ok("Debug" "${_build}" -DCMAKE_BUILD_TYPE=Debug)
 expect("CMAKE_BUILD_TYPE=Debug" "DEBUGGING EQUAL 1")
 configure_ok("Release after Debug" "${_build}" -DCMAKE_BUILD_TYPE=Release)
 expect("CMAKE_BUILD_TYPE=Release after Debug" "DEBUGGING EQUAL 0")
+# The name of the build type in any case, as CMake reads it to choose the flags
+# of the build type (GAOL v5: debug had the flags of Debug, without
+# GAOL_DEBUGGING)
+configure_ok("debug" "${_build}" -DCMAKE_BUILD_TYPE=debug)
+expect("CMAKE_BUILD_TYPE=debug" "DEBUGGING EQUAL 1")
 # Nothing but the build type and -DGAOL_DEBUG=ON sets GAOL_DEBUGGING
 configure_ok("-DGAOL_DEBUGGING=ON" "${_build}" -DGAOL_DEBUGGING=ON)
 expect("-DGAOL_DEBUGGING=ON is overwritten" "DEBUGGING EQUAL 0")
