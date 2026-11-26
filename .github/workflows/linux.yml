@@ -168,9 +168,9 @@ jobs:
           exit $status
 
   l2:
-    name: 'Ubuntu 24.04 x86_64, GCC, other intervals and AVX-512 (5 configurations)'
+    name: 'Ubuntu 24.04 x86_64, GCC, other intervals and AVX-512 (6 configurations)'
     runs-on: ubuntu-24.04
-    timeout-minutes: 300
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - id: c1
@@ -252,12 +252,34 @@ jobs:
           cc: 'gcc'
           cxx: 'g++'
           opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF'
+      # The AVX-512 path of the arithmetic without the fused multiply-add
+      # instructions (-DGAOL_FMA=OFF, and a cross-compilation given
+      # -DGAOL_MACHINE_RUNS_AVX512=1 without -DGAOL_MACHINE_RUNS_FMA=1),
+      # which no other configuration builds: gaol_interval_core.cpp is then
+      # the first to include <immintrin.h>, which it does at the global
+      # scope, and checks it (GAOL v5: it included it in gaol_core). Built
+      # and not run (linux-warnings), the path being taken on the word of
+      # -DGAOL_MACHINE_RUNS_AVX512=1, since the runners seldom have the
+      # instructions. On Ubuntu 24.04, whose GCC targets the base x86-64: the
+      # GCC of the runner ubuntu-26.04 targets x86-64-v3, which has FMA, and
+      # GAOL keeps the instructions then, which a step of linux-warnings
+      # stops on
+      - id: c6
+        name: 'Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic without FMA, -Wall -Wextra -Werror'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic without FMA, -Wall -Wextra -Werror'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=ON -DGAOL_MACHINE_RUNS_AVX512=1'
       - name: Results of the configurations
         if: ${{ always() }}
         shell: bash
         env:
           OUTCOMES: >-
-            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }}
         run: |
           status=0
           printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 x86_64, GCC, other intervals and AVX-512' >> "$GITHUB_STEP_SUMMARY"
@@ -268,6 +290,7 @@ jobs:
               c3) name='Ubuntu 24.04 x86_64 GCC, SSE2 intervals of two doubles' ;;
               c4) name='Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic' ;;
               c5) name='Ubuntu 24.04 x86_64 GCC, rounding direction preserved, AVX-512 arithmetic not taken' ;;
+              c6) name='Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic without FMA, -Wall -Wextra -Werror' ;;
             esac
             printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
             [ "${kv#*=}" = success ] || status=1

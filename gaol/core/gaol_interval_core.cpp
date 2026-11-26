@@ -43,6 +43,14 @@
 #if GAOL_MINGW_OWN_MATH
 #  include "gaol/math/gaol_round.h"
 #endif
+// The AVX-512 intrinsics of the path of gaol_interval_avx512_impl.h, which
+// this file includes in gaol_core below: included at the global scope, as
+// every header of the system, and not in gaol_core (GAOL v5: included there,
+// the header declared __m512d and its functions in gaol_core where
+// gaol_interval_internal.h had not included it before, without FMA)
+#if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+#  include <immintrin.h>
+#endif
 
 /*
   The operations of the intervals: the members of interval, +, -, *, / and
@@ -496,8 +504,8 @@ namespace gaol_core {
   // sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512
   // path of gaol/core/gaol_interval_avx512_impl.h, which sets no rounding direction,
   // and clears the flush-to-zero modes as the other operations do
-  // (flush_guard there; GAOL v5)
-#  include <immintrin.h>   // the AVX-512 intrinsics of the path below
+  // (flush_guard there; GAOL v5). Its intrinsics, <immintrin.h>, are included
+  // at the top of this file
 #  include "gaol/core/gaol_interval_avx512_impl.h"
 #endif
 #if GAOL_USING_SSE2_INSTRUCTIONS
@@ -507,6 +515,15 @@ namespace gaol_core {
 #else
 #  include "gaol/core/gaol_interval_fpu_impl.h"
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
+
+#if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+// The types of the intrinsics are declared at the global scope: an include of
+// <immintrin.h> put back in gaol_core above would declare them in gaol_core
+// alone where no header had included it before (without FMA), and this check
+// would fail (GAOL v5)
+static_assert(sizeof(::__m512d) == 8 * sizeof(double),
+              "<immintrin.h> is included at the global scope, not in gaol_core");
+#endif
 
 // The file included above closes gaol_core, which this file opened above:
 // it is opened again for what follows (GAOL v5)

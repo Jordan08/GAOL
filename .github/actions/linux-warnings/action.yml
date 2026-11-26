@@ -66,6 +66,24 @@ runs:
       run: |
         case "${{ inputs.opts }}" in *GAOL_SSE2_UNALIGNED_STORAGE=ON*)
           grep -q "^#define GAOL_SSE2_UNALIGNED_STORAGE 1" build/gaol/gaol_configuration.h ;; esac
+    # The AVX-512 path, and no fused multiply-add instructions, where the job
+    # asks for them: a configuration that fell back to the SSE2 path, or that
+    # the instructions reached (-mfma, or a default target that has them),
+    # would build green without building what it says (GAOL v5)
+    - name: The AVX-512 path and the fused multiply-add instructions
+      shell: bash -e {0}
+      run: |
+        case "${{ inputs.opts }}" in *GAOL_PREFER_AVX512=ON*)
+          if ! grep "^#define GAOL_AVX512_ARITHMETIC 1" build/gaol/gaol_configuration.h; then
+            echo "::error::GAOL_PREFER_AVX512=ON, and the configuration left the AVX-512 path out"
+            exit 1
+          fi ;; esac
+        case "${{ inputs.opts }}" in *GAOL_FMA=OFF*)
+          if grep -q -- "-mfma" build/CMakeFiles/gaol.dir/flags.make \
+             || ${{ inputs.cxx }} -dM -E -x c++ /dev/null | grep -q "^#define __FMA__ "; then
+            echo "::error::-DGAOL_FMA=OFF, and the library is compiled with the fused multiply-add instructions"
+            exit 1
+          fi ;; esac
     - name: Build
       shell: bash -e {0}
       run: cmake --build build -j 4

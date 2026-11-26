@@ -15,10 +15,10 @@
 /*!
   \file   gaol_interval_sse_impl.h
   \brief  The operations of the SSE2 intervals: + - * / and their vector kernels on __m128d,
-          out of line. Included by gaol_interval_core.cpp only.
+          out of line. Included by gaol_interval_core.cpp only, in gaol_core: the headers of
+          the system it needs are included before, at the global scope (<cstdint> by
+          gaol_interval_internal.h; GAOL v5: <cstdint> was included here, in gaol_core).
 */
-
-#include <cstdint>
 
 	/* Written as vectors, lower double first, rather than computed with
 	   _mm_set_pd() and _mm_cmpeq_pd(): the compilers put them in read-only
