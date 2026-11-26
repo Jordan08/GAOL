@@ -1747,10 +1747,11 @@ one. \loption{enable-asm} and
 \code{HAVE\_ROUNDING\_MATH\_OPTION} are gone, the first choosing an assembly
 GAOL v5 no longer calls. CORE-MATH is in the sources, so that GAOL can be
 built as a part of another project, brought in by FetchContent, with no
-network access beyond its own sources. The CMake build derives from the CMake
-build of GAOL in IBEX, with the compilation flags of the fork of GAOL by
-Fabrice Le Bars, and the tests of \file{tests/} follow the rounding tests of
-Codac (Chapter~\ref{chap:tests}). The Goldstein-Price function of the manual
+network access beyond its own sources. The CMake build takes the list of
+sources of the meson build of GAOL, and what Visual C++ needs follows the fork
+of GAOL by Fabrice Le Bars; the tests of \file{tests/} follow the rounding
+tests of Codac (Chapter~\ref{chap:tests}).
+The Goldstein-Price function of the manual
 and of the examples had the factor $(x + y)^2$ where the function has
 $(x + y + 1)^2$, as in GAOL~4; both now compute the true function, whose
 natural extension over $[-2, 2]^2$ is $[-87881320, 147125080]$, 231 times as
