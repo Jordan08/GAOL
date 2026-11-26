@@ -172,9 +172,9 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 ```
 
 `gaol::gaol` carries the include directory, the flags above, the link option
-above for the code built by GCC 13 or a later one, by Clang 20 or a later one
-(not on Windows), or by the compiler that built GAOL, of its major version and
-not older (another compiler, as Clang 18,
+above for the code built by GCC 13 or a later one where GAOL is built for x86,
+by Clang 20 or a later one (not on Windows), or by the compiler that built
+GAOL, of its major version and not older (another compiler, as Clang 18,
 would stop on it, and so would GCC 12.0 to 12.3 with a GAOL built by GCC 11.4:
 GCC has the option from 11.4 and 12.4 in the series 11 and 12 only), and no
 longer `__GAOL_PUBLIC__=` for Visual C++ (GAOL v5): GAOL is a static library

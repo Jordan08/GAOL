@@ -1503,11 +1503,12 @@ endif()
 # gcc/config/i386/i386.opt of the release tags). GCC has it for x86 alone,
 # that file being the one of the x86 targets, and stops on it for the other
 # processors, whereas Clang 20 and 21 take it whatever the processor: a GAOL
-# built by Clang 21 for 64-bit ARM gave it to GCC 15 for 64-bit ARM, which
-# stopped on it (GAOL v5). The target of GAOL being the one of the code using
-# it, GCC 13 and later have it where GAOL is built for x86 only. Clang took the
-# option in 2024 (llvm-project #80475) and has it in 20 and 21, which were
-# tried; 19, which is likely to have it too, was not, and is left out
+# built by Clang 21 for 64-bit ARM gave it to GCC for 64-bit ARM, which
+# stopped on it (GCC 16.2 tried; GAOL v5). The target of GAOL being the one
+# of the code using it, GCC 13 and later have it where GAOL is built for x86
+# only. Clang took the option in 2024 (llvm-project #80475) and has it in 20
+# and 21, which were tried; 19, which is likely to have it too, was not, and is
+# left out
 if(GAOL_LINK_FLAGS)
   string(REGEX MATCH "^[0-9]+" GAOL_COMPILER_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
   math(EXPR GAOL_COMPILER_NEXT_MAJOR "${GAOL_COMPILER_MAJOR} + 1")

@@ -689,10 +689,11 @@ GAOL v5 defends itself:
   GCC 12.3, which stops on it; a GAOL built by GCC gave it to no program built
   by Clang, which has it from 20; GCC has it for x86 alone, whereas Clang 20
   and 21 take it for every processor, and a GAOL built by Clang 21 for 64-bit
-  ARM gave it to GCC 15 there, which stops on it (GAOL v5).
+  ARM gave it to GCC there, which stops on it (GAOL v5).
   `gaol.pc`, written for that compiler, gives it to every
   program, and a program linked by a compiler that refuses it (Clang 18, a GCC
-  before 11.4, GCC 12.0 to 12.3, GCC for ARM) is to be linked without it.
+  before 11.4, GCC 12.0 to 12.3, GCC for a processor other than x86) is to be
+  linked without it.
 
 The modes of other processors, and of ARM with the FPU intervals of Visual C++,
 are neither checked nor cleared; GCC links `crtfastmath.o` for none of the other processors of the
