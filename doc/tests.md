@@ -1911,8 +1911,10 @@ which `numbers` checks there too.
   request left the path out), is refused by
   `-DGAOL_PREFER_AVX512=OFF` and stays so for the next `cmake` until
   `-UGAOL_PREFER_AVX512`, and asked for by `=ON`, which is an error where the
-  compiler has no path; the Debug build type, which sets `GAOL_DEBUGGING` and
-  nothing else does (`-DGAOL_DEBUGGING=ON` is overwritten); `-DGAOL_FMA=OFF` and
+  compiler has no path; the Debug build type, which sets `GAOL_DEBUGGING`
+  whatever the case of its name (`debug` too, as CMake reads it; GAOL v5: it
+  was `Debug` alone) and nothing else does (`-DGAOL_DEBUGGING=ON` is
+  overwritten); `-DGAOL_FMA=OFF` and
   `-DGAOL_U128_EMULATION=ON`; `-DGAOL_FMA_SOFTWARE=ON`, which the configuration
   says, with and without the instructions, and no other does;
   `-DGAOL_EXCEPTIONS_ENABLED=OFF` and
