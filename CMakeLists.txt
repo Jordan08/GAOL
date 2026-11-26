@@ -1769,9 +1769,14 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # the top, 3rd/math-core/ and doc/compare/*/): CPack archives the files of the
   # tree, git's or not, and a file that git ignores went into the archive where
   # no expression matched it, as the 14 files that a build of the manual leaves
-  # in manual/v5/build/ (GAOL v5). The cache of clangd, .cache/, and the
-  # compile_commands.json that an editor reads, often a link to the one of a
-  # build, at the top of the sources, are left out too
+  # in manual/v5/build/, the lock files of gcore (.github/corelocks/), the
+  # *.loTAGS of libtool and a manual_gaolv5.dvi (GAOL v5). The job Archives of
+  # the sources of the continuous integration makes in the tree a file for each
+  # pattern of these .gitignore files, x/y/build and x/y.libs/x as well, before
+  # the archive of CPack, and checks that the archive holds the files of git
+  # archive alone (.github/actions/buildsystems-dist). The cache of clangd,
+  # .cache/, and the compile_commands.json that an editor reads, often a link
+  # to the one of a build, at the top of the sources, are left out too
   set(CPACK_SOURCE_IGNORE_FILES
     "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/" "/\\.continue/"
     "/compile_commands\\.json$"
@@ -1779,13 +1784,17 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     "/autom4te\\.cache/" "/doc/compare/code/work[^/]*/" "/doc/compare/itf1788/work/"
     "/doc/compare/tang2021/work[^/]*/" "/tests/meson_subproject/subprojects/"
     "/coverage/[^/]*\\.(css|js)$" "/coverage/coverage\\.json$"
-    "\\.o$" "\\.lo$" "\\.a$" "\\.so$" "\\.la$" "/\\.libs/" "/\\.deps/" "\\.dirstamp$"
+    "\\.o$" "\\.lo$" "\\.a$" "\\.so$" "\\.la$" "\\.libs/" "/\\.deps/" "\\.dirstamp$"
+    "\\.loTAGS(\\.tmp)?$"
     "/check/performances_result\\.txt$"
     "/3rd/math-core/perf\\.data$" "/3rd/math-core/src/[^/]+/[^/]+/(check_exhaustive|check_worst|check_special|perf)$"
-    "^${_gaol_source_regex}/build[^/]*/" "^${_gaol_source_regex}/[^/]+/[^/]+/build/" "/_CPack_Packages/"
-    "^${_gaol_source_regex}/manual/v5/manual_gaolv5\\.(aux|bbl|blg|fdb_latexmk|fls|idx|ilg|ind|lof|log|lot|out|pdf|synctex\\.gz|toc)$"
+    "^${_gaol_source_regex}/build[^/]*/" "^${_gaol_source_regex}/[^/]+/[^/]+/build(/|$)" "/_CPack_Packages/"
+    # Every manual_gaolv5.* but manual_gaolv5.tex, as .gitignore says with a
+    # negation, which an expression of CMake has not: the names that differ
+    # from tex
+    "^${_gaol_source_regex}/manual/v5/manual_gaolv5\\.($|[^t]|t$|t[^e]|te$|te[^x]|tex.)"
     "^${_gaol_source_regex}/manual/v5/Manual_GAOLv5\\." "^${_gaol_source_regex}/manual/v5/pdflatex-[^/]*\\.log$"
-    "^${_gaol_source_regex}/manual/v5/gaol_version\\.tex$"
+    "^${_gaol_source_regex}/manual/v5/gaol_version\\.tex$" "^${_gaol_source_regex}/\\.github/corelocks/"
     "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
     "^${_gaol_source_regex}/TODO\\.md$" "^${_gaol_source_regex}/TODO_AFTER\\.md$" "^${_gaol_source_regex}/TODO_DONE\\.md$"
     "^${_gaol_source_regex}/STEP\\.md$" "^${_gaol_source_regex}/process\\.md$"
