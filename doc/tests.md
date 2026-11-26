@@ -1958,9 +1958,11 @@ which `numbers` checks there too.
   after its test and describes a failure by its line, its expression and the
   values compared, and a failure no longer ends its test. The `TEST_EQ` of GAOL
   4 compared with a decimal number at a Hausdorff distance of 1e-8, which an
-  enclosure that misses the exact value by less passed: no test has it any
-  more. `trigonometric`, `reverse_mappings`, `non_arithmetic` and
-  `constants` have `TEST_HULL` instead, the result enclosing the hull of the
+  enclosure that misses the exact value by less passed, and its `TEST_PEQ` only
+  asked the two intervals not to be disjoint, which `[0, +oo]` passed for
+  `pow([-3, 2], -4)`: no test has them any more. `trigonometric`,
+  `reverse_mappings`, `non_arithmetic`, `constants` and `misc` have `TEST_HULL`
+  instead, the result enclosing the hull of the
   values of the function and no more than a double from it, the hull of the
   first three being computed exactly (mpmath, 2000 bits) by `hull_values.py`,
   which writes the statements and checks with `--check` (by hand, as the other

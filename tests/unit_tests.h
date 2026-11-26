@@ -143,9 +143,6 @@ namespace gaol_unit
 // Set equal
 #define TEST_SEQ(a,b)  do { const auto gaol_a_ = (a); const auto gaol_b_ = (b); \
     gaol_unit::check(gaol_a_.set_eq(gaol_b_), __LINE__, "TEST_SEQ(" #a ", " #b ")", gaol_a_, gaol_b_); } while (0)
-// Possibly equal: not disjoint, possibly_eq() being gone (GAOL v5)
-#define TEST_PEQ(a,b)  do { const auto gaol_a_ = (a); const auto gaol_b_ = (b); \
-    gaol_unit::check(!gaol_a_.set_disjoint(gaol_b_), __LINE__, "TEST_PEQ(" #a ", " #b ")", gaol_a_, gaol_b_); } while (0)
 #define TEST_CONT(a,b) do { const auto gaol_a_ = (a); const auto gaol_b_ = (b); \
     gaol_unit::check(gaol_a_.set_contains(gaol_b_), __LINE__, "TEST_CONT(" #a ", " #b ")", gaol_a_, gaol_b_); } while (0)
 // Encloses the hull [lo, hi] of the values of a function, and has its bounds
@@ -172,7 +169,6 @@ namespace gaol_unit
 #ifdef GAOL_FLOAT_INTERVALS
 // The intervals of floats, which only a developer of GAOL compiles (see
 // gaol/gaol_config.h)
-#define TEST_PEQ4(a,b)  TEST_TRUE(interval2f(a).possibly_eq_all(interval2f(b)))
 #define TEST_SEQ4(a,b)  TEST_TRUE(interval2f(a).set_eq_all(interval2f(b)))
 #define TEST_EMPTY4(a)  TEST_TRUE(interval2f(a).first().is_empty() || interval2f(a).second().is_empty())
 #define TEST_CONTAINS4(a,b) TEST_TRUE(interval2f(a).set_contains_all(interval2f(b)))
