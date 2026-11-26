@@ -640,11 +640,28 @@ namespace
     return ((ah * bh - p) + ah * bl + al * bh) + al * bl;
   }
 
-  // A double of exponent in [lo, hi], random sign and significand
+  // A double of exponent e in [lo, hi], random sign and significand: a normal
+  // one from -1022 to 1023, and below a subnormal one in [2^e, 2^(e+1)), of
+  // e + 1075 significant bits, down to 2^-1074 (GAOL v5: the biased exponent of
+  // an e below -1023 spilled into the sign, and -1074 to -1040 gave negative
+  // doubles of exponent 974 to 1008)
   double random_double(std::mt19937_64& gen, int lo, int hi)
   {
-    const std::uint64_t e = static_cast<std::uint64_t>(lo + static_cast<int>(gen() % static_cast<std::uint64_t>(hi - lo + 1)) + 1023);
-    const std::uint64_t u = ((gen() & 1) << 63) | (e << 52) | (gen() & 0x000fffffffffffffull);
+    if (lo < -1074 || hi > 1023 || lo > hi) {
+      std::fprintf(stderr, "random_double: the exponents from %d to %d are not within -1074 to 1023\n", lo, hi);
+      std::abort();
+    }
+    const int exponent = lo + static_cast<int>(gen() % static_cast<std::uint64_t>(hi - lo + 1));
+    std::uint64_t u;
+    if (exponent >= -1022) {
+      const std::uint64_t e = static_cast<std::uint64_t>(exponent + 1023);
+      u = ((gen() & 1) << 63) | (e << 52) | (gen() & 0x000fffffffffffffull);
+    } else {
+      // The sign, then the significand, one at a time
+      const std::uint64_t top = static_cast<std::uint64_t>(1) << (exponent + 1074);
+      const std::uint64_t sign = gen() & 1;
+      u = (sign << 63) | top | (gen() & (top - 1));
+    }
     double x;
     std::memcpy(&x, &u, sizeof x);
     return x;
