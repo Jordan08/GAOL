@@ -404,10 +404,12 @@ which `numbers` checks there too.
   doubles next to the largest and the smallest ones, powers of 2 and their
   neighbours, any exponent and subnormal ones: whatever the draw, a result
   with no infinite bound (the empty set included) has to come with neither the
-  overflow nor the division-by-zero flag (GAOL v5). 27
+  overflow nor the division-by-zero flag (GAOL v5). 30
   known cases and their like (`sqrt([1, DBL_MAX])`, `nth_root([DBL_MAX],
   3)`, `sin([-1, DBL_MAX])`, `tan([DBL_MAX])`, `div_rel([1], [2^-1074, 1], [1,
   2])`, `sqrt_rel([DBL_MAX], [-3, 0])`, `pow_rel([DBL_MAX], [2], I)`,
+  `pow_rel([2^-1022, 1/2], [-511/512], [1, 10])`, whose step of Newton's
+  method toward the root 2^1024 overflowed, and `powRev1()` with them,
   `pow_exponent_rel([DBL_MAX], [2], I)`, `atanh_rel([0, 1], [0])`, and the
   tiny powers of a power of two to an exponent next to 2<sup>1014</sup> or
   more, `pow([2^-1074], [1.5 2^1014])`, where CORE-MATH's `pow` overflows

@@ -2852,10 +2852,11 @@ namespace
     The cases the exceptions of which kill a program that enabled them, run in
     a child process with the overflow and the division-by-zero exceptions
     enabled (the known cases, the largest double as an operand, divisors
-    and exponents next to 2^-1074): each has to give its tightest bounds,
-    computed apart with exact arithmetic (mpmath for the tangent), when the
-    exceptions are masked, and the same when they are enabled. Three give a
-    double or two more, which the table says with its slack: the fifth root,
+    and exponents next to 2^-1074, a root next to 2^1024): each has to give
+    its tightest bounds, computed apart with exact arithmetic (mpmath for the
+    tangent and the root), when the exceptions are masked, and the same when
+    they are enabled. Three give a double or two more, which the table says
+    with its slack: the fifth root,
     whose proofs round (2 doubles, as nth_root() documents), the inverse of
     the enclosure of the cube root, nth_root(x, -3) (its upper bound is one
     double above the tightest one), and pow_rel() for an exponent next to
@@ -2899,6 +2900,17 @@ namespace
         0x1.fffffffffffffp+511, 0x1p512, 0, false },
       { "pow_rel([3], [2^512], [0, 2])", [] { return pow_rel(make(3.0, 3.0), make(0x1p512, 0x1p512), make(0.0, 2.0)); }, 1.0, above_one, 0, false },
       { "pow_rel([0, 1/2], [-2^-1074, 2^-1022], [0, 1/2])", [] { return pow_rel(make(0.0, 0.5), make(-smallest, 0x1p-1022), make(0.0, 0.5)); }, 0.0, 0.0, 1, false },
+      // The step of Newton's method toward c^(1/y) for a root just above DBL_MAX, (2^-1022)^(-512/511) = 2^1024
+      // (GAOL v5): x^(-511/512) in [2^-1022, 1/2] is x in [2^(512/511), 2^1024], the lower bound of which mpmath
+      // gives at 2000 bits, and x^(-511/512) <= 2^-1022 is x >= 2^1024
+      { "pow_rel([2^-1022, 1/2], [-511/512], [1, 10])",
+        [] { return pow_rel(make(0x1p-1022, 0.5), make(-0.998046875, -0.998046875), make(1.0, 10.0)); },
+        0x1.0058f4efcf39ep+1, 10.0, 0, false },
+      { "pow_rel([0, 2^-1022], [-511/512], [1, 10])",
+        [] { return pow_rel(make(0.0, 0x1p-1022), make(-0.998046875, -0.998046875), make(1.0, 10.0)); }, 0.0, 0.0, 0, true },
+      { "gaol_ieee1788::powRev1([-511/512], [2^-1022, 1/2], [1, 10])",
+        [] { return gaol_ieee1788::powRev1(make(-0.998046875, -0.998046875), make(0x1p-1022, 0.5), make(1.0, 10.0)); },
+        0x1.0058f4efcf39ep+1, 10.0, 0, false },
       { "pow_exponent_rel([DBL_MAX], [2], [0, 2000])", [] { return pow_exponent_rel(make(largest, largest), make(2.0, 2.0), make(0.0, 2000.0)); },
         0x1.fffffffffffffp+9, 0x1p10, 0, false },
       { "atanh_rel([0, 1], [0])", [] { return atanh_rel(make(0.0, 1.0), make(0.0, 0.0)); }, 0.0, 0.0, 0, false },
