@@ -89,11 +89,13 @@ namespace gaol_core {
     the round-off error of a binary-to-decimal conversion and which
     textToInterval() reads back as the same doubles: the exact text
     representation of 13.4, whatever the precision, the flags and the locale
-    of the stream (GAOL v5). As in the bounds format, a point interval is
-    output "[a]", "[0x1p+2]", and a point interval of zero "[0x0p+0]",
-    whatever the signs of its bounds, which is read back as [+0, +0], the same
-    set, {0} (GAOL v5: it was output with its two bounds, which kept the
-    signs of a zero)
+    of the stream (GAOL v5). A zero bound is output "0x0p+0" whatever its
+    sign, the zero of 13.4.1, and read back as +0: [-0, 1] is "[0x0p+0,
+    0x1p+0]", the same set (GAOL v5: "[-0x0p+0, 0x1p+0]"). As in the bounds
+    format, a point interval is output "[a]", "[0x1p+2]", and a point
+    interval of zero "[0x0p+0]", whatever the signs of its bounds, which is
+    read back as [+0, +0], the same set, {0} (GAOL v5: it was output with
+    its two bounds, which kept the signs of a zero)
     - agreeing: the interval is output in the form "d~[l, r]" where d is
     the digits both bounds start with, and l and r the rest of each, as
     "1.25~[0, 67]" for [1.25, 1.2567], the bounds being written with the
@@ -1427,7 +1429,8 @@ namespace gaol_core {
     set, "[a]" for a point interval ("[0x0p+0]" for a zero of either sign),
     and otherwise each bound in the hexadecimal-significand form, which
     textToInterval() reads back as the same doubles (IEEE 1788-2015, 13.4),
-    a zero point as [+0, +0], the same set. It
+    but for a zero bound, written 0x0p+0 whatever its sign (13.4.1) and read
+    back as +0, and a zero point as [+0, +0], the same sets. It
     neither reads nor changes the global output format, which
     interval::format() sets.
   */

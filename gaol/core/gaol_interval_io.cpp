@@ -627,7 +627,12 @@ namespace gaol_core {
     fails the readability test. The form is the one printf("%a") of the glibc
     writes: as many digits as the value needs, "0x1.999999999999ap-4",
     "0x0.0000000000001p-1022" for a subnormal, "0x0p+0" for zero, and the
-    lexer reads it.
+    lexer reads it. A zero of either sign is written "0x0p+0": 13.4.1 gives
+    zero the sign bit 0, so that the text of an interval is unique, and reads
+    the literal as a real number, -0 and +0 being the same (GAOL v5: -0 was
+    written "-0x0p+0", and sqr(interval(-1, 2)) [-0x0p+0, 0x1p+2] with the
+    SSE2 and the NEON intervals, [0x0p+0, 0x1p+2] with the FPU ones). The
+    zero is told by the bits, which denormals-are-zero does not change.
     It is written from the bits of the double rather than by printf("%a"),
     which follows the decimal point of the C locale: under a locale writing a
     decimal comma, it wrote "0x1,999999999999ap-4", which cannot be read
@@ -663,7 +668,8 @@ namespace gaol_core {
       --nb_digits;
     }
     digits[nb_digits] = '\0';
-    static_cast<void>(std::snprintf(buf, n, "%s0x%d%s%sp%+d", (bits >> 63) ? "-" : "", leading,
+    const bool negative = (bits >> 63) != 0 && (bits << 1) != 0;
+    static_cast<void>(std::snprintf(buf, n, "%s0x%d%s%sp%+d", negative ? "-" : "", leading,
                                     (nb_digits > 0) ? "." : "", digits, exponent));
   }
 
@@ -672,8 +678,9 @@ namespace gaol_core {
     interval of zero [0x0p+0], whatever the signs of its bounds, the three
     being the set {0} (GAOL v5: it was written with its two bounds,
     [0x1p+2, 0x1p+2], and [-0x0p+0, 0x0p+0] for interval::zero() with the
-    SSE2 intervals). The bounds are compared by their bits, which
-    denormals-are-zero does not change.
+    SSE2 intervals); a zero bound of any other interval is written 0x0p+0
+    too, [-0, 1] being [0x0p+0, 0x1p+0] (write_hexa_bound()). The bounds are
+    compared by their bits, which denormals-are-zero does not change.
   */
   std::string exact_string(const interval& I)
   {
