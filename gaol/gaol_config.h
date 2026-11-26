@@ -563,8 +563,15 @@
    gaol_u128.
    gaol/math/gaol_core_math_port.h makes the same test for the C sources of
    CORE-MATH, which do not include this header (they get GAOL_MINGW_OWN_MATH
-   from gaol/gaol_mingw_own_math.h), and tests/core_math.cpp checks that the two
-   agree. */
+   from gaol/gaol_mingw_own_math.h): the two are written alike, and are to be
+   changed together, as no test compares them. tests/core_math.cpp compares
+   GAOL_SOFT_FMA with its own copy of the lines of that header, which a change
+   of the header alone leaves the same. .github/scripts/check-no-fma-call.sh
+   sees a call of the fma() of the C library left in the objects of the
+   library, in the jobs of mingw-w64 and Cygwin and in the job of
+   GAOL_FMA_FORCE_SOFTWARE without the instructions; a disagreement that
+   leaves no such call (the instruction where GAOL_SOFT_FMA is 1, with -mfma,
+   or gaol_fma_upward() where it is 0) is seen by no job. */
 #if (defined(GAOL_FMA_FORCE_SOFTWARE) && GAOL_FMA_FORCE_SOFTWARE \
      && (!defined(_MSC_VER) || defined(__clang__))) \
     || ((GAOL_MINGW_OWN_MATH || defined(__CYGWIN__)) && !defined(__FMA__) \

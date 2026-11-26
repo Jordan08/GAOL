@@ -208,9 +208,11 @@ called by GAOL's functions, and in the direction in effect by tests/core_math.cp
 only where the build has no such replacement), and so is it everywhere with
 GAOL_FMA_FORCE_SOFTWARE=1, the way the continuous integration runs that
 function on an ordinary machine. GAOL_SOFT_FMA of gaol/gaol_config.h
-is the same test, which these C sources cannot read; tests/core_math.cpp checks
-that they agree. Everywhere else the builtin is the instruction, or the call of
-a library whose fma() is right.
+is the same test, which these C sources cannot read: the two are to be changed
+together, as no test compares them (tests/core_math.cpp compares GAOL_SOFT_FMA
+with its own copy of these lines, which a change made here alone leaves the
+same; see gaol/gaol_config.h). Everywhere else the builtin is the instruction,
+or the call of a library whose fma() is right.
 --------------------------------------------------------------------------*/
 
 #if (defined(GAOL_FMA_FORCE_SOFTWARE) && GAOL_FMA_FORCE_SOFTWARE \
