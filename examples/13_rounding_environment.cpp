@@ -377,7 +377,8 @@ namespace {
     return results;
   }
 
-  // The exact texts of intervals, which tell them apart bit for bit
+  // The exact texts of intervals, which tell them apart bit for bit, but for
+  // the sign of a zero bound, written 0x0p+0 (none of the seven has one)
   std::vector<std::string> exact_texts(const std::vector<interval>& xs)
   {
     std::vector<std::string> texts;
@@ -587,7 +588,8 @@ int main()
   }
 
   /* exact_string() writes the bounds in hexadecimal, which textToInterval()
-     reads back bit for bit, and %a the same for a double, which strtod()
+     reads back bit for bit (a zero bound is written 0x0p+0 and read back as
+     +0), and %a the same for a double, which strtod()
      reads back: exact, in any direction. A double written with 17 decimal
      digits and read back while rounding upward can move up by one double at
      each round trip, with the GNU C library. */
@@ -756,7 +758,8 @@ int main()
 
   std::cout << "What to do\n"
             << "  read data with textToInterval(\"0.3\"), which encloses 3/10 in every direction, not with strtod()\n"
-            << "  write data with exact_string() or %a, read back to the same bits in every direction\n"
+            << "  write data with exact_string() or %a, read back to the same bits in every direction"
+               " (a zero but for its sign with exact_string())\n"
             << "  call gaol::cleanup() right after the last use of GAOL, and gaol::restore_rounding() after each phase\n";
 
   if (failures != 0) {

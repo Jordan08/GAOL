@@ -47,7 +47,7 @@ Linux, macOS and Windows, on x86, x86-64, 32-bit and 64-bit ARM, POWER
   instructions, set no direction, their instructions carrying it.
 \item[$\bullet$] Numbers are read exactly, and intervals written in decimal
   are rounded outward, whatever the C library; written in hexadecimal, an
-  interval is read back as the same doubles.
+  interval is read back as the same doubles, a zero bound as $+0$.
 \item[$\bullet$] Three builds, CMake, autotools and meson, configure GAOL the
   same way; the tests compare the bounds GAOL computes with their exact
   values, and a continuous integration builds and tests GAOL on Linux, macOS

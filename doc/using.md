@@ -1336,8 +1336,9 @@ What to do:
 - **Read and write numbers through GAOL**, not through the C library:
   `gaol::textToInterval("0.3")` encloses 3/10 in every direction, where
   `std::stod("0.3")` does not, and `exact_string()` and `%a` write a number that
-  reads back to the same bits in every direction. GAOL writes its intervals
-  rounded outward whatever the direction.
+  reads back to the same bits in every direction (a zero but for its sign,
+  which `exact_string()` writes `0x0p+0`). GAOL writes its intervals rounded
+  outward whatever the direction.
 - **Compute in a block the doubles that need rounding to nearest** (an
   error-free transformation, `std::lrint()`, a decimal conversion, a call of a
   library written for that): save the direction with `std::fegetround()`, set

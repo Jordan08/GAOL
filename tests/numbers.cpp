@@ -8,7 +8,8 @@
  * number is one, whatever the C library, and whether the processor flushes the
  * subnormals to zero or not. Each number is compared exactly with the bounds
  * read. The constants have to be the tightest intervals enclosing
- * pi, 2pi and pi/2, and the hexadecimal output to be read back bit for bit.
+ * pi, 2pi and pi/2, and the hexadecimal output to be read back bit for bit,
+ * a zero bound as +0.
  * The constructors have to give the empty set where their arguments are not
  * an interval: an infinite lower bound of +oo, an upper bound of -oo, bounds
  * in the wrong order, and NaN bounds. The interval literals of IEEE 1788-2015
@@ -1007,9 +1008,10 @@ namespace
   /*
     The exact text representation of IEEE 1788-2015 (13.4): written in
     hexadecimal and read again, an interval has to give the same bounds, bit
-    for bit, which is the recovery requirement of that subclause. GAOL wrote
-    the sixteen digits of each double instead, which is no interval literal and
-    which the parser refused (GAOL v5).
+    for bit, which is the recovery requirement of that subclause, but for the
+    sign of a zero bound, written 0x0p+0, the zero of 13.4.1 (== does not
+    tell -0 from +0). GAOL wrote the sixteen digits of each double instead,
+    which is no interval literal and which the parser refused (GAOL v5).
   */
   void hexadecimal_output()
   {
@@ -1051,14 +1053,15 @@ namespace
     round_trip(interval(-1.0 / 3.0), "[-1/3]");
     round_trip(interval(smallest), "[smallest]");
     round_trip(interval(max_double), "[MAX]");
-    // The texts themselves: a point interval [a], and a point interval of
-    // zero [0x0p+0] whatever the signs of its bounds, the set {0} (GAOL v5:
-    // [0x1.8p+0, 0x1.8p+0], and [-0x0p+0, 0x0p+0] for interval::zero() with
-    // the SSE2 intervals)
+    // The texts themselves: a point interval [a], a point interval of zero
+    // [0x0p+0] whatever the signs of its bounds, the set {0}, and a zero bound
+    // 0x0p+0 whatever its sign (GAOL v5: [0x1.8p+0, 0x1.8p+0], [-0x0p+0,
+    // 0x0p+0] for interval::zero() with the SSE2 intervals, and [-0x0p+0,
+    // 0x1p+0] for [-0, 1])
     const struct { interval x; const char *text; } texts[] = {
       { interval(1.5), "[0x1.8p+0]" }, { interval(-0.5), "[-0x1p-1]" }, { interval(smallest), "[0x0.0000000000001p-1022]" },
       { interval(-0.0, 0.0), "[0x0p+0]" }, { interval(-0.0), "[0x0p+0]" }, { interval::zero(), "[0x0p+0]" },
-      { interval(0.0), "[0x0p+0]" }, { interval(1.0, 2.0), "[0x1p+0, 0x1p+1]" }, { interval(-0.0, 1.0), "[-0x0p+0, 0x1p+0]" },
+      { interval(0.0), "[0x0p+0]" }, { interval(1.0, 2.0), "[0x1p+0, 0x1p+1]" }, { interval(-0.0, 1.0), "[0x0p+0, 0x1p+0]" },
     };
     for (const auto& t : texts) {
       std::ostringstream s;

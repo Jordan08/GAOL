@@ -1159,6 +1159,45 @@ namespace
     check("operator<< in interval_format::hexa writes exact_string",
           s.str() == gaol::exact_string(third) + " [empty]", [&] { return s.str(); });
     interval::format(saved);
+    // A zero bound is written 0x0p+0 whatever its sign, the zero of 13.4.1,
+    // and read back as the same set, which is written the same (GAOL v5: -0
+    // was written -0x0p+0, the lower bound of sqr([-1, 2]) with the SSE2 and
+    // the NEON intervals, whose text was then not that of the FPU ones). One
+    // call per case: GCC 12.2 for aarch64 misread loops over local tables
+    const auto zero_bound = [](const interval& x, const char* text) {
+      const std::string written = intervalToExact(x);
+      const interval back = exactToInterval(written);
+      const bool plus_zeros = (back.left() != 0.0 || !std::signbit(back.left()))
+                              && (back.right() != 0.0 || !std::signbit(back.right()));
+      check("intervalToExact: a zero bound of either sign written 0x0p+0, read back as +0, the same set and text",
+            written == text && written == gaol::exact_string(x) && back.set_eq(x) && plus_zeros
+              && intervalToExact(back) == written,
+            [&] { return hex(x) + " written " + written + " rather than " + text + ", read back " + hex(back); });
+    };
+    zero_bound(interval(-0.0, 1.0), "[0x0p+0, 0x1p+0]");
+    zero_bound(interval(0.0, 1.0), "[0x0p+0, 0x1p+0]");
+    zero_bound(interval(-1.0, -0.0), "[-0x1p+0, 0x0p+0]");
+    zero_bound(interval(-1.0, 0.0), "[-0x1p+0, 0x0p+0]");
+    zero_bound(sqr(interval(-1.0, 2.0)), "[0x0p+0, 0x1p+2]");
+#if GAOL_TESTS_SET_FLUSH
+    // The zero is told by its bits, which the modes that flush the subnormals
+    // to zero do not change: a test x != 0.0 would write the bound -2^-1074
+    // of [-2^-1074, 1] as +2^-1074 under denormals-are-zero, and the text
+    // read back would miss it (GAOL v5)
+    const double u = 0x1p-1074; // not denorm_min(): see gaol_tests.h
+    const interval below_zero(-u, 1.0), above_minus_one(-1.0, -u), from_zero(-0.0, u);
+    for (const gaol_tests::FlushMode& m : gaol_tests::flush_modes()) {
+      const unsigned int saved_flush = gaol_tests::flush_bits();
+      gaol_tests::set_flush_bits(m.bits);
+      const std::string a = intervalToExact(below_zero), b = intervalToExact(above_minus_one);
+      const std::string c = intervalToExact(from_zero);
+      gaol_tests::set_flush_bits(saved_flush);
+      check("intervalToExact: a subnormal bound keeps its sign and a zero one has none, the subnormals flushed to zero",
+            a == "[-0x0.0000000000001p-1022, 0x1p+0]" && b == "[-0x1p+0, -0x0.0000000000001p-1022]"
+              && c == "[0x0p+0, 0x0.0000000000001p-1022]",
+            [&] { return m.name + ": " + a + " " + b + " " + c; });
+    }
+#endif
   }
 
   /*

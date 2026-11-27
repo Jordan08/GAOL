@@ -317,8 +317,9 @@ What a program does about it:
   through the C library: \code{gaol::textToInterval("0.3")} encloses $3/10$ in
   every direction, where \code{std::stod("0.3")} does not, and
   \code{exact\_string()} and \code{\%a} write a number that reads back to the
-  same bits in every direction. GAOL writes its intervals rounded outward
-  whatever the direction.
+  same bits in every direction (a zero but for its sign, which
+  \code{exact\_string()} writes \code{0x0p+0}). GAOL writes its intervals
+  rounded outward whatever the direction.
 \item[$\bullet$] \textbf{It computes in a block the doubles that need rounding
   to nearest} (an error-free transformation, \code{std::lrint()}, a decimal
   conversion, a call of a library written for that): it saves the direction
