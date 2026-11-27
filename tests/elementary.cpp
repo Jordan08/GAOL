@@ -205,8 +205,13 @@ namespace
           + hex(t.least_below) + ", " + hex(t.greatest_above) + "]";
       };
       if (check(name + ": encloses", !r.is_empty() && r.left() <= t.least_below && r.right() >= t.greatest_above, describe)) {
-        check_distance(name, std::max(doubles_between(r.left(), t.least_below), doubles_between(t.greatest_above, r.right())),
-                       1, describe);
+        // A bound of the hull that is a double, -1 or 1 at an extremum of sin
+        // and cos, has to be it, as in pow_of_boxes()
+        const int distance = std::max((t.least_below == t.least_above) ? 2*doubles_between(r.left(), t.least_below)
+                                      : doubles_between(r.left(), t.least_below),
+                                      (t.greatest_below == t.greatest_above) ? 2*doubles_between(t.greatest_above, r.right())
+                                      : doubles_between(t.greatest_above, r.right()));
+        check_distance(name, distance, 1, describe);
       }
     }
   }
@@ -412,6 +417,13 @@ namespace
                                      && r.right() >= std::max(u.above, v.above), describe);
           break;
       }
+      // The minimum cosh(0) = 1 is a double: over the intervals that hold 0, the
+      // lower bound is 1 exactly. The table has 0 among the arguments of cosh, so
+      // that these intervals hold it at a bound, [-1, 0] and [0, 2^-1074], and are
+      // checked above as decreasing and increasing, within 1 double
+      if (f.variation == Variation::even && u.x <= 0.0 && 0.0 <= v.x) {
+        check(name + ": the lower bound cosh(0) = 1", !r.is_empty() && r.left() == 1.0, describe);
+      }
     }
   }
 
@@ -457,6 +469,16 @@ namespace
     for (const Known& k : known) {
       const interval r = evaluate(k.name, k.f, [] { return std::string(); });
       expect_close(k.name, r, k.below, k.above, [&] { return hex(r); });
+      // A finite bound of the table that is an integer is the tightest one,
+      // the value of the function itself but for cos(1e-10), rounded upward
+      // to 1 (the extrema of sin and cos, the limits of tanh, exp(-oo) and
+      // exp(0), log(1), sqrt(0) and sqrt(4), cosh(0)): the result's has to be
+      // it, not the double beyond, which the distance of one double lets pass
+      const auto integer = [](double b) { return std::isfinite(b) && b == std::floor(b); };
+      if (integer(k.below) || integer(k.above)) {
+        check(std::string(k.name) + ": the integer bounds exact", (!integer(k.below) || r.left() == k.below)
+              && (!integer(k.above) || r.right() == k.above), [&] { return hex(r); });
+      }
     }
 
     // The functions where their value is a double, pi, pi/2 or pi/4, sinh and
