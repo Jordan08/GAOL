@@ -1168,8 +1168,10 @@ which `numbers` checks there too.
   against it (cancellations, the subnormal range, the edge of the overflow,
   operands of a few bits, a product and `c` up to 130 bits apart); the lines of
   the port header that give the sources `gaol_fma_upward()` are repeated, and
-  checked against `GAOL_SOFT_FMA`. A fourth checks `gaol_fma_upward()`, which
-  GAOL calls where `GAOL_SOFT_FMA` is 1 and which is right in the upward
+  the copy is checked against `GAOL_SOFT_FMA` (not the header itself, which no
+  test compares with it: the copy is to be changed with the header). A fourth
+  checks `gaol_fma_upward()`, which GAOL calls where `GAOL_SOFT_FMA` is 1 and
+  which is right in the upward
   direction alone (it takes for granted the direction GAOL runs in, and a debug
   build checks it): at the triples of `fma_values.py`, upward, then at 900 000
   triples of the kinds its three fast paths (x86-64 with a 128-bit integer) are

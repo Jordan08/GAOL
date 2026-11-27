@@ -84,7 +84,10 @@
   build has no instruction, or where GAOL_FMA_FORCE_SOFTWARE says so: the
   test is that of GAOL_SOFT_FMA (gaol/gaol_config.h), which the C sources do not
   include and this one repeats (with the same GAOL_MINGW_OWN_MATH), the next
-  lines checking that the two agree.
+  lines checking that this copy agrees with GAOL_SOFT_FMA. They do not read the
+  header: a change made there alone goes unseen by these tests (see
+  gaol/gaol_config.h), and is to be made here too, as for __builtin_round()
+  above.
 */
 #if (defined(GAOL_FMA_FORCE_SOFTWARE) && GAOL_FMA_FORCE_SOFTWARE \
      && (!defined(_MSC_VER) || defined(__clang__))) \
@@ -537,8 +540,8 @@ namespace
 
   // __builtin_round(x) as the sources of CORE-MATH call it: the builtin of the
   // compiler, and gaol_round() where gaol/math/gaol_core_math_port.h replaces
-  // it (the macro defined at the top of this file). Visual C++ has no such
-  // builtin: the header gives it round()
+  // it (the copy of its lines, the macro defined at the top of this file).
+  // Visual C++ has no such builtin: the header gives it round()
   double core_math_round(double x)
   {
 #if defined(__GNUC__) || defined(__clang__)
@@ -549,9 +552,11 @@ namespace
   }
 
   /*
-    The __builtin_round() of the sources of CORE-MATH, with the lines of
-    gaol/math/gaol_core_math_port.h that replace it where the round() of the C
-    library is that of mingw-w64 (GAOL v5). The sources call it in two ways.
+    The __builtin_round() of the sources of CORE-MATH, with the copy of the
+    lines of gaol/math/gaol_core_math_port.h that replace it where the round()
+    of the C library is that of mingw-w64 (GAOL v5), which the check of the
+    expansion below compares with GAOL_MINGW_OWN_MATH, and not the header
+    itself. The sources call it in two ways.
     The roundeven_finite() of thirteen of them (exp.c, sin.c...), where the
     processor has neither AVX nor SSE4.1 nor ARMv8, takes round(x) for any x
     and corrects the halfway values: the test calls it at the values where a
@@ -1179,9 +1184,10 @@ namespace
     }
   }
 
-  // __builtin_fma(x, y, z) as the sources of CORE-MATH call it, with the lines of
-  // gaol/math/gaol_core_math_port.h that replace it where GAOL_SOFT_FMA says so
-  // (the macro defined at the top of this file): gaol_fma() exactly there
+  // __builtin_fma(x, y, z) as the sources of CORE-MATH call it, with the copy
+  // of the lines of gaol/math/gaol_core_math_port.h that replace it where
+  // GAOL_SOFT_FMA says so (the macro defined at the top of this file):
+  // gaol_fma() exactly there
   void builtin_fma_of_core_math()
   {
     const std::string expansion = GAOL_TEST_TEXT_OF(__builtin_fma(1.0, 2.0, 3.0));
