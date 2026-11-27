@@ -1303,7 +1303,10 @@ which `numbers` checks there too.
   5 units of 2<sup>−63</sup>; the reduction by log(2), for 6 000 values of
   |t| up to 8 and for those next to the odd halves of log(2), has to be the
   nearest multiple and what is left of it, with log(2) 2<sup>120</sup> of mpmath
-  and R = |s| 2<sup>−56</sup>; the significands of 64 bits and their shifts, and
+  and R = |s| 2<sup>−56</sup>; the significands of 64 bits of 10 doubles
+  written out and 600 drawn at random (400 normal ones of every exponent and
+  200 subnormal ones of every length), the shifts of 2 000 numbers of 128
+  bits, and
   the doubles around the enclosure of the result (its 14 cases: the ends that
   are doubles, the enclosure that goes over a power of two, the negative
   values, the smallest normal double and the subnormals, the largest double).
@@ -1656,7 +1659,8 @@ which `numbers` checks there too.
   when an argument is, valid, accurate, and within 2 doubles of the tightest
   bounds where both are nonempty, and the names of `gaol_ieee1788` have to give
   it, with and without their last argument. Over the boxes of the table and
-  3 000 random ones, about 600 000 sampled points whose angle is in c (the
+  3 000 random ones (zero, infinite and, for a third of them, subnormal bounds
+  now and then), about 600 000 sampled points whose angle is in c (the
   corners, points of the sides and of the axes, random points, and the doubles
   next to where the sides of the cones of c cross those of the box) have to be
   in both results, whether the angle of a point is in c being decided exactly

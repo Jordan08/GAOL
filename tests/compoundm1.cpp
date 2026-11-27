@@ -609,8 +609,12 @@ namespace
     check("log(2) 2^120 is the one of mpmath", cm1::ln2_120().h == ln2_120_high && cm1::ln2_120().l == ln2_120_low,
           [&] { return text(cm1::ln2_120()); });
     std::vector<double> values = { 1.0, 0.5, 3.0, 0x1p-1074, 0x1.fffffffffffffp-1023, 0x1p-1022, 1e300, 0x1.8p-1070, 7.0e-310, 0.1 };
+    // Normal doubles of every exponent, and subnormal ones of every length
     for (int i = 0; i < 400; ++i) {
-      values.push_back(rnd(-1074, 1023) * (rnd.integer(0, 1) != 0 ? 1.0 : -1.0));
+      values.push_back(rnd(-1022, 1023));
+    }
+    for (int i = 0; i < 200; ++i) {
+      values.push_back(rnd.subnormal());
     }
     for (double v : values) {
       if (v == 0.0 || !std::isfinite(v)) { continue; }
