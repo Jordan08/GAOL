@@ -2073,13 +2073,16 @@ bounds.
   `div_rel([1], [2^-1074, 1], [1, 2])` (the quotient by a divisor next to
   2^-1074), `atan_rel()`, `atan2_rel_x()` and `atan2_rel_y()`, `pow_rel()` and
   `pow_exponent_rel()` (the powers beyond the largest double that their searches
-  try, and the exponents next to 2^-1074), and `atanh_rel()` (atanh at -1 and
-  1). A quotient, a product or a power that would overflow is the infinity, or
-  the largest double, that the operation gives, without being computed, where
-  it is only an intermediate value: the exceptions still tell an infinite
-  bound of the result, as above. This list is not exhaustive either, and the
-  tests check these functions and the others of the same kind on operands next
-  to the limits of the doubles (`tests/rounding_direction.cpp`).
+  try, the exponents next to 2^-1074, and, for `pow_rel()` and `powRev1()`, the
+  step of Newton's method toward a root just above the largest double,
+  `pow_rel([2^-1022, 0.5], [-0.998046875], [1, 10])`), and `atanh_rel()`
+  (atanh at -1 and 1). A quotient, a product or a power that would overflow is
+  the infinity, or the largest double, that the operation gives, without being
+  computed, where it is only an intermediate value: the exceptions still tell
+  an infinite bound of the result, as above. This list is not exhaustive
+  either, and the tests check these functions and the others of the same kind
+  on operands next to the limits of the doubles
+  (`tests/rounding_direction.cpp`).
 
 An empty operand, and the nonempty operands tested, raising no
 invalid-operation exception therefore does not make that exception safe to

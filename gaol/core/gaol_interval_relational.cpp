@@ -638,9 +638,26 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         // in magnitude, the power being then no approximation of c
         const double t = quotient_sat(quotient_sat(p - c, p), y);
         if (std::fabs(t) < 1.0) {
-          const double s = r - r*t;
-          if (s > 0.0 && s <= largest) {
-            return s;
+          /*
+            The step itself, r - r t, overflows where the root is just above
+            DBL_MAX: for c < 1 and y < 0, the 1/y rounded upward is nearer 0
+            unless it is 1/y itself, r is then below the root and t < 0, and
+            r - r t, about the root, is beyond the doubles while r is not
+            (GAOL v5: pow_rel([2^-1022, 0.5], [-0.998046875], [1, 10]), whose
+            root is 2^1024, raised the overflow exception for a finite result,
+            as the empty pow_rel([0, 2^-1022], [-0.998046875], [1, 10]) did).
+            The step is left out, and r kept, where -(r t) is above
+            DBL_MAX - r: a difference that is exact where r is at least
+            DBL_MAX/2, and the only r that the step can take beyond DBL_MAX,
+            |r t| being below r. rt is read in the branch (read_in_branch()),
+            so that no compiler computes r - rt before the test
+          */
+          const double rt = r*t;
+          if (-rt <= largest - r) {
+            const double s = r - read_in_branch(rt);
+            if (s > 0.0 && s <= largest) {
+              return s;
+            }
           }
         }
       }
