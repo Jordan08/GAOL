@@ -1165,14 +1165,14 @@ namespace
     // the NEON intervals, whose text was then not that of the FPU ones). One
     // call per case: GCC 12.2 for aarch64 misread loops over local tables
     const auto zero_bound = [](const interval& x, const char* text) {
-      const std::string exact = intervalToExact(x);
-      const interval back = exactToInterval(exact);
+      const std::string written = intervalToExact(x);
+      const interval back = exactToInterval(written);
       const bool plus_zeros = (back.left() != 0.0 || !std::signbit(back.left()))
                               && (back.right() != 0.0 || !std::signbit(back.right()));
       check("intervalToExact: a zero bound of either sign written 0x0p+0, read back as +0, the same set and text",
-            exact == text && exact == gaol::exact_string(x) && back.set_eq(x) && plus_zeros
-              && intervalToExact(back) == exact,
-            [&] { return hex(x) + " written " + exact + " rather than " + text + ", read back " + hex(back); });
+            written == text && written == gaol::exact_string(x) && back.set_eq(x) && plus_zeros
+              && intervalToExact(back) == written,
+            [&] { return hex(x) + " written " + written + " rather than " + text + ", read back " + hex(back); });
     };
     zero_bound(interval(-0.0, 1.0), "[0x0p+0, 0x1p+0]");
     zero_bound(interval(0.0, 1.0), "[0x0p+0, 0x1p+0]");
@@ -1187,11 +1187,11 @@ namespace
     const double u = 0x1p-1074; // not denorm_min(): see gaol_tests.h
     const interval below_zero(-u, 1.0), above_minus_one(-1.0, -u), from_zero(-0.0, u);
     for (const gaol_tests::FlushMode& m : gaol_tests::flush_modes()) {
-      const unsigned int saved = gaol_tests::flush_bits();
+      const unsigned int saved_flush = gaol_tests::flush_bits();
       gaol_tests::set_flush_bits(m.bits);
       const std::string a = intervalToExact(below_zero), b = intervalToExact(above_minus_one);
       const std::string c = intervalToExact(from_zero);
-      gaol_tests::set_flush_bits(saved);
+      gaol_tests::set_flush_bits(saved_flush);
       check("intervalToExact: a subnormal bound keeps its sign and a zero one has none, the subnormals flushed to zero",
             a == "[-0x0.0000000000001p-1022, 0x1p+0]" && b == "[-0x1p+0, -0x0.0000000000001p-1022]"
               && c == "[0x0p+0, 0x0.0000000000001p-1022]",
