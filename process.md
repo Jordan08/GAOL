@@ -14,10 +14,11 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 24 novembre 2026, à la version 5.0.2 (#405, de `dev`
-vers `master`, fusionnée à `c4438d9`, l'étiquette `v5.0.2` posée sur ce commit
-et la Release publiée ; #406, fusionnée à `bc25407`, a fait entrer `master` dans
-`dev`), au commit
+Dernière mise à jour : 27 novembre 2026, au commit `f684b1a` de `dev` (la fusion
+de #413, après celle de #412 : la tâche VA), après la version 5.0.2 (#405, de
+`dev` vers `master`, fusionnée à `c4438d9`, l'étiquette `v5.0.2` posée sur ce
+commit et la Release publiée ; #406, fusionnée à `bc25407`, a fait entrer
+`master` dans `dev`), et avant au commit
 `eeb1f1c` de `dev` (la fusion de #404 : GCC 9.3 et 10.2 pour aarch64, et
 Debian 11 arm64 dans la CI,
 après celle de #403, les registres de 5.0.1, qui fait entrer `master` dans
@@ -998,11 +999,12 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   est passé sur `master` le 17 novembre), fais les registres dans un clone du
   scratchpad, dont tu pousses `origin` vers GitHub par SSH, sans le toucher.
 
-## 12. Où en est le travail (24 novembre 2026)
+## 12. Où en est le travail (27 novembre 2026)
 
 Les tâches de `TODO.md` (l'issue #179) sont, depuis la version, celles de la
-relecture des 19 et 20 novembre (VA à VI) et les restes de l'issue #400 (VJ) ;
-ce qui est fait et décidé (pull requests fusionnées, décisions, mesures) est
+relecture des 19 et 20 novembre (VB à VI ; VA est faite), les restes de l'issue
+#400 (VJ) et les tâches VK et VL, ajoutées le 26 novembre ; ce qui est fait et
+décidé (pull requests fusionnées, décisions, mesures) est
 dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté
 est dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les
 commandes ci-dessous, les trois fichiers et les issues font foi. Avant de
@@ -1187,13 +1189,20 @@ git ls-remote --heads origin
   #402 (la version 5.0.1, vers `master`, l'étiquette `v5.0.1` ; 3.62), et, le 24
   novembre, #403 (les registres de 5.0.1, `master` dans `dev`, 7.66) à 7 h 46
   UTC et #404 (hors des points : GCC 9.3 et 10.2 pour aarch64, Debian 11 arm64
-  dans la CI ; 2.3, 3.63 et 7.67) à 7 h 48 UTC (`eeb1f1c`) ; l'audit du 13
-  octobre a vérifié dans
+  dans la CI ; 2.3, 3.63 et 7.67) à 7 h 48 UTC (`eeb1f1c`), puis, le 27
+  novembre, #412 et #413 (la tâche VA ; 2.3, 3.65 et 7.70) à 6 h 45 et 7 h 08
+  UTC (`f684b1a`) ; l'audit du 13 octobre a vérifié dans
   `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
-- **En cours** : au 24 novembre, aucune pull request n'est ouverte : #406
-  (`master` dans `dev` après 5.0.2) est fusionnée à `bc25407`, le commit de
-  `dev` ; #405 (la version 5.0.2) est fusionnée à `c4438d9`, l'étiquette
+- **En cours** : au 27 novembre, les pull requests ouvertes sont celles d'autres
+  sessions : #408 à #411 (VB), #414 (VG), #415 (`build-pdf.sh`, hors des points)
+  et #416 à #421 (VC) ; chaque session fait les registres de ses pull requests
+  (*décidé le 26 novembre*, `TODO_DONE.md` 3.65). #412 et #413 (la tâche VA)
+  sont fusionnées, leurs registres faits ; leur synthèse (`doc/differences.md`,
+  le `ChangeLog`, le PDF du manuel) est à faire par une pull request. Avant, au
+  24 novembre, aucune pull request n'était ouverte : #406 (`master` dans `dev`
+  après 5.0.2) est fusionnée à `bc25407`, alors le commit de `dev` ; #405 (la
+  version 5.0.2) est fusionnée à `c4438d9`, l'étiquette
   `v5.0.2` posée et la Release publiée (`TODO_DONE.md` 1 et 7.69) ; #401 à #404
   sont fusionnées, leurs registres faits. Avant, au 20
   novembre, #391 est fusionnée (`a3428f2`), #397
@@ -1321,8 +1330,9 @@ git ls-remote --heads origin
   L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28 octobre*)
   : GitHub borne le corps d'une issue à 262 144 octets et le texte joint en fait
   plus de 270 000 (voir `TODO_DONE.md` 7.8).
-- **À faire** : les tâches VA à VJ de `TODO.md`, que le mainteneur donne une à
-  une. Les constats de la relecture du 13 novembre sont faits (PU à PZ), PH est
+- **À faire** : la pull request de synthèse de VA, puis les tâches VB à VL de
+  `TODO.md`, que le mainteneur donne une à une. Les constats de la relecture du
+  13 novembre sont faits (PU à PZ), PH est
   faite par #382 (les textes de GAOL que les signalements rendent faux ; les
   signalements eux-mêmes sont dans leurs issues et `TODO_AFTER.md` 2.6, avec
   l'accord du mainteneur), et la version (PJ) est publiée : la fusion de `dev`

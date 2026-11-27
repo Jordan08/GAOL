@@ -1,9 +1,10 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 24 novembre
-2026 (la version 5.0.2, publiée : le commit de fusion de #405 dans `master`,
-celui de l'étiquette `v5.0.2`, que #406 fait entrer dans `dev` ; le commit
-`eeb1f1c` de `dev`, la fusion de #404, après celle de #403, les
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 27 novembre
+2026 (le commit `f684b1a` de `dev`, la fusion de #413, après celle de #412 : la
+tâche VA ; avant, la version 5.0.2, publiée : le commit de fusion de #405 dans
+`master`, celui de l'étiquette `v5.0.2`, que #406 fait entrer dans `dev` ; le
+commit `eeb1f1c` de `dev`, la fusion de #404, après celle de #403, les
 registres de 5.0.1 ; avant, le commit de fusion de #402 dans `master`, celui de
 l'étiquette `v5.0.1`,
 après celui de #399, celui de l'étiquette `v5.0.0` ;
@@ -19,8 +20,8 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire (rien depuis le 18 novembre :
-  PJ, la dernière tâche, est faite) ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire (les tâches VB à VL ; PJ, la
+  version, est faite le 18 novembre, et VA le 27) ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -51,21 +52,28 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui restait à faire était classé en tâches dans
-  `TODO.md`, où il n'en reste aucune depuis le 18 novembre.
+  classement. Ce qui reste à faire est classé en tâches dans
+  `TODO.md` (VB à VL au 27 novembre).
 - Ce qui sert encore des rapports des agents est dans `todo-notes/synthese.md`,
   retiré du dépôt par #387 (`git show 5d07c3a2:todo-notes/synthese.md`), leurs
   originaux au commit `16a2f60` (`todo-notes/`, ceux du 30 septembre dans
   `todo-notes/2026-09-30/`) ; la procédure suivie pour chaque point est dans
   `process.md`.
 
-Sommaire : 1. L'état au 20 novembre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 27 novembre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 24 novembre 2026
+## 1. L'état au 27 novembre 2026
 
+- **La tâche VA est faite** (3.65) : #412 (VA.1 : `pow_rel()` et `powRev1()` ne
+  lèvent plus `FE_OVERFLOW` pour un résultat fini ou vide) et #413 (VA.2 :
+  `exact_string()` écrit une borne nulle `0x0p+0` quel que soit son signe),
+  fusionnées par le mainteneur le 27 novembre à 6 h 45 et 7 h 08 UTC (`f89e6e1`
+  et `f684b1a`) ; la pull request de synthèse (`doc/differences.md`, le
+  `ChangeLog`, le PDF du manuel) est à faire. D'autres sessions traitent VB, VC
+  et VG : #408 à #411, #414, #415 et #416 à #421 sont ouvertes.
 - **La version 5.0.2 est publiée.** #405 (`release-5.0.2`, de `dev` vers
   `master`, 2.3 et 3.64) : `dev` à `13f2705` avec `VERSION.txt` et `configure` à
   5.0.2, l'entrée du `ChangeLog`, le PDF du manuel refait et ces registres,
@@ -93,7 +101,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `c38417e`, y entre, 2 338 commits et 980 fichiers ; l'arbre de `master` est
   celui de `dev`).
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `bc25407` (la fusion de #406 le 24 novembre à 10 h 20 UTC : `master`,
+  commit `f684b1a` (la fusion de #413 le 27 novembre à 7 h 08 UTC, VA.2), après
+  `f89e6e1` (la fusion de #412 à 6 h 45 UTC, VA.1), `cf27dff` (les tâches VK et
+  VL de `TODO.md`, le 26 novembre, 3.65) et `e226d87` (les registres de #406).
+  Avant, il était au commit `bc25407` (la fusion de #406 le 24 novembre à 10 h
+  20 UTC : `master`,
   la version 5.0.2 publiée, et ses registres), après `13f2705` (les registres de
   #404, 7.67). Avant, il était au
   commit `eeb1f1c` (la fusion de #404 le 24 novembre à 7 h 48 UTC, hors des
@@ -204,8 +216,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   novembre à 9 h 42 UTC) n'a bougé qu'à la version, le 17 novembre à 22 h 20
   UTC, par #390 (point Y : `dev` → `master`, *décidé le 12 novembre* pour
   `configure-clean`, le 17 pour `dev` : 3.50 ; `MATH-CORE` est supprimée :
-  3.32). Aucune pull request n'est ouverte : #373 (hors des points : le
-  diagnostic du contrôle de `pow(x, [2])` de `tests/arithmetic.cpp`) est dans
+  3.32). Au 27 novembre, les pull requests ouvertes sont celles d'autres
+  sessions (#408 à #411, #414 à #421 : VB, VC, VG et `build-pdf.sh`), et #412 et
+  #413 (VA) sont fusionnées (2.3 et 3.65) ; avant, aucune n'était ouverte : #373
+  (hors des points : le diagnostic du contrôle de `pow(x, [2])` de
+  `tests/arithmetic.cpp`) est dans
   `dev` par le commit de fusion `cc81735`, que GitHub a fait le 15 novembre à 22
   h 50 UTC sans marquer la pull request fusionnée, et le mainteneur l'a fermée
   le 16 à 7 h 15 UTC (2.4) ; #351 à #355 et #372 (la tâche PX) sont fusionnées,
@@ -300,8 +315,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   est dans `dev` : 2.4) sont fermées sans fusion, et, du 30 et du 31 octobre,
   #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278, puis #286, le «
   Revert » de #285 fermé onze secondes après son ouverture (2.4). Les tâches PA,
-  PB, PC, PD, PE, PF, PG, PH, PI, PL, PP, PS, PU, PV, PW, PX, PY et PZ sont
-  faites
+  PB, PC, PD, PE, PF, PG, PH, PI, PL, PP, PS, PU, PV, PW, PX, PY, PZ et VA
+  sont faites
   (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le
   4, #204 pour le 5, #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour
   le 109, #210 et #215 pour écrire seulement si ça change, #208 pour
@@ -356,12 +371,15 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   de couverture), #390 (`dev` dans `master`), #391 (les registres), #397 et #398
   (les paquets de la Release) et #399 (les corrections de la relecture complète
   des 19 et 20 novembre), puis l'étiquette `v5.0.0` et sa Release (3.36, 3.56,
-  3.57, 3.60 et 3.61). Restent les signalements de PH (dans leurs issues et
+  3.57, 3.60 et 3.61) ; VA, les deux défauts du code de la relecture des 19 et
+  20 novembre : #412 et #413 (2.3, 3.65 et 4). Restent les signalements de PH
+  (dans leurs issues et
   `TODO_AFTER.md` 2.6, 3.48 et 3.49 ; ses textes de GAOL sont faits par #382),
   l'annonce à Frédéric Goualard, la licence des cas d'IBEX et de Codac et le
-  ménage de la fin (`TODO_AFTER.md` 1.6 à 1.8), et les tâches VA à VI de
-  `TODO.md`, les constats de la relecture des 19 et 20 novembre que #399 ne
-  corrige pas (3.61). Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est
+  ménage de la fin (`TODO_AFTER.md` 1.6 à 1.8), et les tâches VB à VL de
+  `TODO.md` : VB à VI, les constats de la relecture des 19 et 20 novembre que
+  #399 ne corrige pas (3.61), VJ, les restes de l'issue #400 (3.62), et VK et VL
+  (3.65). Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est
   réparti dans les trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
@@ -5161,6 +5179,53 @@ tournait au moment des registres.
   contrôles) ; `dev` a `VERSION.txt` à 5.0.2. La branche est supprimée sur
   GitHub à la fusion et en local.
 
+- #412 (VA.1, R12 ; `todo-va1-pow-rel-overflow`, vers `dev`, 3.65) : le pas de
+  Newton de `root_of_power_near()` (`gaol/core/gaol_interval_relational.cpp`),
+  qui approche c^(1/y) avant la recherche des bornes de `pow_rel()` et de
+  `gaol_ieee1788::powRev1()`, calculait `r - r*t` vers le haut avant de tester
+  le débordement : pour c < 1, y < 0 et une racine juste au-dessus de `DBL_MAX`,
+  il levait `FE_OVERFLOW` pour un résultat fini ou vide (`pow_rel([2^-1022,
+  0.5], [-0.998046875], [1, 10])`, dont la racine est 2^1024), et un programme
+  qui a démasqué l'exception mourait sur `SIGFPE`. Le pas n'est fait que si
+  `-(r*t) <= DBL_MAX - r`, exact par le lemme de Sterbenz là où le pas peut
+  déborder (r >= `DBL_MAX`/2), `r*t` lu par `read_in_branch()` ; les bornes ne
+  changent pas. Trois cas de plus dans `trap_cases()` de
+  `tests/rounding_direction.cpp` (27 deviennent 30, les bornes calculées avec
+  mpmath à 2000 bits), qui échouent sur 6 contrôles sans la correction ;
+  `doc/tests.md` et `doc/using.md`. Le relecteur : 0 drapeau sur 3 943 143
+  appels liés à `libgaol.a`, contre 250 120 avec `dev`, et le même hachage de
+  toutes les bornes. Fusionnée par le mainteneur le 27 novembre à 6 h 45 UTC
+  (`f89e6e1`, tête `7cd1c60`), la CI de sa tête au vert (six workflows, 82
+  contrôles).
+
+- #413 (VA.2, R17 ; `todo-va2-exact-zero-sign`, vers `dev`, 3.65) :
+  `exact_string()`, `gaol_ieee1788::intervalToExact()` et le format `hexa`
+  écrivaient une borne nulle -0 « -0x0p+0 », ce que IEEE 1788-2015 13.4.1
+  interdit (un zéro y a le bit de signe 0), et le même intervalle avait deux
+  textes selon le build (`sqr([-1, 2])` : `[-0x0p+0, 0x1p+2]` avec les
+  intervalles SSE2 et NEON, `[0x0p+0, 0x1p+2]` avec les FPU).
+  `write_hexa_bound()` (`gaol/core/gaol_interval_io.cpp`) n'écrit le signe que
+  d'un double non nul, le zéro reconnu par ses bits, que denormals-are-zero ne
+  change pas ; une borne -0 est relue +0, le même ensemble (3.65). Les tests :
+  le texte attendu de `interval(-0.0, 1.0)` dans `tests/numbers.cpp` ; cinq cas
+  dans `exact_text()` de `tests/ieee1788.cpp` (le texte, sa relecture aux bornes
+  +0, réécrite à l'identique) et, sous `GAOL_TESTS_SET_FLUSH`, trois intervalles
+  à borne sous-normale écrits sous chaque mode qui ramène les sous-normaux à
+  zéro. Sans la correction, `numbers` échoue sur 1 contrôle, `ieee1788` sur 3 et
+  l'exemple 15 aussi ; un zéro reconnu par `x != 0.0` échoue sous
+  denormals-are-zero. Les exemples 13 et 15, `examples/examples.md`,
+  `doc/accuracy.md`, `doc/tests.md`, `doc/using.md`, les commentaires Doxygen et
+  le manuel (sans le PDF, que refera la pull request de synthèse) disent qu'une
+  borne nulle est relue +0. La première CI a échoué dans les quatre
+  configurations Visual Studio 2026 en `/W4 /WX` (C4456 : une variable du
+  nouveau test en cachait une autre), corrigé par le dernier commit
+  (`1c71030`) ; un job Linux est relancé une fois (`apt-get` refusé par
+  `packages.microsoft.com`, 403, avant toute compilation). Fusionnée par le
+  mainteneur le 27 novembre à 7 h 08 UTC (`f684b1a`, tête `1c71030`), la CI de
+  sa tête au vert (sept workflows, 83 contrôles). Laissé : le format `bounds`
+  avec `std::hexfloat` et le décimal écrivent encore -0 (`TODO.md` VF.6, à
+  décider).
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -9389,6 +9454,36 @@ version 5.0.2 » : #405.
   - la session prévient la session de Codac (codac-c2, codac-team/codac#475,
     qui télécharge `master`) une fois l'étiquette posée.
 
+### 3.65 Le 26 novembre : la tâche VA (#412 et #413), et les tâches VK et VL
+
+Le mainteneur ajoute à `TODO.md` les tâches VK (aucune option pour le code qui
+utilise GAOL) et VL (les suites de l'étude d'un passage au C), deux estimations
+faites en lisant le code (`cf27dff`), puis demande « traite la tache VA » : #412
+(VA.1) et #413 (VA.2), une pull request par point.
+
+- **Décidé** (sa réponse à la question de la session sur VA.2) : l'option (a) de
+  R17, « 0x0p+0 partout » : une borne nulle s'écrit `0x0p+0` quel que soit son
+  signe et se relit +0, le même ensemble, plutôt que garder `-0x0p+0` et le dire
+  comme un écart à 13.4.1 ; l'exemple 15 et les textes qui promettaient une
+  relecture « bit for bit » sans exception changent en conséquence (#413).
+- **Décidé ensuite** (ses réponses aux questions de la session, le même jour) :
+  - chaque session fait les registres de ses propres pull requests après leur
+    fusion (« Chacune les siennes ») : une autre session traite VB, VC et VG en
+    même temps ;
+  - la synthèse (`doc/differences.md`, le `ChangeLog`) et le PDF du manuel se
+    font par une pull request après chaque tâche, donc celle de VA dès #412 et
+    #413 fusionnées ;
+  - la version qui portera le changement de texte de VA.2 (un correctif 5.0.x ou
+    5.1.0) se décide à la version ;
+  - les cinq écarts que la session a relevés dans les registres en les lisant
+    (VJ.1, l'issue #400, fermée le 23 novembre ; VJ.4, le PDF refait pour 5.0.2
+    par `a6f399b` ; « l'enveloppe de h » de VJ ; « il ne reste aucune tâche »
+    dans l'en-tête de `TODO.md` ; le §12 de `process.md` sans VK ni VL) se
+    corrigent avec les registres de VA (7.70).
+- **Fait** : #412 et #413, fusionnées le 27 novembre (2.3).
+- **À décider** : le zéro signé du format `bounds` avec `std::hexfloat` et du
+  décimal (`TODO.md` VF.6), la question ouverte de #413, sans réponse.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -9597,6 +9692,12 @@ dite ici ou dans la section 5.
   faux) : #382, fusionnée le 17 novembre à 8 h 31 UTC (2.3) ; les signalements
   à d'autres projets sont dans leurs issues, rien n'est envoyé (3.48 et 3.49,
   `TODO_AFTER.md` 2.6).
+- [x] **VA** (deux défauts du code de la relecture des 19 et 20 novembre) : une
+  pull request par point, fusionnées le 27 novembre : VA.1 (R12, le drapeau de
+  dépassement de `pow_rel()` et de `powRev1()`) par #412 et VA.2 (R17, une borne
+  nulle écrite `0x0p+0`) par #413 ; décidé pendant le travail : voir 3.65. Ce
+  qu'elles laissent à `doc/differences.md`, au `ChangeLog` et au PDF du manuel
+  est pour la pull request de synthèse (`TODO.md`, « Les tâches restantes »).
 
 ### Trouvé par la relecture de `configure-clean` du 14 octobre (62dad3a) : ce qui est fait
 
@@ -12205,6 +12306,20 @@ leurs registres n'étaient pas faits :
   `dev`. La branche de #405 (`release-5.0.2`) est supprimée sur GitHub à sa
   fusion.
 
+### 7.70 Le 27 novembre (la tâche VA : les registres)
+
+- Directement sur `dev`, après la fusion de #413 (`f684b1a`) : `TODO.md`
+  (l'en-tête, les tâches restantes, VA retirée, R12 et R17 retirés de l'annexe
+  1, VF.6, VJ.1 et VJ.4), ce fichier (l'en-tête, 1, 2.3, 3.65, 4, 7.70 et 8.1),
+  `process.md` (l'en-tête et §12) et l'issue #179 ; `TODO_AFTER.md` ne change
+  pas. Les cinq écarts relevés le 26 novembre sont corrigés (3.65), avec trois
+  phrases de ce fichier qui disaient qu'il ne restait aucune tâche ou dataient
+  l'état du 20 novembre (l'en-tête, « Comment lire ce fichier » et le sommaire).
+- La CI de `dev` à `f684b1a` attendait ses runners au moment des registres ;
+  celle de `f89e6e1` (la fusion de #412) est annulée par le push de #413.
+- Pas fait : la pull request de synthèse de VA (`doc/differences.md`, le
+  `ChangeLog`, le PDF du manuel).
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -12513,6 +12628,14 @@ leurs registres n'étaient pas faits :
   ls-remote --heads origin` montre `dev`, `master` et `release-fma-packages`
   (#397). Les images Docker de l'enquête (`gaol-bullseye-cross`, avec GCC 10.2
   et 9.3 pour aarch64) sont supprimées.
+
+- [x] Celles de #412 (`todo-va1-pow-rel-overflow`) et de #413
+  (`todo-va2-exact-zero-sign`), sur GitHub (supprimées à la fusion le 27
+  novembre) et dans GAOL_V9 (`git branch -d`), où la session a travaillé,
+  GAOL_V8 étant à une autre session ; leurs copies de GAOL_V8 sont supprimées le
+  26 novembre. `git ls-remote --heads origin` montre `dev`, `master` et les
+  branches des pull requests ouvertes d'autres sessions ; `release-fma-packages`
+  (#397) n'y est plus.
 
 ### 8.2 Les branches inachevées
 

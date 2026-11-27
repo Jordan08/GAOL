@@ -1,8 +1,11 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 à la version 5.0.2 (#405, de `dev` vers
-`master`, le 24 novembre, l'étiquette `v5.0.2` ; #406 fait entrer `master` dans
-`dev`, `bc25407`), au commit `eeb1f1c` de `dev` (la fusion de
+Ce qui reste à faire sur GAOL v5 au commit `f684b1a` de `dev` (la fusion de
+#413 le 27 novembre à 7 h 08 UTC, VA.2, après celle de #412 à 6 h 45 UTC,
+`f89e6e1`, VA.1 : la tâche VA est faite), après `cf27dff` (les tâches VK et VL,
+le 26 novembre) et la version 5.0.2 (#405, de `dev` vers `master`, le 24
+novembre, l'étiquette `v5.0.2` ; #406 fait entrer `master` dans `dev`,
+`bc25407`), et avant au commit `eeb1f1c` de `dev` (la fusion de
 #404 le 24 novembre à 7 h 48 UTC, hors des points : GCC 9.3 et 10.2 pour
 aarch64, qui s'arrêtaient sur une erreur interne, et Debian 11 arm64 dans la CI,
 après celle de #403 à 7 h 46 UTC, `ba4028f`, les registres de 5.0.1, qui fait
@@ -97,9 +100,13 @@ des points, de #307 et de #306, hors des points, de #305, hors des points, de
 #302, la tâche PP, de #304 et de #303, les registres de la tâche PT, de #301, la
 tâche PT, de #300, hors des points, de #298, de #299, de #297, de #296 et de
 #295, de #294, le manuel dans le style de la thèse, et de #292, de #293, #291,
-#290 et #289), il ne reste aucune tâche (PA à PH, PI, PJ, PL, PP, PQ, PS, PT,
-PU, PV, PW, PX, PY et PZ sont faites, PK et PM sont closes sans code : voir
-`TODO_DONE.md`).
+#290 et #289), il reste les tâches VB à VL (« Les tâches restantes », plus bas ;
+PA à PH, PI, PJ, PL, PP, PQ, PS, PT, PU, PV, PW, PX, PY, PZ et VA sont faites,
+PK et PM sont closes sans code : voir `TODO_DONE.md`). Au 27 novembre, les pull
+requests ouvertes sont celles d'autres sessions : #408 à #411 (VB), #414 (VG),
+#415 (`build-pdf.sh`, hors des points) et #416 à #421 (VC) ; chaque session
+fait les registres de ses pull requests (*décidé le 26 novembre*, `TODO_DONE.md`
+3.65).
 Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est
 dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté
 dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont
@@ -335,7 +342,7 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 - La procédure est dans `process.md` ; son §9 dit comment tenir ces trois
   registres à jour après une fusion.
 - Les annexes 1 et 2, à la fin, recopient la relecture des 19 et 20 novembre :
-  les constats qui restent (VA à VF), en entier, et ce que chaque relecteur a
+  les constats qui restent (VB à VF), en entier, et ce que chaque relecteur a
   lu (VH, VI). Rien d'autre n'en est gardé hors de ces registres.
 
 ## Les tâches restantes
@@ -346,22 +353,26 @@ corrections de la relecture complète par #399, puis l'étiquette `v5.0.0` :
 `TODO_DONE.md` 3.56, 3.57, 3.60 et 3.61). Le texte de son point 34 est dans
 `TODO_DONE.md` (section 5, point Y). La version 5.0.1 (l'issue #400, #401 et
 #402 : `TODO_DONE.md` 3.62) laisse la tâche VJ. Restent, pour `dev`, les tâches
-VA à VI de la relecture, la tâche VJ, et les tâches VK et VL, ajoutées le 26
-novembre à la demande du mainteneur (deux estimations faites en lisant le code),
-que le mainteneur donne une à une : ne commence rien sans lui.
+VB à VI de la relecture (VA est faite par #412 et #413 : `TODO_DONE.md` 3.65),
+la tâche VJ, et les tâches VK et VL, ajoutées le 26 novembre à la demande du
+mainteneur (deux estimations faites en lisant le code), que le mainteneur donne
+une à une : ne commence rien sans lui. Reste aussi la pull request de synthèse
+de VA : `doc/differences.md`, le `ChangeLog` et le PDF du manuel, faits après
+chaque tâche (*décidé le 26 novembre*) ; la version qui portera VA.2, un
+changement du texte écrit (5.0.x ou 5.1.0), se décide à la version (*décidé le
+même jour*, `TODO_DONE.md` 3.65).
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| VA | Deux défauts du code : un drapeau levé à tort, un zéro signé écrit | VA.1, VA.2 | S |
 | VB | Le build CMake | VB.1 à VB.4 | S |
 | VC | Les tests qui protègent moins que ce qu'ils disent | VC.1 à VC.6 | S |
 | VD | La CI | VD.1 à VD.8 | M |
 | VE | Les exemples | VE.1 à VE.3 | S |
-| VF | Les restes des corrections de la relecture | VF.1 à VF.5 | S |
+| VF | Les restes des corrections de la relecture | VF.1 à VF.6 | S |
 | VG | Les crédits d'IBEX hors de `CMakeLists.txt` | VG.1 | à décider |
 | VH | Les 29 constats vus et non rapportés | VH.1 | M |
 | VI | Ce que la relecture n'a pas lu | VI.1 à VI.3 | M |
-| VJ | Les restes de l'issue #400 (`gaol::pow`) | VJ.1 à VJ.9 | à décider |
+| VJ | Les restes de l'issue #400 (`gaol::pow`) | VJ.2 à VJ.9 | à décider |
 | VK | Aucune option pour le code qui utilise GAOL | VK.1 à VK.10 | L |
 | VL | Les suites de l'étude d'un passage au C | VL.1, VL.2 | à décider |
 
@@ -378,7 +389,7 @@ constat, sa conséquence, la correction que le relecteur propose, la preuve,
 ce que la session a vu en l'exécutant et l'avis de chaque sceptique ; l'annexe 2
 dit ce que chaque relecteur a lu. Le rapport et ses programmes de preuve
 étaient dans un dossier temporaire, hors du dépôt : ces deux annexes suffisent.
-« R12 » est le constat 12 de la relecture. Les numéros de ligne sont ceux de
+« R52 » est le constat 52 de la relecture. Les numéros de ligne sont ceux de
 l'arbre relu, `e733f87` (`git show e733f87:<fichier>`) ; l'annexe 1 donne aussi
 celui de l'arbre de #399 quand la ligne s'y retrouve. « Démontré » : un
 programme le montre (annexe 1, « Vu en exécutant ») ; sinon, vérifié en lisant.
@@ -389,28 +400,6 @@ Ce qui vient après la version est dans `TODO_AFTER.md` (issue #178) : l'annonce
 à Frédéric Goualard, faute d'adresse (1.7, issue #389), la licence des cas
 d'IBEX et de Codac (1.8, #281), et le ménage de la fin, dont ces registres à
 vider (1.6).
-
-## VA. Deux défauts du code [S]
-
-1. **`powRev1` lève FE_OVERFLOW pour un résultat fini ou vide** (R12, mineur,
-   démontré) : le pas de Newton de `root_of_power_near()`
-   (`gaol/core/gaol_interval_relational.cpp`, ligne 638) calcule `s = r - r*t`
-   avant de tester `s <= largest`, et déborde quand c^(1/y) est juste au-dessus
-   de DBL_MAX. `powRev1([-0.998046875], [0, DBL_MIN], [1, 10])` est vide et
-   lève FE_OVERFLOW, `powRev1([-0.998046875], [DBL_MIN, 0.5], [1, 10])` est fini
-   et le lève aussi (annexe 1, R12). Correction : tester avant le calcul, ou
-   le faire sans débordement, et un test du drapeau. Depuis #401, ce code est
-   `pow_standard_rel_upward()` (la ligne 638 est celle de `e733f87`), que
-   `powRev1` appelle et, pour les bases non négatives, `pow_rel`, la réciproque
-   de `gaol::pow` : le défaut vaut a priori pour `pow_rel` aussi, ce que le test
-   du drapeau doit montrer.
-2. **`exact_string()` écrit une borne nulle -0 en `-0x0p+0`** (R17, mineur,
-   démontré) : IEEE 1788-2015 13.4.1 veut un zéro de bit de signe 0 ;
-   `write_hexa_bound()` (`gaol/core/gaol_interval_io.cpp`, ligne 666) prend le
-   signe du bit 63. `exact_string(interval(-0.0, 1.0))` donne `[-0x0p+0,
-   0x1p+0]`, `exact_string(sqr([-1, 2]))` `[-0x0p+0, 0x1p+2]` (annexe 1, R17) ;
-   `tests/numbers.cpp`, ligne 1060, fige ce texte. Correction : écrire `0x0p+0`
-   pour les deux zéros, et changer le test.
 
 ## VB. Le build CMake [S]
 
@@ -505,6 +494,13 @@ vider (1.6).
    `doc/building.md` et `doc/continuous-integration.md`, ligne 14, disent
    « RUN_TESTS with Visual Studio » ; le manuel cite les deux.
 5. **`doc/continuous-integration.md`, ligne 175**, passe 80 colonnes.
+6. **Le zéro signé hors de la forme exacte** (à décider ; remarqué par #413, qui
+   écrit `0x0p+0` pour une borne nulle de `exact_string()`, R17) : le format
+   `bounds` avec `std::hexfloat` sur le flux écrit encore `[-0x0p+0, 0x1p+0]`
+   pour `interval(-0.0, 1.0)`, et le décimal (`bounds`, `intervalToText()`)
+   `[-0, 1]`, et `[-0, 4]` pour `sqr([-1, 2])` avec les intervalles SSE2 et
+   NEON, `[0, 4]` avec les FPU. Aucun texte ne promet autre chose. À traiter
+   comme `exact_string()`, ou à laisser.
 
 ## VG. Les crédits d'IBEX hors de `CMakeLists.txt` [à décider]
 
@@ -542,13 +538,12 @@ Ce que chaque relecteur a lu est dans l'annexe 2 ; ce qu'aucun n'a lu :
 
 ## VJ. Les restes de l'issue #400 [à décider]
 
-`gaol::pow` est l'enveloppe de h, `pow_rel` et `pow_exponent_rel` en sont les
-réciproques (#401, `TODO_DONE.md` 3.62). Ce que la pull request a laissé, et que
-le mainteneur n'a pas encore tranché ou donné :
+`gaol::pow` est l'enveloppe de `pown` et de `pow`, `pow_rel` et
+`pow_exponent_rel` en sont les réciproques (#401, `TODO_DONE.md` 3.62). Ce que
+la pull request a laissé, et que le mainteneur n'a pas encore tranché ou donné
+(VJ.1, l'issue #400 à fermer, est fait : le mainteneur l'a fermée le 23 novembre
+à 20 h 30 UTC, avec un renvoi à #401 et à la version 5.0.1) :
 
-1. **L'issue #400 est ouverte** : #401 la corrige sans la fermer (« Issue
-   #400 », non « Closes #400 »). À fermer, avec un renvoi à #401, #402 et à la
-   version 5.0.1.
 2. **Les noms** `pow_standard_rel` et `pow_standard_exponent_rel` (dans
    `gaol_core`, exportés comme `pow_standard`, absents de `gaol`) sont ceux que
    l'issue propose « par exemple », sur le modèle de `pow_standard()`. À
@@ -561,11 +556,10 @@ le mainteneur n'a pas encore tranché ou donné :
    [-2, 9]), `pow([0], [0, 1])` et `pow([0], [-1, 1])` ([0] devient [0, 1]) et
    `pow([0], [-1, 0])` (∅ devient [1]), et ses phrases de décompte (« 280 cas,
    2, 6 »).
-4. **Le manuel et la couverture** : les chapitres `03_using`, `07_arithmetic`,
-   `11_accuracy`, `14_tests_ci` et `15_migration` sont corrigés par #401, non
-   compilés (`pdflatex` n'est pas installé dans la session) :
-   `manual/Manual_GAOLv5.pdf` est à refaire, et la couverture (`TODO_DONE.md`
-   7.62) pour le code nouveau.
+4. **La couverture** (`TODO_DONE.md` 7.62) est à refaire pour le code nouveau
+   de #401. Le manuel est fait : les chapitres `03_using`, `07_arithmetic`,
+   `11_accuracy`, `14_tests_ci` et `15_migration`, corrigés par #401, sont dans
+   le PDF refait pour 5.0.2 par #405 (`a6f399b`).
 5. **Codac** : `Interval_operations:323` attend `pow([-2, 3], [1, 2])` = [0, 9]
    (la base coupée à [0, +∞]) ; `gaol::pow` donne [-2, 9]. C'est le seul
    désaccord de `tests/tools/ibex_codac/codac_cases.py` avec les 580 attendus de
@@ -727,9 +721,11 @@ de la même façon. CORE-MATH est déjà en C. Deux pistes en restent :
 
 Les 22 constats de la relecture des 19 et 20 novembre que #399 ne corrige pas,
 et les deux qu'il ne corrige qu'en partie (R46, R102), tels que les relecteurs
-et leurs sceptiques les ont écrits ; les points VA à VF en sont le résumé. Le
+et leurs sceptiques les ont écrits ; les points VB à VF en sont le résumé (R12
+et R17, VA.1 et VA.2, corrigés par #412 et #413, en sont retirés le 27
+novembre : `git show cf27dff:TODO.md`). Le
 rapport, ses données et ses programmes de preuve étaient dans un dossier
-temporaire, hors du dépôt : ce qu'il faut pour faire ces points est ici. « R12 »
+temporaire, hors du dépôt : ce qu'il faut pour faire ces points est ici. « R52 »
 est le numéro du constat dans la relecture, qui en a 130 ; les 106 autres sont
 corrigés par #399 (`TODO_DONE.md` 3.61 et 7.65). Les numéros de ligne sont ceux
 de l'arbre relu, `e733f87` (`git show e733f87:<fichier>`), et, quand la ligne se
@@ -739,216 +735,6 @@ gravité peut différer de la sienne). « Vu en exécutant » est ce que la sess
 lancé elle-même le 20 novembre ; ailleurs, la preuve est une lecture du code, ou
 une commande à lancer. Dans les textes des relecteurs et des sceptiques, « SRC »
 est cet arbre relu.
-
-### R12 (VA.1). pow_rel / powRev1 lève FE_OVERFLOW pour un résultat fini ou vide : le pas de Newton de root_of_power_near() déborde quand c^(1/y) est juste au-dessus de DBL_MAX
-
-`gaol/core/gaol_interval_relational.cpp`, ligne 638 de `e733f87` (la même après #399).
-Dimension : les relations et IEEE 1788. Gravité : mineur pour le relecteur,
-mineur pour le sceptique.
-
-**Constat.** root_of_power_near() calcule `const double s = r - r*t;` en arrondi
-vers le haut et ne teste `s <= largest` qu'APRÈS le calcul (l. 638-639). Le
-commentaire des l. 623-628 justifie seulement que r^y ne déborde pas, rien sur
-s. Le cas y < 0 et c < 1 : 1/y, arrondi vers le haut, est rapproché de 0, donc r =
-c^(1/y arrondi) est un peu en dessous de la racine R. On a alors p = r^y > c, t =
-(p - c)/(p y) < 0 et s = r(1 + |t|) ≈ R. Si R dépasse DBL_MAX d'au plus environ
-2^-44 en relatif, r reste fini (le test `r <= largest` passe) mais s est arrondi
-à +oo, ce qui lève l'exception de dépassement. Je l'ai simulé à 400 bits pour c =
-2^-1022 et y = -0.998046875 (= -1022/1024, donc R = 2^1024 exactement) : 1/y
-arrondi vers le haut = -1.0019569471624266, r = 0x1.ffffffffffe9ep+1023 <=
-DBL_MAX, p = 0x1.00000000000b1p-1022 >= DBL_MIN et p != c, t = -3.94e-14, et r -
-r*t exact = 2^1024 x 1.0000000000000000769 > DBL_MAX. Le cas est atteint par
-pow_rel_upward(). Branche yl < 0, borne inférieure : `lower = root_end(cu, n1,
-true)` avec cu < 1 (l. 880). Borne supérieure : `upper = root_end(cl, n2,
-false)` avec 0 < cl < 1 (l. 889). Les recherches qui suivent (pow_lo<true>,
-pow_hi<true>) sont silencieuses : seul ce pas lève le drapeau.
-
-**Conséquence.** pow_rel([0, 2^-1022], [-0.998046875], [1, 10]) donne l'ensemble
-vide : la borne basse vaut DBL_MAX, au-dessus de 10. pow_rel([2^-1022, 0.5],
-[-0.998046875], [1, 10]) donne un intervalle fini, [2.0027..., 10]. Les deux
-appels lèvent quand même FE_OVERFLOW. C'est contraire à la règle que suit GAOL
-(doc/using.md l. 1909 ; floor_rel(), l. 1714 : le drapeau de dépassement ne
-signale qu'une borne infinie du résultat) et à la correction déjà faite pour
-pow_rel([3], [2^512], I) (l. 626-628). Un programme qui a démasqué FE_OVERFLOW
-meurt sur SIGFPE. Le test tests/rounding_direction.cpp
-(flag_functions_raise_no_exception_for_a_finite_result, 20 000 tirages) ne peut
-pas tomber sur une fenêtre aussi étroite, et la liste des cas connus (l.
-2898-2901) ne la contient pas.
-
-**Correction proposée.** Ne faire le pas que s'il ne peut pas déborder, par
-exemple `if (t >= 0.0 || -(r*t) <= largest - r)` avant `s = r - r*t`. Ou bien
-calculer s avec une somme saturante, comme quotient_sat(). Corriger aussi le
-commentaire des l. 623-628. Ajouter les deux appels ci-dessus aux cas connus de
-tests/rounding_direction.cpp (absence de FE_OVERFLOW, et exécution avec
-FE_OVERFLOW démasqué).
-
-**Preuve.**
-
-```bash
-cat > /tmp/t.cpp <<'EOF'
-#include <cfenv>
-#include <cfloat>
-#include <cstdio>
-#include <gaol/gaol_ieee1788.h>
-using namespace gaol_ieee1788;
-int main() {
-  const interval y = numsToInterval(-0.998046875, -0.998046875);
-  std::feclearexcept(FE_ALL_EXCEPT);
-  const interval a = powRev1(y, numsToInterval(0.0, DBL_MIN), numsToInterval(1.0, 10.0));
-  const int fa = std::fetestexcept(FE_OVERFLOW) != 0;
-  std::feclearexcept(FE_ALL_EXCEPT);
-  const interval b = powRev1(y, numsToInterval(DBL_MIN, 0.5), numsToInterval(1.0, 10.0));
-  const int fb = std::fetestexcept(FE_OVERFLOW) != 0;
-  std::printf("%s %d / %s %d\n", intervalToText(a).c_str(), fa, intervalToText(b).c_str(), fb);
-}
-EOF
-g++ -std=c++11 -I<prefix>/include /tmp/t.cpp -L<prefix>/lib -lgaol -o /tmp/t && /tmp/t
-# attendu : "[empty] 0 / [2.00..., 10] 0" ; observé selon l'analyse : drapeau à 1 dans les deux cas
-```
-
-**Vu en exécutant.** Le programme, compilé contre le build de `e733f87` (GCC
-15.2, x86-64, SSE2) :
-
-```cpp
-#include <cfenv>
-#include <cfloat>
-#include <cstdio>
-#include <gaol/gaol_ieee1788.h>
-using namespace gaol_ieee1788;
-int main() {
-  const interval y = numsToInterval(-0.998046875, -0.998046875);
-  std::feclearexcept(FE_ALL_EXCEPT);
-  const interval a = powRev1(y, numsToInterval(0.0, DBL_MIN), numsToInterval(1.0, 10.0));
-  const int fa = std::fetestexcept(FE_OVERFLOW) != 0;
-  std::feclearexcept(FE_ALL_EXCEPT);
-  const interval b = powRev1(y, numsToInterval(DBL_MIN, 0.5), numsToInterval(1.0, 10.0));
-  const int fb = std::fetestexcept(FE_OVERFLOW) != 0;
-  std::printf("a=[%a, %a] overflow=%d\nb=[%a, %a] overflow=%d\n", a.left(), a.right(), fa, b.left(), b.right(), fb);
-}
-```
-
-Il affiche (a est vide, ses bornes sont des NaN) :
-
-```text
-a=[-nan, nan] overflow=1
-b=[0x1.0058f4efcf39ep+1, 0x1.4p+3] overflow=1
-```
-
-**Sceptique (confirmé, mineur).** Le code cité est exact, ligne pour ligne. Dans
-root_of_power_near() (gaol/core/gaol_interval_relational.cpp, l. 617-647), `s =
-r - r*t` est calculé aux l. 637-638 et le test `s <= largest` ne vient qu'à la
-l. 639. Le commentaire des l. 623-628 ne parle que de r^y. Le premier pow (c,
-1/y) passe par pow_up_without_overflow_exception(), où t ≈ 1024 - 1e-13 tombe
-dans la section masquée et restaurée. Il ne lève donc rien et r est fini. Le
-second pow (r, y) a r > 1 et y < 0 : il ne grandit pas et ne déborde pas.
-pow_rel() ne restaure que le mode d'arrondi (GAOL_RND_LEAVE, gaol_fpu.h l. 330),
-pas les drapeaux.
-
-Le raisonnement numérique tient, vérifié à la main sans exécution :
-
-- R = (2^-1022)^(-1024/1022) = 2^1024, qui dépasse DBL_MAX de 2^-53 en relatif.
-- 1/y arrondi vers le haut rapproche l'exposant de 0. On a donc r < R d'environ
-  1e-13 au plus en relatif (≈ 3.9e-14 annoncé), r est fini et p > c >= DBL_MIN.
-- p est arrondi vers le haut, ce qui ne peut qu'agrandir |t|. L'erreur de Newton
-  du second ordre (≈ 1e-27) et les autres arrondis sont négligeables devant
-  l'écart de 1.1e-16 entre DBL_MAX et 2^1024.
-- La somme exacte r - r*t dépasse donc DBL_MAX, et l'arrondi vers le haut donne
-  +oo avec FE_OVERFLOW.
-
-Les appels l. 880 (cu < 1, n1 < 0) et l. 889 (0 < cl < 1, n2 < 0) atteignent
-bien ce chemin par root_end() (l. 760). TODO_AFTER.md et TODO_DONE.md ne
-contiennent rien sur ce cas. Je n'ai rien exécuté : les valeurs hexadécimales
-exactes de r et de p ne sont pas recalculées, mais la conclusion (drapeau levé
-pour un résultat vide ou fini) ne dépend pas d'elles. La gravité reste mineure :
-la fenêtre est très étroite et le résultat est juste, seul le drapeau est faux.
-
-### R17 (VA.2). intervalToExact/exact_string écrit une borne nulle -0 sous la forme « -0x0p+0 », ce que 13.4.1 interdit (un zéro y a le bit de signe s = 0)
-
-`gaol/core/gaol_interval_io.cpp`, ligne 666 de `e733f87` (la même après #399).
-Dimension : les entrées-sorties et le lecteur. Gravité : mineur pour le
-relecteur, mineur pour le sceptique.
-
-**Constat.** write_hexa_bound() met le signe à partir du bit 63 sans traiter le
-zéro à part : `std::snprintf(buf, n, "%s0x%d%s%sp%+d", (bits >> 63) ? "-" : "",
-leading, ...)`. Avec biased == 0 et fraction == 0, -0.0 donne donc "-0x0p+0".
-exact_string() ne ramène à [0x0p+0] que l'intervalle ponctuel nul (ligne 688) :
-pour [-0, 1], elle écrit "[-0x0p+0, 0x1p+0]". IEEE 1788-2015, 13.4.1 (p. 69
-imprimée) : « Zero, x = 0, shall have sign bit s = 0 and exponent e = 0 », et « sstr
-is "-" or an optional "+", as appropriate ». Les textes affirment pourtant la
-forme de 13.4.1 : le commentaire des lignes 620-621, doc/accuracy.md:227 (« the
-bounds in the hexadecimal-significand form of 13.4.1 »),
-manual/v5/chapters/09_io.tex:434-437 et 567-568. tests/numbers.cpp:1060 fige ce
-texte : `{ interval(-0.0, 1.0), "[-0x0p+0, 0x1p+0]" }`. Par ailleurs, round_trip
-(tests/numbers.cpp:1023-1024) compare avec `y.left() == x.left()`, qui confond
--0 et +0. La relecture « bit for bit, ... a bound -0 ... included » annoncée par
-doc/accuracy.md:229 et par le commentaire de tests/numbers.cpp:1009 n'est donc
-vérifiée par aucun test.
-
-**Conséquence.** La représentation exacte, qui doit être canonique (13.4.1 la
-définit « to make the representation unique »), n'a pas une forme unique pour un
-même intervalle. sqr(interval(-1, 2)) s'écrit "[-0x0p+0, 0x1p+2]" avec les
-intervalles SSE2 et NEON, et "[0x0p+0, 0x1p+2]" avec les intervalles FPU
-(doc/using.md, « The sign of a zero bound »). Un outil qui compare ces textes
-entre builds, ou qui contrôle la forme de 13.4.1, voit une différence ou une
-non-conformité. Le mainteneur, lui, croit testée une propriété (-0 relu bit pour
-bit) que rien ne vérifie.
-
-**Correction proposée.** Deux possibilités. (a) Écrire toute borne nulle « 0x0p+0 »
-dans write_hexa_bound(), comme on le fait déjà pour le point zéro. La NOTE de
-13.4 admet que -0 revienne en +0 (identité de donnée), mais il faut alors
-corriger tests/numbers.cpp:1060 et la phrase « a bound -0 ... included » de
-doc/accuracy.md:229. (b) Garder le choix du bit pour bit, mais le dire comme un
-écart à 13.4.1 dans doc/accuracy.md, dans le manuel (09_io.tex) et dans la liste
-de fin de gaol/gaol_ieee1788.h. Dans les deux cas, round_trip doit comparer les
-bits (memcmp) et non utiliser ==.
-
-**Preuve.**
-
-```bash
-printf '#include <gaol/gaol.h>\n#include <iostream>\nint main(){ std::cout << gaol::exact_string(gaol::interval(-0.0, 1.0)) << "\\n" << gaol::exact_string(gaol::sqr(gaol::interval(-1.0, 2.0))) << "\\n"; gaol::cleanup(); }\n' > t.cpp && g++ -std=c++11 t.cpp $(pkg-config --cflags --libs gaol) && ./a.out   # attendu avec SSE2 : [-0x0p+0, 0x1p+0] puis [-0x0p+0, 0x1p+2]
-```
-
-**Vu en exécutant.** Le programme, compilé contre le build de `e733f87` (SSE2) :
-
-```cpp
-#include <gaol/gaol.h>
-#include <iostream>
-int main(){ std::cout << gaol::exact_string(gaol::interval(-0.0, 1.0)) << "\n" << gaol::exact_string(gaol::sqr(gaol::interval(-1.0, 2.0))) << "\n"; gaol::cleanup(); }
-```
-
-Il affiche :
-
-```text
-[-0x0p+0, 0x1p+0]
-[-0x0p+0, 0x1p+2]
-```
-
-**Sceptique (confirmé, mineur).** J'ai vérifié la preuve, avec deux décalages de
-ligne. Dans gaol_interval_io.cpp:666, write_hexa_bound() prend le signe dans le
-bit 63 et ne traite pas le zéro à part : -0.0 s'écrit donc « -0x0p+0 ».
-exact_string() (ligne 688) ne ramène à [0x0p+0] que l'intervalle où les deux
-bornes sont nulles. Une seule borne -0, comme dans [-0, 1], sort donc avec « -0x0p+0
-».
-
-La norme dit bien ce que le constat lui fait dire (PDF p. 85, 13.4.1) : « As
-used within interval literals, x denotes a real number, with no distinction
-between −0 and +0. To make the representation unique [...] Zero, x = 0, shall
-have sign bit s = 0 ». La sortie s'écarte donc de la forme de 13.4.1 que le
-commentaire de la ligne 620, doc/accuracy.md:227 et 09_io.tex:435 et 569 disent
-suivre.
-
-Le test qui fige ce texte est à tests/numbers.cpp:1061 (et non 1060). round_trip
-compare avec == à la ligne 1025 (et non 1023-1024), ce qui confond -0 et +0 :
-aucun test ne vérifie la relecture bit pour bit de -0 qu'annonce
-doc/accuracy.md:229.
-
-Rien de tout cela n'est noté dans TODO_AFTER.md, TODO_DONE.md ni dans la liste
-des écarts de gaol_ieee1788.h. doc/accuracy.md:229 présente ce choix comme
-voulu, sans le dire écart à 13.4.1.
-
-La gravité « mineur » tient : le texte relu donne le même intervalle (la NOTE de
-13.4 admet l'identité de donnée), mais le texte écrit n'est pas canonique et
-peut différer d'un build à l'autre.
 
 ### R32 (VB.1). gaol::gaol donne -mno-daz-ftz à tout GCC 13 ou plus, quelle que soit l'architecture : sur ARM, POWER, RISC-V et s390x, GCC refuse l'option
 
