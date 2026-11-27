@@ -10,7 +10,8 @@
  * 1788-2015 requires (12.10.2), and integer powers, of either sign, whose
  * bounds GAOL v5 computes from exact products (pown_products() of
  * gaol/core/gaol_interval_core.cpp); n-th roots, which GAOL computes in several
- * rounded operations, to be enclosed within a few doubles. Doubles of every
+ * rounded operations, to be enclosed within 2 doubles of the tightest bounds,
+ * at every magnitude (GAOL v5). Doubles of every
  * magnitude are drawn, subnormal ones and results beyond the largest double
  * included. Integer powers for n up to 2^32 - 1 are compared with bounds
  * computed apart with mpmath, and the powers that are doubles have to be
@@ -25,7 +26,7 @@
  * empty set. The n-th roots are the rootn of IEEE 1788-2015: for an odd n,
  * the root of a negative number is the opposite of the root of its magnitude.
  * Those of numbers below 2^-1020, subnormal ones included, are within 2 doubles
- * of the tightest bounds, and exact where x is an n-th power, for n up to
+ * of the tightest bounds too, and exact where x is an n-th power, for n up to
  * 2^32 - 1 (GAOL v5).
  * All the intervals made of 15 special bounds (zeros of both signs, infinities,
  * the smallest subnormal and the smallest normal numbers, the largest double...)
@@ -62,10 +63,13 @@ namespace
   // tightest bounds, of either sign, below 2^-968 and beyond the largest
   // double too (GAOL v5: computed by repeated rounded products there, n + 1
   // doubles away at most, as GAOL computed every power, and x^-n as the
-  // inverse of x^n, 8 doubles away). The n-th roots are powers with a rounded
-  // exponent, whose error grows with |log x|, up to 8 doubles between 2^-30
-  // and 2^30 and 234 over all the doubles. Square roots are the tightest
-  // (GAOL's lower bound was one double below it for half of the doubles)
+  // inverse of x^n, 8 doubles away). The n-th roots are proved by integer
+  // powers of their bounds rounded upward and downward, the tightest bounds or
+  // up to 2 doubles beyond them, at every magnitude of x (GAOL took powers with
+  // a rounded exponent, whose error grows with |log x|, up to 8 doubles away
+  // between 2^-30 and 2^30 and 234 over all the doubles). Square roots are the
+  // tightest (GAOL's lower bound was one double below it for half of the
+  // doubles)
   const int power_limit = 0;
   const int square_root_limit = 0;
   const int root_limit = 2;
@@ -145,10 +149,9 @@ namespace
     }
   }
 
-  // Operations on doubles, drawn by draw, nth_root_limit being the largest distance
-  // from the tightest bounds allowed for n-th roots
+  // Operations on doubles, drawn by draw
   template<class Draw>
-  void operations_on_doubles(const std::string& range, Draw draw, int nth_root_limit)
+  void operations_on_doubles(const std::string& range, Draw draw)
   {
     const std::string in = " (" + range + ")";
     for (int i = 0; i < nb_random_values; ++i) {
@@ -217,7 +220,7 @@ namespace
       const double m = std::fabs(a);
       expect_root("sqrt([|a|])" + in, sqrt(interval(m)), m, 2, square_root_limit);
       for (int n = 2; n <= 7; ++n) {
-        expect_root("nth_root([|a|],n) for n=" + std::to_string(n) + in, nth_root(interval(m), static_cast<unsigned int>(n)), m, n, nth_root_limit);
+        expect_root("nth_root([|a|],n) for n=" + std::to_string(n) + in, nth_root(interval(m), static_cast<unsigned int>(n)), m, n, root_limit);
       }
       // The odd roots of -|a|, the opposites of those of |a|, and the even
       // roots of -|a|, which are empty unless a is 0
@@ -2502,8 +2505,8 @@ int main()
 {
   gaol::init();
   Random random;
-  operations_on_doubles("exponents from -30 to 30", [&] { return random(-30, 30); }, 16);
-  operations_on_doubles("any doubles", [&] { return random.any(); }, 512);
+  operations_on_doubles("exponents from -30 to 30", [&] { return random(-30, 30); });
+  operations_on_doubles("any doubles", [&] { return random.any(); });
   operations_on_intervals("exponents from -30 to 30", [&] { return random(-30, 30); });
   operations_on_intervals("any doubles", [&] { return random.any(); });
   divisions_by_zero();

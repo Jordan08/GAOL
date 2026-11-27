@@ -99,7 +99,9 @@ which `numbers` checks there too.
   tie of the maxima of the products with SSE2 and NEON, which no other check
   did (GAOL v5).
   N-th roots have to
-  be enclosures, within a few doubles, the odd
+  be enclosures within 2 doubles of the tightest bounds, for n from 2 to 7 at
+  the 10 000 doubles drawn at random, and for n = 3, 4 and 17 at 9 extreme
+  doubles, the odd
   roots of negative numbers being the opposites of the roots of their
   magnitudes, and the n-th roots of intervals the roots of their bounds (of
   their part in `[0, +oo]` for an even n). `pow([10], -400)`,
