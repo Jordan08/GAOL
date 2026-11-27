@@ -33,7 +33,6 @@ public:
     CPPUNIT_ASSERT(pow(interval::emptyset(),3).is_empty());
     CPPUNIT_ASSERT(pow(interval::emptyset(),-2).is_empty());
     CPPUNIT_ASSERT(pow(interval::emptyset(),-3).is_empty());
-    TEST_PEQ(pow(interval(-3,5),2),interval(0,25));
     TEST_SEQ(pow(interval(-3,5),2), interval(0, 25));
 
    // Negative interval
@@ -59,9 +58,9 @@ public:
     TEST_SEQ(pow(interval(2,3),4), interval(16, 81));
 
     // Interval straddling 0
-    TEST_PEQ(pow(interval(-3,2),-4),interval(0.01234567901, GAOL_INFINITY));
+    TEST_HULL(pow(interval(-3,2),-4), 0x1.948b0fcd6e9e0p-7, GAOL_INFINITY);
     TEST_SEQ(pow(interval(-3,2),-3),interval::universe());
-    TEST_PEQ(pow(interval(-3,2),-2),interval(0.1111111111, GAOL_INFINITY));
+    TEST_HULL(pow(interval(-3,2),-2), 0x1.c71c71c71c71cp-4, GAOL_INFINITY);
     TEST_SEQ(pow(interval(-3,2),-1),interval::universe());
     TEST_SEQ(pow(interval(-3,2),0),interval::one());
     TEST_SEQ(pow(interval(-3,2),1), interval(-3, 2));
@@ -69,9 +68,9 @@ public:
     TEST_SEQ(pow(interval(-3,2),3), interval(-27, 8));
     TEST_SEQ(pow(interval(-3,2),4), interval(0, 81));
 
-    TEST_PEQ(pow(interval(-2,3),-4),interval(0.012345679, GAOL_INFINITY));
+    TEST_HULL(pow(interval(-2,3),-4), 0x1.948b0fcd6e9e0p-7, GAOL_INFINITY);
     TEST_SEQ(pow(interval(-2,3),-3),interval::universe());
-    TEST_PEQ(pow(interval(-2,3),-2),interval(0.11111111, GAOL_INFINITY));
+    TEST_HULL(pow(interval(-2,3),-2), 0x1.c71c71c71c71cp-4, GAOL_INFINITY);
     TEST_SEQ(pow(interval(-2,3),-1),interval::universe());
     TEST_SEQ(pow(interval(-2,3),0),interval::one());
     TEST_SEQ(pow(interval(-2,3),1), interval(-2, 3));

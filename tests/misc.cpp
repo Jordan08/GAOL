@@ -896,15 +896,15 @@ public:
   // Tests of constants
   void test_constants() {
     CPPUNIT_ASSERT(interval::emptyset().is_empty());
-    TEST_PEQ(interval::universe(),interval(-GAOL_INFINITY,+GAOL_INFINITY));
+    TEST_SEQ(interval::universe(),interval(-GAOL_INFINITY,+GAOL_INFINITY));
     TEST_SEQ(interval::zero(),interval(0.0,0.0));
     TEST_SEQ(interval::one(),interval(1.0,1.0));
     TEST_SEQ(interval::positive(),interval(0.0,+GAOL_INFINITY));
     TEST_SEQ(interval::negative(),interval(-GAOL_INFINITY,0.0));
     TEST_SEQ(interval::minus_one_plus_one(),interval(-1.0,1.0));
-    TEST_PEQ(interval::pi(),interval(3.14159,3.1416));
-    TEST_PEQ(interval::two_pi(),interval(6.2831,6.2832));
-    TEST_PEQ(interval::half_pi(),interval(1.5707,1.5708));
+    TEST_HULL(interval::pi(),0x1.921fb54442d18p+1,0x1.921fb54442d19p+1);
+    TEST_HULL(interval::two_pi(),0x1.921fb54442d18p+2,0x1.921fb54442d19p+2);
+    TEST_HULL(interval::half_pi(),0x1.921fb54442d18p+0,0x1.921fb54442d19p+0);
     TEST_SEQ(interval::one_plus_infinity(),interval(1.0,+GAOL_INFINITY));
   }
 

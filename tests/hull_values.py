@@ -3,7 +3,7 @@
 # tests/reverse_mappings.cpp and tests/non_arithmetic.cpp, the unit tests of GAOL
 # 4 whose references were decimal numbers compared at a Hausdorff distance of
 # 1e-8 (TEST_EQ), which an enclosure that missed the exact value by less than
-# that passed.
+# that passed, or asked only not to be disjoint from the result (TEST_PEQ).
 #
 # For each call, this script computes the hull of the values the function takes
 # on the interval(s) it is called with (for the relational functions, the hull
@@ -283,8 +283,12 @@ def power(x, n):
 
 
 def pow_hull(a, n):
-    """The hull of x^n over a, n != 0, a not holding 0 for a negative n: the
-    values at its bounds, and 0 for an even n > 0 when the bounds have two signs"""
+    """The hull of x^n over a, n != 0: the values at the bounds of a, and 0 for
+    an even n > 0 when the bounds have two signs. For a negative n, a does not
+    hold 0, but inside it for an even n: the hull is then the value at the
+    bound of the greater magnitude up to +oo, the limit of x^n at 0"""
+    if n < 0 and n % 2 == 0 and a.lo < 0 < a.hi:
+        return bounds(pair(power(max(-a.lo, a.hi), n)), pair(INF))
     values = [power(a.lo, n), power(a.hi, n)]
     if n > 0 and n % 2 == 0 and a.lo < 0 < a.hi:
         values.append(Fraction(0))
@@ -318,8 +322,8 @@ def nth_root_hull(a, n):
 NON_ARITHMETIC = (
     [("pow(%s,%d)" % (a.text, n), pow_hull(a, n))
      for a, ns in ((iv(-3, 5), (2,)), (iv(-3, -2), (-4, -3, -2, -1, 1, 2, 3, 4)),
-                   (iv(2, 3), (-4, -3, -2, -1, 1, 2, 3, 4)), (iv(-3, 2), (1, 2, 3, 4)),
-                   (iv(-2, 3), (1, 2, 3, 4))) for n in ns]
+                   (iv(2, 3), (-4, -3, -2, -1, 1, 2, 3, 4)), (iv(-3, 2), (-4, -2, 1, 2, 3, 4)),
+                   (iv(-2, 3), (-4, -2, 1, 2, 3, 4))) for n in ns]
     + [("pow(%s,%s)" % (iv(3, 4).text, iv(2, 3).text), pow_interval_hull(iv(3, 4), iv(2, 3)))]
     + [("sqrt(%s)" % a.text, sqrt_hull(a)) for a in (iv(2, 3), iv(-3, 2), iv(-2, 3))]
     + [("log(%s)" % a.text, increasing_hull(lambda x: mpmath.log(m(x)), a)) for a in (iv(5, 9), iv(56.1))]
